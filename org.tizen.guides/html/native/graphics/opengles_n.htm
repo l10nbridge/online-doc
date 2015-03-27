@@ -1,0 +1,449 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>OpenGL ES</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#tizen">OpenGL ES in Tizen</a></li>
+            <li><a href="#glview">GLView Programming Guide</a></li>
+			<li><a href="#evasgl">EvasGL Programming Guide</a></li>
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/opengl_tutorial_n.htm">OpenGL ES Tutorial</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__OPENGL__ES__FRAMEWORK.html">OpenGL ES API</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>OpenGL ES</h1>  
+ 
+<p>The OpenGL ES overview shows the interaction among Graphics subsystems, OpenGL ES, and EGL defined by the <a href="http://www.khronos.org" target="_blank">Khronos Group</a>.</p>
+
+<p>OpenGL ES is a standard specification defining a cross-language, cross-platform <a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__OPENGL__ES__FRAMEWORK.html">OpenGL ES</a> API for writing applications that produce 2D and 3D computer graphics. OpenGL ES 1.1 and 2.0 are supported in Tizen 2.3. (OpenGL ES 3.0 will be supported in the next Tizen version.)</p>
+
+<p>EGL is an adhesive layer between OpenGL ES and the underlying native platform window system. EGL communicates with the Window system to get information on the application window, creates the drawing surface, and manages rendering context and resources.</p>
+
+     <p class="figure">Figure: OpenGL ES structure</p> 
+  <p style="text-align:center;"><img alt="OpenGL&reg; ES structure" src="../../images/opengl1.png" /></p>   
+
+<h2 id="tizen" name="tizen">OpenGL ES in Tizen</h2>
+
+<p>Building an OpenGL ES application in Tizen requires knowledge about <a href="../../../../org.tizen.tutorials/html/native/ui/efl_tutorial_n.htm">designing UI applications with EFL</a>.</p>
+
+<p>Tizen native applications do not depend on the Window system, because the Window system is an internal Tizen module, which can be enhanced or replaced. EFL provides a method that draws the OpenGL ES content and encapsulates the EGL and the native Window system.</p>
+
+      <p class="figure">Figure: OpenGL ES and EFL</p> 
+  <p style="text-align:center;"><img alt="OpenGL&reg; ES and EFL" src="../../images/opengl2.png" /></p>   
+
+<p>A GLView creates a drawable GL surface for the application, and sets up all the required callbacks. The application can use GLView with various widgets, such as toolbar or button.</p>
+
+<p>GLView internally uses EvasGL. It is an abstraction layer on top of EGL, which provides the necessary features for most applications in a platform-independent way. Since the goal of EvasGL is to abstract the underlying platform, only a subset of the features can be used by applications.</p>
+
+<p>Using GLView is recommended for usual OpenGL ES programs, such as 3D game applications. But if you need pbuffer surface or extension functions, you have to understand EvasGL.</p>
+
+<h3>EvasGL vs. GLView</h3>
+
+<p>While it is possible to create an OpenGL application by just using EvasGL, it could be difficult to comprehend due to the low-level nature of these APIs. However, it enables detailed operations.</p>
+
+<h2 id="glview" name="glview">GLView Programming Guide</h2>
+
+<h3>Setting up an OpenGL ES Surface</h3>
+
+<p>The easiest way to use OpenGL ES within a Tizen application is to rely on the GLView widget.</p>
+
+<p>GLView is a simple Elementary widget that sets up an OpenGL ES target surface and a context, and allows you to embed it in any Tizen application. GLView is basically a wrapper around EvasGL, the OpenGL-ES/EGL abstraction layer of EFL.</p>
+
+<p>To create a basic application:</p>
+
+<p>To develop a GL application, you have to call <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set</span> before creating a window. It makes an application to use GPU.</p>
+
+<p>First, you should declare the global variable using <span style="font-family: Courier New,Courier,monospace">ELEMENTARY_GLVIEW_GLOBAL_DEFINE()</span>, then create a GLView object and use <span style="font-family: Courier New,Courier,monospace">ELEMENTARY_GLVIEW_GLOBAL_USE(glview)</span>. Now, you can call GL functions.</p>
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;Elementary_GL_Helpers.h&gt;
+
+ELEMENTARY_GLVIEW_GLOBAL_DEFINE()
+
+typedef struct appdata 
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;Evas_Object *glview;
+&nbsp;&nbsp;&nbsp;unsigned int program;
+&nbsp;&nbsp;&nbsp;unsigned int vtx_shader;
+&nbsp;&nbsp;&nbsp;unsigned int fgmt_shader;
+&nbsp;&nbsp;&nbsp;unsigned int vbo;
+} appdata_s;
+
+static Evas_Object *glview_create(Evas_Object *win);
+static void glview_start(Evas_Object *glview);
+
+// GLView callback functions
+static void draw_gl(Evas_Object *obj);
+static void init_gl(Evas_Object *obj);
+static void resize_gl(Evas_Object *obj);
+static void del_gl(Evas_Object *obj);
+
+static bool app_create(void *data) 
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;elm_config_accel_preference_set(&quot;gl&quot;);
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(&quot;GLView example&quot;, &quot;GLView example&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;ad-&gt;glview = ad-&gt;glview_create(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;ELEMENTARY_GLVIEW_GLOBAL_USE(ad-&gt;glview);
+&nbsp;&nbsp;&nbsp;glview_start(ad-&gt;glview);
+
+&nbsp;&nbsp;&nbsp;return true;
+}</pre>
+
+<p>Add the OpenGL ES view to the application:</p>
+
+<pre class="prettyprint">
+// This is the GL initialization function
+static Evas_Object *glview_create(Evas_Object *win)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *glview;
+
+&nbsp;&nbsp;&nbsp;// This creates the widget itself
+&nbsp;&nbsp;&nbsp;glview = elm_glview_add(win);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, glview);
+
+&nbsp;&nbsp;&nbsp;// Request a surface with Depth and Stencil support (default buffer sizes)
+&nbsp;&nbsp;&nbsp;elm_glview_mode_set(glview, ELM_GLVIEW_DEPTH | ELM_GLVIEW_STENCIL);
+
+&nbsp;&nbsp;&nbsp;// Set the basic policies to handle the view transparently
+&nbsp;&nbsp;&nbsp;elm_glview_resize_policy_set(glview, ELM_GLVIEW_RESIZE_POLICY_RECREATE);
+&nbsp;&nbsp;&nbsp;elm_glview_render_policy_set(glview, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);
+
+&nbsp;&nbsp;&nbsp;// Set the 4 main callbacks
+&nbsp;&nbsp;&nbsp;elm_glview_init_func_set(glview, init_gl);
+&nbsp;&nbsp;&nbsp;elm_glview_del_func_set(glview, del_gl);
+&nbsp;&nbsp;&nbsp;elm_glview_render_func_set(glview, draw_gl);
+&nbsp;&nbsp;&nbsp;elm_glview_resize_func_set(glview, resize_gl);
+
+&nbsp;&nbsp;&nbsp;// Finally show this view
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_min_set(glview, 250, 250);
+&nbsp;&nbsp;&nbsp;evas_object_show(glview);
+
+&nbsp;&nbsp;&nbsp;return glview;
+}</pre>
+
+<h3>Setting up the Callbacks</h3>
+
+<p>To set up callbacks:</p>
+
+<ol>
+	<li>Callback for initialization
+	<p>The initialization callback will be called when the GLView is created, after a valid openGL ES context and surface are created. Initialization, resizing, drawing, and deleting callback are called in the main loop.</p>
+
+	<pre class="prettyprint">
+// GL Init function
+static void init_gl(Evas_Object *glview)
+{
+&nbsp;&nbsp;&nbsp;glClearColor(0, 0, 0, 0);
+&nbsp;&nbsp;&nbsp;glClear(GL_COLOR_BUFFER_BIT);
+
+&nbsp;&nbsp;&nbsp;// Do any form of OpenGL ES initialization here
+&nbsp;&nbsp;&nbsp;// init_shaders();
+&nbsp;&nbsp;&nbsp;// init_vertices();
+}</pre>
+	</li>
+	<li>Callback for resizing
+	<p>The resize callback is called whenever the GLView widget is resized. A common action to take here is to reset the viewport.</p>
+
+	<pre class="prettyprint">
+// GLView resize function
+static void resize_gl(Evas_Object *glview)
+{
+&nbsp;&nbsp;&nbsp;int w, h;
+&nbsp;&nbsp;&nbsp;elm_glview_size_get(glview, &amp;w, &amp;h);
+&nbsp;&nbsp;&nbsp;glViewport(0, 0, w, h);
+}</pre>
+	</li>
+	<li>Callback for drawing
+	<p>The drawing callback is called whenever a new frame has to be drawn. The exact moment when this function is called depends on the policy.</p>
+
+	<pre class="prettyprint">
+elm_glview_render_policy_set(glview, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);</pre>
+
+	<p>Another policy is ELM_GLVIEW_POLICY_ALWAYS, which requests render always even when it is not visible. So on demand policy is probably what you are looking for. The application can now draw anything using GL primitives when this callback is triggered. All draw operations are restricted to the surface of the GLView object previously created.</p>
+
+	<pre class="prettyprint">
+// GL draw callback
+static void draw_gl(Evas_Object *glview)
+{
+&nbsp;&nbsp;&nbsp;// Paint it blue
+&nbsp;&nbsp;&nbsp;glClearColor(0.2, 0.2, 0.6, 1.0);
+&nbsp;&nbsp;&nbsp;glClear(GL_COLOR_BUFFER_BIT);
+
+&nbsp;&nbsp;&nbsp;// The usual OpenGL ES draw commands come here
+&nbsp;&nbsp;&nbsp;// draw_scene();
+}</pre>
+	</li>
+	<li>Callback for deleting
+	<p>The delete callback is triggered when the GLView is being destroyed, from the main loop, and no other callback can be called on the same object afterwards.</p>
+
+	<pre class="prettyprint">
+// Delete GLView callback
+static void del_gl(Evas_Object *glview)
+{
+&nbsp;&nbsp;&nbsp;// Destroy all the OpenGL ES resources here
+&nbsp;&nbsp;&nbsp;// destroy_shaders();
+&nbsp;&nbsp;&nbsp;// destroy_objects();
+}</pre>
+	</li>
+	<li>Add an animator.
+	<p>The application above is technically working but the scene does not get updated unless the frame is marked as dirty. Game applications might need to use an animator to obtain continuous update of the scenes. Here is an example for a default update refresh rate:</p>
+
+	<pre class="prettyprint">
+static Eina_Bool anim_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *glview = data;
+&nbsp;&nbsp;&nbsp;elm_glview_changed_set(glview);
+
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+
+static void glview_start(Evas_Object *glview)
+{
+&nbsp;&nbsp;&nbsp;ecore_animator_add(anim_cb, glview);
+}</pre>
+
+	<p>Any other event can be used to refresh the view, for example user input if the view need to be updated.</p>
+	</li>
+</ol>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Since the Evas rendering engine uses its own GL context internally, the application has to call the gl functions inside the 4 GLView callback functions (initialization, resizing, drawing, deleting) to be guaranteed rendering correctness.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+
+<p>While GLView is an abstraction above EvasGL, it is possible to use EvasGL directly for more low-level and advanced features, such as:</p>
+
+<ul>
+	<li>Creating new contexts</li>
+	<li>Creating new surfaces</li>
+	<li>Creating PBuffer surfaces</li>
+	<li>Calling extensions</li>
+</ul>
+
+<p>For all those reasons, a direct access to the EvasGL object is required. When you use GLView, you can use the following code:</p>
+
+<pre class="prettyprint">
+Evas_GL *evgl = elm_glview_evas_gl_get(glview);
+// Then it is possible to call any evas_gl function with it, for example:
+Evas_GL_Context *ctx = evas_gl_current_context_get(evgl);
+Evas_GL_Surface *pbuf = evas_gl_pbuffer_surface_create(evgl, cfg, w, h, NULL);</pre>
+
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Do not destroy the EvasGL object. Its life-cycle is defined by the GLView object.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+
+<h2 id="evasgl" name="evasgl">EvasGL Programming Guide</h2>
+
+<p>This guide assumes that the application uses EvasGL directly instead of using the GLView. (If the application uses a GLView, EvasGL is created internally.)</p>
+
+<h3>Declaration of EvasGL Objects</h3>
+
+<p>This is how to define the application data structure to hold all the objects for your EvasGL application:</p>
+
+<ul>
+	<li><span style="font-family: Courier New,Courier,monospace">Evas_Object *win</span>: Application window.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">Evas_Object *img</span>: OpenGL ES canvas.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">Evas_GL *evasgl</span>: EvasGL Object for rendering gl in Evas.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">Evas_GL_API *glapi</span>: EvasGL API object that contains the GL APIs to be used in Evas GL.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">Evas_GL_Context *ctx</span>: EvasGL Context object, a GL rendering context in Evas GL.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">Evas_GL_Surface *sfc</span>: EvasGL Surface object, a GL rendering target in Evas GL.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">Evas_GL_Config *cfg</span>: EvasGL Surface configuration object for surface creation.</li>
+</ul>
+
+<pre class="prettyprint">
+typedef struct appdata 
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;Evas_Object *img;
+
+&nbsp;&nbsp;&nbsp;Evas_GL *evasgl;
+&nbsp;&nbsp;&nbsp;Evas_GL_API *glapi;
+&nbsp;&nbsp;&nbsp;Evas_GL_Context *ctx;
+&nbsp;&nbsp;&nbsp;Evas_GL_Surface *sfc;
+&nbsp;&nbsp;&nbsp;Evas_GL_Config *cfg;
+
+&nbsp;&nbsp;&nbsp;unsigned int program;
+&nbsp;&nbsp;&nbsp;unsigned int vtx_shader;
+&nbsp;&nbsp;&nbsp;unsigned int fgmt_shader;
+&nbsp;&nbsp;&nbsp;unsigned int vbo;
+} appdata_s;</pre>
+
+<h3>Creating EvasGL</h3>
+
+<p>We can create our EvasGL handler using <span style="font-family: Courier New,Courier,monospace">evas_gl_new(Evas * e)</span>. This initializer takes the Evas canvas that OpenGL ES is to be used on as a parameter. When developing an application with Elementary, we can use the canvas of our window:</p>
+
+<pre class="prettyprint">
+ad-&gt;win = elm_win_util_standard_add(&quot;Evas_GL Example&quot;, &quot;Evas_GL Example&quot;);
+ad-&gt;evasgl = evas_gl_new(evas_object_evas_get(ad-&gt;win));</pre>
+
+<p>To free the memory allocated to this handler, use <span style="font-family: Courier New,Courier,monospace">evas_gl_free(Evas_GL *evas_gl)</span>.</p>
+
+<h3>Getting OpenGL ES APIs</h3>
+
+<p>You can get the API for rendering OpenGL ES with <span style="font-family: Courier New,Courier,monospace">evas_gl_api_get(Evas_GL *evas_gl_)</span>. This function returns a structure that contains all the OpenGL ES functions you can use to render in Evas. These functions consist of all the standard OpenGL ES2.0 functions and any extra ones Evas has decided to provide in addition. If you have your code ported to OpenGL ES 2.0, it is easy to render to Evas. (OpenGL ES 3.0 will be supported in the next Tizen version.)</p>
+
+<pre class="prettyprint">
+ad-&gt;glapi = evas_gl_api_get(ad-&gt;evasgl);</pre>
+
+<h3>Creating a Surface</h3>
+
+<p>We must allocate a new config object to fill it out using <span style="font-family: Courier New,Courier,monospace">evas_gl_config_new()</span>. As long as Evas creates a config object for the user, it takes care of the backward compatibility issue. Once we have our config object, we can specify the surface settings:</p>
+
+<pre class="prettyprint">
+appdata_s *ad;
+ad-&gt;cfg = evas_gl_config_new();
+ad-&gt;cfg-&gt;color_format = EVAS_GL_RGBA_8888; // Surface Color Format
+ad-&gt;cfg-&gt;depth_bits = EVAS_GL_DEPTH_BIT_24; // Surface Depth Format
+ad-&gt;cfg-&gt;stencil_bits = EVAS_GL_STENCIL_NONE; // Surface Stencil Format
+ad-&gt;cfg-&gt;options_bits = EVAS_GL_OPTIONS_NONE; // Configuration options (here, no extra options)</pre>
+
+<p>Once we have configured the surface behavior, we must initialize the surface using <span style="font-family: Courier New,Courier,monospace">evas_gl_surface_create(Evas_GL* evas_gl, Evas_GL_Config * cfg, int w, int h)</span>. This function takes the given Evas_GL object as the first parameter and the pixel format, and configuration of the rendering surface as the second parameter. The last two parameters are the width and height of the surface, which we recover directly from the window.</p>
+
+<pre class="prettyprint">
+Evas_Coord w, h;
+evas_object_geometry_get(ad-&gt;win, NULL, NULL, &amp;w, &amp;h);
+ad-&gt;sfc = evas_gl_surface_create(ad-&gt;evasgl, ad-&gt;cfg, w, h);</pre>
+
+<p>To manually delete a GL surface, use <span style="font-family: Courier New,Courier,monospace">evas_gl_surface_destroy(Evas_GL *evas_gl, Evas_GL_Surface *surf)</span>.</p>
+
+<h3>Creating Context</h3>
+
+<p>Here, we create a context for Evas_GL using <span style="font-family: Courier New,Courier,monospace">evas_gl_context_create(Evas_GL * evas_gl, Evas_GL_Context * share_ctx)</span>. You can merge the context with a higher context definition you must pass as a second parameter.</p>
+
+<pre class="prettyprint">
+ad-&gt;ctx = evas_gl_context_create(ad-&gt;evasgl, NULL);</pre>
+
+<p>To delete the context later, use <span style="font-family: Courier New,Courier,monospace">evas_gl_context_destroy(Evas_GL *evas_gl, Evas_GL_Context *ctx)</span>. To delete the entire configuration object, use <span style="font-family: Courier New,Courier,monospace">evas_gl_config_free(Evas_GL_Config *cfg)</span> instead.</p>
+
+<h3>Callbacks</h3>
+
+<p>Now that we have configured the EvasGL environment, we declare a widget in which all the OpenGL ES transformation takes place. In the example below, we selected the image widget because it provides callbacks that allow us to play with the mouse events and coordinates, and we set up an image object that inherits the size of the parent window.</p>
+
+<pre class="prettyprint">
+ad-&gt;img = evas_object_image_filled_add(evas_object_evas_get(ad-&gt;win));</pre>
+
+<p>We define the &quot;OpenGL ES main loop&quot; function that is called every time the program attempts to have pixels from the image. We put all the OpenGL ES statements in charge of rendering the scene in this callback.</p>
+
+<pre class="prettyprint">
+evas_object_image_pixels_get_callback_set(ad-&gt;img, img_pixels_get_cb, ad);</pre>
+
+<p>To define a function that takes care of the drawing using EvasGL (called the OpenGL ES main loop), use:</p>
+
+<pre class="prettyprint">
+static void
+img_pixels_get_cb(void *data, Evas_Object *obj)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;Evas_GL_API *gl = ad-&gt;glapi;
+
+&nbsp;&nbsp;&nbsp;// Rendering process
+&nbsp;&nbsp;&nbsp;evas_gl_make_current(ad-&gt;evasgl, ad-&gt;sfc, ad-&gt;ctx);
+&nbsp;&nbsp;&nbsp;// Paint it blue
+&nbsp;&nbsp;&nbsp;gl-&gt;glClearColor(0.2, 0.2, 0.6, 1.0);
+&nbsp;&nbsp;&nbsp;gl-&gt;glClear(GL_COLOR_BUFFER_BIT);
+&nbsp;&nbsp;&nbsp;// The usual OpenGL ES draw commands come here
+&nbsp;&nbsp;&nbsp;// draw_scene();
+}</pre>
+
+<p>At every tick, we must set the given context as a current context for the given surface using <span style="font-family: Courier New,Courier,monospace">evas_gl_make_current(Evas_GL *evas_gl, Evas_GL_Surface *surf, Evas_GL_Context *ctx)</span>.</p>
+
+<p>You can use the <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> to define the OpenGL ES main loop. To do so, create a callback that is called on every animation tick. This animation callback is used only to mark the image as &quot;dirty&quot;, meaning that it needs an update next time Evas renders. It calls the pixel get callback that redraws the scene.</p>
+
+<pre class="prettyprint">
+static Eina_Bool
+animate_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *img = data;
+&nbsp;&nbsp;&nbsp;evas_object_image_pixels_dirty_set(img, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+
+ecore_animator_add(animate_cb, ad-&gt;img);</pre>
+
+<p>You can define several other callbacks that have an impact on the drawing depending on the mouse, resize, and deletion events.</p>
+
+<pre class="prettyprint">
+evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_DEL, img_del_cb, ad);
+evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_MOUSE_DOWN, mouse_down_cb, ad);
+evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_MOUSE_UP, mouse_up_cb, ad);
+evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_MOUSE_MOVE, mouse_move_cb, ad);
+evas_object_event_callback_add(ad-&gt;win, EVAS_CALLBACK_RESIZE, win_resize_cb, ad);</pre>
+
+<h3>Setting a Surface into the Image Object</h3>
+
+<p>We can also fill in the native Surface information from the given EvasGL surface. For example, to adapt the surface to the target image when the size of the canvas changes, use the following code.</p>
+
+<pre class="prettyprint">
+Evas_Native_Surface ns;
+evas_gl_native_surface_get(ad-&gt;evasgl, ad-&gt;sfc, &amp;ns);
+evas_object_image_native_surface_set(ad-&gt;img, &amp;ns);</pre>
+
+	  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

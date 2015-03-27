@@ -1,0 +1,317 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+  <title>Performance Improvement</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="navigation">
+	<div id="profile">
+		<p><img alt="Wearable Web" src="../../../images/ww_icon.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#reduce">Reducing the Access Time for Variables</a></li>
+			<li><a href="#event">Improving the Event Handler Response Time</a></li>
+			<li><a href="#clean">Cleaning up Unused Properties and DOM Elements</a></li>
+			<li><a href="#minimise">Minimizing the Document Flow</a></li>
+			<li><a href="#launch">Improving the Application Launch Time</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+   
+  <h1>Performance Improvement</h1>
+	
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">This feature is supported in wearable applications only.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+	
+<p>With the following instructions, you can improve the performance of your wearable Web applications. The instructions summarize some representative tips that are frequently used in the Web community.</p>
+<ul>
+<li><a href="#reduce">Reducing the access time for variables</a></li>
+<li><a href="#event">Improving the event handler response time</a></li>
+<li><a href="#clean">Cleaning up unused properties and DOM elements</a></li>
+<li><a href="#minimise">Minimizing the document flow</a></li>
+<li><a href="#launch">Improving the application launch time</a></li>
+</ul>
+
+<p>For more detailed and comprehensive information, study the following documentation:</p>
+	<ul>
+		<li><a href="https://developers.google.com/speed/" target="_blank">Make the Web Faster by Google Developers</a> </li>
+		<li><a href="http://www.slideshare.net/nzakas/speed-up-your-javascript" target="_blank">Speed Up Your JavaScript by Nicholas C. Zakas</a> </li>
+		<li><a href="http://www.slideshare.net/stoyan/high-performance-kick-ass-web-apps-javascript-edition" target="_blank">High-Performance Kick-Ass Web Apps by Stoyan Stefanov</a> </li>
+		<li><a href="http://developer.yahoo.com/performance/rules.html" target="_blank">Best Practices for Speeding Up Your Web Site, by Yahoo Developer Network</a>  </li>
+		<li><a href="http://www.phpied.com/rendering-repaint-reflowrelayout-restyle/" target="_blank">Rendering: repaint, reflow/relayout, restyle by Stoyan Stefanov</a> </li>
+	</ul>
+  <h2 id="reduce" name="reduce">Reducing the Access Time for Variables</h2>
+
+<p>Out-of-scope variables, properties, and arrays, which are accessed more than twice, can be inefficient. It takes time to search whenever you reference an out-of-scope variable.</p>
+<p>A better approach is to cache the values into local variables.  Caching the value into a local variable is equivalent to one search, so it yields performance benefits from the second access onwards. This even applies to DOM properties: Each property access requires DOM traverse overhead, and since JavaScript does not know ahead of time if a given access is going to change values, caching a common part can save a lot of search time.</p>
+
+<p>The following example illustrates the issue.</p>
+<table border="1">
+	<caption>Table: Example of using local variables</caption>
+		<tbody>
+			<tr>
+				<th>Before</th>
+				<td><pre class="prettyprint">var globalVar; 
+test: function() 
+{
+&nbsp;&nbsp;&nbsp;var one = globalVar + 1;  (X)
+&nbsp;&nbsp;&nbsp;var two = globalVar + 2;  (X)
+&nbsp;&nbsp;&nbsp;var ratio = window.innerWidth / 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(window.innerHeight + window.innerWidth);  (X)
+}
+</pre></td>
+				
+			</tr>
+			<tr>
+				<th>After</th>
+				<td><pre class="prettyprint">test: function() 
+{
+&nbsp;&nbsp;&nbsp;var global = globalVar;  (O)
+&nbsp;&nbsp;&nbsp;var one = global + 1;
+&nbsp;&nbsp;&nbsp;screenHeight = window.innerHeight; (O) 
+&nbsp;&nbsp;&nbsp;screenWidth= window.innerWidth; (O)
+&nbsp;&nbsp;&nbsp;var ratio = screenWidth / (screenHeight + screenWidth); 
+}
+</pre></td>
+			</tr>
+		</tbody>
+</table>
+
+<table class="note"> 
+     <tbody> 
+      <tr> 
+       <th class="note">Tip</th> 
+      </tr> 
+      <tr> 
+       <td class="note">To minimize the property access time:
+	  <ul><li>Property depth: the deeper the property hierarchy is, the more search time is requires (object.name &lt; object.name.name).</li>
+	  <li>Property notation: dot notation is faster than associate notation in Webkit (object.name &lt; object [&quot;name&quot;]).</li></ul></td> 
+      </tr> 
+     </tbody> 
+    </table>
+	  <h2 id="event" name="event">Improving the Event Handler Response Time</h2>
+<p>When the number of event handlers grows in the DOM tree, Webkit consumes more memory to trace the events and the response time for each event increases. To prevent the response time slow-down, you can use a technique called event delegation.</p>
+<p>Event delegation means that you attach just one handler in the parent element and let it handle all the events from the child elements. Event delegation is based on events propagating up to the parent node, called bubbling, so the parent can handle all the events from the child nodes.</p>
+
+<p>The following example illustrates the issue.</p>
+<table border="1">
+	<caption>Table: Example of improving response time</caption>
+		<tbody>
+			<tr>
+				<th>Before</th>
+	<td><pre class="prettyprint">document.getElementById(&#39;a&#39;).onclick = function() 
+{
+&nbsp;&nbsp;&nbsp;alert(&#39;&lt;a&gt; clicked!!&#39;);
+}
+
+document.getElementById(&#39;div&#39;).onclick = function() 
+{
+&nbsp;&nbsp;&nbsp;alert(&#39;&lt;div&gt; clicked!!&#39;);
+}
+
+</pre></td>
+			</tr>
+			<tr>
+
+				<th>After</th>
+				<td><pre class="prettyprint">document.getElementById('ul').onclick = function() 
+{
+&nbsp;&nbsp;&nbsp;var target = e.target;
+&nbsp;&nbsp;&nbsp;if (target.nodeName == &#39;a&#39;)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alert(&#39;&lt;a&gt; clicked!!&#39;);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (target.nodeName == &#39;div&#39;)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alert(&#39;&lt;div&gt; clicked!&#39;);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></td>
+			</tr>
+		</tbody>
+</table>
+  <h2 id="clean" name="clean">Cleaning up Unused Properties and DOM Elements</h2>
+<p>When DOM elements or object properties are accessed, JavaScript searches the variables with its variable resolution mechanism. Try to reduce the number of potential targets, since the average variable search slows when the target coverage grows. To minimize this problem, good coding practice demands that you explicitly remove unused DOM elements and properties when you know they are no longer needed.</p>
+
+<p>The following examples illustrate the issue.</p>
+<table border="1">
+	<caption>Table: Example of removing unused elements and properties</caption>
+	<tbody>
+		<tr>
+			<th>Removing an unused property</th>
+			<td><pre class="prettyprint">var myApp = {prop: &quot;myprop&quot;};
+delete myApp.prop; 
+</pre></td>
+			</tr>
+			<tr>
+			<th>Removing an unused DOM element</th>
+			<td><pre class="prettyprint">var el= $(&#39;#myelem&#39;);
+el.parentNode.removeChild(el);</pre></td>
+			</tr>
+	</tbody>
+</table>	
+  <h2 id="minimise" name="minimise">Minimizing the Document Flow</h2>
+
+<p>The layout of the Web application is maintained in Webkit as a DOM tree. The CSS style is applied to the DOM tree and produces the render tree that contains the rendering information for the real screen. The user sees the result of painting the render tree. The following figure shows the overall rendering flow that happens in the Webkit layout engine.</p>
+
+<p class="figure">Figure: Webkit rendering flow</p> 
+  <p style="text-align: center;"><img alt="Webkit rendering flow" src="../../../images/minimize_doc_flow.png" /></p>
+
+<p>You can improve performance by designing your application to avoid unnecessary rendering. Minimizing the chances of DOM tree changes is a key to optimizing Web application performance, because usually the rendering needs to be done whenever the DOM tree is changed (this situation is called &quot;document reflow&quot; - Webkit needs to recalculate the position of elements in the document after a DOM change).</p>
+
+<p>The document reflow happens:</p>
+	<ul>
+		<li>At the initial page load</li>
+		<li>On user actions, such as browser window resizing and font size change</li>
+		<li>When DOM node operations, such as add, remove, or update, are required</li>
+		<li>When the DOM node is animated or moved</li>
+		<li>When a layout style is applied</li>
+		<li>When layout information is retrieved</li>
+	</ul>
+
+<p>To reduce document reflow, apply the following tips:</p>
+<ul>
+<li>Manipulate tables separately from the DOM tree.
+<p>The intuitive way to manipulate table values is to directly access and modify each value. However, this approach results in very poor performance, since every change of every value leads to a DOM change (often causing a document reflow). To avoid this problem, separate the table from the DOM tree and make changes on the detached table only. After the changes, attach the changed table to the original DOM tree. The end result is the same, but the performance difference is significant.</p>
+<p>The following example illustrates the issue.</p> 
+<table border="1">
+	<caption>Table: Example of manipulating tables</caption>
+		<tbody>
+			<tr>
+				<th>Directly manipulating table nodes</th>
+				<td><pre class="prettyprint">table.addLotsAndLotsOfRows();</pre></td>
+			</tr>
+			<tr><th>Manipulating table nodes without document reflow</th>
+				
+				<td><pre class="prettyprint">var table = $(&#39;#some-table&#39;);
+var parent = table.parent();
+table.remove();
+table.addLotsAndLotsOfRows();
+parent.append(table);
+</pre></td>
+			</tr>
+		</tbody>
+</table></li>
+<li>Be careful with specific properties.
+<p>The following properties are known to cause document reflow. Use a cached value with them, or minimize their usage altogether.</p>
+	<ul>
+		<li><span style="font-family: Courier New,Courier,monospace">offsetTop</span>, <span style="font-family: Courier New,Courier,monospace">offsetLeft</span>, <span style="font-family: Courier New,Courier,monospace">offsetWidth</span>, <span style="font-family: Courier New,Courier,monospace">offsetHeight</span> </li>
+		<li><span style="font-family: Courier New,Courier,monospace">scrollTop</span>, <span style="font-family: Courier New,Courier,monospace">scrollLeft</span>, <span style="font-family: Courier New,Courier,monospace">scrollWidth</span>, <span style="font-family: Courier New,Courier,monospace">scrollHeight</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">clientTop</span>, <span style="font-family: Courier New,Courier,monospace">clientLeft</span>, <span style="font-family: Courier New,Courier,monospace">clientWidth</span>, <span style="font-family: Courier New,Courier,monospace">clientHeight</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">getComputedStyle()</span></li>
+
+	</ul>
+</li>
+<li>Consider the expression order.
+<p>When you use inline CSS, consider the expression order in your code. The following example shows the difference between 2 code snippets that have the same result but different expression order. In the first example, the read and write order is mixed and Webkit executes the rendering flow twice, while the second example triggers the reflow only once.</p>
+
+<table border="1">
+	<caption>Table: Examples of expression order effects</caption>
+		<tbody>
+			<tr>
+				<th>2 document reflows </th>
+				<td><pre class="prettyprint">var newWidth = aDiv.offsetWidth + 10; /* Read */
+aDiv.style.width = newWidth + &#39;px&#39;; /* Write */
+var newHeight = aDiv.offsetHeight + 10; /* Read */
+aDiv.style.height = newHeight + &#39;px&#39;; /* Write */
+</pre></td>
+			</tr>
+			<tr>
+				<th>1 document reflow</th>
+				<td><pre class="prettyprint">var newWidth = aDiv.offsetWidth + 10; /* Read */
+var newHeight = aDiv.offsetHeight + 10; /* Read */
+aDiv.style.width = newWidth + &#39;px&#39;; /* Write */
+aDiv.style.height = newHeight + &#39;px&#39;; /* Write */
+</pre></td>
+			</tr>
+		</tbody>
+</table></li></ul>	
+  <h2 id="launch" name="launch">Improving the Application Launch Time</h2>
+
+
+<p>The basic principle of improving the launch time of a Web application is simply to &quot;show first page as fast as possible and do nothing but UI rendering&quot;. To apply this principle:</p>
+
+	<ul>
+		<li>Reduce the number of files.
+		<p>The intuition behind the rule to reducing the number of files can be expressed as &quot;less files &gt; less file operations &gt; faster load&quot;. As shown in the following table, you can reduce 3 JavaScript files to just 1 while keeping the same content.</p>
+<p>In case of large-scale Web applications, 1 application can contain 20-30 or even more JavaScript files, and concatenating the JavaScript can make the initial file operations significantly faster, eventually leading to a faster launch time.</p>
+
+<table border="1">
+	<caption>Table: Example of reducing the number of files</caption>
+		<tbody>
+			<tr>
+				<th>Separating JavaScript files</th>
+				<td><pre class="prettyprint">&lt;script src=&quot;foo1.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;foo2.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;foo3.js&quot;&gt;&lt;/script&gt;
+</pre></td>
+			</tr>
+			<tr>
+				<th>Concatenating JavaScript files</th>
+				<td><pre class="prettyprint">&lt;script src=&quot;foo.js&quot;&gt;&lt;/script&gt; 
+&lt;!--foo.js contains foo1.js, foo2.js, and foo3.js--&gt;
+</pre></td>
+			</tr>
+		</tbody>
+</table></li>
+		<li>Minify JavaScript and CSS files.
+		<p>You can utilize several minifying tools to reduce the size of the JavaScript file. Minified JavaScript is very helpful in achieving faster launch time, because it minimizes the data size to load.</p>
+		<p>The following are examples of well-known minifier tools, most of which are free and open source software:</p>
+	<ul>
+		<li>Google closure compiler</li>
+		<li>YUICompressor</li>
+		<li>JSMin</li>
+		<li>UglifyJS</li>
+	</ul>
+</li>
+		<li>Keep only the first page elements in the <span style="font-family: Courier New,Courier,monospace">index.html</span> file.
+		<p>Take advantage of a useful technique called deferring loading. The UI widget creation starts at the DOMContentLoad time, and at this time all the DOM elements in the first page (<span style="font-family: Courier New,Courier,monospace">index.html</span>) are constructed. Of course, images and other resources are not yet loaded at this stage.</p>
+<p>Often the first page can contain unnecessary elements, and consequently slow down the DOM construction. To avoid the problem, construct the first page to contain only the necessary elements to show the first scene, and put the rest of the pages in another HTML file. Similarly, if you do not need some JavaScript functionality on the first page, load the related JavaScript files only after the first page is loaded.</p></li>
+	</ul>
+ 
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

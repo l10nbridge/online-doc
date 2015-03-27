@@ -1,0 +1,372 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>Connection: Managing Modem Data Connections</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+		   <li><a class="opensection" href="#init">Initializing Connections</a></li>
+		   <li><a class="opensection" href="#detail">Getting the Network Connection Details</a></li>
+		   <li><a class="opensection" href="#info">Getting the Connection Information</a></li>
+		   <li><a class="opensection" href="#register">Registering the Property Change Callback</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/network/connection_n.htm">Connection Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">Connection API</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Connection: Managing Modem Data Connections</h1>
+  <div class="cont"><div class="static-cont">	
+  
+<p>This tutorial demonstrates how you can get the network connection information, such as default gateway and proxy configuration, IPv4 and IPv6 addresses, cellular connection state, and data transfer statistics.</p>
+
+ <h2>Warm-up</h2>
+ <p>Become familiar with the Connection API basics by learning about:</p>
+	 <ul>
+		  <li><a class="opensection" href="#init">Initializing Connections</a>
+		  <p>Initialize the connection module for use.</p></li>
+		  <li><a class="opensection" href="#detail">Getting the Network Connection Details</a>
+		  <p>Get the current connection type, IP address, and proxy information.</p></li>
+		  <li><a class="opensection" href="#info">Getting the Connection Information</a>
+		  <p>Obtain cellular and Wi-Fi connection information with data transfer statistics, such as the amount of total sent/received data and last sent/received data.</p></li>
+		   <li><a class="opensection" href="#register">Registering the Property Change Callback</a>
+		  <p>Register a callback for receiving notifications about connection property changes.</p></li>
+	  </ul>
+	
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+
+		<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="init" name="init" class="items-tit-h2">Initializing Connections</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+ 
+ 
+<p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">Connection</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;net_connection.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;net_connection.h&gt;
+</pre>
+ <p>To be able to use all connection functions, you must create a handle that contains information about the connection. Use the <span style="font-family: Courier New,Courier,monospace;">connection</span> static variable that stores the connection handle.</p>
+   <pre class="prettyprint">static connection_h connection;</pre>
+   
+    <p>Create the connection handle using the <span style="font-family: Courier New,Courier,monospace;">connection_create()</span> function that allows you to obtain the connection state and data transfer information.</p>
+   <pre class="prettyprint">int error_code;
+ 
+error_code = connection_create(&amp;connection);
+if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;return;</pre>
+   
+    <p>Destroy the created connection handle when you do not need it anymore. </p>
+   <pre class="prettyprint">connection_destroy(connection);</pre>
+	</div>
+		</li>		
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="detail" name="detail" class="items-tit-h2">Getting the Network Connection Details</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To get the type of the current connection, IP address, and proxy information, the Connection API supports the following network types:</p>
+<ul class="ul"><li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_TYPE_DISCONNECTED</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_TYPE_WIFI</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_TYPE_CELLULAR</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_TYPE_ETHERNET</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_TYPE_BT</span></li>
+</ul>
+
+<p>The Connection API supports both IPv4 and IPv6 with the following address types:</p>
+<ul class="ul"><li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_ADDRESS_FAMILY_IPV4</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_ADDRESS_FAMILY_IPV6</span></li></ul>
+<p>In this tutorial, an IPv4 address is retrieved.</p>
+
+<ol>
+<li>To get the type of the current profile for data connection, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_type()</span> function:
+
+<pre class="prettyprint">
+int error_code;
+connection_type_e net_state;
+error_code = connection_get_type(connection, &amp;net_state);
+if (error_code == CONNECTION_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Network connection type : %d&quot;, net_state);
+}</pre>
+<p>You can also use the <span style="font-family: Courier New,Courier,monospace;">connection_set_type_changed_cb()</span> function to register a callback function that is called when the connection type changes.</p>
+
+<pre class="prettyprint">
+connection_set_type_changed_cb(connection, __connection_changed_cb, NULL);
+</pre>
+
+<p>When the connection type changes, the <span style="font-family: Courier New,Courier,monospace;">__connection_changed_cb()</span> function is invoked.</p>
+
+<pre class="prettyprint">
+static void __connection_changed_cb(connection_type_e type, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Type changed callback, connection type : %d", type);
+}</pre></li>
+
+<li>To get the connection IPv4 address, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_ip_address()</span> function. The IP address is printed using dlog util, or shown to the user in another way. 
+<p>Finally, free the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">ip_addr</span> temporary variable.</p>
+
+<pre class="prettyprint">
+char *ip_addr = NULL;
+error_code = connection_get_ip_address(connection, CONNECTION_ADDRESS_FAMILY_IPV4, &amp;ip_addr);
+if (error_code == CONNECTION_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IP address : %s&quot;, ip_addr);
+&nbsp;&nbsp;&nbsp;free(ip_addr);
+}</pre></li>
+
+<li>To get the connection proxy information, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_proxy()</span> function. The proxy address is printed. 
+<p>Finally, free the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">proxy_addr</span> variable.</p>
+
+<pre class="prettyprint">error_code = connection_get_proxy(connection, address_family, &amp;proxy_addr);
+if (error_code == CONNECTION_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Proxy address : %s&quot;, proxy_addr);
+&nbsp;&nbsp;&nbsp;free(proxy_addr); 
+}</pre></li></ol>
+	</div>
+		</li>	
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="info" name="info" class="items-tit-h2">Getting the Connection Information</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To obtain cellular and Wi-Fi connection information with data transfer statistics, such as the amount of total sent or received data and last sent or received data (only Wi-Fi and cellular statistics information is supported):</p>
+
+<ol><li>To get the cellular connection state, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_cellular_state()</span> function. There are 6 states in which the network connection can be:
+
+<ul class="ul">
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_CELLULAR_STATE_FLIGHT_MODE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_CELLULAR_STATE_ROAMING_OFF</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_CELLULAR_STATE_CALL_ONLY_AVAILABLE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_CELLULAR_STATE_AVAILABLE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_CELLULAR_STATE_CONNECTED</span></li>
+</ul>
+
+<p>In the example, using a <span style="font-family: Courier New,Courier,monospace;">switch</span> statement, the cellular state is shown.</p>
+
+<pre class="prettyprint">connection_cellular_state_e cellular_state;
+connection_get_cellular_state(connection, &amp;cellular_state);
+switch (cellular_state) 
+{
+&nbsp;&nbsp;&nbsp;case CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE: 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Out of service&quot;); 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONNECTION_CELLULAR_STATE_FLIGHT_MODE: 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Flight mode&quot;);   
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONNECTION_CELLULAR_STATE_ROAMING_OFF: 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Roaming is turned off&quot;); 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONNECTION_CELLULAR_STATE_CALL_ONLY_AVAILABLE: 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Call only&quot;); 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONNECTION_CELLULAR_STATE_AVAILABLE: 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Available&quot;); 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONNECTION_CELLULAR_STATE_CONNECTED: 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Connected&quot;); 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;default: 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+}
+</pre></li>
+
+<li>To get the Wi-Fi connection state, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_wifi_state()</span> function. There are 3 states in which the Wi-Fi connection can be:
+
+<ul class="ul">
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_WIFI_STATE_DEACTIVATED</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_WIFI_STATE_DISCONNECTED</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_WIFI_STATE_CONNECTED</span></li>
+</ul>
+
+<p>In the example, using a <span style="font-family: Courier New,Courier,monospace;">switch</span> statement, the <span style="font-family: Courier New,Courier,monospace;">wifi_state</span> enumeration variable is shown.</p>
+
+<pre class="prettyprint">connection_wifi_state_e wifi_state;
+connection_get_wifi_state(connection, &amp;wifi_state);
+switch (wifi_state) 
+{
+&nbsp;&nbsp;&nbsp;case CONNECTION_WIFI_STATE_DEACTIVATED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Deactivated state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONNECTION_WIFI_STATE_DISCONNECTED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Disconnected state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONNECTION_WIFI_STATE_CONNECTED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Connected state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error&quot;); 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+}
+</pre></li>
+
+<li>Get connection statistics.
+
+<p>Connection statistics include the amount of total sent and received data and the last sent and received data. To read the statistics, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_statistics()</span> function. The function arguments determine which statistics are received, and for which connection type.</p>
+
+<p>Statistics are identified by the following constants:</p>
+
+<ul class="ul">
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_STATISTICS_TYPE_LAST_RECEIVED_DATA</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_STATISTICS_TYPE_LAST_SENT_DATA</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_STATISTICS_TYPE_TOTAL_RECEIVED_DATA</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_STATISTICS_TYPE_TOTAL_SENT_DATA</span></li>
+</ul>
+
+<p>Use the following constants to set the connection type:</p>
+
+<ul class="ul">
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_TYPE_WIFI</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">CONNECTION_TYPE_CELLULAR</span></li>
+</ul>
+
+<p>The code below reads all statistics for cellular and WiFi connections.</p>
+
+<pre class="prettyprint">long long last_received_size;
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR, CONNECTION_STATISTICS_TYPE_LAST_RECEIVED_DATA, &amp; last_received_size);
+// Handle statistics
+ 
+long long last_sent_size;
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR, CONNECTION_STATISTICS_TYPE_LAST_SENT_DATA, &amp; last_sent_size);
+// Handle statistics
+ 
+long long total_received_size;
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR, CONNECTION_STATISTICS_TYPE_TOTAL_RECEIVED_DATA, &amp; total_received_size);
+// Handle statistics
+ 
+long long total_sent_size;
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR, CONNECTION_STATISTICS_TYPE_TOTAL_SENT_DATA, &amp; total_sent_size);
+// Handle statistics
+ 
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI, CONNECTION_STATISTICS_TYPE_LAST_RECEIVED_DATA, &amp; last_received_size);
+// Handle statistics
+ 
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI, CONNECTION_STATISTICS_TYPE_LAST_SENT_DATA, &amp; last_sent_size);
+// Handle statistics
+ 
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI, CONNECTION_STATISTICS_TYPE_TOTAL_RECEIVED_DATA, &amp; total_received_size);
+// Handle statistics
+ 
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI, CONNECTION_STATISTICS_TYPE_TOTAL_SENT_DATA, &amp; total_sent_size);
+// Handle statistics</pre></li></ol>
+	</div>
+		</li>	
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="register" name="register" class="items-tit-h2">Registering the Property Change Callback</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To register callback functions that are called when information changes:</p>
+
+<ol><li>Define callback functions.
+
+<p>In this tutorial, the callbacks registered are the <span style="font-family: Courier New,Courier,monospace;">__ip_changed_cb()</span> and <span style="font-family: Courier New,Courier,monospace;">__proxy_changed_cb()</span> functions, used for address changes. In case of an address change, an information message is printed in the file (or shown to the user in another way). The message contains information on which address has been changed and what the new value is.</p>
+
+<pre class="prettyprint">static void __ip_changed_cb(const char* ipv4_address, const char* ipv6_address, void* user_data) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%s callback, IPv4 address : %s, IPv6 address : %s&quot;, (char *)user_data, ipv4_address, (ipv6_address ? ipv6_address : &quot;NULL&quot;));
+}
+ 
+static void __proxy_changed_cb(const char* ipv4_address, const char* ipv6_address, void* user_data) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%s callback, IPv4 address : %s, IPv6 address : %s&quot;, (char *)user_data, ipv4_address, (ipv6_address ? ipv6_address : &quot;NULL&quot;));
+}
+</pre></li>
+
+<li>Register the defined callback functions.
+
+<p>You have to register the previously defined callback functions. The <span style="font-family: Courier New,Courier,monospace;">connection_set_ip_address_changed_cb()</span> and <span style="font-family: Courier New,Courier,monospace;">connection_set_proxy_address_changed_cb()</span> functions are used to register the <span style="font-family: Courier New,Courier,monospace;">__ip_changed_cb()</span> and <span style="font-family: Courier New,Courier,monospace;">__proxy_changed_cb()</span> functions called when the IP address or the proxy address is changed, respectively. The last parameter (<span style="font-family: Courier New,Courier,monospace;">user_data</span>) is set to a message which is printed in the callback.</p>
+
+<pre class="prettyprint">error_code = connection_set_ip_address_changed_cb(connection, __ip_changed_cb, &quot;IP addr changed:&quot;);
+if (error_code != CONNECTION_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+error_code = connection_set_proxy_address_changed_cb(connection, __proxy_changed_cb, &quot;Proxy IP addr changed:&quot;);
+if (error_code != CONNECTION_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+</pre></li>
+
+<li>Unregister the callback functions.
+
+<p>When the callback functions are not needed any more, unregister them using the <span style="font-family: Courier New,Courier,monospace;">connection_unset_network_state_changed_cb()</span> function.</p>
+
+<pre class="prettyprint">error_code = connection_unset_ip_address_changed_cb(connection);
+if (error_code != CONNECTION_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+  
+error_code = connection_unset_proxy_address_changed_cb(connection);
+if (error_code != CONNECTION_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+</pre></li></ol>
+	</div>
+		</li>			
+	</ul>	
+</div>				
+</div>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+  <script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+ </body>
+</html>

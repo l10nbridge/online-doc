@@ -1,0 +1,617 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Thread Usage</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+	<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#When_to_use">When to Use Threads</a></li>
+			<li><a href="#Thread_safety">Thread Safety</a></li>
+			<li><a href="#Costs">Costs of Threads and Use of Thread Pools</a></li> 
+			<li><a href="#Functions">Ecore Functions</a></li>
+			<li><a href="#max_threads">Maximum Number of Threads in the Pool</a></li>
+			<li><a href="#low_level">Low-level Functions</a></li>
+			<li><a href="#Examples">Examples</a></li>
+		</ul>		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.tutorials/html/native/ui/ui_tutorials_n.htm">UI Tutorials</a></li>	
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UI__FRAMEWORK.html">UI API</a></li>	
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+
+  <h1>Thread Usage</h1> 
+	<p>Threads are light processes: concurrent execution environments that are lighter than full-blown processes because they share some operating system resources.</p>
+
+<p>They make it possible to do several things at the same time while using less resources and offering simpler synchronization and data exchange compared to processes.</p>
+
+<p>Moving a blocking operation to a separate thread makes it possible to not block the event loop and keep the user interface reactive. Remember that blocking the event loop and using long-running callbacks means the application is be able to update its graphical user interface.</p>
+
+<h2 id="When_to_use" name="When_to_use">When to Use Threads</h2>
+
+<p>While threads are useful, the first rule to using them is to avoid them as much as possible: there are often better tools and approaches. For example, to do network transfers, use <span style="font-family: Courier New,Courier,monospace;">Ecore_Con</span> which integrates with the event loop to provide an API based on callbacks.</p>
+
+<p>Being able to use such an API however means that specific support work has been done in libraries. However, in some cases, it is completely impossible: in those situations, threads are required.</p>
+
+<p>The most common use-cases are therefore CPU-intensive tasks and disk IOs. For example, a thread is the appropriate way to apply filters to an image or to a video without blocking the interface.</p>
+
+<p>Threads also enable you to take advantage of the numerous CPU cores available if the workload is split into several units of work and spread across cores. A typical example for an image processing application on a quad-core CPU is to process 4 images at once, each on a thread. For such tasks, the thread pool which is presented below helps a lot with the creation and scheduling of threads (all of the grunt work is handled by the thread pool).</p>
+
+<h2 id="Thread_safety" name="Thread_safety">Thread Safety</h2>
+
+<p>If several strings have to work on the same resources, conflicts may happen as the threads are run in parallel. For example, if thread A modifies several values while thread B is reading them, it is likely that some of the values read by B are the old ones while others are the new ones. Similar issues can happen if both are modifying data concurrently.</p>
+
+<p>Such conflicts are called race-conditions: depending on which thread is faster, the output changes and may be incorrect.</p>
+
+<p>Avoiding such issues when threads are involved is called thread-safety. Critical sections are blocks of code that operate on shared resources that must not be accessed concurrently by another thread. The usual solution is mutual-exclusion: only one thread can operate on the data at any given time.</p>
+
+<p>Mutual exclusion is often implemented through locks. Before attempting to operate on a shared resource, threads wait until they can lock something called a mutex (stands for mutual exclusion), operate on the resource and unlock the mutex. Operating systems guarantee that only one thread can lock a mutex at a given time: this ensures that only one thread operates on the shared resource at once.</p>
+
+<p>Thread-safety is a large topic and you should read the <a href="#low_level">low-level functions</a> section if you do not know it or need a refresher. It has links to several online and offline resources on the topic.</p>
+
+<h2 id="Costs" name="Costs">Costs of Threads and Use of Thread Pools</h2>
+
+<p>Threads are operating system resources: while much lighter than processes, they still have a cost. Moreover, spawning thousand threads means that each of them only gets 1/1000th of the total CPU time: each thread is progress slowly and, in the worst case, the system wastes all of its time switching between threads without doing any actual work.</p>
+
+<p>A common solution is to use thread pools: threads, up to a maximum number, are created on-demand and used to execute tasks. When the tasks are finished, they are kept alive but sleeping. This avoids the cost to create and destroy them.</p>
+
+<p>In the EFLs, the thread pool is controlled by a <span style="font-family: Courier New,Courier,monospace;">thread_max</span> parameter: the maximum number of threads running at the same time. Another aspect is the <span style="font-family: Courier New,Courier,monospace;">func_end</span> callback which runs from the mainloop thread after a task has completed and is typically used to extract the data from the just-finished task and make it available to the mainloop.</p>
+
+<p>The illustration below shows the occupancy of a hypothetical thread pool: there are several tasks, of which 4 are running (because the <span style="font-family: Courier New,Courier,monospace;">thread_max</span> parameter of the pool is 4) and the others are waiting. There is no thread with its <span style="font-family: Courier New,Courier,monospace;">func_end</span> currently called.</p>
+
+<p class="figure">Figure: Thread pool, step 1</p> 
+<p style="text-align:center;"><img alt="Thread pool, step 1" src="../../images/thread_pool_lifecycle_1.png" /></p> 
+
+<p>When a task (the sepia filter on image1 for instance) finishes, the corresponding <span style="font-family: Courier New,Courier,monospace;">func_end</span> function is invoked from the mainloop.</p>
+
+<p class="figure">Figure: Thread pool, step 2</p> 
+<p style="text-align:center;"><img alt="Thread pool, step 2" src="../../images/thread_pool_lifecycle_2.png" /></p> 
+
+<p>With the task done, one of the thread from the pool is available again and another can run in it (adding the reverberation effect on audio3 in the example below).</p>
+
+<p class="figure">Figure: Thread pool, step 3</p> 
+<p style="text-align:center;"><img alt="Thread pool, step 3" src="../../images/thread_pool_lifecycle_3.png" /></p> 
+
+<p>The thread pool continues the same way forever, running tasks in its threads whenever there is one available.</p>
+
+<h2 id="Functions" name="Functions">Ecore Functions</h2>
+
+<p>Ecore offers a simplified API for common tasks involving threads in EFL applications. This applies to the typical scenario where the main thread creates another thread which then sends data back to the main one or calls GUI-related functions (which are not thread-safe).</p>
+
+<h3>Creating Threads with Ecore</h3>
+
+<p>Threads created through Ecore are integrated with the thread-pool by default and offer simple callback-based ways to interact with the main-loop. New threads are created as needed to run these functions until the maximum capacity of the thread pool is reached.</p>
+
+<h4>Only Returning a Final Value to the Main Thread</h4>
+
+<p>The basic API to create and run a thread is <span style="font-family: Courier New,Courier,monospace;">ecore_thread_run</span>; it runs a function inside a thread from the thread pool and takes care of all the low-level work. Its prototype is as follows: </p>
+
+<pre class="prettyprint">
+Ecore_Thread* ecore_thread_run(Ecore_Thread_Cb func_blocking,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ecore_Thread_Cb func_end,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ecore_Thread_Cb func_cancel,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const void * data)
+</pre>
+
+<p>The parameters are:</p>
+
+<ul>
+    <li><span style="font-family: Courier New,Courier,monospace;">func_blocking</span>: the function that runs in the other thread</li>
+    <li><span style="font-family: Courier New,Courier,monospace;">func_end</span>: the function that calls from the main-loop when <span style="font-family: Courier New,Courier,monospace;">func_blocking</span> finishes (optional, may be <span style="font-family: Courier New,Courier,monospace;">NULL</span>)</li>
+    <li><span style="font-family: Courier New,Courier,monospace;">func_cancel</span>: the function that calls from the main loop when the thread is cancelled or fails to start (optional, may be <span style="font-family: Courier New,Courier,monospace;">NULL</span>)</li>
+    <li><span style="font-family: Courier New,Courier,monospace;">data</span>: the pointer for additional data that is given as argument to the <span style="font-family: Courier New,Courier,monospace;">func_blocking</span>, <span style="font-family: Courier New,Courier,monospace;">func_end</span>, and <span style="font-family: Courier New,Courier,monospace;">func_cancel</span>: the callbacks (optional, may be <span style="font-family: Courier New,Courier,monospace;">NULL</span>)</li>
+</ul>
+
+<p>It returns the corresponding thread handler or <span style="font-family: Courier New,Courier,monospace;">NULL</span> on failure.</p>
+
+<p>The type for the <span style="font-family: Courier New,Courier,monospace;">func_blocking</span>, <span style="font-family: Courier New,Courier,monospace;">func_end</span> and <span style="font-family: Courier New,Courier,monospace;">func_cancel</span> callbacks is <span style="font-family: Courier New,Courier,monospace;">Ecore_Thread_Cb</span>: </p>
+
+<pre class="prettyprint">
+void (* Ecore_Thread_Cb)(void *data, Ecore_Thread *thread)
+</pre>
+
+<p>Therefore, the declaration of a matching function is: </p>
+
+<pre class="prettyprint">
+void f(void *data, Ecore_Thread *thread)
+</pre>
+
+<ul>
+    <li><span style="font-family: Courier New,Courier,monospace;">data</span>: same as the data which was given as parameter to <span style="font-family: Courier New,Courier,monospace;">ecore_thread_run()</span></li>
+    <li><span style="font-family: Courier New,Courier,monospace;">thread</span>: a handle to the thread in which the function is running</li>
+</ul>
+<p>The most common way to return data from one thread to the main one is to put a pointer to it in data. When the thread is aborted or finishes, one of <span style="font-family: Courier New,Courier,monospace;">func_cancel</span> or <span style="font-family: Courier New,Courier,monospace;">func_end</span> are called from the main-loop. The functions are running in the simpler context of a single thread running at once and therefore avoid race-conditions.</p>
+
+<p>This approach to returning data to the main thread is limited to the case where the data is shared between the main-loop thread and only another one. This does not prevent you from using the <span style="font-family: Courier New,Courier,monospace;">func_end</span> callback to merge the results into a single data structure. For example, it is perfectly reasonable to add all the values computed by the threads to an <span style="font-family: Courier New,Courier,monospace;">Eina_List</span> since all the operations on the list happen from a single thread and therefore one after the other and not concurrently.</p>
+
+<h4>Returning Values to the Main Thread</h4>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback_run</span> function has more parameters in order to send intermediate feedback from the thread to the main-loop. Its prototype is shown below: </p>
+
+<pre class="prettyprint">
+Ecore_Thread* ecore_thread_feedback_run(Ecore_Thread_Cb func_blocking,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ecore_Thread_Notify_Cb func_notify,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ecore_Thread_Cb func_end,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ecore_Thread_Cb func_cancel,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const void * data,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Eina_Bool try_no_queue)
+</pre>
+
+<p>The parameters are:</p>
+<ul>
+    <li><span style="font-family: Courier New,Courier,monospace;">func_blocking</span>: same as in <span style="font-family: Courier New,Courier,monospace;">ecore_thread_run()</span></li>
+    <li><span style="font-family: Courier New,Courier,monospace;">func_end</span>: same as in <span style="font-family: Courier New,Courier,monospace;">ecore_thread_run()</span></li>
+    <li><span style="font-family: Courier New,Courier,monospace;">func_cancel</span>: same as in <span style="font-family: Courier New,Courier,monospace;">ecore_thread_run()</span></li>
+    <li><span style="font-family: Courier New,Courier,monospace;">data</span>: same as in <span style="font-family: Courier New,Courier,monospace;">ecore_thread_run()</span></li>
+    <li><span style="font-family: Courier New,Courier,monospace;">func_notify</span>: a callback to run from the main-loop whenever <span style="font-family: Courier New,Courier,monospace;">func_blocking</span> calls in <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback()</span> is called</li>
+    <li><span style="font-family: Courier New,Courier,monospace;">try_no_queue</span>: a Boolean: if true, Ecore attempts to spawn a new thread regardless of the thread pool status, and only attempts to use the thread pool if this fails</li>
+</ul>
+
+<p>The type for the <span style="font-family: Courier New,Courier,monospace;">func_notify</span> callback is given below: </p>
+
+<pre class="prettyprint">
+void (* Ecore_Thread_Notify_Cb) (void *data, Ecore_Thread *thread, void *msg_data)
+</pre>
+
+<p>Therefore, the declaration of a matching function is: </p>
+
+<pre class="prettyprint">
+void notify_callback (void *data, Ecore_Thread *thread, void *msg_data)
+</pre>
+
+<ul>
+    <li><span style="font-family: Courier New,Courier,monospace;">data</span>: same as the data which was given as parameter to <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback_run()</span></li>
+    <li><span style="font-family: Courier New,Courier,monospace;">thread</span>: a handle to the thread in which the function is running</li>
+    <li><span style="font-family: Courier New,Courier,monospace;">msg_data</span>: the pointer given to <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback()</span></li>
+</ul>
+
+<p>The prototype of the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback()</span> function is shown below: </p>
+
+<pre class="prettyprint">
+Eina_Bool ecore_thread_feedback(Ecore_Thread *thread,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const void *msg_data)
+</pre>
+
+<ul>
+    <li><span style="font-family: Courier New,Courier,monospace;">thread</span>: the thread handle for the current thread; it is given to the various callbacks mentioned above</li>
+    <li><span style="font-family: Courier New,Courier,monospace;">msg_data</span>: a pointer to the data to send to the <span style="font-family: Courier New,Courier,monospace;">func_notify</span> callback that runs from the main-loop</li>
+</ul>
+
+<h3>Running Callbacks from the Mainloop</h3>
+
+<p>If you are doing operations in an another thread and want to update a progress bar, the operation must be done from the main thread. The simplest way to do so is to use <span style="font-family: Courier New,Courier,monospace;">ecore_main_loop_thread_safe_call_async()</span>. It takes a function and some data as parameter and instructs the main-loop to execute the given function with the given data. </p>
+
+<pre class="prettyprint">
+void ecore_main_loop_thread_safe_call_async(Ecore_Cb callback, void *data)
+</pre>
+
+<p>This function takes two arguments and returns nothing. The arguments are:</p>
+<ul>
+    <li><span style="font-family: Courier New,Courier,monospace;">callback</span>: function to execute from the main-loop</li>
+    <li><span style="font-family: Courier New,Courier,monospace;">data</span>: data to pass to the callback when calling it</li>
+</ul>
+
+<p>The declaration of <span style="font-family: Courier New,Courier,monospace;">Ecore_Cb</span> is given below:</p>
+
+<pre class="prettyprint">
+typedef void(* Ecore_Cb)(void *data)
+</pre>
+
+<p>Therefore the prototype for such a function is: </p>
+
+<pre class="prettyprint">
+void _some_function(void *data);
+</pre>
+
+<p>If it is called from a thread that is not the main one, it sends a message to the main-loop and returns quickly. The message is processed similarly to others, i.e. in order.</p>
+
+<p>If it is called from the main thread, the function is called immediately as if it were a direct call.</p>
+
+<p>If you wish to wait until the callback is called and returns, use the <span style="font-family: Courier New,Courier,monospace;">ecore_main_loop_thread_safe_call_sync()</span> function which is similar but synchronous: </p>
+
+<pre class="prettyprint">
+void * ecore_main_loop_thread_safe_call_sync(Ecore_Data_Cb callback, void *data)
+</pre>
+
+<p>Also, since it is synchronous, it is able to return the value returned by the callback. This can be seen in the type of the callback which returns a void *: </p>
+
+<pre class="prettyprint">
+typedef void * (* Ecore_Cb)(void *data)
+</pre>
+
+<h2 id="max_threads" name="max_threads">Maximum Number of Threads in the Pool</h2>
+
+<p>The maximum number of threads in Ecore&#39;s pool is governed by the <span style="font-family: Courier New,Courier,monospace;">thread_max</span> parameter.</p>
+
+<p>Retrieve the current value with <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_get()</span>:</p>
+
+<pre class="prettyprint">
+int ecore_thread_max_get(void)
+</pre>
+
+<p>Set the value with <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_set()</span> (up to a maximum of 16 × CPU count):</p>
+
+<pre class="prettyprint">
+void ecore_thread_max_set(int maximum)
+</pre>
+
+<p>If needed, reset the maximum number of threads: </p>
+
+<pre class="prettyprint">
+int ecore_thread_max_reset(void)
+</pre>
+
+<p>A function related to these is <span style="font-family: Courier New,Courier,monospace;">ecore_thread_available_get()</span>: it returns the number of running threads less the current maximum number of threads and may be negative if the maximum number of threads has been lowered. </p>
+
+<pre class="prettyprint">
+int ecore_thread_available_get(void)
+</pre>
+
+<h2 id="low_level" name="low_level">Low-level Functions</h2>
+
+<p>Eina offers low-level APIs that are portable across operating system: locks, conditions, semaphores, barriers, spinlocks, etc. The API follows closely pthreads.</p>
+
+<p>While these are useful, they are building blocks and are not usually useful to EFL applications considering the higher-level functions that are available in Ecore.</p>
+
+<p>A detailed presentation of threads is too large for this guide. The links below are good introductions to threads and pthreads in particular.</p>
+
+<ul>
+<li><a href="http://www.ibm.com/developerworks/library/l-pthred/index.html" target="blank">Basic use of pthreads</a> (IBM developerWorks)</li>
+<li><a href="https://computing.llnl.gov/tutorials/pthreads/" target="blank">POSIX Threads Programming</a> (Lawrence Livermore National Laboratory)</li>
+<li><a href="http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/pthread.h.html" target="blank">POSIX 2003 specification</a> (opengroup)</li>
+</ul>
+
+<p>If you are already familiar with threads, refer to a standard pthreads documentation and the Eina reference documentation or to the API list below; remember that it is a very close mapping of the pthreads API.</p>
+
+<table>
+<caption>Locks (mutual exclusions)</caption>
+<colgroup> 
+<col width="50%" /> 
+<col width="50%" /> 
+</colgroup> 
+<tbody>
+<tr> 
+<th>pthreads API </th> 
+<th>Eina equivalent </th> 
+</tr> 
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_mutex_new() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_lock_new (Eina_Lock *mutex)</span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_mutex_destroy() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">void eina_lock_free (Eina_Lock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_mutex_lock() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Lock_Result eina_lock_take (Eina_Lock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_mutex_trylock() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Lock_Result eina_lock_take_try (Eina_Lock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_mutex_unlock() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Lock_Result eina_lock_release (Eina_Lock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p>none (prints debug information on the lock) </p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">void eina_lock_debug (const Eina_Lock *mutex) </span></p></td> 
+</tr>
+</tbody>
+</table>
+
+<table>
+<caption>Conditions (notifications when condition objects change)</caption>
+<colgroup> 
+<col width="50%" /> 
+<col width="50%" /> 
+</colgroup> 
+<tbody>
+<tr> 
+<th>pthreads API </th> 
+<th>Eina equivalent </th> 
+</tr> 
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_cond_init() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_condition_new (Eina_Condition *cond, Eina_Lock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_cond_destroy </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">void eina_condition_free (Eina_Condition *cond) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_cond_wait() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_condition_wait (Eina_Condition *cond) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_cond_timedwait() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_condition_timedwait (Eina_Condition *cond, double t) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_cond_broadcast() 	</span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_condition_broadcast (Eina_Condition *cond) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_cond_signal() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_condition_signal (Eina_Condition *cond) </span></p></td> 
+</tr>
+</tbody>
+</table>
+
+<table>
+<caption>RWLocks (Read-Write Locks, for multiple-readers/single-writer scenarios)</caption>
+<colgroup> 
+<col width="50%" /> 
+<col width="50%" /> 
+</colgroup> 
+<tbody>
+<tr> 
+<th>pthreads API </th> 
+<th>Eina equivalent </th> 
+</tr> 
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_rwlock_init()</span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_rwlock_new (Eina_RWLock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_rwlock_destroy() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">void eina_rwlock_free (Eina_RWLock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_rwlock_rwlock_rdlock() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Lock_Result eina_rwlock_take_read (Eina_RWLock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_rwlock_rwlock_wrlock() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Lock_Result eina_rwlock_take_write (Eina_RWLock *mutex) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_rwlock_unlock() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Lock_Result eina_rwlock_release (Eina_RWLock *mutex) </span></p></td> 
+</tr>
+</tbody>
+</table>
+
+<table>
+<caption>TLS (Thread-Local Storage)</caption>
+<colgroup> 
+<col width="50%" /> 
+<col width="50%" /> 
+</colgroup> 
+<tbody>
+<tr> 
+<th>pthreads API </th> 
+<th>Eina equivalent </th> 
+</tr> 
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_key_create() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_tls_new (Eina_TLS *key) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_key_delete() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">void eina_tls_free (Eina_TLS key) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_getspecific() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">void * eina_tls_get (Eina_TLS key) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_setspecific </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_tls_set (Eina_TLS key, const void *data) </span></p></td> 
+</tr>
+</tbody>
+</table>
+
+<table>
+<caption>Semaphores (access restrictions for set of resources)</caption>
+<colgroup> 
+<col width="50%" /> 
+<col width="50%" /> 
+</colgroup> 
+<tbody>
+<tr> 
+<th>pthreads API </th> 
+<th>Eina equivalent </th> 
+</tr> 
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">sem_init() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_semaphore_new (Eina_Semaphore *sem, int count_init) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">sem_destroy() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_semaphore_free (Eina_Semaphore *sem) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">sem_wait() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_semaphore_lock (Eina_Semaphore *sem) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">sem_post() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_semaphore_release (Eina_Semaphore *sem, int count_release) </span></p></td> 
+</tr>
+</tbody>
+</table>
+
+<table>
+<caption>TLS (Thread-Local Storage)</caption>
+<colgroup> 
+<col width="50%" /> 
+<col width="50%" /> 
+</colgroup> 
+<tbody>
+<tr> 
+<th>pthreads API </th> 
+<th>Eina equivalent </th> 
+</tr> 
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_barrier_init() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_barrier_new (Eina_Barrier *barrier, int needed) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_barrier_destroy() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">void eina_barrier_free (Eina_Barrier *barrier) </span></p></td> 
+</tr>
+<tr> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">pthread_barrier_wait() </span></p></td> 
+<td rowspan="1" colspan="1"><p><span style="font-family: Courier New,Courier,monospace;">Eina_Bool eina_barrier_wait (Eina_Barrier *barrier) </span></p></td> 
+</tr>
+</tbody>
+</table>
+
+<h2 id="Examples" name="Examples">Examples</h2>
+
+<p>The two examples below display a window with only a label. An auxiliary thread semi-regularly changes the text of the label. Note that if you want to do a regular animation, use Ecore animators which are described in the <a href="main_loop_n.htm">Main Loop</a> guide.</p>
+
+<h3>Using <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback()</span></h3>
+
+<p>The first example uses <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback()</span> to call the GUI functions from the main thread. The function that is used to handle the feedback simply sets the text of a label:</p>
+
+<pre class="prettyprint">
+static void
+_set_label_text(void *data, Ecore_Thread *thread __UNUSED__, void *msgdata)
+{
+&nbsp;&nbsp;&nbsp;char buf[64];
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;Tick %d&quot;, (int)(uintptr_t)msgdata);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, buf);
+}
+</pre>
+
+<p>The feedback is sent from the function shown below; it does nothing besides sleeping and sending feedback.</p>
+
+<pre class="prettyprint">
+static void
+_long_function(void *data __UNUSED__, Ecore_Thread *thread)
+{
+&nbsp;&nbsp;&nbsp;int iteration;
+&nbsp;&nbsp;&nbsp;// Change the text roughly every 1 second. This is only an example; if you
+&nbsp;&nbsp;&nbsp;// want to do that, use ecore animators!
+&nbsp;&nbsp;&nbsp;for (iteration = 0; ; iteration++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Since we are running from another thread, we need to take special
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// care and instead send data to the main thread and have it run the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// feedback function given when creating the thread.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_thread_feedback(thread, (void*)(uintptr_t)iteration);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Sleep for roughly one second.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>Create a function that is called when the thread exits. In the example, this is called only right before the application exits but if the blocking function was more complex, it can trigger it.</p>
+
+<pre class="prettyprint">
+static void
+_end_func(void *data, Ecore_Thread *thread __UNUSED__)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, &quot;Ticks over&quot;);
+}
+</pre>
+
+<p>The final bit is a call to <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback_run()</span> which starts the thread.</p>
+
+<pre class="prettyprint">
+ecore_thread_feedback_run(_long_function, _set_label_text, _end_func, NULL, ad, EINA_FALSE);
+</pre>
+
+<h3>Using <span style="font-family: Courier New,Courier,monospace;">ecore_main_loop_thread_safe_call_sync()</span></h3>
+
+<p>The second example is very similar to the first one except that it uses <span style="font-family: Courier New,Courier,monospace;">ecore_main_loop_thread_safe_call_sync()</span> to do its GUI operations.</p>
+
+<p>The callback receives data as a structure and alternatively displays &quot;Tick d&quot; or &quot;Tock d&quot;.</p>
+
+<pre class="prettyprint">
+struct thd 
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad;
+&nbsp;&nbsp;&nbsp;Eina_Bool tick_not_tock;
+&nbsp;&nbsp;&nbsp;int iteration;
+};
+static void *
+_set_label_text_tick_tock(void *data)
+{
+&nbsp;&nbsp;&nbsp;char buf[64];
+&nbsp;&nbsp;&nbsp;struct thd *thd = data;
+&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf),
+&nbsp;&nbsp;&nbsp;&quot;%s %d&quot;,
+&nbsp;&nbsp;&nbsp;(thd-&gt;tick_not_tock ? &quot;Tick&quot; : &quot;Tock&quot;),
+&nbsp;&nbsp;&nbsp;thd-&gt;iteration);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(thd-&gt;ad-&gt;label, buf);
+
+&nbsp;&nbsp;&nbsp;return NULL;
+}
+</pre>
+
+<p>The function in the thread is also slightly larger since it needs to differentiate between ticks and tocks:</p>
+
+<pre class="prettyprint">
+static void
+_long_function_tick_tock(void *data, Ecore_Thread *thread __UNUSED__)
+{
+&nbsp;&nbsp;&nbsp;struct thd *thd = malloc(sizeof(struct thd));
+&nbsp;&nbsp;&nbsp;thd-&gt;ad = data;
+&nbsp;&nbsp;&nbsp;for (thd-&gt;iteration = 0; ; (thd-&gt;iteration)++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thd-&gt;tick_not_tock = EINA_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_main_loop_thread_safe_call_sync(_set_label_text_tick_tock, thd);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thd-&gt;tick_not_tock = EINA_FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_main_loop_thread_safe_call_sync(_set_label_text_tick_tock, thd);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;free(thd);
+}
+</pre>
+
+<p>Finally, starting the thread is done through <span style="font-family: Courier New,Courier,monospace;">ecore_thread_run()</span> and is therefore very similar to the previous example.</p>
+
+<pre class="prettyprint">
+ecore_thread_run(_long_function_tick_tock, _end_func, NULL, ad);
+</pre>
+
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer"> 
+<p class="footer">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p> 
+</div> 
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

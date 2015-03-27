@@ -1,0 +1,414 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>Image Util: Encoding, Decoding, and Transforming Images</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a class="opensection" href="#init">Initializing the Image Utilities</a></li>
+			<li>Image manipulation
+				<ul class="toc">
+					<li><a class="opensection" href="#colorspace">Converting the Color Space</a></li>
+					<li><a class="opensection" href="#resize">Resizing an Image</a></li>
+					<li><a class="opensection" href="#rotate">Rotating an Image</a></li>
+					<li><a class="opensection" href="#crop">Cropping an Image</a></li>
+				</ul>
+			</li>
+			<li><a class="opensection" href="#decode">Decoding from a File or Memory</a></li>
+			<li><a class="opensection" href="#encode">Encoding to a File or Memory</a></li>
+		</ul>     
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/multimedia/image_util_n.htm">Image Util Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__IMAGE__UTIL__MODULE.html">Image Util API</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Image Util: Encoding, Decoding, and Transforming Images</h1>
+  <div class="cont"><div class="static-cont">
+  
+<p>This tutorial demonstrates how you can convert, resize, rotate, and crop an image, and decode and encode a JPEG image.</p>
+
+<h2>Warm-up</h2>
+<p>Become familiar with the Image Util API basics by learning about:</p>
+
+<ul>
+ <li><a class="opensection" href="#init">Initializing Image Utilities</a>
+ <p>Initialize the image utilities for use.</p></li>
+ <li>Image manipulation
+   <ul>
+	 <li><a class="opensection" href="#colorspace">Converting the Color Space</a>
+	  <p>Convert an image from one color space to another.</p>
+	 </li>
+	 <li><a class="opensection" href="#resize">Resizing an Image</a>
+	  <p>Resize an image.</p>
+	 </li>
+	 <li><a class="opensection" href="#rotate">Rotating an Image</a>
+	  <p>Rotate an image.</p>
+	 </li>
+	 <li><a class="opensection" href="#crop">Cropping an Image</a>
+	  <p>Crop an image.</p>
+	 </li>
+  </ul>
+ </li>
+ <li><a class="opensection" href="#decode">Decoding from a File or Memory</a>
+  <p>Decode a JPEG image from a file or memory.</p>
+ </li>
+ <li><a class="opensection" href="#encode">Encoding to a File or Memory</a>
+  <p>Encode raw image data to a JPEG file or to memory in JPEG format.</p>
+ </li>
+</ul>
+ 
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+
+		<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="init" name="init" class="items-tit-h2">Initializing the Image Utilities</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To initialize image utilities:</p>
+<ol>
+<li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__IMAGE__UTIL__MODULE.html">Image Util</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;image_util.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;image_util.h&gt;
+</pre></li>			
+<li><p>Declare the required variables:</p>
+
+<pre class="prettyprint">
+#define SAMPLE_FILENAME &quot;/tmp/sample_image.jpg&quot;
+#define OUTPUT_ROTATED_JPEG &quot;/tmp/rotated_image.jpg&quot;
+
+const image_util_colorspace_e colorspace = IMAGE_UTIL_COLORSPACE_RGB888;
+unsigned char *img_rotate_target = NULL;
+unsigned char *img_source = NULL;
+int ret = 0;
+int width = 0, height = 0;
+unsigned int size_decode = 0;</pre></li>
+
+<li><p>To ensure that a function has been properly executed, always check its return value. If the return value is different from <span style="font-family: Courier New,Courier,monospace">IMAGE_UTIL_ERROR_NONE</span>, an error has occurred.</p>
+
+<p>The Image Util API supports the following color spaces defined in the <span style="font-family: Courier New,Courier,monospace">image_util_colorspace_e</span> enumerator:</p>
+
+<pre class="prettyprint">IMAGE_UTIL_COLORSPACE_YV12,       // YV12 - YCrCb planar format
+IMAGE_UTIL_COLORSPACE_YUV422,     // YUV422 - planar 
+IMAGE_UTIL_COLORSPACE_I420,       // YUV420 - planar 
+IMAGE_UTIL_COLORSPACE_NV12,       // NV12- planar 
+IMAGE_UTIL_COLORSPACE_UYVY,       // UYVY - packed 
+IMAGE_UTIL_COLORSPACE_YUYV,       // YUYV - packed 
+IMAGE_UTIL_COLORSPACE_RGB565,     // RGB565, high-byte is Blue
+IMAGE_UTIL_COLORSPACE_RGB888,     // RGB888, high-byte is Blue 
+IMAGE_UTIL_COLORSPACE_ARGB8888,   // ARGB8888, high-byte is Blue 
+IMAGE_UTIL_COLORSPACE_BGRA8888,   // BGRA8888, high-byte is Alpha 
+IMAGE_UTIL_COLORSPACE_RGBA8888,   // RGBA8888, high-byte is Alpha 
+IMAGE_UTIL_COLORSPACE_BGRX8888,   // BGRX8888, high-byte is X 
+IMAGE_UTIL_COLORSPACE_NV21,       // NV12 - planar 
+IMAGE_UTIL_COLORSPACE_NV16,       // NV16 - planar 
+IMAGE_UTIL_COLORSPACE_NV61,       // NV61 - planar</pre>
+
+<p>To find out which color spaces are encoded, use the <span style="font-family: Courier New,Courier,monospace">image_util_foreach_supported_jpeg_colorspace()</span> function:</p>
+
+<pre class="prettyprint">int image_util_foreach_supported_jpeg_colorspace(image_util_supported_jpeg_colorspace_cb callback, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;void * user_data);</pre>
+
+<p>For more information about the YUV color space, see <a href="http://www.fourcc.org/yuv.php" target="blank">http://www.fourcc.org/yuv.php</a>.</p></li></ol>
+	</div>
+		</li>			
+				<li>
+			<div class="devicespec-tit">
+ <h2 id="colorspace" name="colorspace" class="items-tit-h2">Converting the Color Space</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To convert an image from one color space to another:</p>
+<ol><li>Create a transform handle to support the conversion.
+
+<p>The transform is related and limited to image processing, such as converting, resizing, rotating, and cropping.</p>
+
+<pre class="prettyprint">transformation_h handle;
+ret = image_util_transform_create(&amp;handle);
+</pre></li>
+<li>
+<p>To use hardware acceleration, enable it using the <span style="font-family: Courier New,Courier,monospace">image_util_transform_set_hardware_acceleration()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_set_hardware_acceleration(handle, true);</pre>
+
+<p>Even though you use hardware acceleration, you can set the output format with the <span style="font-family: Courier New,Courier,monospace">image_util_transform_set_colorspace()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_set_colorspace(handle, colorspace);
+</pre></li>
+<li>
+<p>After creating the <span style="font-family: Courier New,Courier,monospace">transform_h</span> handle and setting the output property, execute the transform using the <span style="font-family: Courier New,Courier,monospace">image_util_transform_run()</span> function.</p>
+<p>You can use the <span style="font-family: Courier New,Courier,monospace">image_util_transform_completed_cb</span> callback for handling the function results.</p>
+
+<pre class="prettyprint">ret = image_util_transform_run(handle, src, (image_util_transform_completed_cb)completed_callback, user_data);
+</pre>
+<table class="note"> 
+ <tbody> 
+  <tr> 
+   <th class="note">Note</th> 
+  </tr> 
+  <tr> 
+   <td class="note"><ul class="ul"><li>The function only converts the color space. It does not change the image width or height.</li>
+   <li>Because of the restrictions of the image processing library, not all color space combinations are supported for conversion. For example, the NV12 format is commonly used in hardware chips, but it is not supported by the library.</li>
+   <li>If the hardware acceleration is enabled, you can execute 2 more image processings using just the created handle.</li></ul></td>
+  </tr> 
+ </tbody> 
+</table></li>
+<li>
+<p>When the callback confirms that the transform is completed, call the <span style="font-family: Courier New,Courier,monospace">image_util_transform_destroy()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_destroy(handle);</pre>
+
+
+</li></ol>
+	</div>
+		</li>	
+				<li>
+			<div class="devicespec-tit">
+ <h2 id="resize" name="resize" class="items-tit-h2">Resizing an Image</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To resize an image:</p>
+
+<ol><li><p>Create a transform handle to support resizing.</p>
+
+<p>The transform is related and limited to image processing, such as converting, resizing, rotating, and cropping.</p>
+
+<pre class="prettyprint">transformation_h handle;
+ret = image_util_transform_create(&amp;handle);
+</pre></li>
+<li>
+<p>To use hardware acceleration, enable it using the <span style="font-family: Courier New,Courier,monospace">image_util_transform_set_hardware_acceleration()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_set_hardware_acceleration(handle, true);</pre>
+
+<p>Even though you use hardware acceleration, you can set the output resolution with the <span style="font-family: Courier New,Courier,monospace">image_util_transform_set_resolution()</span> function.</p>
+
+<pre class="prettyprint">ret = image_util_transform_set_resolution(handle, width, height);
+</pre></li>
+<li>
+<p>After creating the <span style="font-family: Courier New,Courier,monospace">transform_h</span> handle and setting the output property, execute the transform using the <span style="font-family: Courier New,Courier,monospace">image_util_transform_run()</span> function.</p>
+<p>You can use the <span style="font-family: Courier New,Courier,monospace">image_util_transform_completed_cb</span> callback for handling the function results.</p>
+<pre class="prettyprint">ret = image_util_transform_run(handle, src, (image_util_transform_completed_cb)completed_callback, user_data);
+</pre>
+<table class="note">
+ <tbody>
+  <tr>
+   <th class="note">Note</th>
+  </tr>
+  <tr>
+   <td class="note"><ul class="ul"><li>Since the source format is the same as the target format, you can ignore the format.</li>
+   <li>If the color space is YUV, the target image width and height must be multiples of 8. This restriction does not apply to the RGB images.</li>
+   <li>If the hardware acceleration is enabled, you can execute 2 more image processings using just the created handle.</li></ul></td>
+  </tr>
+ </tbody>
+</table></li>
+<li>
+<p>When the callback confirms that the transform is completed, call the <span style="font-family: Courier New,Courier,monospace">image_util_transform_destroy()</span> function:</p>
+<pre class="prettyprint">ret = image_util_transform_destroy(handle);</pre>
+</li></ol>
+	</div>
+		</li>	
+				<li>
+			<div class="devicespec-tit">
+ <h2 id="rotate" name="rotate" class="items-tit-h2">Rotating an Image</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To rotate an image:</p>
+
+<ol><li><p>Create a transform handle to support rotating.</p>
+
+<p>The transform is related and limited to image processing, such as converting, resizing, rotating, and cropping.</p>
+
+<pre class="prettyprint">transformation_h handle;
+ret = image_util_transform_create(&amp;handle);
+</pre></li>
+<li>
+<p>To use hardware acceleration, enable it using the <span style="font-family: Courier New,Courier,monospace">image_util_transform_set_hardware_acceleration()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_set_hardware_acceleration(handle, true);</pre>
+
+<p>Even though you use hardware acceleration, you can set the rotation property with the <span style="font-family: Courier New,Courier,monospace">image_util_transform_set_rotation()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_set_rotation(handle, rotation);</pre>
+<p>The possible values for the <span style="font-family: Courier New,Courier,monospace">rotation</span> parameter are:</p>
+<ul class="ul">
+ <li><span style="font-family: Courier New,Courier,monospace">IMAGE_UTIL_ROTATION_NONE</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace">IMAGE_UTIL_ROTATION_90</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace">IMAGE_UTIL_ROTATION_180</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace">IMAGE_UTIL_ROTATION_270</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace">IMAGE_UTIL_ROTATION_FLIP_HORZ</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace">IMAGE_UTIL_ROTATION_FLIP_VERT</span></li>
+</ul>
+</li>
+<li>
+<p>After creating the <span style="font-family: Courier New,Courier,monospace">transform_h</span> handle and setting the output property, execute the transform using the <span style="font-family: Courier New,Courier,monospace">image_util_transform_run()</span> function.</p>
+<p>You can use the <span style="font-family: Courier New,Courier,monospace">image_util_transform_completed_cb</span> callback for handling the function results.</p>
+<pre class="prettyprint">ret = image_util_transform_run(handle, src, (image_util_transform_completed_cb)completed_callback, user_data);
+</pre>
+<table class="note">
+ <tbody>
+  <tr>
+   <th class="note">Note</th>
+  </tr>
+  <tr>
+   <td class="note"><ul class="ul"><li>Since the source format is the same as the target format, you can ignore the <span style="font-family: Courier New,Courier,monospace">src_format.</span></li>
+   <li>If the color space is YUV, the target image width and height must be multiples of 8. This restriction does not apply to the RGB images.</li>
+   <li>If the hardware acceleration is enabled, you can execute 2 more image processings using just the created handle.</li></ul></td>
+  </tr>
+ </tbody>
+</table></li>
+<li>
+<p>When the callback confirms that the transform is completed, call the <span style="font-family: Courier New,Courier,monospace">image_util_transform_destroy()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_destroy(handle);</pre>
+
+</li></ol>
+	</div>
+		</li>	
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="crop" name="crop" class="items-tit-h2">Cropping an Image</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To crop an image:</p>
+
+<ol><li><p>Create a transform handle to support cropping.</p>
+
+<p>The transform is related and limited to image processing, such as converting, resizing, rotating, and cropping.</p>
+
+<pre class="prettyprint">transformation_h handle;
+ret = image_util_transform_create(&amp;handle);
+</pre></li>
+<li>
+<p>To use hardware acceleration, enable it using the <span style="font-family: Courier New,Courier,monospace">image_util_transform_set_hardware_acceleration()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_set_hardware_acceleration(handle, true);</pre>
+
+<p>Even though you use hardware acceleration, you can set the cropped property with the <span style="font-family: Courier New,Courier,monospace">image_util_transform_set_crop_area()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_set_crop_area(handle, start_x, start_y, end_x, end_y);
+</pre></li>
+<li>
+<p>After creating the <span style="font-family: Courier New,Courier,monospace">transform_h</span> handle and setting the output property, execute the transform using the <span style="font-family: Courier New,Courier,monospace">image_util_transform_run()</span> function.</p>
+<p>You can use the <span style="font-family: Courier New,Courier,monospace">image_util_transform_completed_cb</span> callback for handling the function results.</p>
+
+<pre class="prettyprint">ret = image_util_transform_run(handle, src, (image_util_transform_completed_cb)completed_callback, user_data);
+</pre>
+</li>
+<li>
+<p>When the callback confirms that the transform is completed, call the <span style="font-family: Courier New,Courier,monospace">image_util_transform_destroy()</span> function:</p>
+
+<pre class="prettyprint">ret = image_util_transform_destroy(handle);</pre>
+
+
+<table class="note"> 
+ <tbody> 
+  <tr> 
+   <th class="note">Note</th> 
+  </tr> 
+  <tr> 
+   <td class="note"><ul class="ul"><li>Because of a YUV restriction, and because the crop start position can otherwise be set arbitrarily, the cropped image width and height must be even.</li>
+   <li>If the hardware acceleration is enabled, you can execute 2 more image processings using just the created handle.</li></ul></td>
+  </tr> 
+ </tbody> 
+</table>
+</li></ol>
+	</div>
+		</li>	
+				<li>
+			<div class="devicespec-tit">
+ <h2 id="decode" name="decode" class="items-tit-h2">Decoding from a File or Memory</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To decode a JPEG image:</p>
+
+<ul class="ul"><li>To decode from a file, use the <span style="font-family: Courier New,Courier,monospace">image_util_decode_jpeg()</span> function.
+
+<p>Manually allocate the memory for the image buffer based on a calculated buffer size.</p>
+
+<pre class="prettyprint">ret = image_util_decode_jpeg(SAMPLE_FILENAME, colorspace, &amp;img_source, &amp;width, &amp;height, &amp;size_decode);</pre></li>
+
+<li><p>To decode from memory, use the <span style="font-family: Courier New,Courier,monospace">image_util_decode_jpeg_from_memory()</span> function.</p>
+
+<p>Manually allocate the memory for the image buffer based on a calculated buffer size.</p>
+
+<pre class="prettyprint">ret = image_util_decode_jpeg_from_memory(jpeg_buffer, jpeg_size, colorspace, image_buffer, width, height, size);</pre></li></ul>
+	</div>
+		</li>	
+				<li>
+			<div class="devicespec-tit">
+ <h2 id="encode" name="encode" class="items-tit-h2">Encoding to a File or Memory</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To encode a rotated or flipped image:</p>
+
+<ul class="ul"><li>To encode to a JPEG file, use the <span style="font-family: Courier New,Courier,monospace">image_util_encode_jpeg()</span> function:
+
+<pre class="prettyprint">ret = image_util_encode_jpeg(img_flip_target, dest_width, dest_height, colorspace, 100, OUTPUT_ROTATED_JPEG);</pre></li>
+
+<li>To encode to memory in JPEG format, use the <span style="font-family: Courier New,Courier,monospace">image_util_encode_jpeg_to_memory()</span> function:
+
+<pre class="prettyprint">ret = image_util_encode_jpeg_to_memory(img_flip_target, dest_width, dest_height, colorspace, 100, jpeg_buffer, jpeg_size);</pre></li></ul>
+	</div>
+		</li>	
+	</ul>	
+</div>				
+</div>  
+  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

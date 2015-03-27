@@ -1,0 +1,835 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Application: Using Alarms, Preferences, AppControl, and Other Fundamentals</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li>Application fundamentals
+				<ul class="toc">
+				<li><a class="opensection" href="#fundamentals">Handling the Application Fundamentals</a></li>
+				</ul>
+			</li>	
+			<li>App control
+				<ul class="toc">
+					<li><a class="opensection" href="#use">Running Applications Using Extra Data</a></li>
+				</ul>
+			</li>					
+			<li>Alarm
+				<ul class="toc">
+					<li><a href="#init" class="opensection">Initializing Alarms</a></li>
+					<li><a href="#scenario_1" class="opensection">Setting an Alarm after Specific Time</a></li>
+					<li><a href="#scenario_2" class="opensection">Setting an Alarm on a Specific Date</a></li>
+					<li><a href="#scenario_3" class="opensection">Setting a Recurring Alarm at a Specific Time of the Day</a></li>
+					<li><a href="#scenario_4" class="opensection">Listing All Scheduled Alarms and Canceling an Alarm</a></li>
+				</ul>
+			</li>
+			<li>Application preferences
+				<ul class="toc">
+					<li><a class="opensection" href="#manage_pref">Managing Application Preferences</a></li>
+				</ul>
+			</li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.guides/html/native/app/application_n.htm">Application Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APPLICATION__MODULE.html">Application API</a></li> 
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+
+	<h1>Application: Using Alarms, Preferences, AppControl, and Other Fundamentals</h1>
+<div class="cont"><div class="static-cont">	
+
+<p>This tutorial demonstrates how you can manage application fundamentals, such as application settings and service applications.</p> 
+
+<h2>Warm-up</h2>
+<p>Become familiar with the Application API basics by learning about:</p>
+
+<ul>
+	<li>Application fundamentals
+		<ul> 
+			<li><a class="opensection" href="#fundamentals">Handling the Application Fundamentals</a> <p>Define the application entry point and life-cycle callbacks.</p></li>
+		</ul>
+	</li>
+    <li>App control
+		<ul>
+			<li><a class="opensection" href="#use">Running Applications Using Extra Data</a> <p>Run a specific application control with preconfigured parameters.</p></li>
+		</ul>  
+    </li>
+	<li>Alarm
+		<ul>
+			<li><a class="opensection" href="#init">Initializing Alarms</a>
+			<p>Initialize the alarm for use.</p></li>
+			<li><a class="opensection" href="#scenario_1">Setting an Alarm after Specific Time</a>
+			<p>Set single alarms at specific times.</p></li>
+			<li><a class="opensection" href="#scenario_2">Setting an Alarm on a Specific Date</a>
+			<p>Set an alarm on a specific date.</p></li>
+			<li><a class="opensection" href="#scenario_3">Setting a Recurring Alarm at a Specific Time of the Day</a>
+			<p>Set a recurring alarm for a period of time at a specific time.</p></li>
+			<li><a class="opensection" href="#scenario_4">Listing All Scheduled Alarms and Canceling an Alarm</a>
+			<p>List all alarms and cancel them.</p></li>
+		</ul>
+    </li>
+	<li>Application preferences
+		<ul>
+			<li><a class="opensection" href="#manage_pref">Managing Application Preferences</a><p>Manage application preferences.</p></li>
+		</ul>
+	</li>
+	
+</ul>
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+	<!-- Folds -->
+	<ul class="devicespecifications">
+	<li>
+			<div class="devicespec-tit">
+ <h2 id="fundamentals" name="fundamentals" class="items-tit-h2">Handling the Application Fundamentals</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>Appcore is the framework all Tizen applications are based on. It is simple and only handles interactions between applications and the operating system.</p>
+<p>An application starts with the <span style="font-family: Courier New,Courier,monospace;">main()</span> function. It initializes the appcore and starts it.</p>
+<p>The code below is the minimal application using appcore. It only builds and runs.</p>
+<pre class="prettyprint">
+// Add this include to be able to use the functions from appcore.
+#include &lt;app.h&gt;
+
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;// Create and ui_app_lifecycle_callback_s object and initialize its contents to 0
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = {0,};
+
+&nbsp;&nbsp;&nbsp;// Run the application
+&nbsp;&nbsp;&nbsp;return ui_app_main(&amp;argc, &amp;argv, &amp;event_callback, NULL);
+}
+</pre>
+
+<p>Appcore is based on callbacks. There are two classes of callbacks: those about the application&#39;s life-cycle and those about the system.</p>
+<p>The application&#39;s life-cycle callbacks are:</p>
+<ul class="ul">
+<li><span style="font-family: Courier New,Courier,monospace;">create</span>: first initialization, comes after <span style="font-family: Courier New,Courier,monospace;">app_main()</span> has been called and initializes UI.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">control</span>: triggered when the application is started to do something. It can be called several times during the lifespan of an application, it shows the screen for the action requested. It requires specific information given to the callback.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">terminate</span>: saves work, releases resources, and exits.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">pause</span>: sets the application&#39;s window not visible and switches to a mode which uses less resources.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">resume</span>: sets the application&#39;s window to be visible again.</li>
+</ul>
+
+<p>Then, system-related callbacks:</p>
+<ul class="ul">
+<li><span style="font-family: Courier New,Courier,monospace;">low_memory</span>: the system is running low on memory, saves work, and releases resources; if this is not enough are freed, some applications will be killed.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">low_battery</span>: the system is running low on battery (less than 5%), saves work and avoids battery-draining workloads.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">device_orientation</span>: the screen orientation changed between vertical and horizontal, orientation information is given to the callback.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">language_changed</span>: language of the system is changed and messages are translated.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">region_format_changed</span>: time zone has changed.</li>
+</ul>
+
+<p>A basic implementation is shown below:</p>
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+
+// Structure to store the data for application&#39;s logic; it is given
+// to each callback invoked through appcore
+typedef struct appdata 
+{
+&nbsp;&nbsp;&nbsp;char *several;
+&nbsp;&nbsp;&nbsp;char *fields;
+} appdata_s;
+
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Hook to take necessary actions before main event loop starts; this
+&nbsp;&nbsp;&nbsp;// usually means initializing UI and application&#39;s data (the &quot;data&quot;
+&nbsp;&nbsp;&nbsp;// parameter to this function)
+
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;create_gui(ad);
+
+&nbsp;&nbsp;&nbsp;// If this function returns true, the main loop of application starts
+&nbsp;&nbsp;&nbsp;// If this function returns false, the application is terminated
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+static void
+app_control(app_control_h app_control, void *data)
+{
+&nbsp;&nbsp;&nbsp;// Handles the launch request, show the user the task requested through the
+&nbsp;&nbsp;&nbsp;// &quot;app_control&quot; parameter (detailed in the next section)
+}
+
+static void
+app_pause(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Takes necessary actions when application becomes invisible
+}
+
+static void
+app_resume(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Takes necessary actions when application becomes visible
+}
+
+static void
+app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Releases all resources
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;if (!ad) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// If specific steps are needed:
+&nbsp;&nbsp;&nbsp;// destroy_gui(ad);
+}
+
+static void
+app_device_orientation(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Takes necessary actions when device orientation changes
+}
+
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;appdata_s ad = {0,};
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = {0,};
+
+&nbsp;&nbsp;&nbsp;// Sets the callbacks for the application&#39;s logic; explanation on the
+&nbsp;&nbsp;&nbsp;// implementation below
+&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+&nbsp;&nbsp;&nbsp;event_callback.terminate = app_terminate;
+&nbsp;&nbsp;&nbsp;event_callback.pause = app_pause;
+&nbsp;&nbsp;&nbsp;event_callback.resume = app_resume;
+&nbsp;&nbsp;&nbsp;event_callback.app_control = app_control;
+
+&nbsp;&nbsp;&nbsp;// Note the &amp;ad below; this is how the struct is given to callbacks
+&nbsp;&nbsp;&nbsp;return ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+}
+</pre>
+
+<p> The last section of this tutorial describes app control. It is a mechanism through which an application receives additional information about why it was started and with which parameters.</p>
+<p>An application receives a handle to an app control object in the <span style="font-family: Courier New,Courier,monospace;">app_control callback</span>. A definition for that callback is: </p>
+<pre class="prettyprint">app_control_cb(app_control_h app_control, void *user_data);
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">app_control_h</span> type is opaque and information can only be extracted from it through functions from the SDK.</p>
+<p>The most interesting ones are:</p>
+<ul class="ul">
+<li><span style="font-family: Courier New,Courier,monospace;">app_control_get_operation()</span>: retrieves a string describing which operation the application was started for.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">app_control_get_mime()</span>: retrieves the MIME type of the data (e.g. image/jpg).</li>
+<li><span style="font-family: Courier New,Courier,monospace;">app_control_get_app_extra_data()</span>: gets the string value associated with the given key.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">app_control_get_app_extra_data_array()</span>: gets the string array associated with the given key (first check with <span style="font-family: Courier New,Courier,monospace;">app_control_is_extra_data_array()</span> whether the data associated with a key is an array).</li>
+</ul>
+<p>If other functions are needed, check the <span style="font-family: Courier New,Courier,monospace;">app.h</span> header.</p>
+	</div>
+		</li>
+	
+<li>
+			<div class="devicespec-tit">
+ <h2 id="use" name="use" class="items-tit-h2">Running Applications Using Extra Data</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To run a specified <span style="font-family: Courier New,Courier,monospace">app_control</span> with some preconfigured parameters:</p>
+
+
+
+<ol>
+<li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html">AppControl</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;app.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+</pre></li>
+<li>
+<p>The <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/email</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/email.admin</span> privileges are required for the Email API.</p>
+<p>Add the privileges to the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file.</p></li>
+<li>
+<p>Prepare <span style="font-family: Courier New,Courier,monospace">app_control</span>.</p>
+<p>In this example, an email message is being prepared and then the email service is opened to allow the user to customize or send the ready message.</p>
+
+<p>When <span style="font-family: Courier New,Courier,monospace">app_control</span> is created, set the operation. It is mandatory information for the launch request. If the operation is not specified, <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_DEFAULT</span> is used for the launch request.</p>
+<p>Add extra data to the app_control using the <span style="font-family: Courier New,Courier,monospace">app_control_add_extra_data()</span>	or <span style="font-family: Courier New,Courier,monospace">app_control_add_extra_data_array()</span> function.</p>
+<p>Set the package name for <span style="font-family: Courier New,Courier,monospace">app_control</span> using the <span style="font-family: Courier New,Courier,monospace">app_control_set_package()</span> function. Use the application package name to launch the application explicitly.</p>
+
+<pre class="prettyprint">error_code = app_control_create(&amp;app_control);
+char *mail_address = &quot;test@target.com&quot;;
+char *subject = &quot;Tutorial message&quot;;
+char *message = &quot;Tutorial message content.&quot;;
+
+ret = app_control_create(&amp;app);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_create() is failed. err = %d&quot;, ret);
+
+ret = app_control_set_operation(app, APP_CONTROL_OPERATION_SEND);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_set_operation() is failed. err = %d&quot;, ret);
+
+ret = app_control_add_extra_data(app, APP_CONTROL_DATA_TEXT, message);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_add_extra_data() is failed. err = %d&quot;, ret);
+
+ret = app_control_add_extra_data(app, APP_CONTROL_DATA_TO, mail_address);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_add_extra_data() is failed. err = %d&quot;, ret);
+
+ret = app_control_add_extra_data(app, APP_CONTROL_DATA_SUBJECT, subject);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_add_extra_data() is failed. err = %d&quot;, ret);
+
+ret = app_control_set_app_id (app, &lt;Your app ID&gt;);				
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_set_app_id() is failed. err = %d&quot;, ret); 
+</pre>
+
+<p>The following table lists the available extra data parameters.</p>
+
+<table> 
+   <caption>
+     Table: Extra data parameters
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Extra data</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_SUBJECT</span></td> 
+     <td>Subject line of the email</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_TO</span></td> 
+     <td>Email address(es) of the primary recipient(s)</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_CC</span></td> 
+     <td>Email address(es) of the recipient(s) to be carbon-copied</td> 
+    </tr>
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_BCC</span></td> 
+     <td>Email address(es) of the private recipient(s)</td> 
+    </tr>
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_TEXT</span></td> 
+     <td>Message body of the email</td> 
+    </tr>
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_TITLE</span></td> 
+     <td>The title of the data</td> 
+    </tr>
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_SELECTED</span></td> 
+     <td>The path of the selected item</td> 
+    </tr>	
+   </tbody> 
+</table> 
+</li>
+
+<li>
+  <p>Launch <span style="font-family: Courier New,Courier,monospace">app_control</span>.</p>	
+  
+  <p>After preparing <span style="font-family: Courier New,Courier,monospace">app_control</span>, launch it using the <span style="font-family: Courier New,Courier,monospace">app_control_send_launch_request()</span> function, as described above.</p>
+  <pre class="prettyprint">
+ret = app_control_send_launch_request(app, NULL, NULL);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_send_launch_request() is failed. err = %d&quot;, ret);
+</pre>
+ 
+</li>
+
+<li>
+  <p>Get extra data.</p>	
+  <p>Read the extra data set to <span style="font-family: Courier New,Courier,monospace">app_control</span> using the <span style="font-family: Courier New,Courier,monospace">app_control_foreach_extra_data()</span> function. The same function used on <span style="font-family: Courier New,Courier,monospace">app_control_h</span> returned by the <span style="font-family: Courier New,Courier,monospace">app_control</span> reply allows you to read the reply message.</p>
+
+  <pre class="prettyprint">
+bool _app_control_extra_data_cb(app_control_h app_control, const char *key, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;char *value;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;ret = app_control_get_extra_data(app, key, &amp;value);
+&nbsp;&nbsp;&nbsp;if (ret != APP_CONTROL_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_get_extra_data() is failed. err = %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[value] %s&quot;, value);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+ret = app_control_foreach_extra_data(app, _app_control_extra_data_cb, 0);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_foreach_extra_data() is failed. err = %d&quot;, ret);
+</pre>
+</li>
+
+<li>
+  <p>Clean up.</p>	
+  <p>When your work with <span style="font-family: Courier New,Courier,monospace">app_control</span> is finished, clean up. 
+  	To do this, pass the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle to the 
+  	<span style="font-family: Courier New,Courier,monospace">app_control_destroy()</span> function.</p>
+<pre class="prettyprint">
+ret = app_control_destroy(app);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_destroy() is failed. err = %d&quot;, ret);
+</pre>
+</li>
+</ol>
+
+	</div>
+		</li>				
+	<li>
+			<div class="devicespec-tit">
+				<h2 id="init" name="init" class="items-tit-h2">Initializing Alarms</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To initialize the alarm:</p>
+<ol><li>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__ALARM__MODULE.html">Alarm</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;app.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+</pre></li>
+
+<li>The <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.get</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.set</span> privileges are required for the Alarm API.
+</li></ol>
+			</div>
+		</li>
+		
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="scenario_1" name="scenario_1" class="items-tit-h2">Setting an Alarm after Specific Time</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To set an alarm after a specific time:</p>
+
+<ol>
+
+<li>
+<p><b>Implement the AlarmRegister application</b></p>
+<p>AlarmRegister requires the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.set</span> privilege.</p>
+<ol><li>
+<p>To identify which application to alarm, the Alarm API needs <span style="font-family: Courier New,Courier,monospace">app_control_h</span>.</p>
+<p>Obtain <span style="font-family: Courier New,Courier,monospace">app_control_h</span> of a specific app by calling <span style="font-family: Courier New,Courier,monospace">app_control_set_app_id(app_control_h app_control, const char *app_id);</span>. You can get AlarmTarget <span style="font-family: Courier New,Courier,monospace">app_id</span> from the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file. </p>
+
+<pre class="prettyprint">
+bool init_alarm()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;int DELAY = 2;
+&nbsp;&nbsp;&nbsp;int REMIND = 1;
+&nbsp;&nbsp;&nbsp;int alarm_id;
+
+&nbsp;&nbsp;&nbsp;app_control_h app_control = NULL;
+&nbsp;&nbsp;&nbsp;ret = app_control_create(&amp;app_control);
+&nbsp;&nbsp;&nbsp;ret = app_control_set_operation(app_control, APP_CONTROL_OPERATION_DEFAULT);
+&nbsp;&nbsp;&nbsp;ret = app_control_set_app_id (app_control, &quot;org.tizen.alarmslave&quot;);
+</pre>
+</li>
+
+<li>
+
+	<p>To schedule an alarm after a delay, the function requires 4 parameters:</p>
+  <ul class="ul">
+	<li>[in] <span style="font-family: Courier New,Courier,monospace">app_control</span>: The destination <span style="font-family: Courier New,Courier,monospace">app_control</span> to perform the specific work when the alarm is triggered</li>	
+	<li>[in] <span style="font-family: Courier New,Courier,monospace">delay</span>: The amount of time before the first execution (in seconds) </li>
+	<li>[in] <span style="font-family: Courier New,Courier,monospace">period</span>: The amount of time before a subsequent alarm (in seconds). If set to 0, there is only 1 execution.</li>
+	<li>[out] <span style="font-family: Courier New,Courier,monospace">alarm_id</span> The alarm ID that uniquely identifies an alarm</li>
+  </ul>
+
+
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;ret = alarm_schedule_after_delay(app_control, DELAY, REMIND, &amp;alarm_id);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre> 
+</li></ol></li>
+
+<li>
+<p><b>Implement the AlarmTarget application</b></p>
+<p>A scheduled alarm calls AlarmTarget&#39; <span style="font-family: Courier New,Courier,monospace">app_control_cb</span> callback when the alarm expires.</p>
+
+<pre class="prettyprint">
+void service_app_control(app_control_h app_control, void *data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;app_control called by Alarm API.&quot;);
+}
+</pre>
+</li>
+</ol>			
+			</div>
+		</li>
+		
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="scenario_2" name="scenario_2" class="items-tit-h2">Setting an Alarm on a Specific Date</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+
+<p>To schedule an alarm on a specific date, the function requires 4 parameters:</p>
+
+<ul class="ul">
+  <li>[in] <span style="font-family: Courier New,Courier,monospace">app_control</span>: The destination <span style="font-family: Courier New,Courier,monospace">app_control</span> to perform the specific work when the alarm is triggered </li>
+  <li>[in] <span style="font-family: Courier New,Courier,monospace">date</span>: The first active alarm time </li>
+  <li>[in] <span style="font-family: Courier New,Courier,monospace">period</span>: The amount of time before a subsequent alarm (in seconds). If set to 0, there is only 1 execution. </li>
+  <li>[out] <span style="font-family: Courier New,Courier,monospace">alarm_id</span>: The alarm ID that uniquely identifies an alarm </li>
+</ul>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">tm</span> struct is included in the <span style="font-family: Courier New,Courier,monospace">&lt;time.h&gt;</span> header file. The following table lists the selected <span style="font-family: Courier New,Courier,monospace">tm</span> fields.</p>
+
+<table> 
+   <caption>
+     Table: tm fields 
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Member</th> 
+     <th>Type</th> 
+	 <th>Meaning</th>
+	 <th>Range</th>
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">tm_sec</span></td> 
+     <td>int</td> 
+	 <td>Seconds after the minute</td> 
+	 <td>0-61*</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">tm_min</span></td> 
+     <td>int</td> 
+	 <td>Minutes after the hour</td> 
+	 <td>0-59</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">tm_hour</span></td> 
+     <td>int</td> 
+	 <td>Hours since midnight</td> 
+	 <td>0-23</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">tm_mday</span></td> 
+     <td>int</td> 
+	 <td>Day of the month</td> 
+	 <td>1-31</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">tm_mon</span></td> 
+     <td>int</td> 
+	 <td>Months since January</td> 
+	 <td>0-11</td> 
+    </tr>
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">tm_year</span></td> 
+     <td>int</td> 
+	 <td>Years since 1900</td> 
+	 <td></td> 
+    </tr> 	
+   </tbody> 
+  </table> 
+  
+<pre class="prettyprint">
+int alarm_schedule_at_date(app_control_h app_control, struct tm* date, int period, int* alarm_id)
+</pre>
+			
+<p>The following code schedules <span style="font-family: Courier New,Courier,monospace">app_control</span> to invoke after 4 seconds. Modifying, for example, <span style="font-family: Courier New,Courier,monospace">date.tm_mday</span>, sets the alarm to another day of the month.</p>
+<pre class="prettyprint">struct tm date;
+ret = alarm_get_current_time(&amp;date);
+
+date.tm_sec+=4;
+ret = alarm_schedule_at_date(app, &amp;date, 0, &amp;alarm_id);	
+</pre>
+			</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="scenario_3" name="scenario_3" class="items-tit-h2">Setting a Recurring Alarm at a Specific Time of the Day</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+
+<p>To schedule an alarm on a specific time of the day with a recurrence, use the <span style="font-family: Courier New,Courier,monospace">alarm_schedule_with_recurrence_week_flag()</span> function, which requires 4 parameters:</p>
+<ul class="ul">
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">app_control</span>: The destination <span style="font-family: Courier New,Courier,monospace">app_control</span> that performs the specific work when the alarm is triggered.</li>
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">date</span>: The date on which the alarm is triggered for the first time.</li>
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">week_flag</span>: The day of the week on which the alarm recurs. The value is defined with the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__ALARM__MODULE.html#gaa2b3960fe55c63cb3f6739758bd172ee">enum alarm_week_flag_e</a> enumerator, and can be a combination of days, for example <span style="font-family: Courier New,Courier,monospace">ALARM_WEEK_FLAG_TUESDAY | ALARM_WEEK_FLAG_FRIDAY</span>. The value can also be a binary, such as <span style="font-family: Courier New,Courier,monospace">1&lt;&lt;3 | 1&lt;&lt;6</span>.</li>
+ <li>[out] <span style="font-family: Courier New,Courier,monospace">alarm_id</span>: The unique ID that identifies the alarm.</li>
+</ul>
+
+<p>The following code schedules <span style="font-family: Courier New,Courier,monospace">app_control</span> to invoke on TUESDAY and FRIDAY.</p>
+  
+  <pre class="prettyprint">
+struct tm date;
+ret = alarm_get_current_time(&amp;date);
+
+time_t time_current = mktime(&amp;date);
+dlog_print(DLOG_INFO, TAG, &quot;Schedule on date: %s &quot;, ctime(&amp;time_current));
+ret = alarm_schedule_with_recurrence_week_flag(app_control, &amp;date, ALARM_WEEK_FLAG_TUESDAY | ALARM_WEEK_FLAG_FRIDAY, &amp;alarm_id);
+</pre>
+			</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="scenario_4" name="scenario_4" class="items-tit-h2">Listing All Scheduled Alarms and Canceling an Alarm</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+
+<p>To list all scheduled alarms, use the following function:</p>
+<pre class="prettyprint">
+int alarm_foreach_registered_alarm(alarm_registered_alarm_cb callback, void* user_data)
+</pre>
+<p>To list a scheduled alarm, the function requires 2 parameters:</p>
+<ul class="ul">
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">callback</span>: The callback function to invoke.</li>
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">user_data</span>: The user data to be passed to the callback.</li>
+</ul>
+
+<p>To cancel specific scheduled alarms, use the following function:</p>
+<pre class="prettyprint">
+int alarm_cancel(int alarm_id)
+</pre>
+<p>To cancel a scheduled alarm, the function requires 1 parameter:</p>
+<ul class="ul">
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">alarm_id</span>: The alarm ID that is cancelled.</li>
+</ul>
+
+<p>The following code implements the <span style="font-family: Courier New,Courier,monospace">alarm_registered_alarm_cb()</span> function. This callback lists all registered alarms and alarm recurrence days. At the end of the function, the <span style="font-family: Courier New,Courier,monospace">alarm_cancel()</span> function is called to cancel every scheduled alarm.</p>
+<pre class="prettyprint">
+static bool on_foreach_registered_alarm(int alarm_id, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int flag;
+&nbsp;&nbsp;&nbsp;int ret=0;
+&nbsp;&nbsp;&nbsp;struct tm date;
+&nbsp;&nbsp;&nbsp;time_t time_current;
+
+&nbsp;&nbsp;&nbsp;ret = alarm_get_scheduled_date(alarm_id, &amp;date);
+&nbsp;&nbsp;&nbsp;if (ret != ALARM_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Get time Error : %d &quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;// Logging scheduled alarm&#39;s info
+&nbsp;&nbsp;&nbsp;time_current = mktime(&amp;date);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, 
+&nbsp;&nbsp;&nbsp;&quot; Registered alarm:%d on date:%s &quot;, alarm_id, ctime(&amp;time_current));
+
+&nbsp;&nbsp;&nbsp;ret = alarm_get_scheduled_recurrence_week_flag(alarm_id, &amp;flag);
+&nbsp;&nbsp;&nbsp;if (ret==0)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_SUNDAY)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on SUNDAY \n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_MONDAY)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot; Alarm Recurrence on MONDAY \n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_TUESDAY)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on TUESDAY \n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_WEDNESDAY)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on WEDNESDAY \n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_THURSDAY)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on THURSDAY \n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_FRIDAY)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on FRIDAY \n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_SATURDAY)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on SATURDAY \n&quot;);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Cancel scheduled alarms
+&nbsp;&nbsp;&nbsp;ret = alarm_cancel (alarm_id);
+&nbsp;&nbsp;&nbsp;if (ret != ALARM_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Cancel Error : %d &quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+ret = alarm_foreach_registered_alarm(
+&nbsp;&nbsp;&nbsp;on_foreach_registered_alarm, NULL);
+if (ret != ALARM_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Listing Error : %d &quot;, ret);
+}
+</pre>
+
+			</div>
+		</li>
+		
+		
+		
+
+			
+			<li>
+			<div class="devicespec-tit">
+ <h2 id="manage_pref" name="manage_pref" class="items-tit-h2">Managing Application Preferences</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+
+<p>To manage preferences:</p>
+
+<ol><li>			
+<p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PREFERENCE__MODULE.html">Preference</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;app.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+</pre></li>
+
+<li>Store and retrieve simple type variables.
+<p>To store a variable, you must create a key-value pair. Use the following functions to create a key-value pair for a specific simple type:</p>
+
+<ul class="ul"><li><span style="font-family: Courier New,Courier,monospace">preference_set_int (const char *key, int value)</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">preference_set_double (const char *key, double value)</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">preference_set_boolean (const char *key, bool value)</span></li></ul>
+
+<p>Before storing or retrieving a variable, check whether it exists using:</p>
+
+<ul class="ul"><li><span style="font-family: Courier New,Courier,monospace">preference_is_existing (const char *key, bool *existing)</span></li></ul>
+
+<p>Use the following functions to retrieve a stored variable of a given simple type:</p>
+
+<ul class="ul"><li><span style="font-family: Courier New,Courier,monospace">preference_get_int (const char *key, int *value)</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">preference_get_double (const char *key, double *value)</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">preference_get_boolean (const char *key, bool *value)</span></li></ul>
+
+
+<pre class="prettyprint">const char *integer_key = &quot;integer_key&quot;;
+int integer_value = 1;
+int integer_output;
+
+preference_set_int(integer_key, integer_value);
+
+preference_is_existing(integer_key, &amp;existing);
+
+preference_get_int(integer_key, &amp;integer_output);</pre></li>
+
+
+<li>Store and retrieve string variables.
+<p>Use the following functions to store and retrieve string variables:</p>
+
+<ul class="ul">
+ <li><span style="font-family: Courier New,Courier,monospace">preference_set_string (const char *key, const char *value)</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace">preference_get_string (const char *key, char **value)</span></li>
+</ul>
+
+<p>Release the value returned by the get function using the <span style="font-family: Courier New,Courier,monospace">free()</span> function.</p>
+<pre class="prettyprint">const char *string_key = &quot;string_key&quot;;
+const char *string_value = &quot;Sample content&quot;;
+char *string_output;
+bool existing;
+
+preference_set_string(string_key, string_value);
+
+preference_is_existing(string_key, &amp;existing);
+
+preference_get_string(string_key, &amp;string_output);
+
+free(string_output);</pre></li>
+
+<li>Track variables.
+<p>You can set a different callback function to each variable. The callback function is invoked each time the variable is changed.</p>
+
+<pre class="prettyprint">
+int previous_value;
+
+preference_set_changed_cb(integer_key, preference_changed_cb_impl, &amp;previous_value);</pre>
+
+<p>Pass custom parameters to the callback function in the <span style="font-family: Courier New,Courier,monospace">user_data</span> field.</p>
+
+<pre class="prettyprint">void preference_changed_cb_impl(const char *key, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;int integer_output = 0;
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[preference_changed_cb_impl]\n&quot;);
+&nbsp;&nbsp;&nbsp;preference_get_int(key, &amp;integer_output);
+     
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Key: %s has changed its value to %d \n&quot;, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key, integer_output);
+}</pre>
+
+
+<p>Unset a callback function based on a variable key.</p>
+<pre class="prettyprint">preference_unset_changed_cb(const char *key);</pre></li>
+
+
+<li>List all records.
+<p>Access all the records with the foreach function. The function calls a specific callback function for each key-value pair in the database. You can pass additional data to the function in the <span style="font-family: Courier New,Courier,monospace">user_data</span> field.</p>
+
+<pre class="prettyprint">preference_foreach_item(preference_foreach_item_cb, NULL);</pre>
+
+<p>If the callback function returns <span style="font-family: Courier New,Courier,monospace">false</span>, or if all the records have been opened, the foreach function ends.</p>
+ 
+<pre class="prettyprint">bool preference_foreach_item_cb(const char *key, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[preference_foreach_item_cb]\n&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Key found: %s\n&quot;, key);
+&nbsp;&nbsp;&nbsp;return true;
+}</pre></li>
+
+<li>Delete records.
+<p>Delete records one by one using a unique key. You can also delete all records for an application using the <span style="font-family: Courier New,Courier,monospace">remove_all()</span> function.</p>
+
+<pre class="prettyprint">preference_remove(const char *key)
+
+preference_remove_all(void)</pre></li></ol>
+	</div>
+		</li>				
+		
+	</ul>	
+</div>				
+</div>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

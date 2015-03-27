@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Efl Extension: Creating a Naviframe Window</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+	
+<div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a class="opensection" href="#create">Creating Objects</a>
+			</li>
+		</ul>		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.guides/html/native/ui/efl_extension_n.htm">Efl Extension Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__EFL__EXTENSION__GROUP.html">Efl Extension API</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>Efl Extension: Creating a Naviframe Window</h1>
+  <div class="cont"><div class="static-cont">
+
+<p>This tutorial demonstrates how you can use the Efl Extension API to create an application with a window. The window contains a naviframe and registers the EFL Extension <strong>Menu</strong> and <strong>Back</strong> key events for the naviframe.</p>
+  
+  <p>When the <strong>Menu</strong> key is pressed, a popup is created and an EFL Extension <strong>Back</strong> key event for this popup is registered. If the popup is shown and the <strong>Back</strong> key is pressed, the popup is removed. Otherwise, if the <strong>Back</strong> key is pressed and there is no popup, the application is hidden.</p>
+  
+ 
+<h2>Warm-up</h2>
+<p>Become familiar with the Efl Extension API basics by learning about:</p>
+<ul>
+	<li><a href="#create">Creating Objects</a>
+	<p>Create objects using the naviframe and window.</p></li>
+</ul>
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+
+		<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="create" name="create" class="items-tit-h2">Creating Objects</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To create objects:</p> 
+
+<ol>
+<li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__EFL__EXTENSION__GROUP.html">Efl Extension</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;efl_extension.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;efl_extension.h&gt;
+</pre></li>
+<li>Create objects using the window and naviframe:
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win = NULL;
+
+&nbsp;&nbsp;&nbsp;// Create window
+&nbsp;&nbsp;&nbsp;win = elm_win_util_standard_add(NULL, &quot;extension sample&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;delete,request&quot;, _win_del, NULL);
+
+&nbsp;&nbsp;&nbsp;// Create naviframe
+&nbsp;&nbsp;&nbsp;Evas_Object *nf = NULL;
+&nbsp;&nbsp;&nbsp;nf = elm_naviframe_add(win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(win, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, nf);
+&nbsp;&nbsp;&nbsp;evas_object_show(nf);
+
+&nbsp;&nbsp;&nbsp;// Content
+&nbsp;&nbsp;&nbsp;Evas_Object *label = NULL;
+&nbsp;&nbsp;&nbsp;label = elm_label_add(nf);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(label, &quot;Press menu key to show popup,&lt;br/&gt;back key to exit.&quot;);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_push(nf, &quot;Efl Extension usage&quot;, NULL, NULL, label, NULL);
+
+&nbsp;&nbsp;&nbsp;// Show window
+&nbsp;&nbsp;&nbsp;evas_object_show(win);
+}
+</pre>
+</li>
+
+<li>Register EFL Extension callbacks for the naviframe:
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Register EFL extension callbacks for Menu and Back key events
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(nf, EEXT_CALLBACK_MORE, _create_popup, NULL);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(nf, EEXT_CALLBACK_BACK, _nf_back_cb, win);
+}
+</pre>
+</li>
+
+<li>Create a popup and register EFL Extension <strong>Back</strong> key event callbacks for it:
+<pre class="prettyprint">
+static void
+_create_popup(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *parent = obj;
+
+&nbsp;&nbsp;&nbsp;Evas_Object *popup = NULL, *content = NULL;
+&nbsp;&nbsp;&nbsp;popup = elm_popup_add(parent);
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(popup, &quot;title,text&quot;, &quot;Title&quot;);
+&nbsp;&nbsp;&nbsp;elm_popup_orient_set(popup, ELM_POPUP_ORIENT_CENTER);
+
+&nbsp;&nbsp;&nbsp;// Popup content
+&nbsp;&nbsp;&nbsp;content = elm_label_add(parent);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(content, &quot;Press back key to remove popup.&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(popup, content);
+
+&nbsp;&nbsp;&nbsp;// Register extension callback for the Back key event
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(popup, EEXT_CALLBACK_BACK, eext_popup_back_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_show(popup);
+}
+</pre>
+
+<p>To remove the popup when a <strong>Back</strong> key event occurs, use the <span style="font-family: Courier New,Courier,monospace;">eext_popup_back_cb</span> callback.</p>
+
+<p>The callback function for menu key callback:</p>
+<pre class="prettyprint">
+static void
+_nf_back_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win = data;
+
+&nbsp;&nbsp;&nbsp;// Hide window
+&nbsp;&nbsp;&nbsp;elm_win_lower(win);
+}
+</pre>
+</li>
+</ol>
+
+	</div>
+		</li>			
+		
+	</ul>	
+</div>				
+</div>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>	
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

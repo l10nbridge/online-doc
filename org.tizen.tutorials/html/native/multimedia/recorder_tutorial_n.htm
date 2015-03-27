@@ -1,0 +1,715 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>Recorder: Recording Audio and Video</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li>Audio recorder
+				<ul class="toc">
+					<li><a class="opensection" href="#init_audio">Initializing the Audio Recorder</a></li>
+					<li><a class="opensection" href="#record_audio">Recording Audio</a></li>
+				</ul>
+			</li>
+			<li>Video recorder
+				<ul class="toc">
+					<li><a class="opensection" href="#init_video">Initializing the Video Recorder</a></li>
+					<li><a class="opensection" href="#record_video">Recording a Video</a></li>
+				</ul>
+			</li>
+		</ul>       
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/multimedia/recorder_n.htm">Recorder Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">Recorder API</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">Camera API</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Recorder: Recording Audio and Video</h1>
+  <div class="cont"><div class="static-cont">	
+
+<p>This tutorial demonstrates how you can record audio and video.</p>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Recorder and Camera API basics by learning about:</p>
+
+<ul>
+	<li>Audio recorder
+		<ul>
+			<li><a class="opensection" href="#init_audio">Initializing the Audio Recorder</a>
+			 <p>Initialize the audio recorder for use.</p></li>
+			<li><a class="opensection" href="#record_audio">Recording Audio</a>
+			  <p>Start, stop, cancel, and pause recording an audio file, and release resources after finishing recording.</p>
+			 </li>
+		</ul>
+	</li>
+	<li>Video recorder
+		<ul>
+			<li><a class="opensection" href="#init_video">Initializing the Video Recorder</a>
+			<p>Initialize the devices for use.</p>
+			</li>
+			<li><a class="opensection" href="#record_video">Recording a Video</a>
+			<p>Prepare, record, commit, and cancel a video.</p></li>
+		</ul>
+	</li>
+</ul>
+ 
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+
+		<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="init_audio" name="init_audio" class="items-tit-h2">Initializing the Audio Recorder</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+
+<p>To initialize the audio recorder for use:</p>
+<ol>
+<li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">Recorder</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;recorder.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;recorder.h&gt;
+</pre></li>
+<li><p>Create a handle for the audio recorder using the <span style="font-family: Courier New,Courier,monospace">recorder_create_audiorecorder()</span> function:</p>
+
+<pre class="prettyprint">static recorder_h g_recorder;
+
+// Create recorder handle to record audio
+int error_code = recorder_create_audiorecorder(&amp;g_recorder);
+if (error_code == RECORDER_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG , &quot;error code = %d&quot;, error_code);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG , &quot;error code = %d&quot;, error_code);
+}</pre>
+
+
+<p>After successfully creating the handle, the state of the audio recorder is set to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span>.</p></li>
+
+<li><p>To receive notifications about the audio recorder state changes, register a callback function using the <span style="font-family: Courier New,Courier,monospace">recorder_set_state_changed_cb()</span> function:</p>
+
+<pre class="prettyprint">
+error_code = recorder_set_state_changed_cb(g_recorder, _state_changed_cb, NULL);
+</pre></li>
+
+<li><p>The callback function returns the following parameters:</p>
+
+<ul class="ul">
+ <li><span style="font-family: Courier New,Courier,monospace">previous</span>: The previous state of the audio recorder.</li>
+ <li><span style="font-family: Courier New,Courier,monospace">current</span>: The current state of the audio recorder.</li>
+ <li><span style="font-family: Courier New,Courier,monospace">by_policy</span>: If the state was changed by a policy, this is set to <span style="font-family: Courier New,Courier,monospace">true</span>.</li>
+ <li><span style="font-family: Courier New,Courier,monospace">user_data</span>: The custom data passed from the <span style="font-family: Courier New,Courier,monospace">recorder_set_state_changed_cb()</span> function.</li>
+</ul>
+
+<p>The following example code implements a simple callback function that prints the previous and current audio recorder states:</p>
+
+<pre class="prettyprint">
+static void _state_changed_cb(recorder_state_e previous, recorder_state_e current, bool by_policy, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG , &quot;_recorder_state_changed_cb (prev: %d, curr: %d)\n&quot;, previous, current);
+}</pre></li>
+
+<li><p>Before you can set any audio recorder attributes, set the audio codec for encoding the audio stream using the <span style="font-family: Courier New,Courier,monospace">recorder_set_audio_encoder()</span> function. Based on the audio codec, set the correct file format using the <span style="font-family: Courier New,Courier,monospace">recorder_set_file_format()</span> function. For example, if you set the codec to AAC, set the file format to 3GP. In addition, set the file name correctly according to the file format when you call the <span style="font-family: Courier New,Courier,monospace">recorder_set_filename()</span> function. The function takes as a parameter the full path of the file to which the recorded audio data is to be stored.</p>
+
+<pre class="prettyprint">
+#define FILENAME_PREFIX &quot;AUDIO&quot;
+struct tm localtime = { 0 };
+time_t rawtime = time(NULL);
+char filename[256] = { &#39;\0&#39; };
+size_t size;
+
+// Set audio encoder
+error_code = recorder_set_audio_encoder(g_recorder, RECORDER_AUDIO_CODEC_AAC);
+
+// Set audio sample rate
+error_code = recorder_attr_set_audio_samplerate(rec_data.recorder, 44100);
+
+// Set file format according to audio encoder
+error_code = recorder_set_file_format(g_recorder, RECORDER_FILE_FORMAT_3GP);
+
+// Make file name
+if (localtime_r(&amp;rawtime, &amp;localtime) != NULL)
+{
+&nbsp;&nbsp;&nbsp;size = snprintf(filename, sizeof(filename), &quot;%s/%s-%04i-%02i-%02i_%02i:%02i:%02i.3gp&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_get_data_path(), FILENAME_PREFIX,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_year + 1900, localtime.tm_mon + 1, localtime.tm_mday,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_hour, localtime.tm_min, localtime.tm_sec);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+
+// Set file name according to file format
+error_code = recorder_set_filename(g_recorder, filename);
+</pre>
+
+<p>The following table lists the available audio codecs.</p>
+
+<table>
+ <caption>
+   Table: Available audio codecs
+ </caption>
+ <tbody>
+  <tr>
+   <th>Value</th>
+   <th>Description</th>
+   <th>Notes</th>   
+  </tr>
+  <tr>
+   <td><span style="font-family: Courier New,Courier,monospace">RECORDER_AUDIO_CODEC_DISABLE</span></td>
+   <td>Disable audio track</td>
+   <td></td>
+  </tr>
+  <tr>
+   <td><span style="font-family: Courier New,Courier,monospace">RECORDER_AUDIO_CODEC_AMR</span></td>
+   <td>AMR codec</td>
+   <td>Set the sampling rate under 8000 and mono channel in the Emulator.</td>
+  </tr>
+  <tr>
+   <td><span style="font-family: Courier New,Courier,monospace">RECORDER_AUDIO_CODEC_AAC</span></td>
+   <td>AAC codec</td>
+   <td>Set the sampling rate as 44100 and stereo channel in the Emulator.</td>
+  </tr>
+  <tr>
+   <td><span style="font-family: Courier New,Courier,monospace">RECORDER_AUDIO_CODEC_VORBIS</span></td>
+   <td>Vorbis codec</td>
+   <td></td>
+  </tr>
+  <tr>
+   <td><span style="font-family: Courier New,Courier,monospace">RECORDER_AUDIO_CODEC_PCM</span></td>
+   <td>PCM codec</td>
+   <td></td>
+  </tr>
+ </tbody>
+</table>
+
+<p>The following table lists the available audio devices.</p>
+
+<table>
+ <caption>
+   Table: Available audio devices
+ </caption>
+ <tbody>
+  <tr>
+   <th>Value</th>
+   <th>Description</th>
+  </tr>
+  <tr>
+   <td><span style="font-family: Courier New,Courier,monospace">RECORDER_AUDIO_DEVICE_MIC</span></td>
+   <td>Mic device</td>
+  </tr>
+  <tr>
+   <td><span style="font-family: Courier New,Courier,monospace">RECORDER_AUDIO_DEVICE_MODEM</span></td>
+   <td>Modem</td>
+  </tr>
+ </tbody>
+</table></li>
+
+<li><p>After setting the audio encoder, file format, and file name, you can set additional attributes for the audio recorder. The following example code sets the file size limit, encoder bitrate, audio device, and sampling rate:</p>
+
+<pre class="prettyprint">// Set max file size to 1024 [kB]
+error_code = recorder_attr_set_size_limit(g_recorder, 1024);
+
+// Set bitrate of audio encoder
+error_code = recorder_attr_set_audio_encoder_bitrate(g_recorder, 28800);
+
+// Set audio device to microphone
+error_code = recorder_attr_set_audio_device(g_recorder, RECORDER_AUDIO_DEVICE_MIC);
+
+// Set audio sample rate
+error_code = recorder_attr_set_audio_samplerate(g_recorder, 44100);
+</pre></li>
+
+<li><p>To receive notifications about reaching the recording limit, register a callback function using the <span style="font-family: Courier New,Courier,monospace">recorder_set_recording_limit_reached_cb()</span> function:</p>
+
+<pre class="prettyprint">
+error_code = recorder_set_recording_limit_reached_cb(g_recorder, _recorder_recording_limit_reached_cb, NULL);
+</pre></li>
+
+<li><p>The following example code implements a simple callback function that prints a notification about reaching the recording limit:</p>
+
+<pre class="prettyprint">
+static void _recorder_recording_limit_reached_cb(recorder_recording_limit_type_e type, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG , &quot;Recording limit reached: %d\n&quot;, type);
+}</pre></li></ol>
+	</div>
+		</li>	
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="record_audio" name="record_audio" class="items-tit-h2">Recording Audio</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To record audio:</p>
+<ol>
+<li><p>To prepare the audio recorder for recording, use the <span style="font-family: Courier New,Courier,monospace">recorder_prepare()</span> function:</p>
+
+<pre class="prettyprint">
+error_code = recorder_prepare(g_recorder);</pre>
+
+	<p>After calling the function, the audio recorder state is set to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>. You can now start recording audio.</p></li>
+
+<li><p>To start recording audio, use the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function with the correct recorder handle:</p>
+
+<pre class="prettyprint">
+error_code = recorder_start(g_recorder);</pre></li>
+
+<li><p>You can pause recording only when the audio recorder state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span>. To check the state, use the <span style="font-family: Courier New,Courier,monospace">recorder_get_state()</span> function.</p>
+
+	<p>To pause recording audio, use the <span style="font-family: Courier New,Courier,monospace">recorder_pause()</span> function with the correct recorder handle:</p>
+
+<pre class="prettyprint">
+error_code = recorder_pause(g_recorder);</pre>
+
+	<p>To resume recording audio, use the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function.</p></li>
+
+<li><p>You can cancel recording only when the audio recorder state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span> or <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span>. To check the state, use the <span style="font-family: Courier New,Courier,monospace">recorder_get_state()</span> function.</p>
+
+	<p>To cancel recording audio, use the <span style="font-family: Courier New,Courier,monospace">recorder_cancel()</span> function with the correct recorder handle. The cancelled recording is discarded and no data is written to a file.</p>
+
+<pre class="prettyprint">
+error_code = recorder_cancel(g_recorder);</pre></li>
+
+<li><p>You can stop recording only when the audio recorder state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span> or <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span>. To check the state, use the <span style="font-family: Courier New,Courier,monospace">recorder_get_state()</span> function.</p>
+
+	<p>To stop recording audio and save the recorded data to a file, use the <span style="font-family: Courier New,Courier,monospace">recorder_commit()</span> function. If the target file path has been set to an existing file, the existing file is replaced with the new audio file.</p>
+
+	<p>The following example code first checks the audio recorder&#39;s state, and then stops the recorder and stores the recorded data to a file:</p>
+
+<pre class="prettyprint">// Check audio recorder state
+static bool _recorder_expect_state(recorder_h recorder, recorder_state_e expected_state)
+{
+&nbsp;&nbsp;&nbsp;recorder_state_e state;
+&nbsp;&nbsp;&nbsp;int error_code = recorder_get_state(recorder, &amp;state);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG , &quot;recorder state = %d, expected recorder state = %d&quot;, state, expected_state);
+&nbsp;&nbsp;&nbsp;if (state == expected_state) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return TRUE;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return FALSE;
+}
+
+// Stop recording and save recorded data
+if (_recorder_expect_state(g_recorder, RECORDER_STATE_RECORDING) || _recorder_expect_state(g_recorder, RECORDER_STATE_PAUSED))
+{
+&nbsp;&nbsp;&nbsp;error_code = recorder_commit(g_recorder);
+&nbsp;&nbsp;&nbsp;if (error_code != RECORDER_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG , &quot;error code = %d&quot;, error_code);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;}
+}</pre></li>
+
+<li><p>After you have finished recording, release all resources associated with the audio recorder:</p>
+
+	<ol>
+
+	<li>Unregister the recording limit callback function using the <span style="font-family: Courier New,Courier,monospace">recorder_unset_recording_limit_reached_cb()</span> function.
+<pre class="prettyprint">error_code = recorder_unset_recording_limit_reached_cb(g_recorder);</pre></li>
+
+	<li>If the audio recorder state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>, reset the media content and recorder state using the <span style="font-family: Courier New,Courier,monospace">recorder_unprepare()</span> function. The function sets the recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span>.
+<pre class="prettyprint">error_code = recorder_unprepare(g_recorder);</pre></li>
+	
+	<li>Unregister the state change callback function using the <span style="font-family: Courier New,Courier,monospace">recorder_unset_state_changed_cb()</span> function.
+<pre class="prettyprint">error_code = recorder_unset_state_changed_cb(g_recorder);</pre></li>
+	
+	<li>Destroy the recorder handle using the <span style="font-family: Courier New,Courier,monospace">recorder_destroy()</span> function.
+<pre class="prettyprint">error_code = recorder_destroy(g_recorder);</pre></li></ol></li>
+	
+	</ol>
+	</div>
+		</li>	
+	<li>
+			<div class="devicespec-tit">
+ <h2 id="init_video" name="init_video" class="items-tit-h2">Initializing the Video Recorder</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To initialize the video recorder:</p>
+<ol><li>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">Camera</a> and <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">Recorder</a> APIs, include the <span style="font-family: Courier New,Courier,monospace;">&lt;camera.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace;">&lt;recorder.h&gt;</span> header files in your application:
+<pre class="prettyprint">
+#include &lt;camera.h&gt;
+#include &lt;recorder.h&gt;
+</pre></li>
+
+<li>To provide recording functionalities, the camera is configured while the camera handle is created. Then the recorder is configured. The following sections describe how to configure a camera and recorder.
+
+<pre class="prettyprint">
+#include &lt;unistd.h&gt;
+#include &lt;cstdio&gt;
+struct recdata
+{
+&nbsp;&nbsp;&nbsp;bool shutdown;
+&nbsp;&nbsp;&nbsp;recorder_h recorder;
+&nbsp;&nbsp;&nbsp;camera_h camera;
+};
+static const int RECORD_TIME=2;
+static const int RECORD_LIMIT=4;
+#define FILENAME_PREFIX &quot;VIDEO&quot;
+static int g_bitrate = 288000;
+static int duration;
+static int playing=0;
+static int ret;</pre></li></ol>
+
+
+<h3 id="camera_config">Configuring the Camera</h3>
+
+<p>To configure the camera:</p>
+<ol><li><p>Define a structure containing the handles to the media recorder and camera and a boolean variable specifying whether the recorder is switched off. You can declare variables to keep the record time, video file paths, bit rate, record limit, flag, and return value.</p>
+<pre class="prettyprint">
+static recdata rec_data;
+</pre></li>
+
+<li><p>To use the camera, create the camera handle using the <span style="font-family: Courier New,Courier,monospace">camera_create()</span> function. The function&#39;s arguments are the camera handle and the hardware camera to access. If it succeeds, the camera state is changed to <span style="font-family: Courier New,Courier,monospace">CAMERA_STATE_CREATED</span>. Get the camera state using the <span style="font-family: Courier New,Courier,monospace">camera_get_state()</span> function:</p>
+<pre class="prettyprint">
+int error_code = 0;
+
+rec_data.shutdown = FALSE;
+rec_data.camera = NULL;
+rec_data.recorder = NULL;
+
+// Create camera handle
+error_code = camera_create(CAMERA_DEVICE_CAMERA0, &amp;rec_data.camera);
+if (error_code == CAMERA_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG , &quot;error code = %d&quot;, error_code);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG , &quot;error code = %d&quot;, error_code);
+}
+</pre></li>
+
+<li><p>Set a display for the preview to see what you are recording. To set a display for the preview, call the <a href="camera_tutorial_n.htm"><span style="font-family: Courier New,Courier,monospace">camera_set_display()</span> function with a valid camera handle</a>.</p>
+</li></ol>
+
+<h3>Registering Callback Functions</h3>
+
+<p>To register callback functions, which are useful in informing you when something has happened or changed in your application:</p>
+
+<ol><li><p>To monitor when the recording limit is reached, register a callback function using the <span style="font-family: Courier New,Courier,monospace;">recorder_set_recording_limit_reached_cb()</span> function:</p>
+
+<pre class="prettyprint">ret = recorder_set_recording_limit_reached_cb(rec_data.recorder, _recorder_recording_limit_reached_cb, 0);
+</pre></li>
+
+<li><p>Define the callback function that prints a notification about reaching the recording limit:</p>
+
+<pre class="prettyprint">static void _recorder_recording_limit_reached_cb (recorder_recording_limit_type_e type, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, &quot;Video Recorder&quot;, &quot;Recording limit reached: %d\n&quot;, type);
+}
+</pre></li>
+
+<li><p>To check whether the callback function works properly, use the <span style="font-family: Courier New,Courier,monospace;">sleep()</span> function to reach the recording limit:</p>
+
+<pre class="prettyprint">ret = recorder_start(rec_data.recorder);
+
+sleep(RECORD_LIMIT+1); // Waits more than record limit
+ret = recorder_pause(rec_data.recorder);
+</pre></li>
+
+<li><p>To unregister the callback function, use the <span style="font-family: Courier New,Courier,monospace;">recorder_unset_recording_limit_reached_cb()</span> function:</p>
+
+<pre class="prettyprint">ret = recorder_unset_recording_limit_reached_cb(rec_data.recorder);
+</pre></li></ol>
+
+<h3 id="recorder_config">Configuring the Recorder</h3>
+
+<p>To configure the recorder:</p>
+<ol><li><p>When the camera state is <span style="font-family: Courier New,Courier,monospace">CAMERA_STATE_CREATED</span>, create the recorder handle using the <span style="font-family: Courier New,Courier,monospace">recorder_create_videorecorder()</span> function with a valid camera handle and record handle. If the function succeeds, the recorder state becomes <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span>. The recorder can also be created when camera is in other states. Get the recorder state using the <span style="font-family: Courier New,Courier,monospace">recorder_get_state()</span> function.</p>
+<pre class="prettyprint">
+// Create the recorder handle
+error_code = recorder_create_videorecorder(rec_data.camera, &amp;rec_data.recorder);
+if (error_code == RECORDER_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG , &quot;error code = %d&quot;, error_code);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG , &quot;error code = %d&quot;, error_code);
+}
+</pre></li>
+<li><p>To subscribe to notifications about recorder state changes, invoke the <span style="font-family: Courier New,Courier,monospace">recorder_set_state_changed_cb()</span> function to register the callback function. The parameters are: the valid recorder handle, the callback function, and data passed to the callback.</p>
+<pre class="prettyprint">
+// Set the recorder state changed callback
+error_code = recorder_set_state_changed_cb(rec_data.recorder, on_state_changed_cb, NULL);
+if (error_code == RECORDER_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG , &quot;error code = %d&quot;, error_code);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG , &quot;error code = %d&quot;, error_code);
+}
+</pre></li>
+<li><p>The callback function receives the following parameters:</p>
+<ul class="ul">
+	<li>Previous state of the recorder</li>
+	<li>Current state of the recorder</li>
+	<li><span style="font-family: Courier New,Courier,monospace">by_policy</span> flag (true if the state is changed by policy)</li>
+	<li><span style="font-family: Courier New,Courier,monospace">user_data</span> passed from the callback registration function</li>
+</ul>
+
+<pre class="prettyprint">
+// Recorder state changed callback - check state changes of the recorder
+
+static void on_state_changed_cb(recorder_state_e previous, recorder_state_e current, bool by_asm, void *data) 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG , &quot;_recorder_state_changed_cb (prev: %d, curr: %d)\n&quot;, previous, current);
+}
+</pre></li>
+
+<li><p>The Recorder API supports the following attributes:</p>
+<ul class="ul">
+	<li>Audio codec for encoding audio stream</li>
+	<li>Video codec for encoding video stream</li>
+	<li>File format</li>
+	<li>File path to record</li>
+	<li>Time limit of the recording file</li>
+	<li>Maximum size of the recording file</li>
+	<li>Audio device for recording</li>
+	<li>Sampling rate of the audio stream</li>
+	<li>Bitrate of the audio and video encoder</li>
+	<li>Mute state of the recorder</li>
+	<li>Slow motion rate</li>
+	<li>Number of audio channels</li>
+</ul>
+
+<p>To set the video codec for encoding a video stream, invoke the <span style="font-family: Courier New,Courier,monospace">recorder_set_video_encoder()</span> function. Choose one of the codecs from the <span style="font-family: Courier New,Courier,monospace">recorder_video_codec_e</span> enumeration. The following tables show the available codecs and formats.</p>
+
+<table> 
+   <caption>
+     Table: Available video codecs
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Value</th>
+	 <th>Description</th>
+    </tr> 
+    <tr> 
+     <td>RECORDER_VIDEO_CODEC_H263</td>
+	 <td>H263 codec</td>
+    </tr> 
+	<tr>
+	 <td>RECORDER_VIDEO_CODEC_H264</td>
+	 <td>H264 codec</td>
+	</tr>
+	<tr>
+	 <td>RECORDER_VIDEO_CODEC_MPEG4</td>
+	 <td>MPEG4 codec</td>
+	</tr>
+	<tr>
+	 <td>RECORDER_VIDEO_CODEC_THEORA</td>
+	 <td>Theora codec</td>
+	</tr>
+   </tbody> 
+  </table> 
+
+<table> 
+   <caption>
+     Table: Available formats
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Value</th>
+	 <th>Description</th>
+    </tr> 
+    <tr> 
+     <td>RECORDER_FILE_FORMAT_3GP</td>
+	 <td>3GP</td>
+    </tr> 
+	<tr>
+	 <td>RECORDER_FILE_FORMAT_MP4</td>
+	 <td>MP4</td>
+	</tr>
+	<tr>
+	 <td>RECORDER_FILE_FORMAT_AMR</td>
+	 <td>AMR</td>
+	</tr>
+	<tr>
+	 <td>RECORDER_FILE_FORMAT_ADTS</td>
+	 <td>ADTS</td>
+	</tr>
+	<tr>
+	 <td>RECORDER_FILE_FORMAT_WAV</td>
+	 <td>WAV</td>
+	</tr>
+   </tbody> 
+   </table> 
+
+<p>Before setting the video codec, check the video codecs that your device supports. To check the codecs, use the <span style="font-family: Courier New,Courier,monospace">recorder_foreach_supported_video_encoder()</span> function. One of its parameters is a callback, which is called for each supported codec of the given recorder. If you set the return type as <span style="font-family: Courier New,Courier,monospace">false</span> in the <span style="font-family: Courier New,Courier,monospace">_video_encoder_cb</span> callback, you can search for a supporting codec. However, if you set the return type as <span style="font-family: Courier New,Courier,monospace">true</span>, you can get codecs which are supported in the target or Emulator. In the following example, the codec of the recorder is set to the first found supported resolution.</p>
+   
+<pre class="prettyprint">
+recorder_video_codec_e supported_codec;
+static bool _video_encoder_cb(recorder_video_codec_e codec, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;recorder_video_codec_e * supported_codec = (recorder_video_codec_e*)user_data;
+&nbsp;&nbsp;&nbsp;*supported_codec = codec;
+
+&nbsp;&nbsp;&nbsp;return false;
+}
+
+error_code = recorder_foreach_supported_video_encoder(rec_data.recorder, _video_encoder_cb, &amp;supported_codec);
+
+// Set the video encoder of the recorder
+error_code = recorder_set_video_encoder(rec_data.recorder, supported_codec);
+</pre>
+</li>
+
+<li>
+<p>Set the bitrate of the video encoder using the <span style="font-family: Courier New,Courier,monospace">recorder_attr_set_video_encoder_bitrate()</span> function. Set the file format for recording media stream by invoking the <span style="font-family: Courier New,Courier,monospace">recorder_set_file_format()</span> function. Before setting the file format, check the file formats your device supports using the <span style="font-family: Courier New,Courier,monospace">recorder_foreach_supported_file_format()</span> function. Furthermore, set the file path to store the recorded data by invoking the <span style="font-family: Courier New,Courier,monospace">recorder_set_filename()</span> function.</p>
+<pre class="prettyprint">
+static int g_bitrate = 288000;
+struct tm localtime = { 0 };
+time_t rawtime = time(NULL);
+char filename[256] = { &#39;\0&#39; };
+size_t size;
+
+// Set the bitrate of the video encoder
+error_code = recorder_attr_set_video_encoder_bitrate(rec_data.recorder, g_bitrate);
+
+// Set the recording file format
+error_code = recorder_set_file_format(rec_data.recorder, RECORDER_FILE_FORMAT_MP4);
+
+// Make the file name
+if (localtime_r(&amp;rawtime, &amp;localtime) != NULL)
+{
+&nbsp;&nbsp;&nbsp;size = snprintf(filename, sizeof(filename), &quot;%s/%s-%04i-%02i-%02i_%02i:%02i:%02i.mp4&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_get_data_path(), FILENAME_PREFIX,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_year + 1900, localtime.tm_mon + 1, localtime.tm_mday,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_hour, localtime.tm_min, localtime.tm_sec);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+// Set the file path to store the recorded data
+error_code = recorder_set_filename(rec_data.recorder, filename);
+</pre></li>
+<li><p><a class="opensection" href="#init_audio">Set the audio encoder, bitrate of the audio encoder, and sampling rate of audio</a> using the <span style="font-family: Courier New,Courier,monospace">recorder_set_audio_encoder()</span>, <span style="font-family: Courier New,Courier,monospace">recorder_attr_set_audio_encoder_bitrate()</span>, and <span style="font-family: Courier New,Courier,monospace">recorder_attr_set_audio_samplerate()</span> functions, as with the video encoder.</p>
+	</li></ol>
+	</div>
+		</li>	
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="record_video" name="record_video" class="items-tit-h2">Recording a Video</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To record a video:</p>
+
+<ol>
+	<li>Configure the <a href="#camera_config">camera</a> and the <a href="#recorder_config">recorder</a>.</li>
+	<li>Prepare the recorder.
+	<p>Call the <span style="font-family: Courier New,Courier,monospace">recorder_prepare()</span> function with a valid recorder handle to change the recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>, one of the states in which you are able to start recording by calling the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function.</p>
+	<pre class="prettyprint">
+// Prepare the recorder, resulting in setting the recorder state to RECORDER_STATE_READY
+error_code = recorder_prepare(rec_data.recorder);
+</pre></li>
+
+	<li>Start recording.
+	<p>Start recording by calling the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function with a valid recorder handle.</p>
+<pre class="prettyprint">
+// Start the recorder 
+error_code = recorder_start(rec_data.recorder);
+</pre>
+	<p>After successfully starting the recorder, the file is removed automatically and replaced with a new one if you set the file path to an existing file. Note that the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function is valid in the ready state (<span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>) or the paused state (<span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span>).</p></li>
+
+	<li>Commit recording.
+	<p>To stop recording and save the results, invoke the <span style="font-family: Courier New,Courier,monospace">recorder_commit()</span> function with a valid recorder handle. The results of the recording are saved to the previously configured file path. This function can be called if the recorder state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span> or <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span>.</p>
+<pre class="prettyprint">
+// Stop recording and save the recorded data to the previously configured path
+error_code = recorder_commit(rec_data.recorder);
+</pre>
+	<p>After this, the recorder state is changed to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>.</p></li>
+
+	<li>Cancel recording.
+	<p>If you do not want to save your recording, invoke the <span style="font-family: Courier New,Courier,monospace">recorder_cancel()</span> function with a proper recorder handle. The only difference between this and the <span style="font-family: Courier New,Courier,monospace">recorder_commit()</span> function is that the recording data is not written in the recording file.</p>
+<pre class="prettyprint">
+// Stop recording without saving recorded data
+error_code = recorder_cancel(rec_data.recorder);
+</pre></li>
+
+	<li>Pausing recording.
+	<p>To pause recording, use the <span style="font-family: Courier New,Courier,monospace">recorder_pause()</span> function with the valid recorder handle. To restart recording later, use the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function. This function can be called if the recorder state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span>.</p>
+	<pre class="prettyprint">
+// Pause recording
+error_code = recorder_pause(rec_data.recorder);
+</pre>
+	<p>After this the recorder state is changed to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span>.</p></li>
+
+	<li>Clean up after working with camera is finished.
+	<p>When you have finished recording, invoke the <span style="font-family: Courier New,Courier,monospace">recorder_unprepare()</span> function to reset the media recorder. The required state for this function is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>. After calling the function, the recorder state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span>, which allows you to free all the recorder resources with the <span style="font-family: Courier New,Courier,monospace">recorder_destroy()</span> function.</p>
+<pre class="prettyprint">
+// Unprepare the recorder
+error_code = recorder_unprepare(rec_data-&gt;recorder);
+
+// Destroy the recorder
+error_code = recorder_destroy(rec_data.recorder);
+</pre>
+<p>After this the recorder state is changed to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_NONE</span>.</p>
+</li>
+</ol>
+	</div>
+		</li>				
+	</ul>	
+</div>				
+</div>
+ 
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

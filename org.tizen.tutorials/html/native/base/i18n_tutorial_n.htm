@@ -1,0 +1,456 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>i18n: Managing Characters, Numbers, and Locales</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a class="opensection" href="#characters">Managing Characters and Strings</a></li>
+			<li><a class="opensection" href="#dates">Managing Dates and Calendar</a></li>
+			<li><a class="opensection" href="#locales">Managing Locales</a></li>
+			<li><a class="opensection" href="#numbers">Managing Numbers</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.guides/html/native/base/i18n_n.htm">i18n Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__MODULE.html">i18n API</a></li>
+		</ul>
+       
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>i18n: Managing Characters, Numbers, and Locales</h1>
+<div class="cont"><div class="static-cont">	
+
+<p>This tutorial demonstrates how you can manage numbers, date, time and locale information.</p> 
+<h2>Warm-up</h2>
+
+ <p>Become familiar with the i18n API basics by learning about:</p> 
+		<ul>
+			<li><a href="#characters">Managing Characters and Strings</a>
+		   <p>Convert and manage characters and strings.</p></li>
+		   <li><a href="#dates">Managing Dates and Calendar</a>
+			<p>Manage dates and calendar.</p></li>
+		   <li><a href="#locales">Managing Locales</a>
+			<p>Manage locales, which represent a specific geographical, political, or cultural region.</p></li>	
+		   <li><a href="#numbers">Managing Numbers</a>
+			<p>Format and parse numbers for any locale.</p></li>
+			
+	</ul>
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+	<!-- Folds -->
+	<ul class="devicespecifications">
+
+			<li>
+			<div class="devicespec-tit">
+				<h2 id="characters" name="characters" class="items-tit-h2">Managing Characters and Strings</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">
+		 <ul class="ul"><li>All source and destination buffers must be different.</li>
+		 <li>To use the localization-related features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__MODULE.html">i18n</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;utils_i18n.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;utils_i18n.h&gt;
+</pre></li></ul></td> 
+		</tr> 
+	   </tbody> 
+	  </table>
+
+<h3 id="compare" name="compare">Comparing Ustrings</h3>
+<p>To compare two Ustrings:</p>
+<ol>
+<li><p>To compare 2 Ustrings for bitwise equality, use the <span style="font-family: Courier New,Courier,monospace">i18n_ustring_compare()</span> function. The obtained result is equal to 0 if the compared Ustrings are equal. The result has a negative value if the first Ustring is bitwise smaller than the second Ustring, and a positive value if the first Ustring is bigger than the second one.</p>
+<pre class="prettyprint">
+i18n_uchar s1[64];
+i18n_ustring_copy_ua(s1, &quot;Tizen&quot;);
+i18n_uchar s2[64];
+i18n_ustring_copy_ua(s2, &quot;Bada&quot;);
+int32_t result = i18n_ustring_compare(s1, s2);
+</pre></li></ol>
+
+<p>For a more complex, locale-sensitive comparison, use the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__UCOLLATOR__MODULE.html">Ucollator</a> API:</p>
+<ol>
+<li>Create a Ucollator using the <span style="font-family: Courier New,Courier,monospace">i18n_ucollator_create()</span> function. <p>Specify the locale as the first argument and a handle to the created Ucollator as the second argument.</p>
+<pre class="prettyprint">
+i18n_ucollator_h coll;
+i18n_ucollator_create(I18N_ULOCALE_US, &amp;coll);
+</pre></li>
+<li>Set the Ucollator strength. <p>The strength influences how strings are compared. There are a few available strength levels:</p>
+<ul class="ul">
+<li>Primary differences, such as different base letters (&quot;a&quot; vs &quot;b&quot;)</li> 
+<li>Secondary differences, such as different accented forms of the same base letter (&quot;a&quot; vs &quot;ä&quot;)</li> 
+<li>Tertiary differences, such as case differences (&quot;a&quot; vs &quot;A&quot;)</li>
+</ul>
+
+<pre class="prettyprint">
+i18n_ucollator_set_strength(coll, I18N_UCOLLATOR_DEFAULT_STRENGTH);
+</pre></li>
+<li>Compare 2 Ustrings.
+<p>To compare 2 Ustrings, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucollator_equal()</span> or <span style="font-family: Courier New,Courier,monospace">i18n_ucollator_str_collator()</span> functions. The result of the first one is whether the compared Ustrings are equal, and the second function returns whether the first Ustring is equal to, or smaller or bigger than the second (<span style="font-family: Courier New,Courier,monospace">I18N_UCOLLATOR_EQUAL</span>, <span style="font-family: Courier New,Courier,monospace">I18N_UCOLLATOR_LESS</span>, <span style="font-family: Courier New,Courier,monospace">I18N_UCOLLATOR_GREATER</span>).</p>
+<p>As the arguments, specify a Ucollator handle, the first Ustring, the length of the first Ustring (-1 if the string is zero-terminated), the second Ustring, the length of the second Ustring (-1 if the string is zero-terminated), variable to store the result.</p>
+<pre class="prettyprint">
+int result;
+i18n_ucollator_equal(coll, s1, -1, s2, -1, &amp;result);
+i18n_ucollator_str_collator(coll, s1, -1, s2, -1, &amp;result);
+</pre></li>
+<li>Destroy the Ucollator.
+<p>When you finish using the Ucollator, destroy it using the <span style="font-family: Courier New,Courier,monospace">i18n_ucollator_destroy()</span> function.</p>
+<pre class="prettyprint">
+i18n_ucollator_destroy(coll);
+</pre></li></ol>	  
+
+<h3 id="strings" name="strings">Converting Strings to Ustrings</h3>
+<p>To convert strings to Ustrings:</p>
+
+<ul class="ul"><li><p>To convert a byte string to a Unicode string (Ustring), use the <span style="font-family: Courier New,Courier,monospace">i18n_ustring_copy_ua()</span> function.</p>
+<pre class="prettyprint">
+const char *src = &quot;Tizen&quot;;
+i18n_uchar dest[64];
+i18n_ustring_copy_ua(dest, src);
+</pre></li>
+<li><p>The <span style="font-family: Courier New,Courier,monospace">i18n_ustring_copy_ua_n()</span> function works similarly but it copies n characters at most, where n is its third argument.</p>
+<pre class="prettyprint">
+const char *src = &quot;Tizen&quot;;
+i18n_uchar dest[64];
+i18n_ustring_copy_ua_n(dest, src, 64);
+</pre></li>
+<li><p>Another way to convert a string to a Ustring is using the <span style="font-family: Courier New,Courier,monospace">i18n_ustring_from_UTF8()</span> function. Its parameters include a destination buffer, a destination buffer capacity (limit), the length of the converted Ustring, the source string buffer, and the length of the original string (can be -1 if the string is zero-terminated).</p>
+<pre class="prettyprint">
+const char *src = &quot;Tizen&quot;;
+i18n_uchar dest[64];
+int dest_len;
+i18n_uerror_code_e error_code = I18N_ERROR_NONE;
+i18n_ustring_from_UTF8(dest, 64, &amp;dest_len, src, -1, &amp;error_code);
+</pre></li></ul>
+
+<h3 id="ustrings" name="ustrings">Converting Ustrings to Strings</h3>
+<p>To convert Ustrings to strings:</p>
+
+<ul class="ul">
+<li><p>To convert a Ustring to a byte string, use the <span style="font-family: Courier New,Courier,monospace">i18n_ustring_copy_au()</span> function.</p>
+<pre class="prettyprint">
+i18n_uchar src[64];
+i18n_ustring_copy_ua(src, &quot;Tizen&quot;);
+const char dest[64];
+i18n_ustring_copy_au(dest, src);
+</pre></li>
+<li><p>The <span style="font-family: Courier New,Courier,monospace">i18n_ustring_copy_au_n()</span> function works similarly but it copies n characters at most, where n is its third argument.</p>
+<pre class="prettyprint">
+i18n_uchar src[64];
+i18n_ustring_copy_ua(src, &quot;Tizen&quot;);
+const char dest[64];
+i18n_ustring_copy_au_n(dest, src, 64);
+</pre></li>
+<li><p>Another way to convert a Ustring to a string is using the <span style="font-family: Courier New,Courier,monospace">i18n_ustring_to_UTF8()</span> function. Its parameters include a destination buffer, a destination buffer capacity (limit), the length of the converted Ustring, the source string buffer, and the length of the original string (can be -1 if the string is zero-terminated). To get the length of a Ustring, use the <span style="font-family: Courier New,Courier,monospace">i18n_ustring_get_length()</span> function.</p>
+<pre class="prettyprint">
+i18n_uchar src[64];
+i18n_ustring_copy_ua(src, &quot;Tizen&quot;);
+const char dest[64];
+int dest_len;
+i18n_uerror_code_e error_code = I18N_ERROR_NONE;
+i18n_ustring_to_UTF8(dest, 64, &amp;dest_len, src, i18n_ustring_get_length(src), &amp;error_code);
+</pre></li></ul>
+
+<h3 id="unicode" name="unicode">Getting Unicode Block of a Character</h3>
+<p>To get information about the location of a specified character:</p>
+<ol>
+<li><p>To get information about which Unicode allocation block contains the specified character, use the <span style="font-family: Courier New,Courier,monospace">i18n_uchar_get_ublock_code()</span> function. The Unicode blocks are listed in the <span style="font-family: Courier New,Courier,monospace">i18n_uchar_ublock_code_e</span> enumeration.</p>
+<pre class="prettyprint">
+i18n_uchar character = 0xACE0;
+i18n_uchar_ublock_code_e ublock;
+i18n_uchar_get_ublock_code(character, &amp;ublock);
+</pre></li></ol>
+
+<h3 id="normalize" name="normalize">Normalizing Ustrings</h3>
+<p>To normalize a Ustring:</p>
+<ol>
+<li>Get a Unormalizer instance.
+<p>To get a Unormalizer instance, use the <span style="font-family: Courier New,Courier,monospace">i18n_unormalization_get_instance()</span> function of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__UNORMALIZATION__MODULE.html">Unormalization</a> API. The first argument is <span style="font-family: Courier New,Courier,monospace">NULL</span> to use the built-in normalizer, then specify the name of the normalizer (<span style="font-family: Courier New,Courier,monospace">nfc</span> or <span style="font-family: Courier New,Courier,monospace">nfkc</span>), normalization mode (compose or decompose), and a handle to get a normalizer.</p>
+<pre class="prettyprint">
+i18n_unormalizer_h normalizer;
+i18n_unormalization_get_instance(NULL, &quot;nfc&quot;, I18N_UNORMALIZATION_DECOMPOSE, &amp;normalizer);
+</pre>
+</li>
+
+<li>Normalize a Ustring or Uchar.
+<p>To normalize a Ustring or Uchar using the obtained normalizer, use the <span style="font-family: Courier New,Courier,monospace">i18n_unormalization_normalize()</span> function. The arguments are: the handle to normalizer, the source Ustring, the source Ustring length (-1 if the string is zero-terminated), a destination buffer, the size of destination buffer and a variable to store the actual length of the normalized Ustring.</p>
+<pre class="prettyprint">
+i18n_uchar src = 0xACE0;
+i18n_uchar dest[4];
+int dest_str_len;
+i18n_unormalization_normalize(normalizer, &amp;src, 1, dest, 4, &amp;dest_str_len);
+</pre></li></ol>
+
+<h3 id="search" name="search">Searching Text in Ustring</h3>
+<p>To search a substring in a Ustring:</p>
+<ol>
+<li>Create a search iterator.
+<p>To create a search iterator, use the <span style="font-family: Courier New,Courier,monospace">i18n_usearch_create()</span> function of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__USEARCH__MODULE.html">Usearch</a> API. To create the iterator, specify the searched pattern, the length of the searched pattern (-1 if the string is zero-terminated), the Ustring where the pattern is searched, the length of this Ustring, a locale associated with the text language, an optional break iterator structure, and a handle to created search iterator.</p>
+<pre class="prettyprint">
+i18n_uchar text[64];
+i18n_ustring_copy_ua(text, &quot;TIZEN&quot;);
+i18n_uchar pattern[64];
+i18n_ustring_copy_ua(pattern, &quot;ZEN&quot;);
+i18n_usearch_h usearch;
+i18n_usearch_create(pattern, -1, text, -1, I18N_ULOCALE_US, NULL, &amp;usearch);
+</pre></li>
+<li>Get the first index.
+<p>To get the first index with the found pattern, use the <span style="font-family: Courier New,Courier,monospace">i18n_usearch_first()</span> function.</p>
+<pre class="prettyprint">
+int index;
+i18n_usearch_first(usearch, &amp;index);
+</pre></li>
+<li>Destroy the search iterator.
+<p>When you finish using the search iterator, destroy it using the <span style="font-family: Courier New,Courier,monospace">i18n_usearch_destroy()</span> function.</p>
+<pre class="prettyprint">
+i18n_usearch_destroy(usearch);
+</pre></li></ol>
+
+<h3 id="uppercase" name="uppercase">Using Uppercase Ustring</h3>
+<p>To change the characters in a Ustring to uppercase:</p>
+<ol>
+<li><p>To change all characters in a Ustring to uppercase, use the <span style="font-family: Courier New,Courier,monospace">i18n_ustring_uppercase()</span> function. The arguments include a result buffer, a result buffer capacity, the original Ustring, the original Ustring length (-1 if the string is zero-terminated), a locale that represents the string language, and a result length.</p>
+<pre class="prettyprint">
+i18n_uchar src[64];
+i18n_ustring_copy_ua(src, &quot;Tizen&quot;);
+i18n_uchar dest[64];
+i18n_ustring_to_upper(dest, 64, src, -1, I18N_ULOCALE_US, &amp;error_code);
+</pre></li></ol>
+	
+			</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="dates" name="dates" class="items-tit-h2">Managing Dates and Calendar</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+
+<p>To create and use the Ucalendar:</p>
+<ol>
+<li><p>To use the date and calendar-related features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__UCALENDAR__MODULE.html">Ucalendar</a>, <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__UDATE__MODULE.html">Udate</a>, and <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__UDATEPG__MODULE.html">Udatepg</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;utils_i18n.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;utils_i18n.h&gt;
+</pre>
+<ul class="ul">
+	<li>The Ucalendar API is used for converting between an <span style="font-family: Courier New,Courier,monospace">i18n_udate</span> object and a set of integer fields, such as <span style="font-family: Courier New,Courier,monospace">I18N_UCALENDAR_YEAR</span>, <span style="font-family: Courier New,Courier,monospace">I18N_UCALENDAR_MONTH</span>, <span style="font-family: Courier New,Courier,monospace">I18N_UCALENDAR_DAY</span>, and <span style="font-family: Courier New,Courier,monospace">I18N_UCALENDAR_HOUR</span>.</li>
+	<li>The Udate API consists of functions that convert dates and times from their internal representations to a textual form and back again in a language-independent manner.</li>
+	<li>The Udatepg API provides flexible generation of date format patterns, such as &quot;yy-MM-dd&quot;.</li>
+</ul>
+
+</li>
+<li>Create a Ucalendar.
+<p>To create a Ucalendar, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_create()</span> function. Insert the following arguments: the time zone symbol (such as &quot;Asia/Seoul&quot;, &quot;UTC&quot;, &quot;GMT+9&quot;) or <span style="font-family: Courier New,Courier,monospace">NULL</span> for the default time zone, the length of time zone symbol (-1 if the symbol is zero-terminated), the desired locale (cannot be associated with the chosen time zone), the calendar type (default, Gregorian), and a handle to the created Ucalendar.</p>
+<pre class="prettyprint">
+i18n_uchar timezone[17];
+i18n_ustring_copy_ua_n(timezone, &quot;America/New_York&quot;, 17);
+i18n_ucalendar_h ucalendar;
+i18n_ucalendar_create(timezone, -1, I18N_ULOCALE_US, I18N_UCALENDAR_DEFAULT, &amp;ucalendar);
+</pre></li>
+
+<li>Set a date.
+<p>To set a date in the Ucalendar, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_set_date_time()</span> function. Provide a handle to the Ucalendar, year, month reduced by 1 (0 for January, 1 for February, and so forth; use the values of the<span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_months_e</span> enumeration to avoid mistakes), day, hour, minute, and second.</p>
+<pre class="prettyprint">
+i18n_ucalendar_set_date_time(ucalendar, 2014, I18N_UCALENDAR_JULY, 1, 9, 0, 0);</pre>
+<p>To set a date using millisecond from the epoch, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_set_milliseconds()</span> function:</p>
+<pre class="prettyprint">
+i18n_udate udate;
+// udate must be set
+i18n_ucalendar_set_milliseconds(ucalendar, udate);
+</pre>
+<p>To add a specified period to the Ucalendar, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_add()</span> function. Specify a handle to the Ucalendar, a field of Ucalendar to add to (year, week, day; the value of the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_date_fields_e</span> enumeration) and the amount to add to field (use a negative value to subtract).</p>
+<pre class="prettyprint">i18n_ucalendar_add(ucalendar, I18N_UCALENDAR_HOUR, 3);</pre></li>
+
+<li>Get a date.
+<p>To get a date from the Ucalendar, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_get()</span> function. You can get one of the possible values (such as year, week of year, day of month, hour, or day of year; for more information, see the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_date_fields_e</span> enumeration) at once.</p>
+<pre class="prettyprint">
+int uday;
+i18n_ucalendar_get(ucalendar, I18N_UCALENDAR_DAY_OF_YEAR, &amp;uday);
+</pre>
+<p>To get a date in milliseconds from the epoch, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_get_milliseconds()</span> function.</p>
+<pre class="prettyprint">
+i18n_udate date;
+i18n_ucalendar_get_ milliseconds(ucalendar, &amp;date);
+</pre>
+<p>To check whether the Ucalendar date is in daylight saving time, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_is_in_daylight_time()</span> function.</p>
+<pre class="prettyprint">
+bool dst;
+i18n_ucalendar_is_in_daylight_time(ucalendar, &amp;dst);
+</pre>
+<p>To get an actual current date from the system, use the <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_get_now()</span> function. The obtained date is represented as milliseconds from the epoch.</p>
+<pre class="prettyprint">
+i18n_udate now;
+i18n_ucalendar_get_now(&amp;now);</pre></li>
+
+<li>Format a date.
+<p>To format a date, first create a Udatepg (pattern generator) that helps with creating the date pattern. Use the <span style="font-family: Courier New,Courier,monospace">i18n_udatepg_create()</span> function, providing a desired locale and a handle to the created Udatepg.</p>
+<pre class="prettyprint">
+i18n_udatepg_h udatepg;
+i18n_udatepg_create(I18N_ULOCALE_UK, &amp;udatepg);
+</pre>
+<p>To generate a date best pattern, use the <span style="font-family: Courier New,Courier,monospace">i18n_udatepg_get_best_pattern()</span> function. Prepare a draft format to define which kind of fields should be displayed (for example, E for the day of the week, M for month, y for year, d for the day of the month, and D for day of the year). As arguments, pass a handle to the date pattern generator, a format draft, the length of the draft (-1 if zero-terminated), a buffer for the generated pattern, the size of the buffer, and a variable to store the actual size of the generated pattern.</p>
+<pre class="prettyprint">
+int pattern_len;
+i18n_uchar format[64];
+i18n_ustring_copy_ua_n(format, &quot;EEEdMMMyyyyHHmmssz&quot;, 64);
+i18n_uchar best_pattern[64];
+i18n_udatepg_get_best_pattern(udatepg, format, 64, best_pattern, 64, &amp;pattern_len);
+</pre>
+<p>To create a date format, use the <span style="font-family: Courier New,Courier,monospace">i18n_udate_create()</span> function. Specify the style to format time, the style to format date (from the <span style="font-family: Courier New,Courier,monospace">i18n_udate_format_style_e</span> enumeration), the desired locale, the desired time zone name, the length of the time zone name, a date pattern to use, the length of the pattern, and a handle to the created date format).</p>
+<pre class="prettyprint">
+i18n_udate_format_h date_format;
+i18n_ustring_copy_ua_n(timezone, &quot;Asia/Seoul&quot;, 17);
+i18n_udate_create(I18N_UDATE_FULL, I18N_UDATE_FULL, I18N_ULOCALE_UK, timezone, -1, best_pattern, -1, &amp;date_format);
+</pre>
+<p>To obtain a well-formatted Ustring with a specified date, use the <span style="font-family: Courier New,Courier,monospace">i18n_udate_format_date()</span> function. The arguments are a handle to the date format, the date in milliseconds from the epoch, a buffer for a result, the size of the destination buffer, an optional handle to a UFieldPosition structure to get the positions of the fields, and a variable to store the actual size of the obtained Ustring.</p>
+<pre class="prettyprint">
+i18n_uchar date_result[64];
+int date_len;
+i18n_udate_format_date(date_format, now, date_result, 64, NULL, &amp;date_len);
+</pre></li>
+
+<li>Destroy the Ucalendar, Udatepg, and Udate.
+<p>When you finish using the created Ucalendar, Udatepg and Udate, destroy them using the  <span style="font-family: Courier New,Courier,monospace">i18n_ucalendar_destroy()</span>, <span style="font-family: Courier New,Courier,monospace">i18n_udatepg_destroy()</span>, and <span style="font-family: Courier New,Courier,monospace">i18n_udate_destroy()</span> functions.</p>
+<pre class="prettyprint">
+i18n_ucalendar_destroy(ucalendar);
+i18n_udatepg_destroy(udatepg);
+i18n_udate_destroy(date_format);
+</pre></li>
+</ol>
+			</div>
+		</li>
+		
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="locales" name="locales" class="items-tit-h2">Managing Locales</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To manage the features of a specific geographical, political, or cultural region:</p>
+
+<ol>
+<li><p>To use the locale-related features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__ULOCALE__MODULE.html">Ulocale</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;utils_i18n.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;utils_i18n.h&gt;
+</pre></li>
+<li>To manage locale information:
+<ul class="ul">
+<li>To get the language associated with a locale, use the <span style="font-family: Courier New,Courier,monospace">i18n_ulocale_get_language()</span> function. Provide the locale symbol (such as &quot;en_US&quot; or &quot;ko_KR&quot; - the supported locales are defined in the API as <span style="font-family: Courier New,Courier,monospace">I18N_ULOCALE_*</span>), a buffer to the language code, the size of the buffer, and a variable to store the actual length of the language code.
+<pre class="prettyprint">
+char language[64];
+int lang_len;
+i18n_ulocale_get_language(I18N_ULOCALE_GERMANY, language, 64, &amp;lang_len);
+</pre></li>
+
+<li>To get a full name for the specified locale, use the <span style="font-family: Courier New,Courier,monospace">i18n_ulocale_get_display_name()</span> function. The arguments are a locale to get the full name, a locale to localize the name (specify the language of the obtained name), a buffer for the name, the size of the buffer, and a variable to store the actual size of the name.
+<pre class="prettyprint">
+i18n_uchar name[64];
+int name_len;
+i18n_ulocale_get_display_name(I18N_ULOCALE_CANADA_FRENCH, I18N_ULOCALE_GERMANY, name, 64, &amp;name_len);
+</pre>
+<p>In this example, the name of the &quot;fr_CA&quot; locale is obtained in German.</p></li>
+
+<li>To get the default locale, use the <span style="font-family: Courier New,Courier,monospace">i18n_ulocale_get_default()</span> function.
+<pre class="prettyprint">
+char *locale;
+i18n_ulocale_get_default(&amp;locale);
+</pre>
+<p>To set the default locale, use the <span style="font-family: Courier New,Courier,monospace">i18n_ulocale_set_default()</span> function.</p>
+<pre class="prettyprint">
+i18n_ulocale_set_default(I18N_ULOCALE_KOREA);</pre></li></ul></li>
+</ol>
+			</div>
+		</li>			
+
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="numbers" name="numbers" class="items-tit-h2">Managing Numbers</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+				<p>To format and parse numbers for a locale:</p>
+<ol>
+<li><p>To use the number-related features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__UNUMBER__MODULE.html">Unumber</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;utils_i18n.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;utils_i18n.h&gt;
+</pre></li>
+<li>Create a number format.
+<p>To start using the Unumber module, create a number format using the <span style="font-family: Courier New,Courier,monospace">i18n_unumber_create()</span> function. Specify its arguments, which are the type of the number format (such as decimal, currency, or scientific), the format pattern (only for decimal and rule-based types), the length of the format pattern, a locale identifier (<span style="font-family: Courier New,Courier,monospace">NULL</span> for default), an optional pointer to a UParseError struct, and a handle to the created number format.</p>
+<pre class="prettyprint">
+i18n_unumber_format_h num_format;
+i18n_unumber_create(I18N_UNUMBER_CURRENCY, NULL, -1, I18N_ULOCALE_JAPAN, NULL, &amp;num_format);</pre></li>
+
+<li>Get a symbol associated with the number format.
+<p>To get a symbol associated with the created number format, use the <span style="font-family: Courier New,Courier,monospace">i18n_unumber_get_symbol()</span> function. The parameters are the number format, the symbol to get (see the <span style="font-family: Courier New,Courier,monospace">i18n_unumber_format_symbol_e</span> enumeration in documentation), the destination buffer, the size of the buffer, a variable to store the length of the symbol.</p>
+<pre class="prettyprint">
+i18n_uchar buffer[64];
+int len;
+i18n_unumber_get_symbol(num_format, I18N_UNUMBER_INTL_CURRENCY_SYMBOL, buffer, 64, &amp;len);</pre></li>
+
+<li>Destroy the number format.
+<p>When you finish using the number format, destroy it with the <span style="font-family: Courier New,Courier,monospace">i18n_unumber_destroy()</span> function.</p>
+<pre class="prettyprint">i18n_unumber_destroy(num_format);</pre></li>
+</ol>
+			</div>
+		</li>		
+	</ul>	
+</div>				
+</div>
+	
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

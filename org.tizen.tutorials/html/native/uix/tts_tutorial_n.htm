@@ -1,0 +1,641 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>TTS: Synthesizing Voice from Text and Playing Synthesized Sound Data</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li>Set-up
+				<ul class="toc">
+					<li><a href="#create" class="opensection">Creating and Destroying TTS Handles</a></li>
+					<li><a href="#set" class="opensection">Setting and Unsetting Callbacks</a></li>
+					<li><a href="#get" class="opensection">Getting Information</a></li>
+					<li><a href="#mode" class="opensection">Getting and Setting the Mode</a></li>
+					<li><a href="#prepare" class="opensection">Connecting and Disconnecting TTS</a></li>
+				</ul>
+			</li>
+			<li><a href="#text" class="opensection">Adding Text</a></li>
+			<li><a href="#start" class="opensection">Starting, Stopping, and Pausing Playback</a>
+			</li>
+		</ul>		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/uix/tts_n.htm">TTS Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__TTS__MODULE.html">TTS API</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>TTS: Synthesizing Voice from Text and Playing Synthesized Sound Data</h1>
+<div class="cont"><div class="static-cont">	
+
+<p>This tutorial demonstrates how you can synthesize text into sound data as utterance and play, pause, and stop it.</p>
+				
+<h2>Warm-up</h2>
+<p>Become familiar with the TTS API basics by learning about:</p>
+<ul>
+<li>Set-up
+	<ul>
+		<li><a href="#create">Creating and Destroying TTS Handles</a>
+		<p>Create and destroy the TTS handle.</p></li>
+		
+		<li><a href="#set">Setting and Unsetting Callbacks</a>
+		<p>Set and unset callbacks for obtaining notifications, such as when playing utterance is started or completed.</p></li>
+		
+		<li><a href="#get">Getting Information</a>
+		<p>Get information on the supported voice, current state, and voice.</p></li>
+		
+		<li><a href="#mode">Getting and Setting the Mode</a>
+		<p>Get and set the TTS mode.</p></li>
+		
+		<li><a href="#prepare">Connecting and Disconnecting TTS</a>
+		<p>Connect and disconnect the TTS.</p></li>
+	</ul>
+</li>
+
+<li><a href="#text">Adding Text</a>
+<p>Request to add text for TTS play.</p></li>
+
+<li><a href="#start">Starting, Stopping, and Pausing Playback</a>
+<p>Start TTS playback, stop, and pause it.</p></li>
+</ul>
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+	<!-- Folds -->
+	<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="create" name="create" class="items-tit-h2">Creating and Destroying TTS Handles</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To create and destroy TTS handles:</p>
+<ol><li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__TTS__MODULE.html">TTS</a> (text-to-speech) API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;tts.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;tts.h&gt;</pre>
+</li>
+<li><p>To use the TTS library, create a TTS handle. The TTS handle is used for other TTS functions as a parameter. After the creation, the TTS state changes to <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_CREATED</span>.</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">TTS is not thread-safe and depends on the ecore main loop. Therefore, you must have the ecore main loop. Do not use TTS in a thread.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+
+<pre class="prettyprint">
+void create_tts_handle()
+{
+&nbsp;&nbsp;&nbsp;tts_h tts;
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_create(&amp;tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NENE != result)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li><p>When you do not need to use the TTS library anymore, destroy the TTS handle using the <span style="font-family: Courier New,Courier,monospace;">tts_destroy()</span> function:</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">Do not use the <span style="font-family: Courier New,Courier,monospace;">tts_destroy()</span> function within the callback function, or the <span style="font-family: Courier New,Courier,monospace;">tts_destroy()</span> function fails and returns <span style="font-family: Courier New,Courier,monospace;">TTS_ERROR_OPERATION_FAILED</span>.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+
+<pre class="prettyprint">
+void destroy_tts_handle(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_destroy(tts); // tts is the TTS handle
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != result)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li></ol>
+			</div>
+		</li>
+
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="set" name="set" class="items-tit-h2">Setting and Unsetting Callbacks</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To set and unset callbacks:</p>
+<ol><li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__TTS__MODULE.html">TTS</a> (text-to-speech) API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;tts.h&gt;</span> header file in your application. The enum values for the parameters of the callback functions are defined there. You can also find the parameter details in the header file.
+<pre class="prettyprint">
+#include &lt;tts.h&gt;</pre>
+</li>
+<li><p>The TTS API provides various callback functions used to get information, such as changing states and starting a completing utterance. Call the setting and unsetting callback functions in the <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_CREATED</span> state. </p>
+<p>You can use the following callbacks:</p>
+<ul class="ul">
+<li>State changed
+<p>If you set the state change callback for the TTS, it is invoked when the TTS state changes.</p>
+<pre class="prettyprint">
+void state_changed_cb(tts_h tts, tts_state_e previous, tts_state_e current, void* user_data)
+{ 
+&nbsp;&nbsp;&nbsp;// Your code 
+}
+void set_state_changed_cb(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_set_state_changed_cb(tts, state_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+void unset_state_changed_cb(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_unset_state_changed_cb(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Default voice changed
+<p>In the TTS library, the voice includes the language used and the voice type, such as male or female. The default voice of the TTS is changed either when the system language is changed, or from the TTS settings. You can get a notification of this change:</p>
+<pre class="prettyprint">
+void default_voice_changed_cb(tts_h tts,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char* previous_language, int previous_voice_type,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char* current_language, int current_voice_type, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Your code 
+}
+void set_default_voice_changed_cb(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_set_default_voice_changed_cb(tts, default_voice_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+void unset_default_language_changed_cb(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_unset_default_voice_changed_cb(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Utterance started or completed
+<p>If you add text in the TTS, that text is handled as an utterance and it obtains its own ID. After you request starting, the text is synthesized by an engine and played out. You can get a notification of an utterance has starting or completing:</p>
+<pre class="prettyprint">
+void utterance_started_cb(tts_h tts, int utt_id, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Your code 
+}
+
+void utterance_completed_cb(tts_h tts, int utt_id, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Your code 
+}
+
+void set_utterance_cb(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_set_utterance_started_cb(tts, utterance_started_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = tts_set_utterance_completed_cb(tts, utterance_completed_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void unset_utterance_cb(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_unset_utterance_started_cb(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;ret = tts_unset_utterance_completed_cb(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Error
+<p>When an error occurs, the TTS library sends a message using a callback function:</p>
+<pre class="prettyprint">
+void error_cb(tts_h tts, int utt_id, tts_error_e reason, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Your code 
+}
+
+void set_error_cb(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_set_error_cb(tts, error_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void unset_error_cb(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_unset_error_cb(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ul></li></ol>
+			</div>
+		</li>
+		
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="get" name="get" class="items-tit-h2">Getting Information</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To get information of the current TTS state and the voices used:</p>
+<ol><li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__TTS__MODULE.html">TTS</a> (text-to-speech) API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;tts.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;tts.h&gt;</pre>
+</li>
+<li><p>You can obtain the current state, the supported voice list, and the current voice:</p>
+<ul class="ul">
+<li>Get the current state.
+<p>The TTS state is changed by other functions, and it is also applied as a precondition of each API. You can get the current state using the <span style="font-family: Courier New,Courier,monospace;">tts_get_state()</span> function.</p>
+<pre class="prettyprint">
+void get_state(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;tts_state_e current_state;
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_get_state(tts, &amp;current_state);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Obtain a list of voices supported by the TTS using the <span style="font-family: Courier New,Courier,monospace;">tts_foreach_supported_voices()</span> function. The <span style="font-family: Courier New,Courier,monospace;">tts_supported_voice_cb</span> callback is invoked repeatedly for each supported voice. You can continue or stop getting the supported voice by the return value of the callback function.
+<pre class="prettyprint">
+bool supported_voice_cb(tts_h tts, const char* language, int voice_type, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;return true; // Get next supported language 
+&nbsp;&nbsp;&nbsp;return false; // Stop 
+}
+
+void get_supported_voice(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_foreach_supported_voices(tts, supported_language_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Get the default voice using the <span style="font-family: Courier New,Courier,monospace;">tts_get_default_voice()</span> function. If you do not set the language and the voice type as parameters of the <span style="font-family: Courier New,Courier,monospace;">tts_add_text()</span> function, the TTS synthesizes the text using the default voice. You can get notified about the default voice changing:
+<pre class="prettyprint">
+void get_default_voice(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;char* default_lang = NULL;
+&nbsp;&nbsp;&nbsp;int default_voice_type;
+&nbsp;&nbsp;&nbsp;ret = tts_get_default_voice(tts, &amp;default_lang, &amp;default_voice_type);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ul></li></ol>
+			</div>
+		</li>
+		
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="mode" name="mode" class="items-tit-h2">Getting and Setting the Mode</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To get and set the mode:</p>
+<ol><li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__TTS__MODULE.html">TTS</a> (text-to-speech) API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;tts.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;tts.h&gt;</pre>
+</li>
+<li><p>There are 3 different TTS modes available. The main difference is audio mixing with other sources. The default mode is <span style="font-family: Courier New,Courier,monospace;">TTS_MODE_DEFAULT</span>, used for normal applications such as eBooks. If you set this mode and play your text, it can be interrupted when other sounds, such as ringtone or other TTS sounds, are played. Use these functions in the <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_CREATED</span> state.</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">The <span style="font-family: Courier New,Courier,monospace;">TTS_MODE_NOTIFICATION</span> and <span style="font-family: Courier New,Courier,monospace;">TTS_MODE_SCREEN_READER</span> modes are mixed with other sound sources, but they are used only for platform-specific features. Do not use them for normal applications.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+ 
+<pre class="prettyprint">
+void set_mode(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;tts_mode_e mode = TTS_MODE_DEFAULT;
+&nbsp;&nbsp;&nbsp;ret = tts_set_mode(tts, mode);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void get_mode(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;tts_mode_e mode;
+&nbsp;&nbsp;&nbsp;ret = tts_get_mode(tts, &amp;mode);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li></ol>  
+			</div>
+		</li>
+		
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="prepare" name="prepare" class="items-tit-h2">Connecting and Disconnecting TTS</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To operate the TTS:</p>
+<ol><li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__TTS__MODULE.html">TTS</a> (text-to-speech) API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;tts.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;tts.h&gt;</pre>
+</li>
+
+<li><p>After you create the TTS handle, connect the background TTS daemon. The daemon synthesizes the text with the engine and plays the resulting sound data:</p>
+<ul class="ul">
+<li><p>The <span style="font-family: Courier New,Courier,monospace;">tts_prepare()</span> API is asynchronous, and the state of the TTS is changed to <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_READY</span>.</p>
+
+<pre class="prettyprint">
+void prepare_for_tts(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_prepare(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}</pre>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">If you can get the error callback after using the <span style="font-family: Courier New,Courier,monospace;">tts_prepare()</span> function, the TTS is not available.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+	</li>
+
+<li><p>The <span style="font-family: Courier New,Courier,monospace;">tts_unprepare()</span> API is used for disconnection, and the state is changed back to <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_CREATED</span>.</p>
+	  
+<pre class="prettyprint">void unprepared_for_tts(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_unprepare(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+</ul></li></ol>
+			</div>
+		</li>
+
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="text" name="text" class="items-tit-h2">Adding Text</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To add text:</p>
+<ol><li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__TTS__MODULE.html">TTS</a> (text-to-speech) API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;tts.h&gt;</span> header file in your application. There are defined values, <span style="font-family: Courier New,Courier,monospace;">TTS_VOICE_TYPE_AUTO</span> and <span style="font-family: Courier New,Courier,monospace;">TTS_VOICE_SPEED_AUTO</span> for following the default TTS setting. The minimum and maximum limits for the speed are also defined in the header file.
+<pre class="prettyprint">
+#include &lt;tts.h&gt;</pre>
+</li>
+<li>To manage text:
+<ul class="ul">
+<li>
+<p>You can request the TTS library to read your own text using the <span style="font-family: Courier New,Courier,monospace;">tts_add_text()</span> function. The TTS library manages added text using queues, so it is possible to add several texts simultaneously. Each obtained text receives an utterance ID, which is used for synthesizing and playing the sound data.</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">If the added text is too long, some engines need a long time for synthesis. It is recommended to add a proper length text clip.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+
+<p>When you do not set the language and use <span style="font-family: Courier New,Courier,monospace;">NULL</span> for the language, the default language is used for synthesizing text.</p>
+
+<p>You can add text at any point after the <span style="font-family: Courier New,Courier,monospace;">tts_prepare()</span> function changes the state to <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_READY</span>.</p>
+<pre class="prettyprint">
+void add_text(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;const char* text = &quot;tutorial&quot;; // Text for read 
+&nbsp;&nbsp;&nbsp;const char* language = &quot;en_US&quot;; // Language 
+&nbsp;&nbsp;&nbsp;int voice_type = TTS_VOICE_TYPE_FEMALE; // Voice type 
+&nbsp;&nbsp;&nbsp;int speed = TTS_SPEED_AUTO; // Read speed 
+&nbsp;&nbsp;&nbsp;int utt_id; // Utterance ID for the requested text
+
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_add_text(tts, text, language, voice_type, speed, &amp;utt_id);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>
+<p>There is a length limit for the added text in the engine. You can retrieve the maximum value using the <span style="font-family: Courier New,Courier,monospace;">tts_get_max_text_size()</span> function in the <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_READY</span> state.</p>
+<pre class="prettyprint">
+void get_maximum_text_size(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;int size;
+&nbsp;&nbsp;&nbsp;ret = tts_get_max_text_size(tts, &amp;size);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ul></li></ol>
+			</div>
+		</li>
+		
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="start" name="start" class="items-tit-h2">Starting, Stopping, and Pausing Playback</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To start, pause, and stop playback:</p>
+<ol><li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__TTS__MODULE.html">TTS</a> (text-to-speech) API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;tts.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;tts.h&gt;</pre>
+</li>
+<li><p>To start synthesizing the text added in the queue and play the resulting sound data in sequence, use the <span style="font-family: Courier New,Courier,monospace;">tts_play()</span> function. The state is changed to <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_PLAYING</span>. The playback continues until you call the <span style="font-family: Courier New,Courier,monospace;">tts_stop()</span> or the <span style="font-family: Courier New,Courier,monospace;">tts_pause()</span> function.</p>
+
+<p>If there is no text in the queue, the TTS waits for text to be added in the <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_PLAYING</span> state. In that case, when you add text, the TTS starts synthesizing and playing it immediately. The TTS state need not change to <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_READY</span> state before using the <span style="font-family: Courier New,Courier,monospace;">tts_stop()</span> function.</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">If you get the TTS state changed callback in the <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_PLAYING</span> without the TTS API call, prepare the TTS state. The TTS state can change if other applications request TTS play, the audio session requests TTS pause, or the TTS engine changes.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+
+<pre class="prettyprint">
+void start(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_play(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>If you want to pause the process, use the <span style="font-family: Courier New,Courier,monospace;">tts_pause()</span> function to change the state to <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_PAUSED</span>. You can resume playback using the <span style="font-family: Courier New,Courier,monospace;">tts_play()</span> function.</p>
+<pre class="prettyprint">
+void pause(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_pause(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+<p>To stop the playback, use the <span style="font-family: Courier New,Courier,monospace;">tts_stop()</span> function. All the texts in the queue are removed. The state is changed to <span style="font-family: Courier New,Courier,monospace;">TTS_STATE_READY</span>.</p>
+<pre class="prettyprint">
+void stop(tts_h tts)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = tts_stop(tts);
+&nbsp;&nbsp;&nbsp;if (TTS_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li></ol>
+			</div>
+		</li>
+						
+	</ul>	
+</div>				
+</div>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

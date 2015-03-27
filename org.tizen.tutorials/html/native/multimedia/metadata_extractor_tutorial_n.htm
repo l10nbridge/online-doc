@@ -1,0 +1,326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>Metadata Extractor: Extracting Metadata from an Input Media File</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+ 		<p class="toc-title">Content</p>
+		<ul class="toc">
+				<li><a class="opensection" href="#init_metadata">Initializing the Metadata Extractor</a></li>
+				<li><a class="opensection" href="#get_metadata">Getting Metadata, Artwork, and Frame</a></li>
+		</ul>  
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/multimedia/metadata_extractor_n.htm">Metadata Extractor Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__METADATA__EXTRACTOR__MODULE.html">Metadata Extractor API</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Metadata Extractor: Extracting Metadata from an Input Media File</h1>
+  <div class="cont"><div class="static-cont">
+  
+<p>This tutorial demonstrates how you can extract metadata from media files.</p>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Metadata Extractor API basics by learning about:</p>
+
+	<ul>
+			<li><a class="opensection" href="#init_metadata">Initializing the Metadata Extractor</a>
+			<p>Initialize the metadata extractor for use.</p></li>
+			<li><a class="opensection" href="#get_metadata">Getting Metadata, Artwork, and Frame</a>
+			<p>Create a metadata extractor handle, bind the handle with the file, and get metadata, artwork, lyrics, and frames.</p></li>
+	</ul>
+        
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+
+		<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="init_metadata" name="init_metadata" class="items-tit-h2">Initializing the Metadata Extractor</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The metadata extractor can only be used with video and audio files. It is not supported in the image files.</td> 
+    </tr> 
+   </tbody> 
+  </table>  
+<p>To initialize the metadata extractor:</p>
+  <ol>
+
+<li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__METADATA__EXTRACTOR__MODULE.html">Metadata Extractor</a> API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;metadata_extractor.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;metadata_extractor.h&gt;
+</pre></li><li><p>To work with the Metadata Extractor API, create a handle to the metadata extractor. A global variable is used in this tutorial:</p>
+
+<pre class="prettyprint">
+static metadata_extractor_h g_metadata_h = NULL;
+</pre></li>
+
+<li><p>Files must contain metadata in order for the Metadata Extractor API functions to work. This tutorial uses 2 files - an audio file in the mp3 format and a video file in the mp4 format.</p>
+
+<p>You must get the default path for this tutorial.  For the following example code, you must include the <span style="font-family: Courier New,Courier,monospace;">&lt;storage.h&gt;</span> header file.</p>
+<pre class="prettyprint">
+int internal_storage_id;
+char *internal_music_storage_path;
+char *internal_video_storage_path;
+char *music_file_name = &quot;test_music.mp3&quot;;
+char *video_file_name = &quot;test_video.mp4&quot;;
+char *music_test_path;
+char *video_test_path;
+
+static bool storage_cb(int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (type == STORAGE_TYPE_INTERNAL)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_storage_id = storage_id;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+void _get_internal_storage_path()
+{
+&nbsp;&nbsp;&nbsp;int error;
+&nbsp;&nbsp;&nbsp;char *path = NULL;
+
+&nbsp;&nbsp;&nbsp;error = storage_foreach_device_supported(storage_cb, NULL);
+&nbsp;&nbsp;&nbsp;error = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_MUSIC, &amp;path);
+&nbsp;&nbsp;&nbsp;if (error != STORAGE_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_music_storage_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;error = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_VIDEOS, &amp;path);
+&nbsp;&nbsp;&nbsp;if (error != STORAGE_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_video_storage_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;}
+} 
+
+void _make_test_path()
+{
+&nbsp;&nbsp;&nbsp;int path_len = 0;
+
+&nbsp;&nbsp;&nbsp;path_len = strlen(internal_music_storage_path) + strlen(music_file_name) + 1;
+&nbsp;&nbsp;&nbsp;music_test_path = malloc(path_len);
+&nbsp;&nbsp;&nbsp;memset(music_test_path, 0x0, path_len);
+
+&nbsp;&nbsp;&nbsp;strncat(music_test_path, internal_music_storage_path, strlen(internal_music_storage_path));
+&nbsp;&nbsp;&nbsp;strncat(music_test_path, music_file_name, strlen(music_file_name));
+
+&nbsp;&nbsp;&nbsp;path_len = strlen(internal_video_storage_path) + strlen(video_file_name) + 1;
+&nbsp;&nbsp;&nbsp;video_test_path = malloc(path_len);
+&nbsp;&nbsp;&nbsp;memset(video_test_path, 0x0, path_len);
+
+&nbsp;&nbsp;&nbsp;strncat(video_test_path, internal_video_storage_path, strlen(internal_video_storage_path));
+&nbsp;&nbsp;&nbsp;strncat(video_test_path, video_file_name, strlen(video_file_name));
+}
+</pre>
+</li></ol>
+<p>The metadata extractor APIs can use not only common content in the storage (internal or external), but also the private content in your application data.</p>  
+	</div>
+		</li>			
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="get_metadata" name="get_metadata" class="items-tit-h2">Getting Metadata, Artwork, and Frame</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To get metadata from the file:</p>
+<ol>
+<li>Create the metadata extractor handle.
+
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">metadata_extractor_create()</span> function. This is necessary to prepare the metadata extractor handle for work.</p>
+
+<pre class="prettyprint">
+ret = metadata_extractor_create(&amp;g_metadata_h);
+</pre></li>
+<li>Set the path to the file whose data you want to obtain.
+
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">metadata_extractor_set_path()</span> function. It binds the handle with the media file specified in the <span style="font-family: Courier New,Courier,monospace;">video_test_path</span>, passed as a second argument to this function.</p>
+
+<pre class="prettyprint">
+ret = metadata_extractor_set_path(g_metadata_h, video_test_path);
+
+// Or
+
+ret = metadata_extractor_set_path(g_metadata_h, music_test_path);
+</pre></li>
+<li>Get metadata from the file.
+
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">metadata_extractor_get_metadata()</span> function, which takes 3 parameters. The first one is the handle to the metadata extractor. The second parameter is the wanted data type. The possible values for this parameter are those defined in the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__METADATA__EXTRACTOR__MODULE.html#ga5b27fedbf5aaa22106f88b831c596872">metadata_extractor_attr_e</a> enumeration. In this tutorial all the possible data from the file is extracted, so a function with all possible attribute types is needed. The value read from the file is stored in the final parameter, which is a pointer to the <span style="font-family: Courier New,Courier,monospace;">char</span> variable and is fulfilled by the function.</p>
+
+<pre class="prettyprint">
+char *value = NULL;
+
+ret = metadata_extractor_get_metadata(g_metadata_h, METADATA_DURATION, &amp;value);
+dlog_print(DLOG_DEBUG, LOG_TAG, &quot;METADATA_DURATION: %s\n&quot;, value);
+if (value != NULL) 
+{
+&nbsp;&nbsp;&nbsp;free(value);
+&nbsp;&nbsp;&nbsp;value = NULL;
+}
+</pre>
+
+<p>After calling the function, check whether the value returned by the function is equal to <span style="font-family: Courier New,Courier,monospace;">METADATA_EXTRACTOR_ERROR_NONE</span>. If it is not, an error occurred. Otherwise, the function got the requested data successfully and its value is stored in the <span style="font-family: Courier New,Courier,monospace;">value</span> variable. The obtained value is printed to the screen. When the work with the obtained value is finished, release it using the <span style="font-family: Courier New,Courier,monospace;">free()</span> function.</p>
+<p>
+The other types of metadata attributes can be obtained in the exactly same way. Just change the second parameter during calling the function to get different attributes of the metadata.
+</p>
+</li>
+<li>Get the artwork of the file (in case of music content).
+
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">metadata_extractor_get_artwork()</span> function.</p>
+<p>This function takes 4 parameters. The first one is the handle to the metadata extractor. Other parameters are [out] – type parameters, so their values are fulfilled by the function. The first of them, the <span style="font-family: Courier New,Courier,monospace;">artwork</span> variable, is fulfilled with the encoded artwork image, the <span style="font-family: Courier New,Courier,monospace;">artwork_size</span> variable stores the size of the encoded artwork, and the <span style="font-family: Courier New,Courier,monospace;">artwork_mime</span> variable contains the mime type of the artwork. The obtained values are merely printed. Afterwards, release the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">artwork</span> and <span style="font-family: Courier New,Courier,monospace;">artwork_mime</span> variables to avoid memory leaks.</p>
+
+<pre class="prettyprint">
+int artwork_size = 0;
+void *artwork = NULL;
+char *artwork_mime = NULL;
+
+ret = metadata_extractor_get_artwork(g_metadata_h, &amp;artwork, &amp;artwork_size, &amp;artwork_mime);
+dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Artwork: size: %d, mime type: %s\n&quot;, artwork_size, artwork_mime);
+if (artwork != NULL) 
+{
+&nbsp;&nbsp;&nbsp;free(artwork);
+&nbsp;&nbsp;&nbsp;artwork = NULL;
+}
+
+if (artwork_mime != NULL) 
+{
+&nbsp;&nbsp;&nbsp;free(artwork_mime);
+&nbsp;&nbsp;&nbsp;artwork_mime = NULL;
+}
+</pre>
+</li>
+
+<li>Get synchronized lyrics from the file (in case of music content).
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">metadata_extractor_get_synclyrics()</span> function. It takes the following parameters:</p>
+<ul class="ul">
+<li>Handle to the metadata extractor</li>
+<li>Index of the time/lyrics set</li>
+<li>Time information of the index</li>
+<li>Lyrics of the index</li>
+</ul>
+
+<p>The last 2 parameters are of the type [out].</p>
+
+<pre class="prettyprint">
+unsigned long time_info = 0;
+char *lyrics = NULL;
+
+ret = metadata_extractor_get_synclyrics(g_metadata_h, 1, &amp;time_info, &amp;lyrics);
+if (lyrics != NULL) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Synclyrics: time_info: %d, lyrics: %s\n&quot;, time_info, lyrics);
+&nbsp;&nbsp;&nbsp;free(lyrics);
+&nbsp;&nbsp;&nbsp;lyrics = NULL;
+}
+</pre>
+
+<p>If the function returns <span style="font-family: Courier New,Courier,monospace;">METADATA_EXTRACTOR_ERROR_NONE</span>, no errors occurred and the time information and lyrics were correctly fulfilled by the function. Only their values are printed. Free the memory allocated for the lyrics to avoid memory leaks.</p>
+</li>
+
+<li>Get frames from video files.
+<p>Use the following functions. The <span style="font-family: Courier New,Courier,monospace;">metadata_extractor_get_frame()</span> function gets the frame of a video media file without specifying the time when the frame appears. The <span style="font-family: Courier New,Courier,monospace;">metadata_extractor_get_frame_at_time()</span> function takes a timestamp as one of the parameters. This parameter defines when a specific frame appears in the video file.</p>
+
+<pre class="prettyprint">
+// Use metadata_extractor_get_frame()
+int frame_size = 0;
+void *frame = NULL;
+
+ret = metadata_extractor_get_frame(g_metadata_h, &amp;frame, &amp;frame_size);
+dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Frame: size: %d\n&quot;, frame_size);
+if (frame != NULL) 
+{
+&nbsp;&nbsp;&nbsp;free(frame);
+&nbsp;&nbsp;&nbsp;frame = NULL;
+}
+
+// Use metadata_extractor_get_frame_at_time()
+unsigned long timestamp = 500;
+
+ret = metadata_extractor_get_frame_at_time(g_metadata_h, timestamp, true, &amp;frame, &amp;frame_size);
+dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Frame at %d: size: %d\n&quot;, timestamp, frame_size);
+if (frame != NULL) 
+{
+&nbsp;&nbsp;&nbsp;free(frame);
+&nbsp;&nbsp;&nbsp;frame = NULL;
+}
+</pre>
+
+<p>Both functions take the handle to the metadata extractor as their first parameter. They also take the <span style="font-family: Courier New,Courier,monospace;">frame</span> and <span style="font-family: Courier New,Courier,monospace;">frame_size</span> variables to fulfill them. The difference is that the second function takes 2 more parameters. The first one was described above. It defines the timestamp from the beginning of the movie to the wanted frame. The second additional parameter is a Boolean value defining whether the user can get an accurate frame (if the value is <span style="font-family: Courier New,Courier,monospace;">true</span>) or only the nearest i-frame.</p>
+
+<p>To check whether the functions are executed successfully, check the value returned by them. If it is <span style="font-family: Courier New,Courier,monospace;">METADATA_EXTRACTOR_ERROR_NONE</span>, no errors occurred and the frame has been successfully stored in the frame variable.</p>
+
+<p>Release the memory allocated for the frame by calling the <span style="font-family: Courier New,Courier,monospace;">free()</span> function.</p></li>
+
+<li>Clean up on the application end.
+<pre class="prettyprint">
+metadata_extractor_destroy(g_metadata_h);
+</pre></li>
+</ol>
+	</div>
+		</li>			
+	</ul>	
+</div>				
+</div>      
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

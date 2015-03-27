@@ -1,0 +1,304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Package Manager: Installing and Uninstalling Applications</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a class="opensection" href="#retrieve">Retrieving All Package Information of Installed Packages</a></li>
+			<li><a class="opensection" href="#info">Getting Specific Package Information</a></li>
+			<li><a class="opensection" href="#listen">Listening to Package Events</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.guides/html/native/app/package_n.htm">Package Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html">Package Manager API</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+
+	<h1>Package Manager: Installing and Uninstalling Applications</h1>
+  <div class="cont"><div class="static-cont">
+  
+<p>This tutorial demonstrates how you can retrieve package information and manage packages.</p> 
+
+  <h2 id="warmup" name="warmup">Warm-up</h2> 
+  <p>Become familiar with the Package Manager API basics by learning about:</p> 
+  <ul> 
+   <li><a class="opensection" href="#retrieve">Retrieving All Package Information of Installed Packages</a>
+    <p>Retrieve all package information of installed packages.</p></li>
+   <li><a class="opensection" href="#info">Getting Specific Package Information</a>
+    <p>Get specific package information.</p></li>
+   <li><a class="opensection" href="#listen">Listening to Package Events</a>
+    <p>Listen package events, such as installing, uninstalling, and updating.</p></li>
+  </ul> 		
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+
+		<ul class="devicespecifications">
+
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="retrieve" name="retrieve" class="items-tit-h2">Retrieving All Package Information of Installed Packages</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To retrieve all package information of installed packages:</p>
+
+<ol>
+<li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html">Package Manager</a> API:</p>
+<ol><li>Include the <span style="font-family: Courier New,Courier,monospace">&lt;package_manager.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;package_manager.h&gt;
+</pre></li>
+<li><p>The <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.info</span>, <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.install</span>,  and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.setting</span> privileges are required for the Package Manager API.</p>
+<p>Add the privileges to the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file.</p></li></ol></li>
+<li>Use the 
+   <span style="font-family: Courier New,Courier,monospace">package_manager_foreach_package_info()</span> function:
+
+<pre class="prettyprint">
+package_manager_foreach_package_info(package_info_cb, NULL)
+</pre>
+
+<p>The function takes the following parameters:</p>
+<ul class="ul">
+  <li>[in] <span style="font-family: Courier New,Courier,monospace">callback</span>: Callback function to be invoked</li>
+  <li>[in] <span style="font-family: Courier New,Courier,monospace">user_data</span>: User data to be passed to the callback function </li>
+  <li>[out] 0 on success, otherwise a negative error value</li>
+</ul></li>
+
+<li><p> Use the <span style="font-family: Courier New,Courier,monospace">package_manager_package_info_cb</span> callback to retrieve all installed packages and print package information. Finally, destroy the package info handler. </p>
+
+<pre class="prettyprint">
+void package_info_cb(package_info_h package_info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;char *pkg = NULL;
+&nbsp;&nbsp;&nbsp;char *label = NULL;
+&nbsp;&nbsp;&nbsp;char *icon = NULL;
+&nbsp;&nbsp;&nbsp;char *version = NULL;
+&nbsp;&nbsp;&nbsp;char *type = NULL;
+&nbsp;&nbsp;&nbsp;package_info_installed_storage_type_e storage;
+&nbsp;&nbsp;&nbsp;bool system;
+&nbsp;&nbsp;&nbsp;bool removable;
+&nbsp;&nbsp;&nbsp;bool preload;
+
+&nbsp;&nbsp;&nbsp;package_info_get_package(package_info, &amp;pkg);
+&nbsp;&nbsp;&nbsp;package_info_get_label(package_info, &amp;label);
+&nbsp;&nbsp;&nbsp;package_info_get_icon(package_info, &amp;icon);
+&nbsp;&nbsp;&nbsp;package_info_get_version(package_info, &amp;version);
+&nbsp;&nbsp;&nbsp;package_info_get_type(package_info, &amp;type);
+&nbsp;&nbsp;&nbsp;package_info_get_installed_storage(package_info, &amp;storage);
+&nbsp;&nbsp;&nbsp;package_info_is_system_package(package_info, &amp;system);
+&nbsp;&nbsp;&nbsp;package_info_is_removable_package(package_info, &amp;removable);
+&nbsp;&nbsp;&nbsp;package_info_is_preload_package(package_info, &amp;preload);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;pkg \t= [%s]\n&quot;, pkg);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;label \t= [%s]\n&quot;, label);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;icon \t= [%s]\n&quot;, icon);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;version \t= [%s]\n&quot;, version);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;type \t= [%s]\n&quot;, type);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;storage \t= [%d]\n&quot;, storage);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;system \t= [%d]\n&quot;, system);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;removable \t= [%d]\n&quot;, removable);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;preload \t= [%d]\n&quot;, preload);
+
+&nbsp;&nbsp;&nbsp;free(pkg);
+&nbsp;&nbsp;&nbsp;free(label);
+&nbsp;&nbsp;&nbsp;free(icon);
+&nbsp;&nbsp;&nbsp;free(version);
+&nbsp;&nbsp;&nbsp;free(type);
+}
+</pre>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;ret = package_manager_foreach_package_info(package_info_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (ret != PACKAGE_MANAGER_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;foreach_package_info error : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+</pre></li></ol>
+	</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="info" name="info" class="items-tit-h2">Getting Specific Package Information</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To get specific package information:</p>
+
+<ol>
+<li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html">Package Manager</a> API:</p>
+<ol><li>Include the <span style="font-family: Courier New,Courier,monospace">&lt;package_manager.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;package_manager.h&gt;
+</pre></li>
+<li><p>The <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.info</span>, <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.install</span>,  and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.setting</span> privileges are required for the Package Manager API.</p>
+<p>Add the privileges to the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file.</p></li></ol></li>
+<li>Use the 
+  	 <span style="font-family: Courier New,Courier,monospace">package_manager_get_package_info()</span> function:
+
+<pre class="prettyprint">
+package_info_h package_info = NULL;
+package_manager_get_package_info(&quot;PACKAGE-ID&quot;, &amp;package_info);
+
+// Use package information
+package_info_destroy(package_info);
+</pre>
+
+<p>The function takes the following parameters:</p>
+<ul class="ul">
+  <li>[in] <span style="font-family: Courier New,Courier,monospace">package_id</span>: ID of the package</li>
+  <li>[in] <span style="font-family: Courier New,Courier,monospace">package_info</span>: Package information for the given package ID</li>
+  <li>[out] 0 on success, otherwise a negative error value</li>
+</ul></li></ol>
+
+	</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="listen" name="listen" class="items-tit-h2">Listening to Package Events</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To detect package events, such as installation, uninstallation, and updates:</p>
+<ol>
+<li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html">Package Manager</a> API:</p>
+<ol><li>Include the <span style="font-family: Courier New,Courier,monospace">&lt;package_manager.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;package_manager.h&gt;
+</pre></li>
+<li><p>The <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.info</span>, <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.install</span>,  and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.setting</span> privileges are required for the Package Manager API.</p>
+<p>Add the privileges to the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file.</p></li></ol></li>
+<li>
+<p>Create the package manager (<span style="font-family: Courier New,Courier,monospace">package_manager_h</span>) using the <span style="font-family: Courier New,Courier,monospace">package_manager_create()</span> function:</p>
+
+<pre class="prettyprint">package_manager_h manager;
+package_manager_create(&amp;manager);</pre>
+
+<p>The function takes the following parameters:</p>
+<ul class="ul">
+  <li>[in] <span style="font-family: Courier New,Courier,monospace">manager</span>: Package manager handle that is newly created on success </li>
+  <li>[out] 0 on success, otherwise a negative error value</li>  
+</ul>
+</li>
+
+<li>
+	
+<p>Set the status when the package is installed, uninstalled, or updated:</p>
+
+<pre class="prettyprint">package_manager_set_event_status(manager, PACKAGE_MANAGER_STATUS_TYPE_ALL);</pre>
+
+<p>The function takes the following parameters:</p>
+<ul class="ul">
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">manager</span>: Package manager handle</li>
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">status_type</span>: Status of the package</li>
+ <li>[out] 0 on success, otherwise a negative error value</li>
+</ul>
+</li>
+
+<li>
+	<p>Register a callback function to be invoked when the package is installed, uninstalled, or updated:</p>
+<pre class="prettyprint">
+package_manager_set_event_cb(manager, event_cb, NULL);
+</pre>
+
+<p>The function takes the following parameters:</p>
+<ul class="ul">
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">manager</span>: Package manager handle</li>
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">callback</span>: Callback function to be registered</li>
+ <li>[in] <span style="font-family: Courier New,Courier,monospace">user_data</span>: User data to be passed to the callback function</li>
+ <li>[out] 0 on success, otherwise a negative error value</li>
+</ul>
+</li>
+
+<li>
+	<p>Implement the package manager event callback:</p>
+
+	
+<pre class="prettyprint">void event_cb(const char *type, const char *package, package_manager_event_type_e event_type, package_manager_event_state_e event_state, int progress, package_manager_error_e error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (event_state == PACKAGE_MANAGER_EVENT_STATE_STARTED)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Started&quot;);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (event_state == PACKAGE_MANAGER_EVENT_STATE_PROCESSING)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Progress : %d&quot;, progress);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Completed&quot;);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed&quot;);
+&nbsp;&nbsp;&nbsp;}
+}</pre>
+
+</li>
+<li>
+	<p>Free the package manager:</p>
+
+	
+<pre class="prettyprint">package_manager_destroy(package_manager_h manager);</pre>
+
+</li>
+</ol>
+	</div>
+		</li>
+		
+	</ul>	
+</div>				
+</div>
+  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

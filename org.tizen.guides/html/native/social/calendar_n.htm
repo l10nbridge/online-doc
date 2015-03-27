@@ -1,0 +1,721 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+    <title>Calendar</title>
+</head>
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+				<li><a href="#book">Calendar Books</a></li>
+				<li><a href="#change">Database Change Notifications</a></li>
+				<li><a href="#event">Events and Instances</a></li>
+				<li><a href="#filter2">Filters and Queries</a></li>
+				<li><a href="#record2">Records</a></li> 
+				<li><a href="#remind">Reminders</a></li>
+				<li><a href="#time">Time Structure</a></li>
+				<li><a href="#view2">Views and Properties</a></li> 
+				<li><a href="#vcal">vCalendar</a></li>	
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm">Calendar Tutorial</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SOCIAL__CALENDAR__SVC__MODULE.html">Calendar API</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+
+  <h1>Calendar</h1>
+	
+<p>A calendar is a system of organizing days for social purposes. It is composed of <a href="#record2">records</a>, such as events and todos. The records consist of subrecords, such as alarms, attendees, or extensions. For example, if an event has a recurrence rule (meaning that it happens multiple times), separate instances are generated for each time the event occurs.</p>
+ 
+    <p class="figure">Figure: Calendar model</p> 
+  <p style="text-align:center;"><img alt="Calendar model" src="../../images/calendar_model.png" /></p>
+  
+  <p>The Calendar Service supports <a href="#vcal">vCalendars</a>.</p>
+
+<p>The main features of the Calendar API include:</p>
+	<ul>
+		<li><a href="#book">Calendar books</a>
+		<ul>
+			<li>Determine where the events and todos belong.</li>
+			<li>Create calendar books using the local device (with no account), service providers, such as Google or Yahoo (with an account), or applications, such as ChatON, Joyn, or Facebook.</li>
+			<li>Search and organize events using <a href="#filter2">filters and queries</a>.</li>
+			<li>Monitor <a href="#change">database changes</a>.</li>
+		</ul>
+		<p>Each account can have multiple calendar books. The calendar book name does not need to be unique on the device because it is handled with an ID. Since the local device address book has no account, its related account ID is zero.</p>
+		</li>
+		<li><a href="#event">Events and tasks</a>
+		<ul>
+			<li>Set properties, such as summary, start time, and description.</li>
+			<li>Set <a href="#remind">reminders</a>.</li>
+			</ul>
+		</li>
+		<li><a href="#time">Time management</a>
+		<ul>
+			<li>Define the calendar UTC time and date.</li>
+			</ul>
+		</li>
+	</ul>
+
+<p>The following figure illustrates the different Calendar entities and their relationships.</p> 
+
+    <p class="figure">Figure: Calendar entities</p> 
+  <p style="text-align:center;"><img alt="Calendar entities" src="../../images/calendar_entity.png" /></p>  
+
+<p>vCalendar supports ver1.0 (vcs) and 2.0 (ics). For more information about vCalendar, see <a href="http://www.ietf.org/rfc/rfc2445.txt" target="blank">rfc2445</a>.</p>
+
+<p>The calendar service module works in a way similar to client-service architecture. In this architecture, the Tizen application is the client side and has to connect to service before using calendar service APIs. Use <span style="font-family: Courier New,Courier,monospace">calendar_connect()</span> and <span style="font-family: Courier New,Courier,monospace">calendar_disconnect()</span> for connecting and disconnecting.</p>
+<pre class="prettyprint">
+calendar_connect();
+
+// Jobs for records
+
+calendar_disconnect();
+</pre>
+
+<h2 id="book" name="book">Calendar Books</h2>
+
+<p>A calendar book is a placeholder for other records in the Calendar API. Every event and todo has to belong to a calendar book. There are 3 built-in calendar books, as shown in the following table.</p>
+
+<table> 
+   <caption>
+     Table: Calendar books
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Book</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">DEFAULT_EVENT_CALENDAR_BOOK_ID</span></td> 
+     <td>Event book</td> 
+    </tr> 
+     <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">DEFAULT_TODO_CALENDAR_BOOK_ID</span></td> 
+     <td>Todo book</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">DEFAULT_BIRTHDAY_CALENDAR_BOOK_ID</span></td> 
+     <td>Birthday book</td> 
+    </tr>  
+   </tbody> 
+  </table> 
+  
+The following code example sets a calendar book ID.
+<pre class="prettyprint">
+calendar_record_h event = NULL;
+
+calendar_record_create(_calendar_event._uri, &amp;event);
+
+// Set default calendar book id
+calendar_record_set_int(event, _calendar_event.calendar_id, DEFAULT_EVENT_CALENDAR_BOOK_ID);
+
+// Set other fields
+
+int event_id = 0;
+calendar_db_insert_record(event &amp;event_id);
+
+// Destroy
+calendar_record_destroy(event, true);
+</pre>
+
+	
+<p>To receive a list of existing calendar books, use the following code:</p>
+<pre class="prettyprint">calendar_list_h calendar_book_list = NULL;
+calendar_db_get_all_records(_calendar_calendar_book._uri, 0, 0, &amp;calendar_book_list);</pre>
+
+<p>In the <span style="font-family: Courier New,Courier,monospace">calendar_db_get_all_records()</span> function, you need as parameters the URI of the view to get records from, the index from which results are received, the maximum number of results, and the record list.</p>
+
+<h2 id="change" name="change">Database Change Notifications</h2>
+
+<p>To detect the calendar database changes, register a callback with the <span style="font-family: Courier New,Courier,monospace">calendar_db_add_changed_cb()</span> function. To unregister the callback and ignore database changes, use the <span style="font-family: Courier New,Courier,monospace">calendar_db_remove_changed_cb()</span> function.</p>
+<p>Clients wait calendar change notifications on the client side. If the calendar is changed by another module, the server publishes an inotify event. The Inotify module broadcasts to the subscribed modules, and an internal inotify handler is called at the client side. A user callback function is called with the user data.</p>
+<pre class="prettyprint">// Add callback function
+void __event_changed_ cb(const char *view_uri, void *user_data) {}
+// Add change notification callback
+calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);</pre>
+
+<h2 id="event" name="event">Events and Instances</h2>
+<p>An event record describes various properties, such as description, categories, and priority. It also contains information on when the event takes place. In a recurring event, there are more than one instance of the event. Each instance has its corresponding instance record.</p>
+<p>If an event is inserted with rrule (recurrence rule), alarm, and attendee, its data is saved to each database. Generated instances based on the rrule are also stored in the instance database.</p>
+ 
+    <p class="figure">Figure: Views and databases</p> 
+  <p style="text-align:center;"><img alt="Views and databases" src="../../images/calendar_db.png" /></p>  
+
+<p>The following table illustrates and example of a recurring event and its instances.</p>
+
+<table> 
+   <caption>
+     Table: Event and instance example 
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Event</th> 
+     <th>Instances</th> 
+    </tr> 
+    <tr> 
+     <td>Recurrence rules:
+	 <ul><li>Start date on 2012-10-09 (Tuesday)</li>
+	 <li>Frequency set to WEEKLY</li>
+<li>Interval set to 1</li>
+<li>Count set to 3</li></ul></td> 
+     <td>2012-10-09 Tuesday
+<p>2012-10-16 Tuesday</p>
+<p>2012-10-22 Tuesday</p></td> 
+    </tr> 
+   </tbody> 
+  </table> 
+<p>The recurrence model in the Calendar API is compliant with the <a href="http://www.ietf.org/rfc/rfc2445.txt" target="blank">iCalendar specification</a>. The following event properties have the same functionality as their corresponding values in iCalendar:</p>
+
+<table> 
+   <caption>
+     Table: Recurrence rules 
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Recurrence rule property</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td>freq</td> 
+     <td>Yearly, monthly, weekly, or daily</td> 
+    </tr> 
+     <tr> 
+     <td>count</td> 
+     <td>Until count. If the count is 3, 3 instances are generated.</td> 
+    </tr> 
+     <tr> 
+     <td>interval</td> 
+     <td>Interval is a positive integer representing how often the recurrence rule repeats</td> 
+    </tr> 
+     <tr> 
+     <td>byday</td> 
+     <td>MO, TU, WE, TH, FR, SA, or SU</td> 
+    </tr> 
+     <tr> 
+     <td>bymonthday</td> 
+     <td>Days of the month</td> 
+    </tr> 
+     <tr> 
+     <td>byyearday</td> 
+     <td>Days of the year</td> 
+    </tr> 
+     <tr> 
+     <td>byweekno</td> 
+     <td>Ordinals specifying weeks of the year</td> 
+    </tr> 
+     <tr> 
+     <td>bymonth</td> 
+     <td>Months of the year</td> 
+    </tr>
+     <tr> 
+     <td>bysetpos</td> 
+     <td>Values which correspond to the n<sup>th</sup> occurrence within the set of events</td> 
+    </tr> 	
+     <tr> 
+     <td>wkst</td> 
+     <td>Day on which the workweek starts</td> 
+    </tr> 	
+   </tbody> 
+  </table> 
+
+<h3 name="exception_rule" id="exception_rule">Exceptions</h3>
+<p>If one of the instances of a recurring event is modified (such as its summary or date) or deleted, it is called an exception. For example, if 2<sup>nd</sup> instance date is modified from 16<sup>th</sup> to 17<sup>th</sup>, 17<sup>th</sup> is the exception.</p>
+
+
+<table> 
+   <caption>
+     Table: Exception example
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Event</th> 
+     <th>Instances</th>
+	 <th>Exceptions</th> 	 
+    </tr> 
+    <tr> 
+     <td>Recurrence rules:
+	 <ul><li>Start date on 2012-10-09 (Tuesday)</li>
+	 <li>Frequency set to WEEKLY</li>
+<li>Interval set to 1</li>
+<li>Count set to 3</li></ul>
+</td>  
+     <td>2012-10-09 Tuesday
+<p>2012-10-16 Tuesday &gt; modified</p>
+<p>2012-10-22 Tuesday</p></td> 
+<td>2012-10-17 Tuesday</td>
+    </tr> 
+   </tbody> 
+  </table> 
+
+<p>To get the changes in an exception, use the <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_exception_by_version()</span> function. The instances and exceptions are deleted together when the original event is deleted.</p>
+
+<h2 id="filter2" name="filter2">Filters and Queries</h2>
+<p>Queries are used to retrieve data which satisfies a given criteria, like an integer property being greater than a given value, or a string property containing a given substring. The criteria are defined by creating filters and adding conditions to them, joining them with logical operators. Also, instead of a condition, another filter can be added to create more complex filters.</p>
+<p>When a filter is ready, it can be set as a property of a query. Other query properties allow configuring how the returned results are grouped and sorted.</p>
+<p>The operator precedence in filters is determined by the order in which the conditions and filters are added. The following table shows an example of how the operator precedence works.</p>
+
+<table> 
+   <caption>
+     Table: Filter conditions
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Condition</th> 
+     <th>Result</th> 
+    </tr> 
+    <tr> 
+     <td>Condition C1<br/>
+OR<br/>
+Condition C2<br/>
+AND<br/>
+Condition C3</td> 
+     <td>(C1 OR C2) AND C3</td> 
+    </tr> 
+     <tr> 
+     <td><strong>Filter F1</strong>:<br/>
+ Condition C1<br/>
+ OR<br/>
+ Condition C2<br/>
+ <br/>
+<strong>Filter F2</strong>:<br/>
+ Condition C3<br/>
+ OR<br/>
+ Condition C4<br/>
+<br/>
+<strong>Filter F3</strong>:<br/>
+ Condition C5<br/>
+ AND<br/>
+ F1<br/>
+ AND<br/>
+ F2</td> 
+     <td>(C5 AND F1) AND F2<br/>
+Meaning (C5 AND (C1 OR C2)) AND (C3 OR C4)</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+<p>The following code creates a filter, accepting events with high priority or those that include the word &quot;meeting&quot; in their description.</p>
+<pre class="prettyprint">calendar_filter_h filter = NULL;
+ 
+// Create a filter returning event type records
+calendar_filter_create(_calendar_event._uri, &amp;filter);
+ 
+// Add a &#39;priority equals high&#39; condition
+calendar_filter_add_int(filter, _calendar_event.priority, CALENDAR_MATCH_EQUAL, CALENDAR_EVENT_PRIORITY_HIGH);
+ 
+// Add OR operator
+calendar_filter_add_operator(filter, CALENDAR_FILTER_OPERATOR_OR);
+ 
+// Add a &#39;description contains &quot;meeting&quot;&#39; condition
+calendar_filter_add_str(filter, _calendar_event.description, CALENDAR_MATCH_CONTAINS, &quot;meeting&quot;);</pre>
+		 
+<p>Insert the filter into the query and execute the query:</p>
+
+<pre class="prettyprint">calendar_query_h query = NULL;
+calendar_list_h list = NULL;
+ 
+// Create a query returning event type records
+calendar_query_create(_calendar_event._uri, &amp;query);
+ 
+// Add the filter
+calendar_query_set_filter(query, filter);
+ 
+// Execute the query, results are returned in a list
+calendar_db_get_records_with_query(query, 0, 0, &amp;list);
+ 
+calendar_filter_destroy(filter);
+calendar_query_destroy(query);
+ 
+// Use the list
+ 
+calendar_list_destroy(list, true);</pre>
+
+<h3 id="proj" name="proj">Projections</h3>
+<p>Projection is related to searching with filters and queries. A projection allows you to query the data for just those specific properties of a record that you actually need, at lower latency and cost than retrieving the entire set of properties.</p>
+
+<p>The following example code creates a filter that gets only the event ID, summary, and start time from those records whose summary has &quot;test&quot; (string filter). It creates a query, adds the filter to it, and receives the results in a list.</p>
+
+<pre class="prettyprint">calendar_query_h query = NULL;
+calendar_filter_h filter = NULL;
+
+// Set query with filter
+calendar_query_create(_calendar_event_calendar_book_attendee._uri, &amp;query);
+calendar_filter_create(_calendar_event_calendar_book_attendee._uri, &amp;filter);
+calendar_filter_add_str(filter, _calendar_event.summary, CALENDAR_MATCH_CONTAINS, &quot;test&quot;);
+calendar_query_set_filter(query, filter);
+
+// Set projection
+unsigned int projection[3];
+projection[0] = _calendar_event_calendar_book_attendee.event_id;
+projection[1] = _calendar_event_calendar_book_attendee.summary;
+projection[2] = _calendar_event_calendar_book_attendee.start_time;
+
+// Get list
+calendar_query_set_projection(query, projection, 3);
+calendar_db_get_records_with_query(query, 0, 0, &amp;list);
+
+// Destroy handle
+calendar_filter_destroy(filter);
+calendar_query_destroy(query);
+calendar_list_destroy(list, true);</pre>
+
+<h2 id="record2" name="record2">Records</h2>
+
+<p>An important concept in the Calendar Service APIs is a record. Although a record represents an actual record in the internal database, you can consider it as a structure describing a single (but complex) entity, like a calendar event or a time zone.</p>
+
+<p>A record has many properties, for example, a todo record has the todo description, priority, progress, creation time, last modified and completed time, and many others.</p>
+<p>A record can also contain an identifier field, which holds an ID of another record. Setting this field&#39;s value establishes a relation between the records, for example, a calendar event contains the ID of a calendar book to which it belongs.</p>
+
+<h3 id="uri" name="uri">URI</h3>
+<p>A record type is identified by a structure called the view. For example, the <span style="font-family: Courier New,Courier,monospace">_calendar_event</span> view describes the properties of the calendar event record. Every view has a special field - <span style="font-family: Courier New,Courier,monospace">_uri</span> - that uniquely identifies the view. In many cases, you must provide the <span style="font-family: Courier New,Courier,monospace">_uri</span> value to indicate what type of record you want to create or operate on.</p>
+<pre class="prettyprint">// Create an event with _calendar_event view
+calendar_record_h record = NULL;
+calendar_record_create(_calendar_event._uri, &amp;record);
+</pre>
+
+<h3 id="handle" name="handle">Record Handle</h3>
+<p>To use a record, you must obtain its handle. You can use many methods to obtain the handle, for example, you can create a new record or refer to the child records of a record.</p>
+<pre class="prettyprint">// Create an event and get a handle
+calendar_record_h event = NULL;
+calendar_record_create(_calendar_event._uri, &amp;event);
+
+// Get the record handle with ID
+calendar_record_h event2 = NULL;
+calendar_db_get_record(_calendar_event._uri, event_id, &amp;event2);</pre>
+
+<h3 id="types" name="types">Basic Types</h3>
+<p>Records contain properties of basic types: <span style="font-family: Courier New,Courier,monospace">integer</span>, <span style="font-family: Courier New,Courier,monospace">lli</span> (long integer, long long int), <span style="font-family: Courier New,Courier,monospace">double</span>, <span style="font-family: Courier New,Courier,monospace">string</span>, <span style="font-family: Courier New,Courier,monospace">bool</span>, and <span style="font-family: Courier New,Courier,monospace">time</span>. The <span style="font-family: Courier New,Courier,monospace">time</span> type holds either a long long int, or 3 integers (year, month, day).</p> 
+
+<p>The following table lists the setter and getter functions for each type.</p>
+<table> 
+   <caption>
+     Table: Setter and getter functions 
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Property</th> 
+     <th>Setter</th> 
+	 <th>Getter</th>
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">integer</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace">calendar_record_set_int</span></td>
+	 <td><span style="font-family: Courier New,Courier,monospace">calendar_record_get_int</span></td>
+    </tr> 
+     <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">long long integer</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace">calendar_record_set_lli</span></td>
+	 <td><span style="font-family: Courier New,Courier,monospace">calendar_record_get_lli</span></td>
+    </tr>
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">double</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace">calendar_record_set_double</span></td>
+	 <td><span style="font-family: Courier New,Courier,monospace">calendar_record_get_double</span></td>
+    </tr>
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">string</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace">calendar_record_set_str</span></td>
+	 <td><span style="font-family: Courier New,Courier,monospace">calendar_record_get_str</span></td>
+    </tr>
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">calendar_time_s</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace">calendar_record_set_caltime</span></td>
+	 <td><span style="font-family: Courier New,Courier,monospace">calendar_record_get_caltime</span></td>
+    </tr>	
+   </tbody> 
+  </table> 
+
+<h3 id="children" name="children">Children</h3> 
+<p>Certain type of records hold &quot;child list&quot; properties. If a record has a property of this type, it can be a parent of other records, called child records. For example, the attendee records can hold an event identifier in their <span style="font-family: Courier New,Courier,monospace">event_id</span> property. The event is the parent record of the child attendee records.</p>
+
+<p>The following code example creates an event and inserts it into the default event book.</p>
+
+<pre class="prettyprint">// Create an event
+calendar_record_h event = NULL;
+calendar_record_create(_calendar_event._uri, &amp;event);
+ 
+// Set event summary
+calendar_record_set_str(event, _calendar_event.summary, &quot;Meeting&quot;);
+ 
+// Put the event into the default calendar book for events
+calendar_record_set_int(event, _calendar_event.calendar_book_id, book_id);
+ 
+// Insert calendar book into the database
+int event_id = 0;
+calendar_db_insert_record(event, &amp;event_id);
+
+// Destroy
+calendar_record_destroy(event, true);</pre>
+
+<h2 id="remind" name="remind">Reminders</h2>
+
+<p>When an alarm is triggered, the calendar service sends a notification to the package which is registered in the reminder database table by using the <span style="font-family: Courier New,Courier,monospace">calendar_reminder_add_receiver()</span> function.</p>
+
+<p>The following figure illustrates how the alarm process works.</p>
+ 
+    <p class="figure">Figure: Alarm process</p> 
+  <p style="text-align:center;"><img alt="Alarm process" src="../../images/calendar_alarm.png" /></p>
+
+<p>After you add a receiver, the registered alarm is triggered at the reserved time if you insert the alarm as a child to an event record:</p>
+<pre class="prettyprint">// Set alarm
+calendar_record_h alarm = NULL;
+calendar_record_create(_calendar_alarm._uri, &amp;alarm);
+calendar_record_set_int(alarm, _calendar_alarm.tick_unit, CALENDAR_ALARM_TIME_UNIT_SPECIFIC);
+calendar_record_set_lli(alarm, _calendar_alarm.time, (1404036000 - 60)); // Before 60 sec
+
+// Add alarm as child
+calendar_record_add_child_record(event, _calendar_event.calendar_alarm, alarm);</pre>
+
+
+
+
+<h2 id="time" name="time">Time Structure</h2>
+<p>The calendar time structure, <span style="font-family: Courier New,Courier,monospace">calendar_caltime_s</span>, is defined as follows:</p>
+<pre class="prettyprint">typedef struct
+{
+&nbsp;&nbsp;&nbsp;calendar_time_type_e type;
+&nbsp;&nbsp;&nbsp;union 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long long int utime;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;struct 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int year;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int month;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int mday;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} date;
+&nbsp;&nbsp;&nbsp;} time;
+} calendar_time_s;</pre>
+<p>Use this structure when setting the calendar time (<span style="font-family: Courier New,Courier,monospace">_CALENDAR_PROPERTY_CALTIME</span>) properties of the records.</p>
+<p>The time structure can hold 2 types of data: UTC time (long long int) and date, given as year, month, and day of the month (3 integers). These types are identified by the values of the <span style="font-family: Courier New,Courier,monospace">calendar_time_type_e</span> variable, and they determine the usage of the structure.</p>
+
+<table> 
+   <caption>
+     Table: Data types
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Identifier</th> 
+     <th>Type</th> 
+     <th>Name</th>
+     <th>Purpose</th>
+	 </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CALENDAR_TIME_UTIME</span></td> 
+     <td>long long int</td> 
+	 <td>utime</td> 
+	 <td>UTC time, used to describe non-all-day events</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CALENDAR_TIME_LOCALTIME</span></td> 
+     <td>struct</td> 
+	 <td>date</td> 
+	 <td>Date only (year, month, and day of the month), used to describe all day events.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+<h3 id="utc" name="utc">UTC Time Usage</h3>
+<p>Structures with UTC time are used for non-all-day events. In such cases, you must convert local time to UTC time. The local time zone identifier must be stored in the record, in the corresponding property.</p>
+<p>For example, when setting the start time of an event, the local time zone must be stored in the <span style="font-family: Courier New,Courier,monospace">start_tzid</span> property.</p>
+<p>When converting local time to UTC time, use the function illustrated in the following example. It converts the given date and time to the corresponding UTC time, considering the given time zone (first argument). The function uses <a href="http://icu-project.org/apiref/icu4c/ucal_8h.html" target="blank">UCalendar</a>.</p>
+
+<pre class="prettyprint">#define ms2sec(ms) (long long int)(ms / 1000.0)
+ 
+long long int _time_convert_itol(char *tzid, int y, int mon, int d, int h, int min, int s)
+{
+&nbsp;&nbsp;&nbsp;UErrorCode status = U_ZERO_ERROR;
+
+&nbsp;&nbsp;&nbsp;UChar uft16_timezone[16] = {0};
+&nbsp;&nbsp;&nbsp;U_uastrncpy(uft16_timezone, tzid, sizeof(uft16_timezone));
+
+&nbsp;&nbsp;&nbsp;UCalendar *ucal = NULL;
+&nbsp;&nbsp;&nbsp;ucal = ucal_open(uft16_timezone, -1, uloc_getDefault(), UCAL_GREGORIAN, &amp;status); 
+ 
+&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_YEAR, y); 
+&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_MONTH, mon -1);
+&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_DATE, d); 
+&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_HOUR, h); 
+&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_MINUTE, min);
+&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_SECOND, s);
+
+&nbsp;&nbsp;&nbsp;long long int lli = 0;
+&nbsp;&nbsp;&nbsp;lli = ms2sec(ucal_getMillis(ucal, &amp;status));
+&nbsp;&nbsp;&nbsp;ucal_close(ucal);
+
+&nbsp;&nbsp;&nbsp;return lli;
+}</pre>
+
+
+<pre class="prettyprint">// Fill calendar time structures (start and end time)
+calendar_time_s st = {0};
+calendar_time_s et = {0};
+ 
+st.type = CALENDAR_TIME_UTIME;
+st.time.utime = _time_convert_itol(&quot;Asia/Seoul&quot;, 2012, 9, 15, 11, 0, 0);
+ 
+et.type = CALENDAR_TIME_UTIME;
+et.time.utime = _time_convert_itol(&quot;Asia/Seoul&quot;, 2012, 9, 15, 12, 0, 0);
+ 
+// Create an event record
+ 
+// Set local time zone of start time
+calendar_record_set_str(event, _calendar_event.start_tzid, &quot;Asia/Seoul&quot;);
+ 
+// Set start time
+calendar_record_set_caltime(event, _calendar_event.start_time, st);
+ 
+// Set local time zone of end time
+calendar_record_set_str(event, _calendar_event.end_tzid, &quot;Asia/Seoul&quot;);
+ 
+// Set end time
+calendar_record_set_caltime(event, _calendar_event.end_time, et);</pre>
+
+<h3 id="date" name="date">Date Usage</h3>
+<p>Another usage of the time structure is an all day event. In case of such events, the structure type field must be set to <span style="font-family: Courier New,Courier,monospace">CALENDAR_TIME_LOCALTIME</span>. Only the date (no time) is stored. Such structures can be used to set the start and end time of an event.</p>
+<p>Both start and end time of the event must be set, and they do not have to be equal. If they are not, the event lasts more than 1 day. Note that in such cases there are no instances created, as this is still a non-recurring event.</p>
+
+<h2 id="view2" name="view2">Views and Properties</h2>
+
+<p>Generic access functions can be used (according to data-view declarations) to access calendar views. A data-view is almost the same as a database &quot;VIEW&quot;, which limits access and guarantees performance. A &quot;record&quot; represents a single row of the data-views.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">_calendar_instance_normal</span> and <span style="font-family: Courier New,Courier,monospace">_calendar_instance_allday</span> views are not offered, but combinations with another views are provided.</p>
+
+<table> 
+   <caption>
+     Table: Calendar views 
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Editable view</th> 
+     <th>Read-only view</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">_calendar_book</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_event</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_todo</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_timezone</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_attendee</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_alarm</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_extended_property</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace">_calendar_updated_info</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_event_calendar_book</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_todo_calendar_book</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_event_calendar_book_attendee</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_instance_normal_calendar_book</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_instance_allday_calendar_book</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_instance_normal_calendar_book_extended</span><br/>
+<span style="font-family: Courier New,Courier,monospace">_calendar_instance_allday_calendar_book_extended</span></td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_calendar_updated_info</span> view is used when identifying record changes depending on the version. The other read-only views are a combination of editable views for UI convenience:</p>
+<ul><li><span style="font-family: Courier New,Courier,monospace">_calendar_event</span> + <span style="font-family: Courier New,Courier,monospace">_calendar_book</span> = <span style="font-family: Courier New,Courier,monospace">_calendar_event_calendar_book</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">_calendar_instance_normal</span> + <span style="font-family: Courier New,Courier,monospace">_calendar_book</span> = <span style="font-family: Courier New,Courier,monospace">_calendar_instance_normal_calendar_book</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">_calendar_event</span> + <span style="font-family: Courier New,Courier,monospace">_calendar_book</span> + <span style="font-family: Courier New,Courier,monospace">_calendar_attendee</span> = <span style="font-family: Courier New,Courier,monospace">_calendar_event_calendar_book_attendee</span></li></ul>
+
+<h3 id="property" name="property">Properties</h3>
+<p>The record types that have <span style="font-family: Courier New,Courier,monospace">*_id</span> as their property hold identifiers of other records. For example, the attendee and alarm views hold the ID of their corresponding events or todos in the <span style="font-family: Courier New,Courier,monospace">event_id</span> or <span style="font-family: Courier New,Courier,monospace">todo_id</span> property (as children of the corresponding event or todo records).</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">record</span> type properties are other records. For example, an event record has <span style="font-family: Courier New,Courier,monospace">attendee</span> and <span style="font-family: Courier New,Courier,monospace">alarm</span> properties, which means that records of those types can be children of the event type records. The following figure illustrates macros in a <span style="font-family: Courier New,Courier,monospace">calendar_view.h</span> header file.</p>
+ 
+    <p class="figure">Figure: Properties</p> 
+  <p style="text-align:center;"><img alt="Properties" src="../../images/calendar_property.png" /></p>  
+
+<pre class="prettyprint">// Create an event with _calendar_event view
+calendar_record_h event = NULL;
+calendar_record_create(_calendar_event._uri, &amp;event);
+ 
+// Set event summary to _calendar_event view
+calendar_record_set_str(event, _calendar_event.summary, &quot;Meeting&quot;);
+</pre>
+
+<h3 id="version" name="version">Version</h3>
+<p>The calendar service uses a version system in the following APIs:</p>
+<pre class="prettyprint">int calendar_db_get_current_version(int *calendar_db_version);
+int calendar_db_get_changes_by_version(..., int *current_calendar_db_version);
+int calendar_db_get_last_change_version(int *last_change_version);
+int calendar_db_get_changes_exception_by_version(..., int calendar_db_version, ...);</pre>
+
+<p>Whenever modifications are made in the database, the version number is increased. If sync applications, such as Google or Facebook, sync at version 13 and try to sync again every 1 minute, they want to get the changes from version 14 to the current version.</p>
+<p>To get the current version, the <span style="font-family: Courier New,Courier,monospace">calendar_db_get_current_version()</span> function is used. The <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_by_version()</span> function retrieves the modified record list. The <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_exception_by_version()</span> function is used to get <a href="#exception_rule">modified instances in a recurring event</a>.</p>
+
+<h2 id="vcal" name="vcal">vCalendar</h2>
+<p>Use vCalendar to exchange personal calendar and schedule information. In order to avoid confusion with this referenced work, this is to be known as the vCalendar specification. vCalendar ver2.0 is known as iCalendar. The following snippet shows an example of the vCalendar.</p>
+<pre class="prettyprint">
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//hacksw/handcal//NONSGML v1.0//EN
+BEGIN:VEVENT
+DTSTART:19970714T170000Z
+DTEND:19970715T035959Z
+SUMMARY:Bastille Day Party
+END:VEVENT
+END:VCALENDAR
+</pre>
+
+<p>The calendar service provides APIs to compose a vCalendar stream. With the stream, it is possible to create files transmit data with JSON data.</p>
+<pre class="prettyprint">
+calendar_list_h list = NULL;
+// Create or get list to make vcalendar stream
+
+char *stream = NULL;
+calendar_vcalendar_make_from_records(list, &amp;stream);
+
+// Jobs for stream
+
+// Free
+free(stream);
+</pre>
+
+<p>vCalendar can be parsed with calendar service APIs as well.</p>
+<pre class="prettyprint">
+// Read stream from file
+
+calendar_list_h list = NULL;
+calendar_vcalendar_parse_to_calendar(stream, &amp;list);
+
+// Jobs for list
+calendar_list_destroy(list, true);
+</pre>
+  
+  <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

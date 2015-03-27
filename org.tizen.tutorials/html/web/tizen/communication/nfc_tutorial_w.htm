@@ -1,0 +1,326 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+    <script type="text/javascript" src="../../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+
+    <title>NFC: Managing an NFC Device and Detecting NFC Tags and Peers</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile Web" src="../../../images/mw_icon_optional.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#Managing_NFC_Conn">Managing NFC Connectivity</a></li>
+            <li><a href="#Detecting_NFC_Tags" >Detecting NFC Tags and Peer Devices</a></li>
+			<li>NDEF data
+			<ul class="toc">
+            <li><a href="#Handling_NDEF_Messages">Handling NDEF Messages</a></li>
+            <li><a href="#Exchanging_NDEF_Peers">Exchanging NDEF Data with Peers</a></li>
+            <li><a href="#Exchanging_NDEF_Tags">Exchanging NDEF Data with Tags</a></li>
+			</ul></li>
+            <li><a href="#Using_NFC_Card_Emulation">Using NFC Card Emulation</a></li>
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../../org.tizen.guides/html/web/tizen/communication/nfc_w.htm">NFC Guide</a></li>
+			<li><a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html">NFC API for Mobile Web</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>NFC: Managing an NFC Device and Detecting NFC Tags and Peers</h1>
+<div class="cont"><div class="static-cont">
+  
+ <p>This tutorial demonstrates how you can use NFC connectivity to exchange data with NFC tags and NFC-enabled devices.</p>
+ 
+    <table class="note"> 
+<tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">This feature is supported in mobile applications only.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+     
+      <h2 id="warm_up" name="warm_up">Warm-up</h2>
+      <p>Become familiar with the NFC API basics by learning about:</p>
+      <ul>
+       <li><a href="#Managing_NFC_Conn">Managing NFC Connectivity</a> <p>Retrieve the default NFC adapter and enable or disable NFC.</p></li>
+       <li><a href="#Detecting_NFC_Tags">Detecting NFC Tags and Peer Devices</a> <p>Receive notifications when an NFC tag or peer device has been detected.</p></li>
+	   <li>NDEF data
+	   <ul>
+       <li><a href="#Handling_NDEF_Messages">Handling NDEF Messages</a> <p>Create NDEF records and add them to an NDEF message.</p></li>
+       <li><a href="#Exchanging_NDEF_Peers">Exchanging NDEF Data with Peers</a> <p>Read NDEF messages and exchange them with peer devices.</p></li>
+       <li><a href="#Exchanging_NDEF_Tags">Exchanging NDEF Data with Tags</a> <p>Read NDEF messages and exchange them with tags.</p></li>
+	   </ul></li>
+       <li><a href="#Using_NFC_Card_Emulation">Using NFC Card Emulation</a> <p>Enable NFC card emulation and monitor the transaction taking place.</p></li>
+      </ul>
+      <h2 id="task" name="task">Task</h2>
+      <p>In the <a href="task_contactsexchanger_w.htm">Contacts Exchanger</a> task, we will walk through how to exchange contacts between devices over the NFC connection.</p>
+	  
+<div class="devicespecs-util mt5 clfix">
+        <ul class="dutil">
+            <li><a href="#" class="showA">Show All</a></li>
+            <li class="none"><a href="#" class="hideA">Hide All</a></li>
+        </ul>
+    </div>
+
+  <ul class="devicespecifications">
+        <li>
+            <div class="devicespec-tit">
+  <h2 id="Managing_NFC_Conn" name="Managing_NFC_Conn" class="items-tit-h2">Managing NFC Connectivity</h2><span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+            </div>
+            <div class="devicespec-con"> 
+  
+  <p>Learning how to enable or disable the NFC service is a basic NFC management skill:</p>
+  <table class="note">
+     <tbody>
+      <tr>
+       <th class="note">Note</th>
+      </tr>
+      <tr>
+       <td class="note">The NFC API does not provide methods to directly enable or disable the NFC adapter of the device. When NFC is required, you must request a built-in Settings application to let the user enable or disable the NFC.</td>
+      </tr>
+     </tbody>
+    </table>
+  <ol>
+   <li><p>To get the default NFC adapter, use the <span style="font-family: Courier New,Courier,monospace">getDefaultAdapter()</span> method and prepare the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationControl">ApplicationControl</a> object to request the NFC switching operation:</p>
+   <pre class="prettyprint">var nfcSwitchAppControl = new tizen.ApplicationControl(&quot;http://tizen.org/appcontrol/operation/setting/nfc&quot;, null, null, null,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[new tizen.ApplicationControlData(&quot;type&quot;, &quot;nfc&quot;)]);
+var adapter = tizen.nfc.getDefaultAdapter();</pre></li>
+   <li>Define the event listener for the <span style="font-family: Courier New,Courier,monospace">launchAppControl()</span> method:
+<pre class="prettyprint">function launchSuccess()
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;NFC Settings application is successfully launched.&quot;);
+}</pre></li>
+<li>Define the event handler for an application control, which implements the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationControlDataArrayReplyCallback">ApplicationControlDataArrayReplyCallback</a> interface:
+<pre class="prettyprint">var serviceReply =
+{
+&nbsp;&nbsp;&nbsp;onsuccess: function(data)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (adapter.powered)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;NFC is successfully turned on.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;}
+};</pre></li>
+<li> If necessary, request launching the NFC Settings with <span style="font-family: Courier New,Courier,monospace">nfcSwitchAppControl</span> as parameter:
+<pre class="prettyprint">if (adapter.powered)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;NFC is already enabled&quot;);
+}
+else
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Try to launch the NFC Settings application.&quot;);
+&nbsp;&nbsp;&nbsp;tizen.application.launchAppControl(nfcSwitchAppControl, null, launchSuccess, launchError, serviceReply);
+}</pre></li>
+  </ol>
+  </div>
+        </li>
+        <li>
+            <div class="devicespec-tit">
+  <h2 id="Detecting_NFC_Tags" name="Detecting_NFC_Tags" class="items-tit-h2">Detecting NFC Tags and Peer Devices</h2><span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+            </div>
+            <div class="devicespec-con">
+  
+  <p>Learning how to detect NFC tags and peer devices is a basic NFC management skill:</p>
+  <ol>
+   <li><p>To get the default NFC adapter, use the <span style="font-family: Courier New,Courier,monospace">getDefaultAdapter()</span> method:</p> <pre class="prettyprint">var nfcAdapter = tizen.nfc.getDefaultAdapter();</pre></li>
+   <li><p>Define the event handlers for NFC tag detection using the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NFCTagDetectCallback">NFCTagDetectCallback</a> listener interface:</p> <pre class="prettyprint">var setTagDetect =
+{
+&nbsp;&nbsp;&nbsp;/* When an NFC tag is detected */
+&nbsp;&nbsp;&nbsp;onattach: function(nfcTag)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;NFC Tag detected. Its type is: &quot; + nfcTag.type);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* When an NFC tag becomes unavailable */
+&nbsp;&nbsp;&nbsp;ondetach: function()
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;NFC Tag unavailable&quot;);
+&nbsp;&nbsp;&nbsp;}
+}</pre></li>
+   <li><p>Register the listener to use the defined event handlers.</p> <p>You can limit the listener to detect only specific NFC tag types by defining the tag types as the second parameter of the <span style="font-family: Courier New,Courier,monospace;">setTagListener()</span> method. In the following example, only MIFARE tags are detected.</p> <pre class="prettyprint">
+/* Defines the tag types to be detected */
+var tagFilter = [&quot;MIFARE_MINI&quot;, &quot;MIFARE_1K&quot;, &quot;MIFARE_4K&quot;, &quot;MIFARE_ULTRA&quot;, &quot;MIFARE_DESFIRE&quot;];
+
+/* Registers the event listener */
+nfcAdapter.setTagListener(setTagDetect, tagFilter);</pre> </li>
+   <li><p>To stop the tag detection, use the <span style="font-family: Courier New,Courier,monospace;">unsetTagListener()</span> method:</p> <pre class="prettyprint">
+nfcAdapter.unsetTagListener();</pre> </li>
+  </ol>
+  <p>NFC peers are detected similarly as NFC tags, except that the <span style="font-family: Courier New,Courier,monospace;">setPeerListener()</span> method is used to register the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NFCPeerDetectCallback">NFCPeerDetectCallback</a> listener interface, and the <span style="font-family: Courier New,Courier,monospace;">unsetPeerListener()</span> method is used to stop the peer detection.</p>
+    </div>
+        </li>
+        <li>
+            <div class="devicespec-tit">
+  <h2 id="Handling_NDEF_Messages" name="Handling_NDEF_Messages" class="items-tit-h2">Handling NDEF Messages</h2> <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+            </div>
+            <div class="devicespec-con">
+  
+  
+  <p>Learning how to create NDEF messages is a basic NFC management skill:</p>
+  <ol>
+   <li><p>To create an NDEF URI record, create an <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NDEFRecordURI">NDEFRecordURI</a> interface instance and specify the URI parameter.</p> <p>Additionally, you can create instances of the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NDEFRecord">NDEFRecord</a>, <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NDEFRecordText">NDEFRecordText</a>, or <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NDEFRecordMedia">NDEFRecordMedia</a> interfaces based on the record type to be created.</p> <pre class="prettyprint">var newRecord = new tizen.NDEFRecordURI(&quot;https://www.tizen.org/&quot;);</pre></li>
+   <li><p>Create an <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NDEFMessage">NDEFMessage</a> interface instance:</p> <pre class="prettyprint">
+var newMessage = new tizen.NDEFMessage(); </pre></li>
+   <li><p>To add an NDEF record to an NDEF message, use the <span style="font-family: Courier New,Courier,monospace">records</span> attribute of the <span style="font-family: Courier New,Courier,monospace">NDEFMessage</span> interface:</p> <pre class="prettyprint">
+newMessage.records[0] = newRecord;</pre></li>
+  </ol>
+    </div>
+        </li>
+        <li>
+            <div class="devicespec-tit">
+  <h2 id="Exchanging_NDEF_Peers" name="Exchanging_NDEF_Peers" class="items-tit-h2">Exchanging NDEF Data with Peers</h2> <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+            </div>
+            <div class="devicespec-con">
+  
+  <p>Learning how to exchange NDEF data with peer devices is a basic NFC management skill:</p>
+  <ol>
+   <li><p>To receive NDEF messages from a peer device, use the <span style="font-family: Courier New,Courier,monospace;">setReceiveNDEFListener()</span> method of the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NFCPeer">NFCPeer</a> interface.</p><p>The <span style="font-family: Courier New,Courier,monospace;">setReceiveNDEFListener()</span> method registers the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NDEFMessageReadCallback">NDEFMessageReadCallback</a> listener interface, which is invoked when an NDEF message from a peer device is read.</p> <pre class="prettyprint">
+/* NDEFMessageReadCallback listener */
+function readMessage(message)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Record Count is &quot; + message.recordCount);
+}
+
+/* Set a listener to receive an NDEF message */
+Peer.setReceiveNDEFListener(readMessage);</pre></li>
+   <li><p>To send an NDEF message to an NFC peer, use the <span style="font-family: Courier New,Courier,monospace;">sendNDEF()</span> method:</p> <pre class="prettyprint">
+var newMessage = new tizen.NDEFMessage();
+
+Peer.sendNDEF(newMessage);</pre></li>
+  </ol>
+   </div>
+        </li>
+        <li>
+            <div class="devicespec-tit">
+  <h2 id="Exchanging_NDEF_Tags" name="Exchanging_NDEF_Tags" class="items-tit-h2">Exchanging NDEF Data with Tags</h2> <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+            </div>
+            <div class="devicespec-con">
+			
+  <p>Learning how to exchange NDEF data with tags is a basic NFC management skill:</p>
+  <ol>
+   <li><p>To read data from an NFC tag, use the <span style="font-family: Courier New,Courier,monospace;">readNDEF()</span> method of the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NFCTag">NFCTag</a> interface.</p> <p>The <span style="font-family: Courier New,Courier,monospace;">readNDEF()</span> method registers the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NDEFMessageReadCallback">NDEFMessageReadCallback</a> listener interface, which is invoked when an NDEF message is read.</p> <pre class="prettyprint">
+/* NDEFMessageReadCallback listener */
+function readMessage(message)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Record Count is &quot; + message.recordCount);
+}
+
+/* Check whether the NFC tag supports NDEF format */
+if (Tag.isSupportedNDEF)
+{
+&nbsp;&nbsp;&nbsp;/* Read NDEF data */
+&nbsp;&nbsp;&nbsp;Tag.readNDEF(readMessage);
+}</pre></li>
+   <li><p>To write data on an NFC tag, use the <span style="font-family: Courier New,Courier,monospace;">writeNDEF()</span> method:</p> <pre class="prettyprint">
+var newMessage = new tizen.NDEFMessage();
+function writeCallback()
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Success!&quot;);
+}
+Tag.writeNDEF(newMessage, writeCallback);</pre> <p>You can use the <span style="font-family: Courier New,Courier,monospace;">transceive()</span> method to transfer raw data, as a byte array, to an NFC tag without knowing the underlying details of the tag.</p></li>
+  </ol>
+    </div>
+        </li>
+
+        <li>
+            <div class="devicespec-tit">
+                <h2 id="Using_NFC_Card_Emulation" name="Using_NFC_Card_Emulation" class="items-tit-h2">Using NFC Card Emulation</h2>
+                <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+            </div>
+            <div class="devicespec-con">				
+
+<p>Learning how to enable or disable the NFC card emulation and detect Secure Element transactions is a basic NFC management skill:</p>
+<ol>
+<li>Declare the required variables and obtain the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NFCAdapter">NFCAdapter</a> object using the <span style="font-family: Courier New,Courier,monospace">getDefaultAdapter()</span> method of the <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/nfc.html#NFCManager">NFCManager</a> interface:
+<pre class="prettyprint">
+var adapter = tizen.nfc.getDefaultAdapter();
+var modeListenerId = 0, aseListenerId = 0, transListenerId = 0;
+</pre></li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">addCardEmulationModeChangeListener()</span>  method of the <span style="font-family: Courier New,Courier,monospace">NFCAdapter</span> interface to register a listener to monitor the current card emulation mode:
+<pre class="prettyprint">
+modeListenerId = adapter.addCardEmulationModeChangeListener(function(mode)
+{
+&nbsp;&nbsp;&nbsp;if(mode === &quot;ALWAYS_ON&quot;)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;We are ready to go now&quot;);
+&nbsp;&nbsp;&nbsp;}
+});
+</pre></li>
+<li>To enable NFC card emulation, change the value of the <span style="font-family: Courier New,Courier,monospace">cardEmulationMode</span>  attribute:
+<pre class="prettyprint">
+adapter.cardEmulationMode = &quot;ALWAYS_ON&quot;;
+</pre></li>
+ <li>To be notified when the type of an active NFC secure element changes, use the <span style="font-family: Courier New,Courier,monospace">addActiveSecureElementChangeListener()</span>  method of the <span style="font-family: Courier New,Courier,monospace">NFCAdapter</span> interface:
+<pre class="prettyprint">
+aseListenerId = adapter.addActiveSecureElementChangeListener(function(seType)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Active secure element is &quot; + seType);
+});
+</pre></li>
+<li>To be notified when a NFC secure element transaction data is exchanged, use the <span style="font-family: Courier New,Courier,monospace">addTransactionEventListener()</span>  method of the <span style="font-family: Courier New,Courier,monospace">NFCAdapter</span> interface:
+<pre class="prettyprint">
+function onDetected(appletId, data)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;NFC secure element transaction detected. Application: &quot; + appletId + &quot;. Protocol data: &quot; + data);
+});
+transListenerId = adapter.addTransactionEventListener(&quot;UICC&quot;, onDetected);
+</pre></li>
+<li>Remove the registered listeners when they are no longer necessary and disable NFC card emulation:
+<pre class="prettyprint">
+adapter.removeActiveSecureElementChangeListener(aseListenerId);
+adapter.removeTransactionEventListener(transListenerId);
+adapter.removeCardEmulationModeChangeListener(modeListenerId);
+adapter.cardEmulationMode = &quot;OFF&quot;;
+</pre></li>
+</ol>
+            </div>
+        </li>
+
+      </ul>
+</div>
+</div>
+	  
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+  <script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+ </body>
+</html>

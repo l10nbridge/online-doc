@@ -1,0 +1,357 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Dynamic Box: Taking Advantage of the Dynamic Box</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile Web" src="../../../images/mw_icon_optional.png"/> <img alt="Wearable Web" src="../../../images/ww_icon_optional.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+	 <p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#load">Loading the Dynamic Box</a></li>
+            <li><a href="#define">Defining Viewport Settings</a></li>
+            <li><a href="#parse">Parsing the URL Query</a></li>
+            <li><a href="#reload">Using a Web Application to Reload the Dynamic Box</a></li>
+			<li><a href="#send">Sending Messages between Dynamic Box and Drop View</a></li>
+        </ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../../org.tizen.guides/html/web/tizen/dynamic/dynamic_w.htm">Dynamic Box Guide</a></li>
+        </ul> 
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Dynamic Box: Taking Advantage of the Dynamic Box</h1>
+<div class="cont"><div class="static-cont">
+
+<p>This tutorial demonstrates how you can create a Dynamic Box and implement specific features within the Dynamic Box.</p>
+
+    <table class="note"> 
+<tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The Dynamic Box feature is optional for both Tizen mobile and wearable profiles, which means that it may not be supported in all mobile and wearable devices.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+
+<h2>Warm-up</h2>
+<p>Become familiar with the Dynamic Box basics by learning about:</p>
+<ul>
+    <li><a class="opensection" href="#load">Loading the Dynamic Box</a> <p>Load the Dynamic Box when required.</p></li>
+    <li><a class="opensection" href="#define">Defining Viewport Settings</a> <p>Define the correct size viewport for the box window.</p></li>
+    <li><a class="opensection" href="#parse">Parsing the URL Query</a> <p>Parse the query string of the box URL and use it in loading the box.</p></li>
+    <li><a class="opensection" href="#reload">Using a Web Application to Reload the Dynamic Box</a> <p>Reload the Dynamic Box directly or periodically using a Web application.</p></li>
+    <li><a class="opensection" href="#send">Sending Messages between Dynamic Box and Drop View</a><p>Communicate between the box and Drop View when the Drop View is opened.</p></li>
+</ul> 
+
+<div class="devicespecs-util mt5 clfix">
+    <ul class="dutil">
+        <li><a href="#" class="showA">Show All</a></li>
+        <li class="none"><a href="#" class="hideA">Hide All</a></li>
+    </ul>
+</div>
+
+<ul class="devicespecifications">
+
+    <li>
+        <div class="devicespec-tit">
+            <h2 id="load" name="load" class="items-tit-h2">Loading the Dynamic Box</h2>
+            <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+        </div>
+        <div class="devicespec-con">
+			
+
+<p>Learning when the Dynamic Box is loaded is important to develop the Dynamic Box:</p>
+<ol>
+   <li><p>The box page of the Dynamic Box is automatically loaded when the Dynamic Box is created, the box is resized, the box update period expires, or the Drop View is opened.</p>
+    <p>Since the onload event of the box content is fired, after 30 seconds, the execution of the box content is stopped. After that, the content execution depends on <span style="font-family: Courier New,Courier,monospace">mouse-event</span> attribute value of the <span style="font-family: Courier New,Courier,monospace">&lt;tizen:app-widget&gt;</span> element:</p>
+    <pre class="prettyprint">
+&lt;!--Box content cannot interact with users at all,--&gt;
+&lt;!--and no JavaScript code is executed--&gt;
+&lt;tizen:box-content src=&quot;…&quot; mouse-event=&quot;false&quot;&gt;
+
+&lt;!--Box content interacts with users (such as though button clicks),--&gt;
+&lt;!--and JavaScript code can be executed for 5 seconds--&gt;
+&lt;!--If there is no click for 5 seconds from the last click,--&gt;
+&lt;!--the box execution ends until a new click occurs--&gt;
+&lt;tizen:box-content src=&quot;…&quot; mouse-event=&quot;true&quot;&gt;
+</pre></li>
+<li>When the Drop View is opened, its box content is reloaded and continues to be alive by closing the Drop View. If the Drop View is closed, its box content execution is stopped.</li>
+    <li>If you indicate the duration (in seconds) for box reloading using the <span style="font-family: Courier New,Courier,monospace">update-period</span> attribute, the box is reloaded accordingly. If the update period has expired and the box is in the background, reloading the box is deferred until the box returns to the foreground.</li>
+</ol>
+        </div>
+    </li>
+
+    <li>
+        <div class="devicespec-tit">
+            <h2 id="define" name="define" class="items-tit-h2">Defining Viewport Settings</h2>
+            <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+        </div>
+        <div class="devicespec-con">
+
+<p>Learning how to handle viewport settings is a basic Dynamic Box management skill:</p>
+<ol>
+    <li><p>The box window size varies between 1 x 1, 2 x 1, and 2 x 2. The real pixels for the width and height of 1 cell can differ between Tizen devices, so the box content must be developed relative to the device width.</p>
+    <p>Generally, Web pages use a viewport metatag for readability and consist of relative content. You can also set the viewport to your box for readability regardless of the device resolution.</p>
+    <p>If you set the viewport to <span style="font-family: Courier New,Courier,monospace">device-width</span>, the box viewport width is set to box window width automatically.</p>
+    <pre class="prettyprint">
+&lt;head&gt;
+&nbsp;&nbsp;&nbsp;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+&lt;/head&gt;
+</pre></li>
+    <li>Use <span style="font-family: Courier New,Courier,monospace">window.innerWidth</span> in content to get the actual width that applies to viewport metatag mentioned above.</li>
+</ol>
+<p>The Drop View viewport can be set like the box viewport.</p>
+        </div>
+    </li>
+
+    <li>
+        <div class="devicespec-tit">
+            <h2 id="parse" name="parse" class="items-tit-h2">Parsing the URL Query</h2>
+            <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+        </div>
+        <div class="devicespec-con">	
+
+  <p>Tizen provides useful information on URL query for Dynamic Box and Drop View. The use of this information on URL query is optional. Use this information to create a richer Dynamic Box:</p> 
+<ol>
+    <li><p>When the Dynamic Box is loaded on a viewer, Tizen sets specific information on the URL query of the Dynamic Box:</p>
+    <pre class="prettyprint">
+[Box start page].html?type=[string]&amp;width=[int]&amp;height=[int]</pre>
+    <p>The <span style="font-family: Courier New,Courier,monospace">type</span> key defines the box loading type, which can be:</p>
+    <ul class="ul">
+        <li><span style="font-family: Courier New,Courier,monospace">create</span>: the Dynamic Box is created on the Dynamic Box Viewer</li>
+        <li><span style="font-family: Courier New,Courier,monospace">update</span>: the update period has expired</li>
+        <li><span style="font-family: Courier New,Courier,monospace">resize</span>: the Dynamic Box is resized by the user</li>
+		<li><span style="font-family: Courier New,Courier,monospace">pdopen</span>: the Drop View is opened</li></ul>
+		<p>The <span style="font-family: Courier New,Courier,monospace">width</span> and <span style="font-family: Courier New,Courier,monospace">height</span> keys define the size of the box window. You can also get the box window size using the <span style="font-family: Courier New,Courier,monospace">window.outerWidth</span> and <span style="font-family: Courier New,Courier,monospace">window.outerHeight</span> objects.</p></li>
+		<li><p>When the Drop View is loaded through flicking down the Dynamic Box, Tizen sets additional information in the URL query of the Drop View regarding its position. You can use this information to let the Drop View draw an arrow pointing to the Dynamic Box.</p>
+		<pre class="prettyprint">[DropView start page].html?type=pdopen&amp;width=[int]&amp;height=[int]&amp;pdopen-direction=[up|down]&amp;pdopen-arrow-xpos=[int]</pre>
+		<p>The value of the <span style="font-family: Courier New,Courier,monospace">type</span> key is fixed to <span style="font-family: Courier New,Courier,monospace">pdopen</span> on the URL of the Drop View. The <span style="font-family: Courier New,Courier,monospace">width</span> and <span style="font-family: Courier New,Courier,monospace">height</span> keys have the same meaning as those of the box.</p>
+		<p>The <span style="font-family: Courier New,Courier,monospace">pdopen-direction</span> key defines whether the Drop View opens above or below the Dynamic Box:</p>
+			<ul class="ul">
+				<li><span style="font-family: Courier New,Courier,monospace">down</span>: The Drop View opens below the Dynamic Box.</li>
+				<li><span style="font-family: Courier New,Courier,monospace">up</span>: The Drop View opens above the Dynamic Box.</li>
+			</ul>
+		<p>The <span style="font-family: Courier New,Courier,monospace">pdopen-arrow-xpos</span> key defines the X coordinate of the center of the Dynamic Box in pixels, and the range of values is from 0 to the device width.</p></li>
+		<li><p>If needed, the Dynamic Box can use this information to handle its content when loaded. The query string is added to all box URLs as default.</p>
+    <p>Parse the query string and use it on the box content:</p>
+    <pre class="prettyprint">function getParameters()
+{
+&nbsp;&nbsp;&nbsp;var searchString = window.location.search.substring(1), params = searchString.split(&quot;&amp;&quot;), info = {};
+&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; params.length; i++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var val = params[i].split(&quot;=&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;info[unescape(val[0])] = unescape(val[1]);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return info;
+}
+
+var gInfo = getParameter();
+console.log(&quot;load type: &quot; + gInfo.type);
+console.log(&quot;width: &quot; + gInfo.width);
+console.log(&quot;height: &quot; + gInfo.height);
+</pre></li>
+</ol>
+        </div>
+    </li>
+
+    <li>
+        <div class="devicespec-tit">
+            <h2 id="reload" name="reload" class="items-tit-h2">Using a Web Application to Reload the Dynamic Box</h2>
+            <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+        </div>
+        <div class="devicespec-con">
+		
+<p>Learning how to request reloading of the Dynamic Box directly or periodically from a Web application is a basic Dynamic Box management skill.</p>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">A Web application can only reload its own Dynamic Box.</td>
+        </tr>
+    </tbody>
+</table>
+
+<ul class="ul">
+    <li><p>To request reloading directly:</p>
+        <ol>
+            <li>
+                <p>Modify the application configuration:</p>
+                <ol>
+                    <li>
+                        <p>Add the following entry to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file to obtain the needed API privilege:</p>
+                        <pre class="prettyprint">&lt;tizen:privilege name=&quot;http://tizen.org/privilege/application.launch&quot; /&gt;</pre>
+                    </li>
+                    <li>
+                        <p>Set the <span style="font-family: Courier New,Courier,monospace">operation</span> attribute of the application control:</p>
+                        <pre>http://tizen.org/appcontrol/operation/dynamicbox/web/update</pre>
+                    </li>
+                    <li>
+                        <p>Set the <span style="font-family: Courier New,Courier,monospace">uri</span> attribute of the application control:</p>
+                        <pre>&#39;uri&#39; = box-service://&lt;dynamic-box-id&gt;</pre>
+                        <p>The <span style="font-family: Courier New,Courier,monospace">dynamic-box-id</span> is the ID of the <span style="font-family: Courier New,Courier,monospace">&lt;tizen:app-widget&gt;</span> in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file. For example: <span style="font-family: Courier New,Courier,monospace">box-service://syWXgC5ZcI.DynamicBox.default</span>.</p>
+                    </li>
+                    <li>
+                        <p>Set the <span style="font-family: Courier New,Courier,monospace">content-info</span> key to pass a key or value to the reloaded box in the <span style="font-family: Courier New,Courier,monospace">ApplicationControlData</span>. This step is optional.</p>
+                        <p>The value of the key is passed to the Dynamic Box as a query:</p>
+                        <pre>index.html?type=update&amp;width=&lt;int&gt;&amp;height=&lt;int&gt;&amp;&lt;value passed from Web app&gt;</pre>
+                        <p>Do not use predefined URL keys for the Box and Drop View, like <span style="font-family: Courier New,Courier,monospace">type</span>, <span style="font-family: Courier New,Courier,monospace">width</span>, and <span style="font-family: Courier New,Courier,monospace">height</span>. If the Web application sets <span style="font-family: Courier New,Courier,monospace">content-info</span> to <span style="font-family: Courier New,Courier,monospace">color=red&amp;style=2</span>, the box&#39;s URL query is as follows:</p>
+                        <pre>index.html?type=update&amp;width=354&amp;height=354&amp;color=red&amp;style=2</pre>
+                    </li>
+                </ol>
+            </li>
+            <li>
+                <p>Request the application Dynamic Box to be reloaded using the <span style="font-family: Courier New,Courier,monospace">tizen.application.launchAppControl()</span> method:</p>
+                <pre class="prettyprint">var contentInfo = &quot;updateType=direct&quot;;
+var appControlData = new tizen.ApplicationControlData(&quot;content-info&quot;, [contentInfo]);
+var appControl = new tizen.ApplicationControl(&quot;http://tizen.org/appcontrol/operation/dynamicbox/web/update&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;box-service://syWXgC5ZcI.DynamicBox.default&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;null, null, [appControlData]);
+tizen.application.launchAppControl(appControl, &quot;dbox.web-provider&quot;);</pre>
+                <p>The <span style="font-family: Courier New,Courier,monospace">dbox.web-provider</span> argument is an ID for an internal service that manages the life-cycle of the Dynamic Box. This attribute must be specified to update the Dynamic Box.</p>
+            </li>
+        </ol>
+    </li>
+    <li>
+        <p>To request reloading periodically:</p>
+        <ol>
+            <li>
+                <p>Specify the Dynamic Box update period with the <span style="font-family: Courier New,Courier,monospace">update-period</span> attribute in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p>
+                <pre class="prettyprint">&lt;tizen:app-widget update-period=&quot;3600&quot;&gt;</pre>
+                <p>The minimum value for the attribute is 1800 s. This restriction is used to prevent potential power drain caused by frequent updates. However, you can use the Tizen <span style="font-family: Courier New,Courier,monospace">Alarm</span> (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/alarm.html">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/alarm.html">wearable</a> applications) and <span style="font-family: Courier New,Courier,monospace">Application</span> (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html">wearable</a> applications) APIs to update the Dynamic Box more frequently.</p>
+            </li>
+            <li>
+                <p>To call the Alarm API, specify the <span style="font-family: Courier New,Courier,monospace">dbox.web-provider</span> attribute:</p>
+                <pre class="prettyprint">var alarm = new tizen.AlarmRelative(1, 10*tizen.alarm.PERIOD_MINUTE);
+tizen.alarm.add(alarm, &quot;dbox.web-provider&quot;, appControl);</pre>
+                <p>The <span style="font-family: Courier New,Courier,monospace">appControl</span> data required for the Tizen Alarm API can be created by setting the <span style="font-family: Courier New,Courier,monospace">operation</span> and <span style="font-family: Courier New,Courier,monospace">uri</span> attributes as described in the direct reloading request above.</p>
+            </li>
+            <li>
+                <p>To remove a registered alarm, use the <span style="font-family: Courier New,Courier,monospace">tizen.alarm.remove()</span> method.</p>
+            </li>
+        </ol>
+    </li>
+</ul>
+
+<table class="note">
+   <tbody>
+    <tr>
+     <th class="note">Note</th>
+    </tr>
+    <tr>
+     <td class="note">If a Web application sends a reloading request while running in the background, the request is deferred until the application returns to the foreground.</td>
+    </tr>
+   </tbody>
+</table>
+        </div>
+    </li>
+    <li>
+        <div class="devicespec-tit">
+            <h2 id="send" name="send" class="items-tit-h2">Sending Messages between Dynamic Box and Drop View</h2>
+            <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+        </div>
+        <div class="devicespec-con">
+		
+  <p>Learning how to send messages between a Dynamic Box and Drop View is a basic Dynamic Box management skill. Through messaging, the Drop View can control the box content and the box can send responses for the Drop View requests.</p> 
+  <ol>
+  <li>To send a message from the Drop View to the Dynamic Box:
+  <ol>
+   <li><p>Open the Drop View and send a message to its Dynamic Box using the <span style="font-family: Courier New,Courier,monospace;">sendMessageToBox()</span> method. The method takes the message string as parameter:</p> 
+   <pre class="prettyprint">
+window.appwidget.sendMessageToBox(message)</pre></li>
+<li><p>Add an event listener to register a <span style="font-family: Courier New,Courier,monospace;">pdmessage</span> event for the box content and receive the message:</p> 
+   <pre class="prettyprint">
+window.addEventListener(&quot;pdmessage&quot;, function(message) 
+{ 
+&nbsp;&nbsp;&nbsp;console.log(&quot;message from Drop View: &quot; + message); 
+}, false);
+</pre></li></ol>
+</li>
+  <li>To send a message from the Dynamic Box to the Drop View:
+  <ol>
+   <li><p>After the Drop View is opened, the box can send a message to its Drop View using the <span style="font-family: Courier New,Courier,monospace;">sendMessageToPd()</span> method. The method takes the message string as parameter:</p> 
+   <pre class="prettyprint">
+window.appwidget.sendMessageToPd(message)</pre></li>
+<li><p>Add an event listener to register a <span style="font-family: Courier New,Courier,monospace;">boxmessage</span> event for the Drop View content and receive the message:</p> 
+<pre class="prettyprint">
+window.addEventListener(&quot;boxmessage&quot;, function(message) 
+{ 
+&nbsp;&nbsp;&nbsp;console.log(&quot;message from Box: &quot; + message); 
+}, false);
+</pre></li></ol>
+</li>
+<li><p>Before using the Web API for sending messages, register a listener for the <span style="font-family: Courier New,Courier,monospace;">appwidgetready</span> JavaScript event:</p><pre class="prettyprint">window.addEventListener(&quot;appwidgetready&quot;, callbackFunction, false);</pre>
+<p>When your box content starts to load, some JavaScript objects for the Dynamic Box APIs may not load and you must check whether any such objects have already been loaded. If the objects have not been loaded yet, the <span style="font-family: Courier New,Courier,monospace;">appwidgetready</span> event can be triggered to know when the objects are fully loaded. In this case, you can call Dynamic Box APIs after the <span style="font-family: Courier New,Courier,monospace;">appwidgetready</span> event is triggered.</p>
+<pre class="prettyprint">if (typeofwindow.appwidget != &#39;undefined&#39;)
+{
+&nbsp;&nbsp;&nbsp;/* JavaScript object for Dynamic Box APIs was loaded */
+&nbsp;&nbsp;&nbsp;/* Call Dynamic Box APIs, or register Dynamic Box events, such as &#39;pdmessage&#39; or &#39;boxmessage&#39; */
+&nbsp;&nbsp;&nbsp;console.log(&quot;javascript object was already loaded&quot;);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;/* Register appwidgetready event */ 
+&nbsp;&nbsp;&nbsp;window.addEventListener(&quot;appwidgetready&quot;, function(e) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* JavaScript object for Dynamic Box APIs was loaded */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Call Dynamic Box APIs, or register Dynamic Box events, such as &#39;pdmessage&#39; or &#39;boxmessage&#39; */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;javascript objects for dynamic box have been fully loaded!&quot;);
+&nbsp;&nbsp;&nbsp;}
+}</pre></li>
+</ol>
+<p>You can determine the message format to be a specific string containing keys and their values.</p>
+        </div>
+    </li>
+</ul>
+
+</div></div>
+      
+
+            
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

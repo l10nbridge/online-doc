@@ -1,0 +1,348 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Cairo Integration: Linking Cairo and Evas</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/><br/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#rectangle" class="opensection">Creating a Rectangle with a Black Border</a></li>
+			<li><a href="#graph" class="opensection">Displaying a Temperature Graph</a></li>
+		</ul>		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/graphics/cairo_n.htm">Cairo Integration Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__CAIRO__FRAMEWORK.html">Cairo API</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Cairo Integration: Linking Cairo and Evas</h1>
+<div class="cont"><div class="static-cont">	
+
+<p>This tutorial demonstrates how you can implement applications linking Cairo to Evas.</p>
+ 
+<h2>Warm-up</h2>
+<p>Become familiar with the Cairo API basics by learning about:</p>
+<ul>
+<li><a href="#rectangle">Creating a Rectangle with a Black Border</a>
+<p>Create a PNG file containing a rectangle with a black border.</p></li>
+
+<li><a href="#graph">Displaying a Temperature Graph</a>
+<p>Link Cairo to Evas and display a temperature graph on the screen.</p></li>
+
+</ul>
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+	<!-- Folds -->
+	<ul class="devicespecifications">
+	
+	<li>
+			<div class="devicespec-tit">
+				<h2 id="rectangle" name="rectangle" class="items-tit-h2">Creating a Rectangle with a Black Border</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To be built with gcc -o cairo-ex1 cairo-ex1.c <span style="font-family: Courier New,Courier,monospace">pkg-config cairo --cflags --libs</span>. Launching the example creates a .png file containing a rectangle with a black border.</p>
+
+   <p class="figure">Figure: An Example of Cairo</p> 
+  <p style="text-align:center;"><img alt="An Example of Cairo" src="../../images/cairo-ex1.png" /></p>
+  
+<p>The following example shows how to run a simple application with Cairo and to create a file on the disk.</p>
+<p>To include the Cairo headers, use the following code.</p>
+<pre class="prettyprint">#include &lt;cairo.h&gt;
+#include &lt;app.h&gt;
+</pre>
+
+<p> The main function contains all the code. </p>
+<pre class="prettyprint">int main (int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = {0,};
+&nbsp;&nbsp;&nbsp;int ret = 0;
+
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = {0,};
+&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL,};
+
+&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+&nbsp;&nbsp;&nbsp;event_callback.terminate = app_terminate;
+&nbsp;&nbsp;&nbsp;event_callback.pause = app_pause;
+&nbsp;&nbsp;&nbsp;event_callback.resume = app_resume;
+&nbsp;&nbsp;&nbsp;event_callback.app_control = app_control;
+
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY, ui_app_low_battery, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY, ui_app_low_memory, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_DEVICE_ORIENTATION_CHANGED], APP_EVENT_DEVICE_ORIENTATION_CHANGED, ui_app_orient_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED, ui_app_lang_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED, ui_app_region_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_remove_event_handler(handlers[APP_EVENT_LOW_MEMORY]);
+
+&nbsp;&nbsp;&nbsp;ret = ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+
+<p>To create a Cairo surface with a fixed size and to define the pixels format to ARGB32, use the following code. The color format is the same as the ARGB8888 of EFL.</p>
+<pre class="prettyprint">surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, 240, 80);
+</pre>
+
+<p> To create a Cairo context with surface as a parameter, use the following code. This Cairo object is used for all painting operations.</p>
+<pre class="prettyprint">cairo = cairo_create (surface);
+</pre>
+<p> Cairo has many APIs for painting: APIs for example for changing the size of the pen, choosing the colors, or creating different forms such as circles, rectangles, paths and curves. The following example shows how to create a black rectangle.</p>
+<pre class="prettyprint">cairo_rectangle(cairo, 10, 10, 220, 60);
+cairo_stroke(cairo);
+</pre>
+<p>To render the surface on an image on a disk, use the following code.</p>
+<pre class="prettyprint">cairo_surface_write_to_png (surface, &quot;cairo-ex1.png&quot;);
+</pre>
+<p>To free all resources, use the following code.</p>
+<pre class="prettyprint">cairo_destroy (cairo);
+cairo_surface_destroy (surface);
+</pre>
+
+			</div>
+		</li>
+	<li>
+			<div class="devicespec-tit">
+				<h2 id="graph" name="graph" class="items-tit-h2">Displaying a Temperature Graph</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>The graph example shows how to link Cairo to evas and how to display a temperature graph on the screen.</p>
+<p>To include the headers, use the following code.</p>
+<pre class="prettyprint">#include &lt;Elementary.h&gt;
+#include &lt;cairo.h&gt;
+#include &lt;app.h&gt;
+</pre>
+<p>To create an application data structure that contains all the pointers to objects to be manipulated, use the following code.</p>
+<pre class="prettyprint">typedef struct appdata 
+{
+&nbsp;&nbsp;&nbsp;// All graphical objects here are pointers to the value of the type Evas_Object
+&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;Evas_Object *conformant;
+&nbsp;&nbsp;&nbsp;Evas_Object *image;
+&nbsp;&nbsp;&nbsp;cairo_t *cairo;
+&nbsp;&nbsp;&nbsp;cairo_surface_t *surface;
+&nbsp;&nbsp;&nbsp;unsigned char *pixels;
+} appdata_s;
+</pre>
+<p> The main functions add only one callback to the Appcore. The callback is called when the application is created.</p>
+<pre class="prettyprint">static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;create_gui(ad);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = {0,};
+&nbsp;&nbsp;&nbsp;int ret = 0;
+
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = {0,};
+&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL,};
+
+&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+&nbsp;&nbsp;&nbsp;event_callback.terminate = app_terminate;
+&nbsp;&nbsp;&nbsp;event_callback.pause = app_pause;
+&nbsp;&nbsp;&nbsp;event_callback.resume = app_resume;
+&nbsp;&nbsp;&nbsp;event_callback.app_control = app_control;
+
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY, ui_app_low_battery, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY, ui_app_low_memory, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_DEVICE_ORIENTATION_CHANGED], APP_EVENT_DEVICE_ORIENTATION_CHANGED, ui_app_orient_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED, ui_app_lang_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED, ui_app_region_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;ui_app_remove_event_handler(handlers[APP_EVENT_LOW_MEMORY]);
+
+&nbsp;&nbsp;&nbsp;ret = ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+<p>To create a window and a conformant container, use the <span style="font-family: Courier New,Courier,monospace">create_gui</span> function.</p>
+<pre class="prettyprint">static void
+create_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;int max_temp;
+&nbsp;&nbsp;&nbsp;int min_temp;
+&nbsp;&nbsp;&nbsp;int x, y;
+&nbsp;&nbsp;&nbsp;double det, a, b;
+&nbsp;&nbsp;&nbsp;int row_stride;
+
+&nbsp;&nbsp;&nbsp;// Create the window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_conformant_set(ad-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad-&gt;win))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = { 0, 90, 180, 270 };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;conformant = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conformant, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conformant);
+&nbsp;&nbsp;&nbsp;evas_object_resize(ad-&gt;win, 480, 300);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conformant);
+</pre>
+
+<p>The following example shows how to create an evas_object image. We set it to enable alpha. The color format matches with the one we use in Cairo and we set it to ARGB8888; in other words, Red, Green, Blue and Alpha are coded on 8bits each. Set the size of the image, and set the fill settings to the same as the image size.</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;// Create an evas_object_image which contains the Cairo content 
+&nbsp;&nbsp;&nbsp;ad-&gt;image = evas_object_image_add(evas_object_evas_get(ad-&gt;win));
+&nbsp;&nbsp;&nbsp;evas_object_image_alpha_set(ad-&gt;image, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_image_colorspace_set(ad-&gt;image, EVAS_COLORSPACE_ARGB8888);
+&nbsp;&nbsp;&nbsp;evas_object_image_size_set(ad-&gt;image, WIDTH, HEIGHT);
+&nbsp;&nbsp;&nbsp;evas_object_image_fill_set(ad-&gt;image, 0, 0, WIDTH, HEIGHT);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;image);
+</pre>
+<p>To create the Cairo surface, the pixels must be allocated, as they are the link between Cairo and evas. For that we need to know the whole size of the image by setting the row stride value.</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;row_stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, WIDTH);
+&nbsp;&nbsp;&nbsp;// Create the pixels 
+&nbsp;&nbsp;&nbsp;ad-&gt;pixels = (unsigned char *) calloc(sizeof(unsigned char) * row_stride * HEIGHT, 1);
+&nbsp;&nbsp;&nbsp;// Create the cairo surface 
+&nbsp;&nbsp;&nbsp;ad-&gt;surface = cairo_image_surface_create_for_data(ad-&gt;pixels, CAIRO_FORMAT_ARGB32,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WIDTH, HEIGHT, row_stride);
+
+&nbsp;&nbsp;&nbsp;// Create the cairo context 
+&nbsp;&nbsp;&nbsp;ad-&gt;cairo = cairo_create (ad-&gt;surface);
+</pre>
+<p>Set evas to use the pixels created as pixels of the image with the following code.</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;// Set the pixels created as image&#39;s pixels 
+&nbsp;&nbsp;&nbsp;evas_object_image_data_set(ad-&gt;image, ad-&gt;pixels);
+</pre>
+<p> In the following example, paint the axis of the graph with a 2px black pen. Set Cairo to move the pen at the position 10,10 and create a line between this point and the position 10, HEIGHT. This creates a vertical black line. Continue the line from the current point and to the position WIDTH, HEIGHT. This is the horizontal black line.</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;cairo_set_source_rgb(ad-&gt;cairo, 0.0, 0.0, 0.0);
+&nbsp;&nbsp;&nbsp;cairo_set_line_width(ad-&gt;cairo, 2);
+&nbsp;&nbsp;&nbsp;cairo_move_to(ad-&gt;cairo, 10, 10);
+&nbsp;&nbsp;&nbsp;cairo_line_to(ad-&gt;cairo, 10, HEIGHT);
+&nbsp;&nbsp;&nbsp;cairo_stroke(ad-&gt;cairo);
+</pre>
+<p> The data to be graphed is an array of 12 values in °C (Celsius degrees). Each value represents the mean temperature value of a month. The graph is linear on the X axis, because the index in the array represents the month. For the Y axis, transform the float value into the pixel position. To create a full scale graph, the minimum values are displayed at the lower position, and the maximum values at the upper position. To show the minimum and maximum values, iterate the data.</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;max_temp = INT_MIN;
+&nbsp;&nbsp;&nbsp;min_temp = INT_MAX;
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; NB_TEMPS; i++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_temp = MAX(temperatures[i], max_temp);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min_temp = MIN(temperatures[i], min_temp);
+&nbsp;&nbsp;&nbsp;}
+</pre>
+<p>To resolve the two linear equations with two variables, use the following code.</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;det = - (min_temp * 1 - max_temp * 1);
+&nbsp;&nbsp;&nbsp;a = (1 * 0 - 1 * HEIGHT) / det;
+&nbsp;&nbsp;&nbsp;b = (HEIGHT * max_temp - 0 * min_temp) / det;
+</pre>
+<p>To create a red grid, use the coefficient calculated previously. Five horizontal lines are painted, in every 10°C degrees, from -10°C to +40°C. Paint the 0°C with a 4px thick pen and the other lines with a 1px. For the vertical lines, the space between the lines is the width of the graph divided by 12 months.</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;// Select the red color to paint the grid 
+&nbsp;&nbsp;&nbsp;cairo_set_source_rgba(ad-&gt;cairo, 1.0, 0.0, 0.0, 0.5);
+&nbsp;&nbsp;&nbsp;// Paint horizontal lines in red, with a thicker line for 0°C 
+&nbsp;&nbsp;&nbsp;for (i = -10; i &lt;= 40; i += 5)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// For the 0°C line, set a thicker pen
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (i == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_set_line_width(ad-&gt;cairo, 4);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_set_line_width(ad-&gt;cairo, 1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Calculate the y position 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y = (int)(a * i + b);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_move_to(ad-&gt;cairo, 10, y);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_line_to(ad-&gt;cairo, WIDTH, y);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_stroke(ad-&gt;cairo);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Paint the 11 verticals lines (the first one is already painted as the black y axis)
+&nbsp;&nbsp;&nbsp;for (i = 1; i &lt; 12; i++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x = (int)(i * (WIDTH / NB_TEMPS) + 10);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_move_to(ad-&gt;cairo, x, HEIGHT);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_line_to(ad-&gt;cairo, x, 10);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;cairo_stroke(ad-&gt;cairo);
+</pre>
+<p>Paint the graph line with a green color. As for the horizontal lines, use the same coefficient to find the correspondence between the temperature in °C and the value in pixels on the graph. Once the conversion is done, graph the line with the <span style="font-family: Courier New,Courier,monospace">cairo_line_to</span> API.</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;// Set a green value for temperature graph 
+&nbsp;&nbsp;&nbsp;cairo_set_source_rgba(ad-&gt;cairo, 0.5, 0.8, 0.3, 0.8);
+&nbsp;&nbsp;&nbsp;cairo_set_line_width(ad-&gt;cairo, 10);
+&nbsp;&nbsp;&nbsp;// Iterate the array to get the temperature values of each month 
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; NB_TEMPS; i++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// x coordinate is easily calculated, because it is a multiple of the graph_size divided by the number of points 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x = (int)(i * (WIDTH / NB_TEMPS) + 10);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// use the themp_to_pix function to set the y coordinate corresponding to the temp value 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y = (int)(a * temperatures[i] + b);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_line_to (ad-&gt;cairo, x, y);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;cairo_stroke(ad-&gt;cairo);
+</pre>
+<p>Update the evas object image on the screen by calling</p>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;evas_object_image_data_update_add(ad-&gt;image, 0, 0, WIDTH, HEIGHT);
+}</pre>
+
+<p>The picture below shows the application.</p>
+
+   <p class="figure">Figure: cairo-graph</p> 
+  <p style="text-align:center;"><img alt="cairo-graph" src="../../images/graph_app.png" /></p>
+
+			</div>
+		</li>		
+		
+	
+	
+	</ul>	
+</div>				
+</div>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

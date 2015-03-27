@@ -1,0 +1,893 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Application</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+			<li><a href="#loop">Managing the Event Loop</a></li>
+			<li><a href="#callback">Registering Callbacks for Events</a></li>
+			<li><a href="#app_controls">Launching Applications</a></li>
+			<li><a href="#alarms">Handling Alarms</a></li>
+			<li><a href="#state_trans">Managing Application States and Transitions</a></li>
+			<li><a href="#app_strings">Localizing Application Strings</a></li>
+        </ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.tutorials/html/native/app_framework/application_tutorial_n.htm">Application Tutorial</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APPLICATION__MODULE.html">Application API</a></li>   
+			</ul>
+	</div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Application</h1> 
+<p>A Tizen native application is similar to a conventional Linux application, with some additional features optimized for mobile devices. The additional features have constraints, such as a relatively small screen size and lack of system resources compared to a larger system. For example, for power management reasons, the application can take actions to reduce usage when it finds out that it has its display window covered over by another application window. State change events are delivered to make it possible to detect these situations.</p>
+
+<p>The Application API provides interfaces for the following categories:</p>
+<ul>
+  <li><a href="#loop">Starting or exiting the main event loop</a> (mandatory for every Tizen native application)</li>
+  <li><a href="#callback">Registering callbacks for application state change events</a></li>
+  <li><a href="#callback">Registering callbacks for basic system events</a></li>
+  <li><a href="#app_controls">Launching applications</a></li>
+  <li><a href="#alarms">Handling alarms</a></li>
+  <li><a href="#state_trans">Managing application states and transitions</a></li>
+  <li><a href="#app_strings">Localizing application strings</a></li>
+</ul>
+  
+  <h2 id="loop" name="loop">Managing the Event Loop</h2>
+<p>In order for an application to operate successfully, it must receive events from the platform. For this, it must start the main event loop - this is mandatory for all Tizen native applications.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> function is used to start the event loop. Before calling this function, set up the <span style="font-family: Courier New,Courier,monospace">app_event_callback_s structure</span> variable, which is passed to the function.</p>
+
+<p>For more information about launching applications, see <a href="#app_controls">Launching Applications</a>.</p>
+
+<h2 id="callback" name="callback">Registering Callbacks for Events</h2>
+<p>The following table lists the application state change events.</p>
+
+  <table> 
+   <caption>
+     Table: Application state change events
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Callback</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_create_cb()</span></td> 
+     <td>Used to take necessary actions before the main event loop starts. Place the UI generation code here to prevent missing any events from your application UI.</td> 
+    </tr> 
+     <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_pause_cb()</span></td> 
+     <td>Used to take necessary actions when the application becomes invisible. For example, release memory resources so other applications can use them. Do not starve the foreground application that is interacting with the user.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_resume_cb()</span></td> 
+     <td>Used to take necessary actions when the application becomes visible. If you relinquish anything in the  <span style="font-family: Courier New,Courier,monospace">app_pause_cb()</span> callback, re-allocate those resources here before the application resumes.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_terminate_cb()</span></td> 
+     <td>Used to take necessary actions when the application is terminating. Release all resources, especially any allocations and shared resources, so that other running applications can fully use any shared resources.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+ 
+<p>For more information, see <a href="#state_trans">Managing Application States and Transitions</a>.</p>
+
+<p>The following table lists the system event events.</p>
+
+  <table> 
+   <caption>
+     Table: Callbacks for system events
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Callback</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_low_memory_cb()</span></td> 
+     <td><p>Used to take necessary actions in low memory situations.</p>
+       <p>Save data in the main memory to a persistent memory or storage, to avoid data loss in case the Tizen platform Low Memory Killer kills your application to get more free memory. Release any cached data in the main memory to secure more free memory.</p></td> 
+    </tr> 
+     <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_low_battery_cb()</span></td> 
+     <td><p>Used to take necessary actions in low battery situations.</p>
+	    <p>Save data in the main memory to a persistent memory or storage, to avoid data loss in case the power goes off completely. Stop heavy CPU consumption or power consumption activities to save the remaining power.</p></td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_device_orientation_cb()</span></td> 
+     <td>Used to take necessary actions for handling a device orientation change.
+<p>Change the display orientation to match the device orientation.</p></td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_language_changed_cb()</span></td> 
+     <td>Used to take necessary actions for handling a language change event.
+<p>Refresh the display into the new language.</p></td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_region_format_changed_cb()</span></td> 
+     <td>Used to take necessary actions for handling a region change event.
+<p>A region change means a different time zone; updater the time in the application UI to reflect the time zone change.</p></td> 
+    </tr> 
+   </tbody> 
+  </table>  
+  
+  <h2 id="app_controls" name="app_controls">Launching Applications</h2> 
+<p>An application can be launched by the user from the Launcher or by another application.</p>
+<p>The App Control can be used to describe either an action to be performed by other applications, or the results of the operation performed by a launched application. The application can receive results from the launched application.</p>
+<p>Regardless of how an application is launched, the application framework starts the application by creating a new process and calling the entry point of the application. Like a conventional Linux application, the main function of the application is its entry point. In the Tizen application, the main task is to hand over control to the application framework by calling the <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> function:</p>
+  
+<pre class="prettyprint">
+bool app_create(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Take necessary actions before the main event loop starts
+&nbsp;&nbsp;&nbsp;// Initialize UI resources and application data
+&nbsp;&nbsp;&nbsp;// If this function returns true, the application main loop starts
+&nbsp;&nbsp;&nbsp;// If this function returns false, the application terminates
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+void app_control(app_control_h app_control, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Handle the launch request
+}
+
+void app_pause(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Take necessary actions when application becomes invisible
+}
+
+void app_resume(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Take necessary actions when application becomes visible
+}
+
+void app_terminate(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Release all resources
+}
+
+int main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;struct appdata ad;
+ 
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback;
+     
+&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+&nbsp;&nbsp;&nbsp;event_callback.terminate = app_terminate;
+&nbsp;&nbsp;&nbsp;event_callback.pause = app_pause;
+&nbsp;&nbsp;&nbsp;event_callback.resume = app_resume;
+&nbsp;&nbsp;&nbsp;event_callback.app_control = app_control;
+
+&nbsp;&nbsp;&nbsp;memset(&amp;ad, 0x0, sizeof(struct appdata));
+
+&nbsp;&nbsp;&nbsp;return ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> function initializes the application and starts the main loop. It takes 4 parameters and uses them to initialize the application. The <span style="font-family: Courier New,Courier,monospace">argc</span> and <span style="font-family: Courier New,Courier,monospace">argv</span> parameters contain the values from the application framework, and you must never change their values. The third parameter is a state transition handler that is responsible for managing the state transitions the application goes through while it is running. The fourth parameter is application data to be passed to each state handler.</p>
+<p>When the <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> is first invoked, the application moves from the ready state to the created state. The application has to initialize itself. During this transition, the application framework calls the application&#39;s <span style="font-family: Courier New,Courier,monospace">app_create_cb()</span> state transition callback just before the application enters the main loop. Within the registered callback, you must initialize the application resources and create the main window.</p>
+<p>If the <span style="font-family: Courier New,Courier,monospace">app_create_cb()</span> callback function returns <span style="font-family: Courier New,Courier,monospace">false</span>, the application moves to the terminated state. If it returns <span style="font-family: Courier New,Courier,monospace">true</span>, the application enters the main loop.</p>
+
+ <h3 id="options" name="options">Handling the Launch Options</h3>
+<p>The application framework calls the application&#39;s <span style="font-family: Courier New,Courier,monospace">app_control_cb()</span> callback just after the application enters the main loop. This callback is passed to the <span style="font-family: Courier New,Courier,monospace">app_control</span> containing the reason why the application was launched. For example, the application can be launched to open a file to handle the request that has been sent by other application. In all of these cases, the application is responsible for checking the content of the <span style="font-family: Courier New,Courier,monospace">app_control</span> and responding appropriately. The content of the <span style="font-family: Courier New,Courier,monospace">app_control</span> can be empty, if the application is launched by the user from the Launcher.</p>
+
+<pre class="prettyprint">static void app_control(app_control_h app_control, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;struct appdata *ad = (struct appdata *)user_data;
+&nbsp;&nbsp;&nbsp;char *operation;
+&nbsp;&nbsp;&nbsp;char *uri;
+&nbsp;&nbsp;&nbsp;char *mime_type;
+ 
+&nbsp;&nbsp;&nbsp;app_control_get_operation(app_control, operation);
+ 
+&nbsp;&nbsp;&nbsp;if (!strcmp(operation, APP_CONTROL_OPERATION_VIEW))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_get_uri(app_control, &amp;uri);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_get_mime(app_control, &amp;mime_type);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (uri &amp;&amp; !strcmp(mime_type, &quot;image/jpg&quot;))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_image_file(ad, uri); // Display a specific image file
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;if (ad-&gt;win)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_activate(ad->win);
+}
+</pre>
+<h3 id="controls" name="controls">Application Controls</h3>
+<p>The App control API provides functions for launching other applications with a specific operation, URI, and MIME type. The requesting application can get a result back from the launched application.</p>
+<p>To launch an application with the App control API, create an <span style="font-family: Courier New,Courier,monospace">app_control</span> handle and add information to that handle. You can set the following information:</p>
+<ul>
+   <li>Operation: Action to be performed by the app control.</li>
+   <li>URI: Data itself to be performed.</li>
+   <li>MIME type: Specific type of the URI.</li>
+   <li>Application ID: ID of the application to be launched.</li>
+   <li>Extra data: Key-value pairs to provide additional information for the launch request and the result of the request.</li>
+</ul>
+<p>The operation is mandatory information for sending the launch request. The app control API provides several functions to get and set the above information to the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle.</p>
+<p>To launch an application with the app control API, use one of the following methods:</p>
+<ul>	
+   <li><a href="#explicit">Explicit launch</a>: Launch the application with the application ID.</li>
+   <li><a href="#implicit">Implicit launch</a>: Launch the application with an operation, URI, or MIME type.</li>
+</ul>
+<p>The application launched by the app control can return the result to the caller application.</p>
+
+<p>You can take advantage of the Tizen <a href="#platform_appcontrol">base application functionalities</a> through the app control feature. You can also <a href="#export_appcontrol">export your application functionality</a> to allow other applications to launch your application.</p>
+
+<h4 id="explicit" name="explicit">Explicit Launch</h4>
+
+<p>When you request an explicit launch:</p>
+
+<ul>
+   <li>If the underlying application launcher framework finds an application matched with the given application ID in the installed application list, it launches the application in a new process. If the matched application is not found, the framework returns the <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_ERROR_APP_NOT_FOUND</span> result. Additional information (such as operation, URI, or MIME type) is not be used to select an application for an explicit launch.</li>
+   <li>If the operation setting in the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle is set to <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_DEFAULT</span>, the application ID must be set. Otherwise the <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_ERROR_INVALID_PARAMETER</span> result is returned.</li>
+</ul>
+<p>The following code example launches a calculator application explicitly with the application ID:</p>
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+ 
+#define TAG "MY_TAG"
+
+app_control_h app_control;
+ 
+app_control_create(&amp;app_control);
+app_control_set_operation(app_control, APP_CONTROL_OPERATION_DEFAULT);
+app_control_set_app_id(app_control, &quot;org.tizen.calculator&quot;);
+ 
+if (app_control_send_launch_request(app_control, NULL, NULL) == APP_CONTROL_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Succeeded to launch a calculator app.&quot;);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Failed to launch a calculator app.&quot;);
+}
+ 
+app_control_destroy(app_control);
+</pre>
+
+<h4 id="implicit" name="explicit">Implicit Launch</h4>
+
+<p>When you request an implicit launch:</p>
+
+<ul>
+<li>Only 3 data categories are used to determine which application can be launched: Operation, URI scheme, and MIME type.</li>
+<li>The application launcher framework iterates the desktop files of installed applications on the device to find applications where the 3 categories are exactly matched.</li>
+<li>If only one application is matched for the given categories, that application is launched. If multiple matching  applications are found, the application selector is shown and the user can select the proper application.</li>
+<li>Each app control requires a different combination of the 3 categories. For some, only one category is necessary (for example, URI), for others, all 3 can be needed. Check the app control list and required data in the <a href="../../../../org.tizen.native.mobile.apireference/index.html">API Reference</a> to determine the needed categories.</li>
+</ul>
+<p>To allow the application launcher framework to find and select matching applications, each application must describe its operation, URI, or MIME type correctly. The application can have multiple combinations of the operation, URI, and MIME type:</p>
+
+  
+<pre class="prettyprint">
+X-SLP-SVC=[operation1]:[URI1]:[MIME1];[operation2]:[URI2]:[MIME2]
+</pre>
+
+<p>In the category description:</p>
+
+<ul>
+<li>Each app control description is separated by a semicolon (;).</li>
+<li>Blank is not allowed between fields.</li>
+<li>Operation is a mandatory field.</li>
+<li>URI and MIME field can be NULL.</li>
+</ul>
+
+<p>The following code example launches a camera application with the operation and MIME type:</p>
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+
+#define TAG "MY_TAG"
+
+app_control_h app_control;
+ 
+app_control_create(&amp;app_control);
+app_control_set_operation(app_control, APP_CONTROL_OPERATION_CREATE_CONTENT);
+app_control_set_mime(app_control, &quot;image/jpg&quot;);
+if (app_control_send_launch_request(app_control, NULL, NULL) == APP_CONTROL_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Succeeded to launch a viewer app.&quot;);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Failed to launch a viewer app.&quot;);
+}
+ 
+app_control_destroy(app_control);
+</pre>
+
+<p>The following code example launches a gallery application with the operation, URI, and MIME type:</p>
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+
+#define TAG "MY_TAG"
+ 
+app_control_h app_control;
+ 
+app_control_create(&amp;app_control);
+app_control_set_operation(app_control, APP_CONTROL_OPERATION_VIEW);
+app_control_set_uri(app_control, &quot;file:///home/myhome/Photos/1_photo.jpg&quot;);
+app_control_set_mime(app_control, &quot;image/*&quot;);
+ 
+if (app_control_send_launch_request(app_control, NULL, NULL) == APP_CONTROL_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Succeeded to launch a viewer app.&quot;);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Failed to launch a viewer app.&quot;);
+}
+ 
+app_control_destroy(app_control);
+</pre>
+
+<h4 id="results" name="results">Getting the App Control Results</h4>
+<p>The app control result from the requested application is delivered to the caller application in the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle with extra data. For some cases, the App control API provides pre-defined extra data keys.</p>
+<p>If you cannot find a proper key, you can define your own key. However, the customized key must be shared between the caller and callee applications.</p>
+
+<p>The following code example gets the result of an app control request by implementing an <span style="font-family: Courier New,Courier,monospace">app_control</span> result callback:</p>
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+ 
+#define TAG &quot;MY_TAG&quot;
+ 
+// Callback function to get result
+static void app_control_result(app_control_h request, app_control_h reply, app_control_result_e result, void *user_data) 
+{
+&nbsp;&nbsp;&nbsp;char *value;
+ 
+&nbsp;&nbsp;&nbsp;if (result == APP_CONTROL_RESULT_SUCCEEDED) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (app_control_get_extra_data(reply, APP_CONTROL_DATA_SELECTED, &amp;value) == APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;[app_control_result_cb] Succeeded: value(%s)&quot;, value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;[app_control_result_cb] Failed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;[app_control_result_cb] APP_CONTROL_RESULT_FAILED.&quot;);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The following code example requests the launch of another application:</p>
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+
+#define TAG &quot;MY_TAG&quot;
+
+app_control_h app_control;
+ 
+app_control_create(&amp;app_control);
+ 
+app_control_set_operation(app_control, APP_CONTROL_OPERATION_CREATE_CONTENT);
+app_control_set_mime(app_control, &quot;text/plain&quot;);
+ 
+if (app_control_send_launch_request(app_control, app_control_result, NULL) == APP_CONTROL_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Succeeded: the application is launched.&quot;);
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Failed to launch an application.&quot;);
+}
+ 
+app_control_destroy(app_control);
+</pre>
+
+<p>The following code example implements an <span style="font-family: Courier New,Courier,monospace">app_control</span> callback in the callee application:</p>
+
+<pre class="prettyprint">
+static void app_control(app_control_h app_control, void *user_data) 
+{
+&nbsp;&nbsp;&nbsp;struct appdata *ad = (struct appdata *)user_data;
+&nbsp;&nbsp;&nbsp;char *operation;
+&nbsp;&nbsp;&nbsp;char *mime;
+&nbsp;&nbsp;&nbsp;app_control_h reply;
+&nbsp;&nbsp;&nbsp;char *app_id;
+ 
+&nbsp;&nbsp;&nbsp;app_control_get_operation(app_control, &amp;operation);
+ 
+&nbsp;&nbsp;&nbsp;if (!strcmp(operation, APP_CONTROL_OPERATION_CREATE_CONTENT)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_get_mime(app_control, &amp;mime);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(mime, &quot;text/plain&quot;)) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_create(&amp;reply);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_get_app_id(&amp;app_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_add_extra_data(reply, APP_CONTROL_DATA_SELECTED, app_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_reply_to_launch_request(reply, app_control, APP_CONTROL_RESULT_SUCCEEDED);
+ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_destroy(reply);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h3 id="export_appcontrol" name="export_appcontrol">Exporting AppControl Functionality</h3>
+<p>You can export functionalities of your application to be used in another application. However, if the other application uses the application control functionality implicitly without the
+		application ID, it must declare the application control information in its manifest file:</p>
+	<pre class="prettyprint">
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;mime name=&quot;application/xhtml+xml&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=&quot;http://tizen.org/appcontrol/operation/view&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;uri name=&quot;http://test.com&quot;/&gt;
+&lt;/app-control&gt;
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=&quot;http://tizen.org/appcontrol/operation/call&quot;/&gt;
+&lt;/app-control&gt;
+</pre>
+	<p>
+		The resolution filter is used when resolving the application control. Each entry of the resolution filter has the <span style="font-family: Courier New, Courier, monospace">&lt;app-control&gt;</span>
+		element and forms an application resolution unit. The additional URI or MIME type information must contain the associated operation ID, and the retrieved application control must have the specified
+		application ID and operation ID when resolving the application control.
+	</p>
+	<p>
+		You can specify the application control information of your application in the <a href="../../../../org.tizen.gettingstarted/html/process/setting_properties_n.htm#manifest">application project settings</a> in the IDE; an
+		operation ID must be specified for the application control.
+	</p>  
+
+<h3 id="platform_appcontrol" name="platform_appcontrol">Using Platform Application Controls</h3>
+
+<p>Tizen provides base applications, such as Web browser, image viewer, music player, and video player. Using the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html">App Control</a> module, you can take advantage of the Tizen base application functionalities.</p> 
+
+<p>The Tizen platform provides the platform application controls for the following base applications:</p>
+<ul>
+<li>FileManager</li>
+<li>ImageViewer</li>
+<li>Internet</li>
+<li>MusicPlayer</li>
+<li>VideoPlayer</li>
+</ul>
+<p>The following table defines the details of each platform application control.</p>
+  <table> 
+   <caption>
+     Table: Tizen base application services 
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Service</th> 
+     <th>Operation</th> 
+     <th>Scheme</th> 
+     <th>MIME</th> 
+    </tr> 
+    <tr> 
+     <td>Browsing a Web page</td> 
+     <td rowspan="4"><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td> 
+     <td>
+		<ul>
+		<li><span style="font-family: Courier New,Courier,monospace">http</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">https</span></li> 
+		</ul>
+	 </td>
+	 <td>-</td> 
+    </tr> 
+    <tr> 
+     <td>Displaying an image</td> 
+     
+     <td>		
+	 <ul>
+		<li><span style="font-family: Courier New,Courier,monospace">file</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">http</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">https</span></li> 
+	</ul>
+	</td> 
+     <td>	 
+	 <ul>
+		<li><span style="font-family: Courier New,Courier,monospace">image/bmp</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">image/gif</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">image/jpeg</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">image/png</span></li>
+	 </ul>
+	 </td> 
+    </tr> 
+	<tr> 
+     <td>Playing a sound file</td> 
+	 <td rowspan="3"><span style="font-family: Courier New,Courier,monospace">file</span></td> 
+     <td>
+	 <ul>
+		<li><span style="font-family: Courier New,Courier,monospace">audio/aac</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">audio/amr</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">audio/mp3</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">audio/wav</span></li>
+	 </ul>
+	 </td> 
+    </tr> 
+    <tr> 
+     <td>Playing a video file</td> 
+     
+	<td>
+	 <ul>
+		<li><span style="font-family: Courier New,Courier,monospace">video/mp4</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">video/3gpp</span></li>
+	 </ul>
+	 </td> 
+    </tr> 
+    <tr> 
+     <td>Selecting a file</td> 
+     <td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/pick</span></td> 
+     <td>
+	 <ul>
+		<li><span style="font-family: Courier New,Courier,monospace">*/*</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">image/*</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">video/*</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">audio/*</span></li>
+	 </ul>
+	 </td> 
+    </tr> 
+   </tbody> 
+  </table> 
+  
+
+    <table class="note"> 
+     <tbody> 
+      <tr> 
+       <th class="note">Note</th> 
+      </tr> 
+      <tr> 
+       <td class="note">Tizen provides support for the defined MIME types of the base application services depending on the platform implementation.</td> 
+      </tr> 
+     </tbody> 
+    </table>
+
+
+  
+  
+  <h2 id="alarms" name="alarms">Handling Alarms</h2>
+
+<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__ALARM__MODULE.html">Alarm</a> API provides functions to launch an application at a specific time. The mechanism involved in launching the application is the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html">AppControl</a> API.</p>
+<p>The AppControl API allows launching an application explicitly, giving its package name, or providing certain criteria that the application must meet. For example, the criteria can include the type of data on which the application must be able to operate. The structure containing the criteria is called an appcontrol.</p>
+<p>For more information, see the <a href="#app_controls">Launching Applications</a> guide.</p>
+  
+<h2 id="state_trans" name="state_trans">Managing Application States and Transitions</h2> 
+
+<p>The Tizen native application can be in one of several different states. Typically, the application is launched by the user from the Launcher, or by another application. As the application is starting, the <span style="font-family: Courier New,Courier,monospace">app_create_cb()</span> callback is executed and the main event loop starts. The application now normally becomes the frontmost window, with focus. When the application loses the frontmost or focus status, the <span style="font-family: Courier New,Courier,monospace">app_pause_cb()</span> callback is invoked and your application goes into a pause state. The pause state means that the application is not terminated but is running in the background. The application can go into a pause state because:</p>
+<ul>
+  <li>A new application is launched from the request of your application.</li>
+  <li>The user requests to go to the Home screen.</li>
+  <li>A system event occurs and causes a resident application with a higher priority (such as an incoming phone call) to become active and hide your application temporarily.</li>
+  <li>An alarm is triggered for another application, which becomes the top-most window and hides your application.</li>
+</ul> 
+<p>When your application becomes visible again, the <span style="font-family: Courier New,Courier,monospace">app_resume_cb()</span> callback is invoked. This happens because:</p>
+<ul>
+  <li>Another application requests your application to run (perhaps the Task Navigator, which shows all running applications and lets the user select any application to run).</li>
+  <li>All applications on top of your application in the window stack finish.</li>
+  <li>An alarm is triggered for your application, so it becomes the top-most window and hides other applications.</li>
+</ul>
+
+<p>When your application starts exiting, the <span style="font-family: Courier New,Courier,monospace">app_terminate_cb()</span> callback is invoked. Your application terminates because:</p>
+<ul>
+  <li>Your application itself requests to exit by calling the <span style="font-family: Courier New,Courier,monospace">app_exit()</span> function to terminate the event loop.</li>
+  <li>The Low Memory Killer is killing your application in a low memory situation.</li>
+</ul>
+<p>The application state changes are managed by the underlying framework. The following figure and table illustrate the application states.</p>
+
+    <p class="figure">Figure: Application states</p> 
+  <p style="text-align:center;"><img alt="Application state transitions" src="../../images/app_states.png" /></p>  
+  
+  <table> 
+   <caption>
+     Table: Application states
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>State</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">READY</span></td> 
+     <td>Application is launched.</td> 
+    </tr> 
+     <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CREATED</span></td> 
+     <td>Application starts the main loop.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">RUNNING</span></td> 
+     <td>Application is running and visible to the user.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">PAUSED</span></td> 
+     <td>Application is running but invisible to the user.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">TERMINATED</span></td> 
+     <td>Application is terminated.</td> 
+    </tr> 
+   </tbody> 
+  </table>   
+  
+  <p>The Application API defines 5 states with corresponding transition handlers. The state transition is notified through a state transition callback function, whether the application is created, running, paused, resumed, or terminated. The application must react to each state change appropriately.</p>
+  
+     <p class="figure">Figure: Application state transitions</p> 
+  <p style="text-align:center;"><img alt="Application state transitions" src="../../images/app_state_transitions.png" /></p>
+  
+  <h2 id="app_strings" name="app_strings">Localizing Application Strings</h2> 
+	<p>Tizen provides localized resources to make your application usable for different countries. The localization is based on the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__I18N__MODULE.html">Internationalization</a> API, which makes strings translatable and places them  in .po (portable object) files.</p> 
+
+<table class="note">
+  <tbody>
+    <tr>
+      <th class="note">Note</th>
+    </tr>
+    <tr>
+      <td class="note"><p>The .po files must be placed in the <span style="font-family: Courier New,Courier,monospace">res/po</span> directory of the application. The files can be edited using the <a href="../../../../org.tizen.devtools/html/native_tools/po_file_editor_n.htm">PO File Editor</a> provided by the Tizen SDK.</p></td> 
+    </tr>
+  </tbody>
+</table>
+
+<p>Depending on the device&#39;s locale information, your application must load the proper resource set. If no matching resource set is found for the device&#39;s current locale, the default resource set is used.</p>		  
+
+<p>To get the localized value of a string, use the <span style="font-family: Courier New,Courier,monospace">MsgID</span> shown in the PO File Editor, prefaced with an underscore <span style="font-family: Courier New,Courier,monospace">_</span> (for example, <span style="font-family: Courier New,Courier,monospace">_(&lt;MsgID&gt;)</span>). The underlying implementation calls the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function to retrieve the localized value:</p>
+
+<pre class="prettyprint">
+char *hello_text = i18n_get_text(&quot;Hello&quot;);
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">hello_text</span> variable is set to the localized text for &quot;Hello&quot; for the current locale of the device.</p>
+<p>When you change the language setting on the device, the text changes in the application according to the current language.</p>
+
+<h3 id="marking" name="marking">Marking Text Parts as Translatable</h3>
+<p>The most common way to use a translation involves the following APIs: </p>
+
+<pre class="prettyprint">
+elm_object_translatable_text_set(Evas_Object *obj, const char *text)
+elm_object_item_translatable_text_set(Elm_Object_Item *it, const char *text)
+</pre>
+
+<p>They set the untranslated string for the &quot;default&quot; part of the given <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> or <span style="font-family: Courier New,Courier,monospace;">Elm_Object_Item</span> and mark the string as translatable.</p>
+
+<p>Similar functions are available if you wish to set the text for a part that is not &quot;default&quot;: </p>
+
+<pre class="prettyprint">
+elm_object_translatable_part_text_set(Evas_Object *obj, const char *part, const char *text)
+elm_object_item_translatable_part_text_set(Elm_Object_Item *it, const char *part, const char *text)
+</pre>
+
+<p>It is important to provide the untranslated string to these functions, because the EFLs trigger the translation themselves and re-translate the strings automatically, if the system language changes.</p>
+
+
+<h3 id="translating" name="translating">Translating Texts Directly</h3>
+
+<p>The approach described in the previous section is not applicable all of the time. For instance, it does not work if you are populating a genlist, if you need plurals in the translation or if you want to do something else than put the translation in elementary widgets.</p>
+
+<p>It is possible to retrieve the translation for a given text through the <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span> API from <span style="font-family: Courier New,Courier,monospace;">app_i18n.h</span>.</p>
+
+<pre class="prettyprint">
+char *i18n_get_text(const char *msgid);
+</pre>
+
+<p>This function takes as input a string (that is copied to an <span style="font-family: Courier New,Courier,monospace;">msgid</span> field in the .po files) and returns the translation (the corresponding <span style="font-family: Courier New,Courier,monospace;">msgstr</span> field).</p>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">Do not modify or free the return value of these functions. They are statically allocated.</td>
+</tr>
+</tbody>
+</table> 
+
+<p>When giving the text for a genlist item, you can use it in a similar manner as in the example below.</p>
+
+<pre class="prettyprint">
+#include &quot;app_i18n.h&quot;
+static char *_genlist_text_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;return strdup(i18n_get_text(&quot;Some Text&quot;));
+}
+</pre>
+
+<h4>Plurals</h4>
+<p>Plurals are handled through the <span style="font-family: Courier New,Courier,monospace;">ngettext()</span> function. Its prototype is shown below.</p>
+
+<pre class="prettyprint">
+char *ngettext(const char *msgid, const char *msgid_plural, unsigned long int n);
+</pre>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">msgid</span> is the same as before, that is, the untranslated string</li>
+<li><span style="font-family: Courier New,Courier,monospace;">msgid_plural</span> is the plural form of <span style="font-family: Courier New,Courier,monospace;">msgid</span></li>
+<li>the quantity (in English, 1 is singular and anything else is plural)</li>
+</ul>
+
+<p>A matching fr.po file contains the following lines.</p>
+
+<pre class="prettyprint">
+msgid &quot;%d Comment&quot;
+msgid_plural &quot;%d Comments&quot;
+msgstr[0] &quot;%d commentaire&quot;
+msgstr[1] &quot;%d commentaires&quot;
+</pre>
+
+<h4>Several Plurals</h4>
+<p>It is possible to have several plural forms. For instance, the .po file for Polish could contain the following lines.</p>
+
+<pre class="prettyprint">
+msgid &quot;%d Comment&quot;
+msgid_plural &quot;%d Comments&quot;
+msgstr[0] &quot;%d Komentarz&quot;
+msgstr[1] &quot;%d Komentarze&quot;
+msgstr[2] &quot;%d Komentarzy&quot;
+</pre>
+
+<p>The index values after <span style="font-family: Courier New,Courier,monospace;">msgstr</span> are defined in system-wide settings. The ones for Polish are given below:</p>
+
+<pre class="prettyprint">
+&quot;Plural-Forms: nplurals = 3; plural = n = = 1 ? 0 : n%10&gt; = 2 &amp;&amp; n%10&lt; = 4 &amp;&amp; (n%100&lt;10 | | n%100&gt; = 20) ? 1 : 2;\n&quot;
+</pre>
+
+<p>There are three forms (including singular). The index is 0 (singular), if the given integer n is 1. Then, if <span style="font-family: Courier New,Courier,monospace;">(n % 10 &gt;= 2 &amp;&amp; % 10 &lt;= 4 &amp;&amp; (n % 100 &lt; 10 | | n % 100 &gt;= 20)</span>, the index is 1, otherwise it is 2.</p>
+
+<h4>Handling Language Changes at Runtime</h4>
+
+<p>The user can change the system language settings at any time. When that is done, appcore notifies the application, which changed the language used in the Elementary. The widgets receive a &quot;language,changed&quot; signal and reset their text.</p>
+
+<p>This is how to handle the appcore event:</p>
+
+<pre class="prettyprint">
+static void
+_app_language_changed(void *data)
+{
+&nbsp;&nbsp;&nbsp;char *language;
+&nbsp;&nbsp;&nbsp;// Retrieve the current system language
+&nbsp;&nbsp;&nbsp;system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, &amp;language);
+&nbsp;&nbsp;&nbsp;// Set the language in elementary
+&nbsp;&nbsp;&nbsp;elm_language_set(language);
+&nbsp;&nbsp;&nbsp;free(language);
+}
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED, _app_language_changed, &amp;ad);
+}
+</pre>
+
+<p>The call to <span style="font-family: Courier New,Courier,monospace;">elm_language_set()</span> above triggers the emission of the &quot;language,changed&quot; signal, which is handled the same way as the typical smart event signals.</p>
+
+<h3 id="extracting" name="extracting">Extracting Messages for Translation</h3>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">xgettext</span> tool extracts strings to translate to a .pot file (po template), while <span style="font-family: Courier New,Courier,monospace;">msgmerge</span> maintains the existing .po files. The typical workflow is as follows:</p>
+<ul>
+<li>run <span style="font-family: Courier New,Courier,monospace;">xgettext</span> once; it generates a .pot file</li>
+<li>when adding a new translation, copy the .pot file to &lt;locale&gt;.po and translate that file</li>
+<li>new runs of <span style="font-family: Courier New,Courier,monospace;">xgettext</span> update the existing .pot file and <span style="font-family: Courier New,Courier,monospace;">msgmerge</span> updates the .po files</li>
+</ul>
+
+<p>The following example is a typical call to <span style="font-family: Courier New,Courier,monospace;">xgettext</span>.</p>
+
+<pre class="prettyprint">
+xgettext --directory = src --output-dir = res/po --keyword = _ --keyword = N_ --keyword = elm_object_translatable_text_set:2 --keyword = elm_object_item_translatable_text_set:2 --add-comments = --from-code = utf-8 --foreign-use
+</pre>
+
+<p>This extracts all strings that are used inside the <span style="font-family: Courier New,Courier,monospace;">_()</span> function (as an optional short-hand for <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span>), use UTF-8 as the encoding and add the comments right before the strings to the output files).</p>
+
+<p>The following example is a typical call to <span style="font-family: Courier New,Courier,monospace;">msgmerge</span>.</p>
+
+<pre class="prettyprint">
+msgmerge --width=120 --update res/po/fr.po res/po/ref.pot
+</pre>
+
+<h3 id="tips" name="tips">Internationalization Tips</h3>
+
+<h4 id="assumptions" name="assumptions">Do Not Make Assumptions about Languages</h4>
+
+<p>Languages vary greatly and even if you knew several of them, do not assume there is any common logic to them.</p>
+
+<p>For example, with English typography, no character must appear before colons and semicolons (&#39;:&#39; and &#39;;&#39;). However, with French typography, there must be &quot;espace fine insécable&quot;, that is, a non-breakable space (HTML&#39;s &amp;nbsp;) that is narrower that regular spaces.</p>
+
+<p>This prevents proper translation in the following construct:</p>
+
+<pre class="prettyprint">
+snprintf(buf, some_size, &quot;%s: %s&quot;, i18n_get_text(error), i18n_get_text(reason));
+</pre>
+
+<p>The correct way to translate it is to use a single string and let the translators manage the punctuation. This means translating the format string instead:</p>
+
+<pre class="prettyprint">
+snprintf(buf, some_size, i18n_get_text(&quot;%s: %s&quot;), i18n_get_text(error), i18n_get_text(reason));
+</pre>
+
+<p>It is not always possible, but aim for this unless a specific issue arises.</p>
+
+<h4 id="length" name="length">Translations Are of Different Lengths</h4>
+<p>Depending on the language, the translation has a different length on screen. In some cases, a language has a shorter construct than another, while the situation is reversed in another case; a language may have a word for a specific concept, while another does not and requires a circumlocution (designating something by using several words).</p>
+
+<h4 id="source" name="source">For Source Control, Do Not Commit .po If Only Line Indicators Have Changed</h4>
+
+<p>From the example above, a translation block looks like:</p>
+
+<pre class="prettyprint">
+#: some_file.c:43 another_file.c:41
+msgid &quot;Click Here&quot;
+msgstr &quot;Cliquez ici&quot;
+</pre>
+
+<p>In case you insert a new line at the top of &quot;some_file.c&quot;, the line indicator changes to look like this:</p>
+
+<pre class="prettyprint">
+#: some_file.c:44 another_file.c:41
+</pre>
+
+<p>Obviously, on non-trivial projects, such changes often happen. If you use source control and commit such changes even though no actual translation change has happened, each commit probably contains a change to .po files. This hampers readability of the change history, and in case several people are working in parallel and need to merge their changes, this creates huge merge conflicts each time.</p>
+
+<p>Only commit changes to .po files when there are actual translation changes, not because line comments have changed.</p>
+
+<h4 id="shorthand" name="shorthand">Using <span style="font-family: Courier New,Courier,monospace;">_()</span> as Shorthand to the <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span> Function</h4>
+
+<p>Since calling <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span> may often happen, it is abbreviated to <span style="font-family: Courier New,Courier,monospace;">_()</span>. The Tizen SDK provides this abbreviation by default.</p>
+
+<h4 id="sorting" name="sorting">Proper Sorting: <span style="font-family: Courier New,Courier,monospace;">strcoll()</span></h4>
+<p>There is a string comparison tailored for sorting data for display: <span style="font-family: Courier New,Courier,monospace;">strcoll()</span>. It works the same way as <span style="font-family: Courier New,Courier,monospace;">strcmp()</span> but sorts the data according to the current locale settings.</p>
+
+<pre class="prettyprint">
+int strcmp(const char *s1, const char *s2);
+int strcoll(const char *s1, const char *s2);
+</pre>
+
+<p>The function prototype is a standard one and indicates how to order strings. A detailed explanation is out of scope for this guide, but use the <span style="font-family: Courier New,Courier,monospace;">strcoll()</span> function as the comparison function for sorting the data set you are using.</p>
+
+<h4 id="translators" name="translators">Working with Translators</h4>
+<p>The system described above is a common one and is likely to be known to translators, meaning that giving its name (<span style="font-family: Courier New,Courier,monospace;">gettext</span>) may be enough to explain how it works. In addition to this documentation, there is extensive additional documentation as well as questions and answers on the topic in the Internet.</p>
+
+<p>Do not hesitate to put comments in your code above the strings to be translated, since they can be extracted along with the strings and saved in the .po files for the translator to see them.</p>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>	

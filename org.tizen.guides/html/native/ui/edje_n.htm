@@ -1,0 +1,769 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Edje</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+	<p class="toc-title">Content</p>
+		<ul class="toc">	
+			<li><a href="#Concepts">Basic Concepts</a></li>
+			<li><a href="#Scalability">Scaling Objects</a></li>
+			<li><a href="#Swallow">Edje Swallow</a></li>
+			<li><a href="#Layout">ELM Layout</a></li>
+			<li><a href="#Reference">EDC Reference</a></li>
+			<li><a href="#Howtos">Quick How-tos</a></li>
+		</ul>
+		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.tutorials/html/native/ui/ui_tutorials_n.htm">UI Tutorials</a></li>	
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UI__FRAMEWORK.html">UI API</a></li>			
+			</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+
+  <h1>Edje</h1> 
+
+   
+   
+<p>This programming guide shows you how to write an EDC file that can be used to theme a Tizen application. It describes concepts about parts positioning and resizing. It also explains part animations that can be done through programs.</p>
+
+<h2 id="Concepts" name="Concepts">Basic Concepts</h2>
+
+<h3>What is an EDC File?</h3>
+
+<p>An EDC file stands for Edje data collection. It is a text file that contains special code format describing the position, size, and other parameters of graphical elements that compose the visual aspect of your application. In addition to graphical elements, it can also handle sounds.</p>
+
+<p>The syntax for the Edje data collection files follows a simple structure of &quot;blocks { .. }&quot; that can contain &quot;properties: ..&quot;, more blocks, or both.</p>
+
+<p>An EDC file has the &quot;.edc&quot; extension.</p>
+
+<h3>Compiling EDC File</h3>
+<p>EDC file needs to be compiled into a &quot;.edj&quot; file using Edje library tools. After compiling the &quot;.edj&quot; file can be used by a native Tizen application.</p>
+
+<p>Here is an example about compiling <span style="font-family: Courier New,Courier,monospace;">helloworld.edc</span> to &quot;.edj&quot; file using <span style="font-family: Courier New,Courier,monospace;">edje_cc tool</span>: </p>
+
+<pre class="prettyprint">
+$ edje_cc helloworld.edc
+</pre>
+
+<p>This command creates a <span style="font-family: Courier New,Courier,monospace;">helloworld.edj</span> file.</p>
+
+<p>An EDC file can use external files such as sounds, images, or fonts. The path to these resources are passed to the <span style="font-family: Courier New,Courier,monospace;">edje_cc</span> tool so that they are included in the final &quot;.edj&quot; file. </p>
+
+<pre class="prettyprint">
+$ edje_cc -sd $SOUNDS_DIR -fd $FONTS_DIR -id $IMAGES_DIR
+</pre>
+
+<p><span style="font-family: Courier New,Courier,monospace;">SOUNDS_DIR</span>, <span style="font-family: Courier New,Courier,monospace;">FONTS_DIR</span>, and <span style="font-family: Courier New,Courier,monospace;">IMAGES_DIR</span> are the paths for sounds, fonts, and images resources respectively.</p>
+
+<p>Tizen SDK calls <span style="font-family: Courier New,Courier,monospace;">edje_cc</span> during the project building if it finds an EDC source file in the <span style="font-family: Courier New,Courier,monospace;">./res/edje/</span> directory.</p>
+
+<pre class="prettyprint">
+Building file: ../res/edje/helloworld.edc
+Invoking: EDC Resource Compiler
+edje_cc -sd ../res/sounds -fd ../res/fonts -id ../res/images ../res/edje/helloworld.edc ../res/edje/helloworld.edj
+</pre>
+
+
+<p>The Tizen SDK compilation log extract shows you that if your EDC file uses pictures, they must be copied to the <span style="font-family: Courier New,Courier,monospace;">./res/images</span> directory. fonts and sounds go to the <span style="font-family: Courier New,Courier,monospace;">./res/fonts</span> and <span style="font-family: Courier New,Courier,monospace;">./res/sounds</span> directory respectively. The SDK builds the <span style="font-family: Courier New,Courier,monospace;">helloworld.edj</span> file in the <span style="font-family: Courier New,Courier,monospace;">./res/edje/</span> folder.</p>
+
+<h3 id="simple_edc_file" name="simple_edc_file">Writing Simple EDC File </h3>
+<p>The code example below shows you the structure of an EDC file. It is a collection of groups that contain parts and programs.</p>
+
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;my_group&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts {}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;programs {}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>Groups are identified with a name, parts correspond to the graphical elements. Each one of them can have several states that describe a specific position, size, and visual aspect. Programs contain the program code, such as interaction with the main application through signals. Also animations are defined here (changing a part state using an animated transition).</p>
+
+<p>The description field is where the state of a part is written.</p>
+
+<pre class="prettyprint">
+part
+{
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;state1&quot; 0.0;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;state2&quot; 0.0;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>As an example, here is a simple EDC file that contains only one part and one program. The part is a rectangle with blue state and red state, the program changes the state from blue to red when user clicks on the rectangle.</p>
+
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;example&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// create the part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;rectangle&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set the type to RECT (rectangle)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// default state (blue color)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// blue color
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 255 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// second state (red color)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;red&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// red color
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 255 0 0 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;programs 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// create a program
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;program 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;change_color&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// program is triggered on mouse click
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signal: &quot;mouse,clicked,*&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;source: &quot;*&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set the red state of the &quot;rectangle&quot; part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;red&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target: &quot;rectangle&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>A program is triggered when receiving a signal from a specific source (here all the sources are taken into account). When launched, it does the action (changing the state of a part) on the target (the rectangle).</p>
+
+<h3>Animating Theme Using Programs</h3>
+
+<p>The previous example showed how to change the state of a part. It is also possible to use the transition parameter to create an animation between the 2 states. You can specify a transition type (ACCELERATE, DECELERATE, SINUSOIDAL, LINEAR, ...) and length (in seconds) of the transition.</p>
+
+<p>The following code example animates the previous state change using a linear transition of 2 seconds.</p>
+
+<pre class="prettyprint">
+programs 
+{
+&nbsp;&nbsp;&nbsp;program 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;change_color&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signal: &quot;mouse,clicked,*&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;source: &quot;*&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;red&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target: &quot;rectangle&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;transition: LINEAR 2.0;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>Edje calculates all frames needed for the animation. The result is a smooth animation between the two states and it takes 2 seconds.</p>
+
+<h3>Positioning Basic Parts</h3>
+
+<p>Size of a part (in pixels) is set using the min and max parameters. The following code example sets the minimum and maximum size of the rectangle part to 200x200 px.</p>
+
+<pre class="prettyprint">
+part 
+{ 
+&nbsp;&nbsp;&nbsp;name: &quot;rectangle&quot;;
+&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;blue&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set the size to 200x200
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 200 200;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max: 200 200;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// blue color
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 255 255;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>Position of the parts is defined in the <span style="font-family: Courier New,Courier,monospace;">rel1</span> and <span style="font-family: Courier New,Courier,monospace;">rel2</span> blocks. <span style="font-family: Courier New,Courier,monospace;">rel1</span> and <span style="font-family: Courier New,Courier,monospace;">rel2</span> blocks are used to define respectively the upper-left corner and the lower-right corner of the part. Position can be defined relatively to other parts (with the relative parameter) as an offset (offset parameter). When using relative positioning, the <span style="font-family: Courier New,Courier,monospace;">to</span>, <span style="font-family: Courier New,Courier,monospace;">to_x</span> and <span style="font-family: Courier New,Courier,monospace;">to_y</span> parameters are used to define to which part the relative positioning is done. If nothing else is specified, the positioning is relative to the parent&#39;s part.</p>
+
+<p>To demonstrate the relative positioning, here is a code example that creates another part and positions it under the first part (the upper-left corner of the new part will start at the lower-left corner of the previous one).</p>
+
+<pre class="prettyprint">
+part 
+{ 
+&nbsp;&nbsp;&nbsp;name: &quot;rectangle2&quot;;
+&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;green&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set the size to 200x200
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 200 200;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max: 200 200;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// green color
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 255 0 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set the position
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// rel1 is relative to &quot;rectangle&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 0.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to: &quot;rectangle&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// rel2 is relative to the parent
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">The <span style="font-family: Courier New,Courier,monospace;">align</span> parameter defines how the parts align themselves in the main window if their size is smaller than the main window. If nothing is specified, the parts are aligned in the center of the window.</td>
+</tr>
+</tbody>
+</table> 
+
+<h3>Adding Offset to Relative Positioning</h3>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">rel1</span> and <span style="font-family: Courier New,Courier,monospace;">rel2</span> structures also support offset which is a complement to the relative positioning: the corners are first placed according to their relative parameters and then adjusted using the offsets.</p>
+
+<p>The picture below shows the pixel positions for a 4x4 rectangle. The indices start in the top-left corner at (0, 0) increase to the right and to the bottom. Since the indices have started at 0, the 4th pixel has an index of 3.</p>
+
+<p>Therefore, in order to create a 2x2 blue rectangle centered inside that green square, the top-left corner has to be (1, 1) and the bottom-right one has to be (2, 2).</p>
+
+<p class="figure">Figure: Offset indices</p> 
+<p style="text-align:center;"><img alt="Offset indices" src="../../images/rel1_rel2_offsets.png" /></p> 
+
+<p>Edje needs the following things defined:</p>
+<ul>
+<li>the part coordinates depending on the size and position of the green rectangle</li>
+<li>the relative component of positions is the same: the top-left corner of the green rectangle</li>
+<li>the top-left pixel is (1, 1) and the bottom-right one is (2, 2)</li>
+</ul>
+
+<p>The following code example defines these things: </p>
+
+<pre class="prettyprint">
+name: &quot;blue rectangle&quot;;
+
+rel1.to: &quot;green rectangle&quot;;
+rel1.relative: 0 0;
+rel1.offset: 1 1;
+
+rel2.to: &quot;green rectangle&quot;;
+rel2.relative: 0 0;
+rel2.offset: 2 2;
+</pre>
+
+<p>For most tasks, relative positioning is simpler than using offsets. Offsets are usually left for fine-tuning and creating borders. </p>
+
+<p>The example below is similar to the previous one but uses relative positioning instead of offsets to achieve an equivalent at 4x4 but could scale to larger sizes. </p>
+
+<p>The blue square starts at 25% of the green square (both vertically and horizontally) and ends at 75% of it (again, both vertically and horizontally). </p>
+
+<p>Just like in the previous example, the blue rectangle is named and Edje is told what the object of reference is: </p>
+
+<pre class="prettyprint">
+name: &quot;blue rectangle&quot;;
+rel1.to: &quot;green rectangle&quot;;
+rel2.to: &quot;green rectangle&quot;;
+</pre>
+
+<p>The image below shows how to refer pixels using relative positioning when the offsets are (0, 0).</p>
+
+<p class="figure">Figure: Relative positioning</p> 
+<p style="text-align:center;"><img alt="Relative positioning" src="../../images/rel1_rel2_offsets_and_relative.png" /></p> 
+
+<p>Note the addressing of pixels: (0, 0) is addressed through <span style="font-family: Courier New,Courier,monospace;">relative: 0 0; offset 0 0;</span> and each additional 0.25 in the relative field gives a 1-pixel move. With this, the pixel addressed through <span style="font-family: Courier New,Courier,monospace;">relative: 0.75 0.75; offset: 0 0;</span> is at (3, 3) and not (2, 2)!.</p>
+
+<p>This comes from a design choice in Evas and Edje which favor simplicity. In the examples shown in this guide, there are 4 pixels and therefore when the <span style="font-family: Courier New,Courier,monospace;">[0; 1)</span> range is divided in 4, the result is <span style="font-family: Courier New,Courier,monospace;">[0; 0.25), [0.25; 0.50), [0.50; 0.75), [0.75; 0.100)</span>. With Edje, the value used to refer to each segment is the left bound and therefore, 0.75 refers to <span style="font-family: Courier New,Courier,monospace;">[0.75; 0.100)</span>, i.e. the bottom-right pixel of the green rectangle and not the 3/4th one.</p>
+
+<p>The way to refer to the pixel right before is to set the <span style="font-family: Courier New,Courier,monospace;">rel2</span> bound to <span style="font-family: Courier New,Courier,monospace;">relative: 0.75 0.75;</span>, as would be expressed naturally, and <span style="font-family: Courier New,Courier,monospace;">offset: -1 -1;</span>. This can also be understood as extending the rectangle up to 75% of its parent with the upper bound excluded (as shown in the <span style="font-family: Courier New,Courier,monospace;">[0.50; 0.75)</span>).</p>
+
+<p>Since <span style="font-family: Courier New,Courier,monospace;">-1 -1</span> is the most common offset wanted for <span style="font-family: Courier New,Courier,monospace;">rel2</span>, it is the default value; i.e. the default behavior is practical.</p>
+
+<h3>Calculating Edje Object Total Size</h3>
+
+<p>When the EDC file is composed of a lot of parts, Edje calculates the size of the global Edje object, by taking all the parts and their parameters into account. Some parameters have an role in this calculation and affect the global size:</p>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">min</span> and <span style="font-family: Courier New,Courier,monospace;">max</span>: these define the minimum and the maximum size of a part.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">rel1</span> and <span style="font-family: Courier New,Courier,monospace;">rel2</span>: these specify the relative position of a part.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">align</span>: this relates to the alignment of the part in the parent&#39;s object.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">fixed</span>: this defines if the part has a fixed size.</li>
+</ul>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note"><span style="font-family: Courier New,Courier,monospace;">fixed</span> parameter can only be used on <span style="font-family: Courier New,Courier,monospace;">TEXTBLOCK</span> type parts. Setting this parameter to <span style="font-family: Courier New,Courier,monospace;">fixed: 1 1</span> will not take into account the part for the calculation of the global size.</td>
+</tr>
+</tbody>
+</table> 
+
+<h3>Using Edje Size Hints</h3>
+
+<p>Any <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> can have hints, so that the object knows how to properly position and resize. Edje uses these hints when swallowing an <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> to position and resize it in the <span style="font-family: Courier New,Courier,monospace;">SWALLOW</span> part of the EDC file.</p>
+
+<p>Size hints are not a size enforcement, they just tell the parent object the desired size for this object. Then, the parent tries to get as close as possible to the hint.</p>
+
+<p>Hints are set in an <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> using the <span style="font-family: Courier New,Courier,monospace;">evas_object_size_hint_*()</span> functions.</p>
+
+<h4 id="min_size_hint" name="min_size_hint">Min Size Hint</h4>
+
+<p>This sets the hints for the object&#39;s minimum size, given in pixels.</p>
+
+<p>Here the horizontal and vertical min size hints of an <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> are set to 0 pixels.</p>
+
+<pre class="prettyprint">
+Evas_Object *object;
+evas_object_size_hint_min_set(object, 0, 0);
+</pre>
+
+<h4>Max Size Hint</h4>
+
+<p>This sets the hints for the object&#39;s maximum size, given in pixels.</p>
+
+<p>Here the horizontal and vertical max size hints of an <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> are set to 200 pixels.</p>
+<pre class="prettyprint">evas_object_size_hint_max_set(object, 200, 200);</pre>
+
+<h4>Request Size Hint</h4>
+
+<p>This sets the hints for the object&#39;s optimum size.</p>
+
+<p>The following code example defines that the optimum size of a part is 200x200 pixels.</p>
+
+<pre class="prettyprint">
+evas_object_size_hint_request_set(object, 200, 200);
+</pre>
+
+<h4>Aspect Size Hint</h4>
+
+<p>This sets the hints for the object&#39;s aspect ratio. Available aspect size hints are:</p>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_ASPECT_CONTROL_NONE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_ASPECT_CONTROL_HORIZONTAL</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_ASPECT_CONTROL_VERTICAL</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_ASPECT_CONTROL_BOTH</span></li>
+</ul>
+
+<p>The other parameters are aspect width and height ratio. These integers are used to calculate the proportions of the object. If aspect ratio terms are null, the object&#39;s container ignores the aspect and scale of the object and occupies the whole available area.</p>
+
+<p class="figure">Figure: Aspect control</p> 
+<p style="text-align:center;"><img alt="Aspect control" src="../../images/aspect-control-none.png" /></p> 
+ 
+<p style="text-align:center;"><img alt="Aspect control" src="../../images/aspect-control-horizontal.png" /></p> 
+
+<p style="text-align:center;"><img alt="Aspect control" src="../../images/aspect-control-both.png" /></p> 
+
+<p>The following code example sets the aspect size hint to <span style="font-family: Courier New,Courier,monospace;">EVAS_ASPECT_CONTROL_BOTH</span> with a width of 100 and a height of 200. So aspect ratio should be 1/2.</p>
+
+<pre class="prettyprint">
+evas_object_size_hint_aspect_set(object, EVAS_ASPECT_CONTROL_BOTH, 100, 200);
+</pre>
+
+<h4 id="align_size_hint" name="align_size_hint">Align Size Hint</h4>
+<p>This sets the hints for the object&#39;s alignment. This hint is used when the object size is smaller than its parent&#39;s. The special <span style="font-family: Courier New,Courier,monospace;">EVAS_HINT_FILL</span> parameter uses maximum size hints with higher priority, if they are set. Also, any padding hints set on objects are added up to the alignment space on the final scene composition.</p>
+
+<p class="figure">Figure: Alignment</p> 
+<p style="text-align:center;"><img alt="Alignment" src="../../images/align_hints.png" /></p> 
+
+<p>In the code below, the special <span style="font-family: Courier New,Courier,monospace;">EVAS_HINT_FILL</span> parameter is used.</p>
+
+<pre class="prettyprint">
+evas_object_size_hint_align_set(object, EVAS_HINT_FILL, EVAS_HINT_FILL);
+</pre>
+
+<h4>Weight Size Hint</h4>
+
+<p>This sets the hints for the object&#39;s weight. The weight tells to a container object how the given child is resized. Using <span style="font-family: Courier New,Courier,monospace;">EVAS_HINT_EXPAND</span> parameter asks to expand the child object&#39;s dimensions to fit the container&#39;s own.</p> 
+
+<p>When several child objects have different weights in a container object, the container distributes the space it has to layout them by those factors. Most weighted children get larger in this process than the least ones.</p> 
+
+<p>Here the container is asked to expand the object in both directions.</p> 
+
+<pre class="prettyprint">
+evas_object_size_hint_weight_set(object, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+</pre>
+
+<h4>Padding Size Hint</h4>
+
+<p>This sets the hints for the object&#39;s padding space. Padding is extra space an object takes on each of its delimiting rectangle sides. The padding space is rendered transparent. Four hints can be defined, for the left, right, top, and bottom padding.</p>
+
+<p class="figure">Figure: Padding</p> 
+<p style="text-align:center;"><img alt="Padding" src="../../images/padding-hints.png" /></p> 
+
+<p>Here the padding hints are set to 5 pixels on each side of the object.</p>
+
+<pre class="prettyprint">
+evas_object_size_hint_padding_set(object, 5, 5, 5, 5);
+</pre>
+
+<h2 id="Scalability" name="Scalability">Scaling Objects</h2>
+
+<h3>Part Scaling</h3>
+
+<p>When scaling an Edje object, only the parts that are declared scalable in the EDC file follow the scale request. This is done using the &quot;scale&quot; parameter.</p>
+
+<p>As an example, the previous &quot;rectangle2&quot; part is set as scalable, so that it is scaled when the Edje object is scaled.</p>
+
+<pre class="prettyprint">
+part 
+{ 
+&nbsp;&nbsp;&nbsp;name: &quot;rectangle2&quot;;
+&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;green&quot; 0.0;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h3>Using Image Set</h3>
+
+<p>When using images in the Edje EDC file, image file names must be listed in a images block, so that Edje can use them in the theme. In this block, the compression level and compression method of the image can also be defined.</p>
+
+<p>Here is an example of an images block that lists two image files.</p>
+
+<pre class="prettyprint">
+images 
+{
+&nbsp;&nbsp;&nbsp;image: &quot;image1.jpg&quot; COMP;
+&nbsp;&nbsp;&nbsp;image: &quot;image2.png&quot; LOSSY 99;
+}
+</pre>
+
+<p>As the devicescan have different screen sizes and resolutions, it is possible to define that the used image set depends on the resolution.</p>
+
+<p>In the example below the image named &quot;image3&quot; selects different files depending on image size.</p>
+
+<pre class="prettyprint">
+images 
+{
+&nbsp;&nbsp;&nbsp;set 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;image3&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;image3_1.png&quot; LOSSY 90;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 0 0 50 50;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;image3_2.png&quot; LOSSY 90;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 51 51 200 200;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;image3_3.png&quot; LOSSY 90;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 201 201 500 500;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>This is done with the &quot;size&quot; attribute that specifies the minimal width and height and maximal width and height. If the width and height of the object are below 50px, <span style="font-family: Courier New,Courier,monospace;">image3_1.png</span> picture file is used. If they are bigger than 201px, <span style="font-family: Courier New,Courier,monospace;">image3_3.png</span> file is used.</p>
+
+<h3>Resizing Borders</h3>
+
+<p>Sometimes it is needed to keep the borders of an image intact when resizing or scaling it. The <span style="font-family: Courier New,Courier,monospace;">border</span> attribute is here to do that.</p>
+
+<pre class="prettyprint">
+border [left] [right] [top] [bottom]
+</pre>
+
+<p>If set, the area (in pixels) of each side of the image is displayed as a fixed size border, from the side -&gt; inwards. This prevents the corners from being changed on a resize.</p>
+
+<p>Here is a code example how to set a border of 10px on each side of the image. This 10px border will not be resized when scaling the image.</p>
+
+<pre class="prettyprint">
+part 
+{ 
+&nbsp;&nbsp;&nbsp;name: &quot;image_border&quot;;
+&nbsp;&nbsp;&nbsp;type: IMAGE;
+&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normal: &quot;image1.jpg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;border: 10 10 10 10;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h2 id="Swallow" name="Swallow">Edje Swallow </h2>
+
+<p>The parent of all layout widgets is Edje. Edje as explained in the <a href="edc_part_block_n.htm#edje_block">Edje Blocks</a> is a library which convert edc files into Evas object. EDC is a description language. It means that the objects of interface are described by using text description. One of its main features is the possibility to create &quot;Swallows&quot; objects. When this kind of object is added in an Evas, it contains any other <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span>. To create a swallow part, create first the EDC file: </p>
+
+<pre class="prettyprint">
+collections
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;container&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;part.swallow&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.offset: 31 31;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.offset: -32 -32;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>This EDC describes a group named &quot;container&quot;, with one part inside of type SWALLOW and with the name <span style="font-family: Courier New,Courier,monospace;">part.swallow</span>. This part is centered inside the parent (it is the default behavior) but there are 32 pixels free all around this part. Use <span style="font-family: Courier New,Courier,monospace;">edje_cc</span> to compile the EDC file into a binary EDJ file: </p>
+
+<pre class="prettyprint">
+edje_cc -o container.edj container.edc
+</pre>
+
+<p>Create an Edje object and load this file: </p>
+
+<pre class="prettyprint">
+edje = edje_object_add(evas_object_evas_get(parent));
+edje_object_file_set(edje, &quot;container.edj&quot;, &quot;container&quot;);
+</pre>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note"><span style="font-family: Courier New,Courier,monospace;">edje_object_add</span> as opposed as all elementary object, does not take an <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> as a parent. Give it the Evas on which the object is added. As the parent is already added on an Evas by elementary, retrieve a reference on it by using the <span style="font-family: Courier New,Courier,monospace;">evas_object_evas_get</span> API.</td>
+</tr>
+</tbody>
+</table> 
+
+<p><span style="font-family: Courier New,Courier,monospace;">edje_object_file_set</span> is used to set the Edje file from which the object is loaded. The object itself is the name of the group as defined in the EDC file, in this case it is &quot;container&quot;.</p>
+
+<p>Use the API <span style="font-family: Courier New,Courier,monospace;">edje_object_swallow</span> to swallow any kind of <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> inside. </p>
+
+<pre class="prettyprint">
+ic = elm_icon_add(parent);
+elm_image_file_set(ic, &quot;c1.png&quot;, NULL);
+edje_object_part_swallow(edje, &quot;part.swallow&quot;, ic);
+</pre>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">The <span style="font-family: Courier New,Courier,monospace;">elm_image_file_set()</span> function parameters are linked to Edje. The second argument in this example is a PNG file; however, it can also be an Edje file. In that case, the third argument must be the Edje group to load, exactly as previously shown with the <span style="font-family: Courier New,Courier,monospace;">edje_object_file_set()</span> function.</td>
+</tr>
+</tbody>
+</table> 
+
+<p>Create complex layout for your application with Edje. It is may not be the most easy way, but it is the most powerful. This Edje layout is used all around elementary and is the basis of the layout widget.</p>
+
+<h2 id="Layout" name="Layout">ELM Layout</h2>
+
+<p>Layout is a container widget. The basic use of <span style="font-family: Courier New,Courier,monospace;">elm_layout</span>, with default style is already documented in the <a href="ui_control_n.htm#containers">Container Widgets</a> guide. Elm layout takes a standard Edje design file and wraps it in a widget. Layouts are the basis of graphical widgets which are used in Elementary.</p>
+
+<h3>Adding Layout</h3>
+
+<p>Create a new elementary layout using <span style="font-family: Courier New,Courier,monospace;">elm_layout_add</span>: </p>
+
+<pre class="prettyprint">
+Evas_Object *layout;
+layout = elm_layout_add(parent);
+</pre>
+
+<p>As for Edje swallows, load an Edje file. Create first an Edje file, that contains a black rectangle and an icon in the center. </p>
+
+<pre class="prettyprint">
+images
+{
+&nbsp;&nbsp;&nbsp;image: &quot;c1.png&quot; COMP;
+}
+
+collections
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;my_layout&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;background&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT; description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0; color: 0 0 0 255; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;background&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: IMAGE; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.offset: 31 31; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.offset: -32 -32; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default.image: &quot;c1.png&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;} 
+}
+</pre>
+<p>Compile it with <span style="font-family: Courier New,Courier,monospace;">edje_cc -o edje_example.edj edje_example.edc</span>.</p>
+<p>This file can be loaded with <span style="font-family: Courier New,Courier,monospace;">elm_layout_file_set</span>: </p>
+
+<pre class="prettyprint">
+elm_layout_file_set(layout, &quot;edje_example.edj&quot;, &quot;my_layout&quot;);
+</pre>
+
+<p>The layout widget may contain as many parts/children as described in its theme file (EDC). Some of these children can have special types:</p>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">SWALLOW</span> (content holder)</li>
+<li><span style="font-family: Courier New,Courier,monospace;">BOX</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">TABLE</span></li>
+</ul>
+
+<p>Only one object can be added to a <span style="font-family: Courier New,Courier,monospace;">SWALLOW</span>. The <span style="font-family: Courier New,Courier,monospace;">elm_layout_content_set()/get/unset</span> functions are used to manage objects in a <span style="font-family: Courier New,Courier,monospace;">SWALLOW</span> part. After being set to this part, the object&#39;s size, position, visibility, clipping and other description properties are controlled by the description of the given part (inside the Edje theme file).</p>
+
+<p>The BOX layout can be used through the <span style="font-family: Courier New,Courier,monospace;">elm_layout_box_*()</span> set of functions. It is very similar to the <span style="font-family: Courier New,Courier,monospace;">elm_box</span> widget but the BOX layout&#39;s behavior is completely controlled by the Edje theme. The TABLE layout is like the BOX layout, the difference is that it is used through the <span style="font-family: Courier New,Courier,monospace;">elm_layout_table_*()</span> set of functions.</p>
+
+<h3>Signals</h3>
+<p>Elm can send Edje signals to the EDC part by using the <span style="font-family: Courier New,Courier,monospace;">elm_layout_signal_emit</span>. You can also use <span style="font-family: Courier New,Courier,monospace;">elm_layout_signal_callback_add</span> to receive signals.</p>
+
+<p>Use the following code to listen to any signals sent by the layout: </p>
+
+<pre class="prettyprint">
+elm_layout_signal_callback_add(layout, &quot;*&quot;, &quot;*&quot;, _signal_cb, NULL);
+
+static void _signal_cb(void *data, Evas_Object *obj, const char *emission, const char *source)
+{
+&nbsp;&nbsp;&nbsp;printf(&quot;Info received from layout : %s %s\n&quot;, emission, source);
+}
+</pre>
+
+<p>For more details on this, see the <a href="event_types_n.htm#events_guide_edje_with_layout">section on edje signals and layouts</a>.</p>
+
+<h2 id="Reference" name="Reference">EDC Reference</h2>
+
+<p>The documentation includes <a href="edc_part_block_n.htm#edje_block">an extensive language reference</a>. You can also access the page on the <a href="edc_part_block_n.htm#part_block">part block</a> directly.</p>
+
+<h2 id="Howtos" name="Howtos">Quick How-tos</h2>
+
+<h3>Adding Element on Screen</h3>
+<p>Add a new <a href="edc_part_block_n.htm#part_block">part</a> inside the <a href="edc_part_block_n.htm#Parts">parts block</a>.</p>
+
+<h3>Using Image </h3>
+<p>List the image in the <a href="edc_part_block_n.htm#Images">images block</a>, make sure the <a href="edc_part_block_n.htm#part_block">part</a> has <a href="edc_part_block_n.htm#type">type</a> &quot;IMAGE&quot; and set the <a href="edc_part_block_n.htm#description_image_normal">normal</a> property inside <a href="edc_part_block_n.htm#description_image">description.image</a> of part.</p>
+
+<h3>Using Same Color Definitions Across Multiple Elements</h3>
+<p>Define a <a href="edc_part_block_n.htm#Color_classes">color class</a> and set the <a href="edc_part_block_n.htm#description_color_class">description.color_class</a> property.</p>
+
+<h3>Positioning or Resizing a Part (Relative and Absolute Positioning)</h3>
+<p>Fill in the <a href="edc_part_block_n.htm#description_rel1_2">rel1 and rel2</a> structures inside the <a href="edc_part_block_n.htm#description">description block</a>.</p>
+
+<h3>Hiding Part</h3>
+<p>Set the <a href="edc_part_block_n.htm#description_visible">visible property</a> to 0.</p>
+
+<h3>Animating Part</h3>
+<p>Create several <a href="edc_part_block_n.htm#description">description blocks</a> inside your <a href="edc_part_block_n.htm#part_block">part</a> and give each of them a different value for <a href="edc_part_block_n.htm#description_state">state</a>. Set one description for the initial state and one for the end state.</p>
+
+<p>Create a <a href="edc_part_block_n.htm#program">program</a> with an <a href="edc_part_block_n.htm#action">action</a> that is <span style="font-family: Courier New,Courier,monospace;">STATE_SET &quot;end_state&quot; 0.0;</span> and with a <a href="edc_part_block_n.htm#target">target</a> that is the <a href="edc_part_block_n.htm#part_name">name</a> of the part. You can also set a non-default <a href="edc_part_block_n.htm#transition">transition</a>.</p>
+
+<p>When defining the second <a href="edc_part_block_n.htm#description">description</a>, <a href="edc_part_block_n.htm#description_inherit">inherit</a> from the first part in order to re-use the values which are already defined.</p>
+
+<p>The <a href="edc_part_block_n.htm#after">after</a> property of the <a href="edc_part_block_n.htm#program">program block</a> is used to trigger another program after the animation is done. It can be used to trigger another animation or to emit a signal to the C part of the program.</p>
+
+<h3>Making Genlist Item Theme</h3>
+<p>Create a <a href="edc_part_block_n.htm#group_block">group</a> with one <a href="edc_part_block_n.htm#part">part element</a> for each part that can be filed from the C code and set the <a href="edc_part_block_n.htm#Items">items properties</a> inside the <a href="edc_part_block_n.htm#group_block">group element</a>: </p>
+
+<pre class="prettyprint">
+items: &quot;texts&quot; &quot;text_part_1 text_part_2&quot;;
+items: &quot;icons&quot; &quot;image_part_1 image_part_2&quot;;
+</pre>
+<p>On the C side, the <span style="font-family: Courier New,Courier,monospace;">text_get</span> and <span style="font-family: Courier New,Courier,monospace;">content_get</span> callback are called respectively with <span style="font-family: Courier New,Courier,monospace;">text_part_1</span> and <span style="font-family: Courier New,Courier,monospace;">text_part_2</span>, and <span style="font-family: Courier New,Courier,monospace;">image_part_1</span> and <span style="font-family: Courier New,Courier,monospace;">image_part_2</span>. </p>
+  
+  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer"> 
+<p class="footer">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p> 
+</div> 
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

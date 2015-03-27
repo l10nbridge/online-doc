@@ -1,0 +1,158 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Evas: Creating and Managing Image Objects</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/><br/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#manage" class="opensection">Managing Images</a></li>
+		</ul>		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/ui/evas_n.htm">Evas Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Evas.html">Evas API</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Evas: Creating and Managing Image Objects</h1>
+<div class="cont"><div class="static-cont">
+
+<p>This tutorial demonstrates how you can create and manage image objects.</p>
+ 
+
+<h2>Warm-up</h2>
+<p>Become familiar with the Evas API basics by learning about:</p>
+<ul>
+<li><a href="#manage">Managing Images</a>
+<p>Manage image objects, for example, by scaling and improving their performance.</p></li>
+
+</ul>
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+	<!-- Folds -->
+	<ul class="devicespecifications">
+	
+	<li>
+			<div class="devicespec-tit">
+				<h2 id="manage" name="manage" class="items-tit-h2">Managing Images</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To manage image objects in Evas:</p>
+
+<ul class="ul">
+<li>Limit visibility.
+<p>Evas always supports the image file type it was compiled with. Check your software packager for the information and use the <span style="font-family: Courier New,Courier,monospace;">evas_object_image_extension_can_load_get()</span> function.</p>
+
+<p>Create the image object. Set a source file on it, so that the object knows where to fetch the image data.</p>
+<p>Define how to fill the image object area with the given pixel data. You can use a sub-region of the original image, or have it tiled repeatedly on the image object.</p>
+
+<pre class="prettyprint">
+img = evas_object_image_add(canvas);
+evas_object_image_file_set(img, &quot;path/to/img&quot;, NULL);
+evas_object_image_fill_set(img, 0, 0, w, h);
+</pre>
+
+
+<p>If the entire source image is to be displayed on the image object, stretched to the destination size, use the <span style="font-family: Courier New,Courier,monospace;">evas_object_image_filled_set()</span> function helper that you can use instead of the <span style="font-family: Courier New,Courier,monospace;">evas_object_image_fill_set()</span> function:</p>
+
+<pre class="prettyprint">
+evas_object_image_filled_set(img, EINA_TRUE);
+</pre>
+</li>
+
+<li>Scale image objects.
+<p>Resizing image objects scales the source images to the image object size, if the source images are set to fill the object area using the <span style="font-family: Courier New,Courier,monospace;">evas_object_image_filled_set()</span> function.</p>
+<p>Control the aspect ratio of an image for different sizes with functions to load images scaled up or down in memory.</p>
+
+<p>Evas has a scale cache, which caches scaled versions of images used often. You can also have Evas rescale the images smoothly, however, that is computationally expensive.</p>
+</li>
+
+<li>Give performance hints.
+<p>In image viewer applications, you can display an image in full size. The navigation to the adjacent images on your album must be fluid and fast. Thus, while displaying a given image, the program can load the next and previous image in the background to be able to immediately repaint the screen with a new image.</p>
+
+<p>Evas addresses this issue with image preloading:</p>
+
+<pre class="prettyprint">
+prev = evas_object_image_filled_add(canvas);
+evas_object_image_file_set(prev, &quot;/path/to/prev&quot;, NULL);
+evas_object_image_preload(prev, EINA_TRUE);
+next = evas_object_image_filled_add(canvas);
+evas_object_image_file_set(next, &quot;/path/to/next&quot;, NULL);
+evas_object_image_preload(next, EINA_TRUE);
+</pre>
+
+<p>If you are loading an image which is too big, set its loading size smaller.</p>
+
+<p>Load a scaled down version of the image in the memory if that is the size you are displaying (this can speed up the loading considerably):</p>
+<pre class="prettyprint">evas_object_image_load_scale_down_set(img, zoom);</pre>
+<p>If you know you are showing a sub-set of the image pixels, you can avoid loading the complementary data:</p>
+<pre class="prettyprint">evas_object_image_load_region_set(img, x, y, w, h);
+</pre>
+</li>
+
+<li>Specify borders.
+<p>With Evas, you can specify image margins to be treated as borders. The margins then maintain their aspects when the image is resized. This makes setting frames around other UI objects easier. The following figure illustrates the border behavior, when the image is resized.</p>
+
+<p class="figure">Figure: Borders in Evas</p> 
+<p style="text-align:center;"><img alt="Borders in Evas" src="../../images/9patch.png" /></p> 
+
+</li>
+</ul>
+
+			</div>
+		</li>
+
+	</ul>	
+</div>				
+</div>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

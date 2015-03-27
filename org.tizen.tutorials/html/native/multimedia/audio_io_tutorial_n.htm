@@ -1,0 +1,391 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>Audio I/O: Recording from the Audio Device and Playing Raw Audio Data</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a class="opensection" href="#init">Initializing the Audio Devices</a></li>
+			<li><a class="opensection" href="#simple">Managing Simple Recording and Playback</a></li>
+			<li><a class="opensection" href="#async">Managing Asynchronous Recording and Playback</a></li>
+			<li><a class="opensection" href="#release">Releasing Resources</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/multimedia/audio_io_n.htm">Audio I/O Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html">Audio I/O API</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__MODULE.html">Sound Manager API</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Audio I/O: Recording from the Audio Device and Playing Raw Audio Data</h1>
+  <div class="cont"><div class="static-cont">
+  
+<p>This tutorial demonstrates how you can control audio input and output to record, and play an audio sample.</p>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Audio I/O and Sound Manager API basics by learning about:</p>
+
+<ul>
+ <li><a class="opensection" href="#init">Initializing the Audio Devices</a>
+ <p>Initialize the audio input and output devices for use.</p></li>
+ <li><a class="opensection" href="#simple">Managing Simple Recording and Playback</a>
+  <p>Record an audio sample from the audio input device, play the recorded audio sample through the audio output device, and modify the volume in the recorded audio sample using a simple API.</p>
+ </li>
+ <li><a class="opensection" href="#async">Managing Asynchronous Recording and Playback</a>
+  <p>Record an audio sample from the audio input device, play the recorded audio sample through the audio output device, and modify the volume in the recorded audio sample using a low-latency API.</p>
+ </li>
+ <li><a class="opensection" href="#release">Releasing Resources</a>
+  <p>Finish all audio device operations.</p>
+ </li>
+</ul>
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+
+		<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="init" name="init" class="items-tit-h2">Initializing the Audio Devices</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con">
+
+<p>To initialize the audio devices for use:</p>
+<ol><li>
+<p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html">Audio I/O</a> and <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__MODULE.html">Sound Manager</a> APIs, include the <span style="font-family: Courier New,Courier,monospace">&lt;audio_io.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace">&lt;sound_manager.h&gt;</span> header files in your application:</p>
+<pre class="prettyprint">
+#include &lt;audio_io.h&gt;
+#include &lt;sound_manager.h&gt;
+</pre></li>
+<li><p>To initialize the audio input and output devices, use the <span style="font-family: Courier New,Courier,monospace">audio_in_create()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_create()</span> functions:</p>
+<pre class="prettyprint">#define SAMPLE_RATE 44100
+
+audio_in_h input; // Declare audio input handle
+audio_io_error_e ret;
+
+// Audio input device initialization
+ret = audio_in_create(SAMPLE_RATE, AUDIO_CHANNEL_MONO, AUDIO_SAMPLE_TYPE_S16_LE, &amp;input);
+
+audio_out_h output; // Declare audio output handle
+// Audio output device initialization
+ret = audio_out_create(SAMPLE_RATE, AUDIO_CHANNEL_MONO, AUDIO_SAMPLE_TYPE_S16_LE, SOUND_TYPE_SYSTEM, &amp;output);
+</pre>
+<p>The audio input and output devices support the channel types defined in the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga4e07ead99d581a0a049e8ee632b858b4">audio_channel_e</a> enumeration, and the sample types defined in the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga1e66f976b2890f5fc2e9e6ec71af7536">audio_sample_type_e</a> enumeration. Set the same channel and sample type for both devices.</p>
+
+<p>The sound type is defined in the <span style="font-family: Courier New,Courier,monospace">&lt;sound_manager.h&gt;</span> header file. You can select the sound type according to the audio sample type.</p></li></ol>
+   			</div>
+		</li>			
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="simple" name="simple" class="items-tit-h2">Managing Simple Recording and Playback</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<h3 id="prepare" name="prepare">Preparing the Audio Input and Output Devices</h3>
+
+<p>To prepare the audio input device for recording audio, use the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function. To prepare the audio output device for playing the recorded audio, use the <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> function.</p>
+
+<pre class="prettyprint">// Audio input prepare
+ret = audio_in_prepare(input);
+
+// Audio output prepare
+ret = audio_out_prepare(output);
+</pre>
+
+<h3 id="set" name="set">Creating an Audio Buffer</h3>
+
+<p>To create a buffer for storing the recorded audio:</p>
+
+<ol>
+
+<li>
+
+<p>Get the buffer size using the <span style="font-family: Courier New,Courier,monospace">audio_in_get_buffer_size()</span> function:</p>
+
+<pre class="prettyprint">int buffer_size;
+
+ret = audio_in_get_buffer_size(input, &amp;buffer_size);
+if (ret != AUDIO_IO_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return -1;
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">buffer_size</span> parameter returns the preferred size of the buffer based on the specified audio parameters.</p>
+
+</li>
+
+<li>
+
+<p>Allocate memory for the buffer using the <span style="font-family: Courier New,Courier,monospace">malloc()</span> function:</p>
+
+<pre class="prettyprint">void *buffer = malloc(buffer_size);</pre>
+
+</li>
+
+</ol>
+
+<p>Alternatively, create the buffer by explicitly calculating the buffer size:</p>
+
+<ol>
+
+<li>
+
+<p>Retrieve the audio channel type and audio sample type information using the <span style="font-family: Courier New,Courier,monospace">audio_in_get_channel()</span> and <span style="font-family: Courier New,Courier,monospace">audio_in_get_sample_type()</span> functions, respectively:</p>
+
+<pre class="prettyprint">audio_channel_e channel;
+// Retrieve audio channel type
+ret = audio_in_get_channel(input, &amp;channel);
+if (ret != AUDIO_IO_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return -1;
+}
+
+audio_sample_type_e sample_type;
+// Retrieve audio sample type
+ret = audio_in_get_sample_type(input, &amp;sample_type);
+if (ret != AUDIO_IO_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return -1;
+}</pre>
+
+</li>
+
+<li>
+
+<p>Calculate the buffer size based on the retrieved information, and allocate memory for the buffer using the <span style="font-family: Courier New,Courier,monospace">malloc()</span> function:</p>
+
+<pre class="prettyprint">buffer_size = 5* SAMPLE_RATE * (channel == AUDIO_CHANNEL_STEREO ? 2 : 1) * (sample_type == AUDIO_SAMPLE_TYPE_S16_LE ? 2 : 1);
+// Allocate memory using malloc
+buffer = malloc(buffer_size);</pre>
+
+</li>
+
+</ol>
+
+<h3 id="record" name="record">Recording and Playing an Audio Sample</h3>
+
+<p>To record and play an audio sample:</p>
+
+<ol><li><p>To record an audio sample to the buffer, use the <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> function:</p>
+
+<pre class="prettyprint">ret = audio_in_read(input, buffer, buffer_size);
+</pre></li>
+
+<li><p>To play the recorded audio sample from the buffer, use the <span style="font-family: Courier New,Courier,monospace">audio_out_write()</span> function:</p>
+
+<pre class="prettyprint">ret = audio_out_write(output, buffer, buffer_size);
+</pre></li>
+
+<li><p>To modify the volume of the audio sample playback:</p>
+
+<pre class="prettyprint">#include &lt;limits.h&gt;
+
+void modify_sound()
+{
+&nbsp;&nbsp;&nbsp;void *i = buffer;
+&nbsp;&nbsp;&nbsp;void *end = buffer + buffer_size;
+&nbsp;&nbsp;&nbsp;while (i &lt; (buffer+buffer_size))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (sample_type == AUDIO_SAMPLE_TYPE_S16_LE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Assume compiler&#39;s signed short is 2 bytes long
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signed short *value = (signed short*)i;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Get sample louder
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int tmp = (*value) * 8; // Why not 8 times louder? (on dB scale even much louder)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tmp &gt; MAX_SIGNED_SHORT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tmp = MAX_SIGNED_SHORT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tmp &lt; MIN_SIGHED_SHORT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tmp =  MIN_SIGHED_SHORT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*value) = tmp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *value = (char*)i;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Get sample louder
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int tmp = (*value) * 8; // Why not 8 times louder? (on dB scale even much louder)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tmp &gt; 255)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tmp = 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*value) = tmp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Go to next sample
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i += sample_type == AUDIO_SAMPLE_TYPE_S16_LE ? 2 : 1;
+&nbsp;&nbsp;&nbsp;}
+}</pre>
+
+<p>In this example, the volume is significantly increased. You can also make other modifications to the audio sample playback.</p></li></ol>
+   			</div>
+		</li>					
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="async" name="async" class="items-tit-h2">Managing Asynchronous Recording and Playback</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To manage asynchronous recording and playback:</p>
+
+<ol><li>Create audio callback functions:
+<ol><li>Create a callback function for recording:
+
+<pre class="prettyprint">FILE* fp_w = NULL;
+fp_w = fopen(&quot;/tmp/pcm_w.raw&quot;, &quot;w&quot;);
+
+void _audio_io_stream_read_cb(audio_in_h handle, size_t nbytes, void *userdata)
+{
+&nbsp;&nbsp;&nbsp;const void * buffer = NULL;
+
+&nbsp;&nbsp;&nbsp;if (nbytes &gt; 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Retrieve buffer pointer from audio in buffer
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;audio_in_peek(handle, &amp;buffer, &amp;nbytes);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fp_w) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fwrite(buffer, sizeof(char), nbytes, fp_w);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+		
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Remove audio in data from actual stream buffer
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;audio_in_drop(handle);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Create a callback function for playback:
+
+<pre class="prettyprint">FILE* fp_r = NULL;
+fp_r = fopen(&quot;/tmp/pcm.raw&quot;, &quot;r&quot;);
+
+void _audio_io_stream_write_cb(audio_out_h handle, size_t nbytes, void *userdata)
+{
+&nbsp;&nbsp;&nbsp;char* buffer = NULL;
+&nbsp;&nbsp;&nbsp;int ret = 0;
+
+&nbsp;&nbsp;&nbsp;if (nbytes &gt; 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buffer = malloc (nbytes);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memset(buffer, 0, nbytes);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = fread(buffer, 1, nbytes, fp_r);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = audio_out_write(handle, buffer, nbytes);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(ret &gt; AUDIO_IO_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free (buffer);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li></ol></li>
+
+<li>Set the audio callbacks:
+
+<ol><li><p>To set an input callback, use the <span style="font-family: Courier New,Courier,monospace">audio_in_set_stream_cb()</span> function:</p>
+
+<pre class="prettyprint">ret = audio_in_set_stream_cb(input, _audio_io_stream_read_cb, NULL);</pre></li>
+
+<li><p>To set an output callback, use the <span style="font-family: Courier New,Courier,monospace">audio_out_set_stream_cb()</span> function:</p>
+
+<pre class="prettyprint">ret = audio_out_set_stream_cb(output, _audio_io_stream_write_cb, NULL);</pre></li></ol></li>
+
+<li>Prepare the audio input and output devices
+
+<p>To prepare the audio input device for recording audio, use the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function. To prepare the audio output device for playing the recorded audio, use the <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> function.</p>
+
+<pre class="prettyprint">// Audio input prepare
+ret = audio_in_prepare(input);
+
+// Audio output prepare
+ret = audio_out_prepare(output);
+</pre></li></ol>
+   			</div>
+		</li>	
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="release" name="release" class="items-tit-h2">Releasing Resources</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con"> 
+<p>To destroy the audio handles and release the allocated resources after you have finished working with the audio input and output devices:</p>
+
+<ol><li><p>Release the memory allocated to the buffer using the <span style="font-family: Courier New,Courier,monospace">free()</span> function:</p>
+
+<pre class="prettyprint">free(buffer);</pre></li>
+
+<li><p>Unprepare the audio input and output devices using the <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_unprepare()</span> functions. Destroy the audio input and output handles using the <span style="font-family: Courier New,Courier,monospace">audio_in_destroy()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_destroy()</span> functions.</p>
+
+<pre class="prettyprint">ret = audio_in_unprepare(input);
+
+ret = audio_in_destroy(input);
+
+ret = audio_out_unprepare(output);
+
+ret = audio_out_destroy(output);
+</pre></li>
+
+<li><p>Close opened file using the <span style="font-family: Courier New,Courier,monospace">fclose()</span> function:</p>
+
+<pre class="prettyprint">fclose(fp_w);
+fp_w = NULL;
+
+fclose(fp_r);
+fp_r = NULL;</pre></li></ol>
+   			</div>
+		</li>			
+	</ul>	
+</div>				
+</div>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
