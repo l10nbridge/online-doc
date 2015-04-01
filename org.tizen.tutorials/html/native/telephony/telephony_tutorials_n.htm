@@ -76,7 +76,7 @@
 			<div class="devicespec-con"> 
 
 <p>To initialize the telephony service:</p>			
-<p>In a multi-SIM scenario, you must define which subscription you need, in case the application is related to calling, networks, modems, or SIM cards. Telephony provides a function to create handles for different subscriptions.</p>
+<p>In a multi-SIM scenario, you must define which subscription(SIM1/SIM2) you need, in case the application is related to calling, networks, modems, or SIM cards. Telephony provides a function to create handles for different subscriptions.</p>
 
 <ol>
 <li>			
@@ -95,7 +95,9 @@ typedef struct
 }
 telephony_handle_list_s;
 </pre>
-<p>Pass the <span style="font-family: Courier New,Courier,monospace">telephony_handle_list_s</span> structure pointer to get the telephony handles for all subscriptions. You can send requests to specific subscriptions using the telephony handle for that subscription.</p></li>
+<p>Pass the <span style="font-family: Courier New,Courier,monospace">telephony_handle_list_s</span> structure pointer to get the telephony handles for all subscriptions.</p>
+<p>For example, there are two handles in dual SIM device. In this case, handle[0] is mean primary SIM and handle[1] is mean secondary SIM.</p>
+<p>You can send requests to specific subscriptions using the telephony handle for that subscription.</p></li>
 <li><p>Get the telephony handle by using the <span style="font-family: Courier New,Courier,monospace">telephony_init()</span> function.</p>
 
 <pre class="prettyprint">
@@ -222,6 +224,58 @@ void tutorial_telephony_set_noti_cb_video()
 </pre>
 
 <p>After registering, you are notified of the video call state information until you cancel the registration of the callback function. To unregister the callback, invoke the <span style="font-family: Courier New,Courier,monospace">telephony_unset_noti_cb()</span> function with <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_VIDEO_CALL_STATE</span>.</p></li></ol>
+
+<h3>Getting the list of the current call</h3>
+<ol><li><p>Get the current call handle by using the <span style="font-family: Courier New,Courier,monospace">telephony_call_get_call_list()</span> function.</p>
+<p>After that, you can retrieve call informations (handle id, number, type, state, direction, conference status) by using call handle.</p>
+
+<pre class="prettyprint">
+unsigned int count;
+telephony_call_h *call_list;
+void tutorial_telephony_call_get_call_list()
+{
+   telephony_error_e ret;
+
+   ret = telephony_call_get_call_list(handle_list.handle[0], &count, &call_list);
+   if (ret != TELEPHONY_ERROR_NONE) {
+      // Error handling
+   } else {
+      int i;
+      unsigned int handle_id;
+      char *number;
+      telephony_call_type_e type;
+      telephony_call_state_e state;
+      telephony_call_direction_e direction;
+      bool conf_status;
+
+      if (count == 0) {
+         dlog_print(DLOG_INFO, LOG_TAG, "count[%d], No calls", count);
+         return;
+      }
+
+      for (i = 0; i < count; i++) {
+         telephony_call_get_handle_id(call_list[i], &handle_id);
+         telephony_call_get_number(call_list[i], &number);
+         telephony_call_get_type(call_list[i], &type);
+         telephony_call_get_state(call_list[i], &state);
+         telephony_call_get_direction(call_list[i], &direction);
+         telephony_call_get_conference_status(call_list[i], &conf_status);
+
+         dlog_print(DLOG_INFO, LOG_TAG, "handle_id[%d] number[%s] type[%d] state[%d] direction[%d] conf_status[%d]",
+            handle_id, number, type, state, direction, conf_status);
+      }
+   }
+}
+</pre></li>
+
+<li><p>When the call handle is no longer needed, the <span style="font-family: Courier New,Courier,monospace">telephony_call_release_call_list()</span> function must be called to free the handle.</p>
+<pre class="prettyprint">
+void tutorial_telephony_call_release_call_list()
+{
+   telephony_call_release_call_list(count, &call_list);
+}
+</pre></li></ol>
+
 	</div>
 		</li>
 		<li>
@@ -282,7 +336,7 @@ void tutorial_telephony_set_noti_cb_sim()
 <p>Once the callback function of the SIM state change is registered, this callback function is invoked until it is unregistered with the <span style="font-family: Courier New,Courier,monospace">telephony_unset_noti_cb()</span> function by passing the notification ID.</p>
 
 <h3>Getting SIM Information</h3>
-<p>If you know the current SIM state and, for example, it is <span style="font-family: Courier New,Courier,monospace">SIM_STATE_AVAILABLE</span>, call the SIM API to get the following information from the SIM card: ICC-ID, MCC, MNC, SPN, Subscriber name, and Subscriber number.</p>
+<p>If you know the current SIM state and, for example, it is <span style="font-family: Courier New,Courier,monospace">SIM_STATE_AVAILABLE</span>, call the SIM API to get the following information from the SIM card: ICC-ID, Operator(MCC+MNC), MSIN, SPN, Subscriber name, Subscriber number, Subscriber ID, and Application list.</p>
 
 <p>If you do not get an error (<span style="font-family: Courier New,Courier,monospace">SIM_ERROR_NONE</span>), the requested SIM information is received and stored in an output parameter. You must free all returned variables once you are done with them.</p>
 
@@ -344,6 +398,12 @@ void tutorial_telephony_network_get_service_state()
 	<li>Cell ID changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_CELLID</span>)</li>
 	<li>Roaming state changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_ROAMING_STATUS</span>)</li>
 	<li>Signal strength changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_SIGNALSTRENGTH_LEVEL</span>)</li>
+	<li>SPN(Service Probider Name) name changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_SPN_NAME</span>)</li>
+	<li>Network name changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_NETWORK_NAME</span>)</li>
+	<li>Network option changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_NAME_OPTION</span>)</li>
+	<li>PS(Packet Switched) type changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_PS_TYPE</span>)</li>
+	<li>Default data subscription changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION</span>)</li>
+	<li>Default subscription changes (<span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span>, <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_DEFAULT_SUBSCRIPTION</span>)</li>
 </ul>
 
 <pre class="prettyprint">
@@ -367,12 +427,13 @@ void tutorial_telephony_set_noti_cb_network()
 }
 </pre>
 
-<p>The callback function is invoked automatically when the status of the network changes, if you register the callback function using the <span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span> function. To get additional notifications when the Cell ID, RSSI level, or roaming state changes, define corresponding callback functions. Register each one of them with their corresponding notification ID.</p>
+<p>The callback function is invoked automatically when the status of the network changes, if you register the callback function using the <span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span> function. 
+	To get additional notifications when the Cell ID, RSSI level, SPN, Network name, name option, PS type, Default data subscription, Default subscription, or roaming state changes, define corresponding callback functions. Register each one of them with their corresponding notification ID.</p>
 
 <p>Once the callback function of the network state change is registered, this callback function is invoked until it is unregistered with the <span style="font-family: Courier New,Courier,monospace">telephony_unset_noti_cb()</span> function by passing the notification ID.</p>
 
 <h3>Getting Network Information</h3>
-<p>If the current network service state is <span style="font-family: Courier New,Courier,monospace">NETWORK_INFO_SERVICE_STATE_IN_SERVICE</span>, use the Telephony Network API to get the network information: LAC, Cell ID, RSSI, roaming state, MNC, network provider name, and network type.</p>
+<p>If the current network service state is <span style="font-family: Courier New,Courier,monospace">NETWORK_INFO_SERVICE_STATE_IN_SERVICE</span>, use the Telephony Network API to get the network information: LAC, Cell ID, RSSI, roaming state, MCC, MNC, network provider name, PS type, and network type.</p>
 
 <p>You must free all returned variables (strings) once you are done with them.</p>
 
@@ -416,7 +477,7 @@ void tutorial_telephony_network_get_mnc()
 <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
   </div>
 			<div class="devicespec-con"> 
-<p>To get IMEI information, use the Telephony <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__MODEM.html">Modem</a> API:</p>
+<p>To access, but not change, information about the modem(IMEI, power status), use the Telephony <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__MODEM.html">Modem</a> API:</p>
 
 <p>Use the <span style="font-family: Courier New,Courier,monospace">telephony_modem_get_imei()</span> function, and free all returned variables (strings) once you are done with them.</p>
 
