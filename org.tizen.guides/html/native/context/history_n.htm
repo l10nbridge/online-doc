@@ -1,0 +1,502 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+	<title>Contextual History</title>
+</head>
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+	</div>
+
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#datatypes">History Data Types</a></li>
+			<li><a href="#filters">Filters and Attributes</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.tutorials/html/native/context/history_tutorial_n.htm">Contextual History Tutorial</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__CONTEXT__HISTORY__MODULE.html">Contextual History API</a></li>
+		</ul>
+	</div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>Contextual History</h1>
+
+<p>
+Applications can access "history" of the recent device usages, which are collected by the platform.
+For example, the platform may record the application usage, that is, which application is running in foreground.
+Then through statistical analysis on such data, applications can use the user's application usages patterns like "frequently used application on Sunday morning".
+</p>
+<p>
+The contextual history module provides history data regarding application usage, media playback, communications, and device settings.
+For each type of history data, when an application reads it, the application needs to set "filters" to specify necessary statistics.
+Some of the filters are mandatory, but others can be optional.
+The below example shows a simple use case of getting the top-5 most frequently used applications within the last 30 days.
+</p>
+<pre class="prettyprint">
+// Handle creation
+context_history_h handle;
+context_history_create(&handle);
+
+// Filter creation
+context_history_filter_h filter;
+context_history_filter_create(&filter);
+
+// Setting filter key and values
+context_history_filter_set_int(filter, CONTEXT_HISTORY_FILTER_RESULT_SIZE, 5);
+context_history_filter_set_int(filter, CONTEXT_HISTORY_FILTER_TIME_SPAN, 30);
+
+// Requesting the statistics
+context_history_list_h list;
+context_history_get_list(handle, CONTEXT_HISTORY_FREQUENTLY_USED_APP , filter, &list);
+
+// Releasing the resources occupied by the filter handle
+context_history_filter_destroy(filter);
+</pre>
+<p>
+Once the <span style="font-family: Courier New, Courier, monospace">context_history_list_h</span> data handle is retrieved
+through the <span style="font-family: Courier New, Courier, monospace">context_history_get_list()</span> function,
+the attributes of each data record of the handle can be retrieved as in the following example,
+by iterating the handle's records one by one.
+</p>
+<pre class="prettyprint">
+int size, i, count;
+char *app_id;
+context_history_record_h record;
+
+// Getting the number of records; It can be smaller than the value set for CONTEXT_HISTORY_FILTER_RESULT_SIZE
+context_history_list_get_count(list, &size);
+
+for (i = 0; i &lt; size; ++i) {
+	// Getting the current record
+	context_history_list_get_current(list, &record);
+
+	// Getting the necessary attributes
+	context_history_record_get_string(record, CONTEXT_HISTORY_APP_ID, &app_id);
+	context_history_record_get_string(record, CONTEXT_HISTORY_USED_COUNT, &count);
+
+	// Processing the attributes
+
+	// Freeing the resources used
+	free(app_id);
+	context_history_record_destroy(record);
+
+	// Iterating to the next record
+	context_history_list_move_next(list);
+}
+
+// Releasing the resources occupied by the list handle
+context_history_list_destroy(list);
+
+// Releasing the resources occupied by the context history handle
+context_history_destroy(handle);
+</pre>
+<p>
+In the rest of this guide, for each type of history, the mandatory and optional filters are explained.
+Furthermore, the data attributes, which are provided for each history data, are also introduced.
+</p>
+
+<h2 id="datatypes" name="datatypes">History Data Types</h2>
+
+<p>
+The table below summarizes available history data types and required privileges.
+The contextual history module provides statistics for mainly three types of usages logs,
+including application usage, media playbacks, and communications.
+</p>
+
+<table>
+	<caption>Table: History Data Types and Required Privileges</caption>
+	<tbody>
+		<tr>
+			<th>History Type</th>
+			<th>Description and Privilege</th>
+		</tr>
+		<tr>
+			<td>Application usage history:<br><br>
+				<span style="font-family: Courier New,Courier,monospace">
+					&nbsp; CONTEXT_HISTORY_RECENTLY_USED_APP<br>
+					&nbsp; CONTEXT_HISTORY_FREQUENTLY_USED_APP<br>
+					&nbsp; CONTEXT_HISTORY_RARELY_USED_APP<br>
+					&nbsp; CONTEXT_HISTORY_PEAK_TIME_FOR_APP<br>
+					&nbsp; CONTEXT_HISTORY_COMMON_SETTING_FOR_APP
+				</span>
+			</td>
+			<td>
+				The contextual history module collects the usage of applications, that is, which applications are used in foreground.
+				From this data, the following statistics are provided:
+				<ul>
+					<li>Most <em>recently</em> or <em>frequently</em> used applications, in descending order of the application use counts.
+					<li>Most <em>rarely</em> used applications in removable applications, in ascending order of the application use counts.
+					<li><em>Peak time</em> for applications, <i>i.e.</i>,
+						when the user most frequently uses an application or any applications, in a day.
+						<br>
+						The result will be the sorted list of hours of day,
+						in descending order of the application use count in each one-hour time slot.
+					<li><em>Common setting</em> for applications, <i>i.e.</i>,
+						what are the most common setting values regarding an application or any applications.
+				</ul>
+				Required privilege is: <a href=http://tizen.org/privilege/apphistory.read">http://tizen.org/privilege/apphistory.read</a>.
+			</td>
+		</tr>
+		<tr>
+			<td>Media playback history:<br><br>
+				<span style="font-family: Courier New,Courier,monospace">
+					&nbsp; CONTEXT_HISTORY_PEAK_TIME_FOR_MUSIC<br>
+					&nbsp; CONTEXT_HISTORY_PEAK_TIME_FOR_VIDEO<br>
+					&nbsp; CONTEXT_HISTORY_COMMON_SETTING_FOR_MUSIC<br>
+					&nbsp; CONTEXT_HISTORY_COMMON_SETTING_FOR_VIDEO
+				</span>
+			</td>
+			<td>
+				Media playback events, including music and video playbacks, can be logged.
+				From this data, the following statistics are provided:
+				<ul>
+					<li><em>Peak time</em> for music or video playbacks, <i>i.e.</i>,
+						when the user most frequently listens music or watches video in a day.
+						<br>
+						The result will be the sorted list of hours of day,
+						in descending order of the playback count in each one-hour time slot.
+					<li><em>Common setting</em> for music or video playbacks, <i>i.e.</i>,
+						what are the most common setting values when listening music or watching video.
+				</ul>
+				Required privilege is: <a href=http://tizen.org/privilege/mediahistory.read">http://tizen.org/privilege/mediahistory.read</a>.
+				<br><br>
+				To get other metadata of media contents, such as when or how many times media contents are played,
+				see the <a href="../content/media_content_n.htm">Media Content</a>.
+			</td>
+		</tr>
+		<tr>
+			<td>Communication history:<br><br>
+				<span style="font-family: Courier New,Courier,monospace">
+					&nbsp; CONTEXT_HISTORY_FREQUENTLY_COMMUNICATED_ADDRESS
+				</span>
+			</td>
+			<td>
+				Applications can retrieve the most frequently communicated contacts, via call or message.
+				<br><br>
+				Required privilege is: <a href=http://tizen.org/privilege/callhistory.read">http://tizen.org/privilege/callhistory.read</a>.
+				<br><br>
+				To get more detailed data of communication history, see the <a href="../social/contact_n.htm">Contacts Database</a>.
+			</td>
+		</tr>
+	</tbody>
+</table>
+
+To compute the above usage history statistics, it is necessary to store and aggregate such contextual events.
+Whenever such events occur, in many cases, immediately reflecting such events to the statistics costs more
+than applying the events in batch later.
+For this reason, regarding the profiles and devices, the history statistics above may not show up-to-date results all the time.
+
+<table class="note">
+	<tbody>
+		<tr>
+			<th class="note">Note</th>
+		</tr>
+		<tr>
+			<td class="note">
+				Statistics provided by this API may not reflect the corresponding events instantly,
+				to reduce computational costs for aggregations.
+			</td>
+		</tr>
+	</tbody>
+</table>
+
+<h2 id="filters" name="filters">Filters and Attributes</h2>
+
+Regarding each history data type, one or more "filters" can be set to specify the necessary statistics.
+For example, applications can get the top-<i>3</i> frequently used applications while a headphone is connected,
+during the last 30 days, by setting the filters of the result size, time span, and the audio jack status.
+Supported filters for history data types are summarized in the table below.
+
+<table>
+	<caption>Table: Supported Filters for History Data</caption>
+	<tbody>
+		<tr>
+			<th>History Type</th>
+			<th>Supported Filter</th>
+			<th>Description</th>
+		</tr>
+		<tr>
+			<td rowspan=3>
+				All types
+			</td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_TIME_SPAN</span></td>
+			<td>
+				This specifies the time span of the data to be aggregated, in days.
+				For example, if it is set to 10, the application will get the statistics from the data logged in the last 10 days.
+				<br>
+				As the filter values, positive integers are allowed.
+				However, regarding the system resources available, the maximum time span can be limited implicitly.
+				If the value is not set, by default, it will be 30 days.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_FILTER_START_TIME<br>
+				CONTEXT_HISTORY_FILTER_END_TIME
+			</span></td>
+			<td>
+				If an application requires more fine-grained controls than the time span filter, these filters can be used.
+				Instead of setting the data period as "last <i>N</i> days", using these filters,
+				the application can set the period of data to be aggregated more precisely.
+				The start and/or the end time of the period can be set as Unix epoch time in seconds.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_RESULT_SIZE</span></td>
+			<td>
+				This limits the number of data records to be retrieved.
+				It accepts positive integers as the filter values, but if not set, it will be set to 10 by default.
+				It does not guarantee the number of records returned. In some cases, the aggregated result
+				only contains a smaller number of records than the filter value.
+				<br>
+				Note that, this value may have no effect for some history types.
+				For example, the common setting history types return one record for one request,
+				thus the result size will be ignored while aggregating the logs.
+			</td>
+		</tr>
+		<tr>
+			<td rowspan=2><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_RECENTLY_USED_APP<br>
+				CONTEXT_HISTORY_FREQUENTLY_USED_APP
+			</span></td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_WIFI_BSSID</span></td>
+			<td>
+				Applications can get the statistics of the data logged while a specific Wi-Fi is connected,
+				by setting the BSSID string of the target Wi-Fi AP.
+				<br>
+				The currently connected Wi-Fi AP's BSSID can be retrieved through the Wi-Fi Manager APIs.
+				See the <a href="../network/wifi_n.htm">Wi-Fi</a> for more details.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_AUDIO_JACK</span></td>
+			<td>
+				Applications can get the statistics of the data logged while any headphone is connected or not.
+				The audio jack status can be one of
+				<span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_AUDIO_JACK_NOT_CONNECTED</span> and
+				<span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_AUDIO_JACK_CONNECTED</span>.
+			</td>
+		</tr>
+		<tr>
+			<td rowspan=2><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_PEAK_TIME_FOR_APP<br>
+				CONTEXT_HISTORY_PEAK_TIME_FOR_MUSIC<br>
+				CONTEXT_HISTORY_PEAK_TIME_FOR_VIDEO
+			</span></td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_APP_ID</span></td>
+			<td>
+				In case of the peak time for application usages, by setting this filter,
+				applications can get the peak time when the user most frequently uses a specific application.
+				Without this filter, the peak time will be computed from the usage history of all applications.
+				<br>
+				In case of the peak time for music or video playbacks, this filter can be used to restrict the application
+				that is used to play the media contents.
+				Without this filter, playback logs from all applications are used to get the statistics.
+				<br>
+				See <a href="../app/app_guide_n.htm">this</a> for more details about the application IDs.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_DAY_OF_WEEK</span></td>
+			<td>
+				By setting this filter, applications can get the user patterns on weekdays or weekends.
+				<br>
+				The filter values can be one of
+				<span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_FILTER_DAY_OF_WEEK_WEEKDAYS, CONTEXT_HISTORY_FILTER_DAY_OF_WEEK_WEEKENDS,</span> and
+				<span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_DAY_OF_WEEK_ALL</span>.
+				By default, the data from both weekdays and weekends are used if this filter is not set.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_COMMON_SETTING_FOR_APP<br>
+				CONTEXT_HISTORY_COMMON_SETTING_FOR_MUSIC<br>
+				CONTEXT_HISTORY_COMMON_SETTING_FOR_VIDEO
+			</span></td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_APP_ID</span></td>
+			<td>
+				By setting this filter, in case of the application history, the most common setting values for
+				a specific application can be retrieved.
+				<br>
+				In case of music or video playback history, it can be used to get the common setting values
+				when listening music or watching video via a specific application.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_FREQUENTLY_COMMUNICATED_ADDRESS
+			</span></td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_COMMUNICATION_TYPE</span></td>
+			<td>
+				By default, communication frequency is computed from the both communication logs, call and messages.
+				Applications can narrow down the target data to one type of communication, call or messaging, using this filter.
+				<br>
+				The filter values can be one of
+				<span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_FILTER_COMMUNICATION_TYPE_CALL, CONTEXT_HISTORY_FILTER_COMMUNICATION_TYPE_MESSAGE,</span> and
+				<span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_COMMUNICATION_TYPE_ALL</span>.
+			</td>
+		</tr>
+	</tbody>
+</table>
+
+<p>
+The history data records retrieved through the contextual history API will contain the following data attributes.
+</p>
+
+<table>
+	<caption>Table: Attributes Provided by History Data</caption>
+	<tbody>
+		<tr>
+			<th>History Type</th>
+			<th>Provided Attribute</th>
+			<th>Description</th>
+		</tr>
+		<tr>
+			<td rowspan=4><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_RECENTLY_USED_APP<br>
+				CONTEXT_HISTORY_FREQUENTLY_USED_APP<br>
+				CONTEXT_HISTORY_RARELY_USED_APP
+			</span></td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_APP_ID</span></td>
+			<td>
+				Application ID.
+				See <a href="../app/app_guide_n.htm">this</a> for more details about the application IDs.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_TOTAL_COUNT</span></td>
+			<td>
+				This denotes how many times the application is used in foreground.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_TOTAL_DURATION</span></td>
+			<td>
+				This denotes how long the application is being displayed in foreground, in seconds.
+				If the application is used multiple times, it denotes the accumulated time of use.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_LAST_TIME</span></td>
+			<td>
+				This denotes when the application is used (moved to foreground) last, in Unix epoch in seconds.
+			</td>
+		</tr>
+		<tr>
+			<td rowspan=2><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_PEAK_TIME_FOR_APP<br>
+				CONTEXT_HISTORY_PEAK_TIME_FOR_MUSIC<br>
+				CONTEXT_HISTORY_PEAK_TIME_FOR_VIDEO
+			</span></td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_HOUR_OF_DAY</span></td>
+			<td>
+				Hour of day. Naturally, its value will be an integer from 0 to 23.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_TOTAL_COUNT</span></td>
+			<td>
+				This denotes the aggregated count of the application uses or media playbacks,
+				within the hour of day described above.
+			</td>
+		</tr>
+		<tr>
+			<td rowspan=3><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_COMMON_SETTING_FOR_APP<br>
+				CONTEXT_HISTORY_COMMON_SETTING_FOR_MUSIC<br>
+				CONTEXT_HISTORY_COMMON_SETTING_FOR_VIDEO
+			</span></td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_AUDIO_JACK</span></td>
+			<td>
+				The most common audio jack status. The value will be one of
+				<span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_AUDIO_JACK_NOT_CONNECTED</span>
+				and <span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_FILTER_AUDIO_JACK_CONNECTED</span>.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_SYSTEM_VOLUME</span></td>
+			<td>
+				The most common system volume level.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_MEDIA_VOLUME</span></td>
+			<td>
+				The most common media volume level.
+				<br>
+				For more details about the system and media volume settings,
+				see the <a href="../multimedia/sound_manager_n.htm">Sound Manager</a>.
+			</td>
+		</tr>
+		<tr>
+			<td rowspan=5><span style="font-family: Courier New,Courier,monospace">
+				CONTEXT_HISTORY_FREQUENTLY_COMMUNICATED_ADDRESS
+			</span></td>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_ADDRESS</span></td>
+			<td>
+				Contact address, <i>i.e.</i>, phone number.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_TOTAL_COUNT</span></td>
+			<td>
+				The total number of communications with the address above.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_TOTAL_DURATION</span></td>
+			<td>
+				The accumulated duration of calls with the address above, in seconds.
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">CONTEXT_HISTORY_LAST_TIME</span></td>
+			<td>
+				This denotes when a call is connected or a message is received/sent last,
+				to/from the address above, in Unix epoch in seconds.
+			</td>
+		</tr>
+	</tbody>
+</table>
+
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
