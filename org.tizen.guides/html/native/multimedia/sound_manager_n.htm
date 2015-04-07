@@ -24,6 +24,7 @@
         <ul class="toc">
 			<li><a href="#volume">Volume Control</a></li>
 			<li><a href="#type">Sound Session Types</a></li>
+			<li><a href="#stream">Sound Stream Policy</a></li>
 			<li><a href="#query">Sound Device Query</a></li>
         </ul>
         <p class="toc-title">Related Info</p>
@@ -45,8 +46,11 @@
 <li><a href="#volume">Volume control</a>
 <p>Control the output volume by managing the sound type and its volume level.</p></li>
 
-<li><a href="#type">Sound session types</a>
-<p>Set the sound session type, which specifies the behavior of your application sound across the system.</p></li>
+<li><a href="#type">Sound session types (Deprecated)</a>
+<p>Set the sound session type, which specifies the behavior of your application sound across the system. (see <a href="#stream">Sound Stream Policy</a> for substitute)</p></li>
+
+<li><a href="#stream">Sound Stream Policy (Since 2.4)</a>
+<p>Set the attributes of your application's sound stream, which specify the behavior of the sound stream across the system.</p></li>
 
 <li><a href="#query">Sound device query</a>
 <p>Using the query functions, you can get various information, such as the state of the sound devices.</p></li>
@@ -69,7 +73,7 @@
    </tbody> 
   </table>
 
-<h2 id="type" name="type">Sound Session Types</h2>
+<h2 id="type" name="type">Sound Session Types (Deprecated)</h2>
 
 <p>The Sound Manager API offers 5 different sound session types: media, alarm, notification, emergency and VOIP. According to these types, your application&#39;s audio works in a specific way to mix with sounds of other applications or to respond to an audio interruption made by another application.</p>
 
@@ -78,6 +82,91 @@
 <p>You can set options for how to start a new media session or respond to an audio interruption during an active media session using the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__SESSION__MODULE.html#ga26a030df874992a461af04255c6c3eef">sound_session_option_for_start_e</a> and <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__SESSION__MODULE.html#ga132bd49bd7d0f5037cc292f9c7ad1c32">sound_session_option_for_during_play_e</a> enumerators. A media session is not able to interrupt or block the other types of sound sessions, no matter what options you have set.</p>
 
 <p>You can also set options for resuming the media session when the interruption ends by using the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__SESSION__MODULE.html#ga20d1d7fa84dc322f03b58d42806cd9d9">sound_session_option_for_resumption_e</a> enumerator. The sound system notifies the media session when the interruption ends, and you are able to resume your session.</p>
+
+<h2 id="stream" name="stream">Sound Stream Policy (Since 2.4)</h2>
+
+<p>Setting sound stream policy is a newly added concept to replace sound session. Instead of sound session types, Sound Manager now provides sound stream types, and stream focus to moderate the sound streams.</p>
+
+<h3>Obtain sound stream informaion handle</h3>
+
+<p>Use the sound_manager_create_stream_information() function to create a stream info handle, and set the stream type to the handle. Once created, this handle will be used throughout the playback or recording stream APIs(e.g., Player, Wave-Player, Audio-Io, etc.). Your application can have multiple stream info handles and each handles can have multiple sound streams.</p>
+
+<p>There are 8 sound stream types to define the nature of your sound steam, and those are:</p>
+
+<ul><li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_MEDIA</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_SYSTEM</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_ALARM</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_NOTIFICATION</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_EMERGENCY</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_VOICE_INFORMATION</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_VOICE_RECOGNITION</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_RINGTONE_VOIP</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_VOIP</span></li></ul>
+
+<p>Fundamentally, SYSTEM, ALARM, NOTIFICATION, EMERGENCY, VOICE_INFORMATION and RINGTONE_VOIP types are considered as playback stream, and VOICE_RECOGNITION type as recording stream. MEDIA type can be both playback and recording stream uppon your usage, and VOIP type has the nature of both playback and recording stream. According to these type, the routing path, and sound type are determined internally through the system.</p>
+
+<p>Notice that only playback stream types are matched to sound types which are used for <a href="#volume">Volume control</a>.</p>
+
+<table>
+<caption>
+Table: Correspoding sound types for playback stream types
+</caption>
+<tbody>
+<tr>
+<th>Sound Stream Type</th>
+<th>Sound Type</th>
+</tr>
+<tr>
+<td>SOUND_STREAM_TYPE_MEDIA</td>
+<td>SOUND_TYPE_MEDIA</td>
+</tr>
+<tr>
+<td>SOUND_STREAM_TYPE_SYSTEM</td>
+<td>SOUND_TYPE_SYSTEM</td>
+</tr>
+<tr>
+<td>SOUND_STREAM_TYPE_ALARM</td>
+<td>SOUND_TYPE_ALARM</td>
+</tr>
+<tr>
+<td>SOUND_STREAM_TYPE_NOTIFICATION</td>
+<td>SOUND_TYPE_NOTIFICATION</td>
+</tr>
+<tr>
+<td>SOUND_STREAM_TYPE_VOICE_INFORMATION</td>
+<td>SOUND_TYPE_VOICE</td>
+</tr>
+<tr>
+<td>SOUND_STREAM_TYPE_RINGTONE_VOIP</td>
+<td>SOUND_TYPE_RINGTONE</td>
+</tr>
+<tr>
+<td>SOUND_STREAM_TYPE_VOIP</td>
+<td>SOUND_TYPE_VOIP</td>
+</tr>
+</tbody>
+</table>
+
+<h3>Managing Stream Focus</h3>
+
+<p>Unlike setting sound session types, setting sound stream types and acquiring focus relatively give you more independence for your application's audio behavior. In sound session concept, it is the system that has the authority whether to stop or play the stream. However, in stream focus concept, you have the authority to control the steam of sound accross the system.</P>
+
+<p>To activate your sound stream, you should acquire stream focus. Once acquired, you are free to start playback or recording sound. Acquiring stream focus is possible anytime after the stream info handle has been creaated.</p>
+
+<p>Sound Manager offers steam focus for both playback and recording, meaning you can independetly control the playback and recording steam.</p>
+
+<ul><li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_FOCUS_FOR_PLAYBACK = 0x0001</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_FOCUS_FOR_RECORDING = 0x0002</span></li></ul>
+
+<p>Let's say your stream type is for playback, and there are two different streams are activated, one for playback, the other for recording. If you want to activate your playback stream and has no intention to interrupt the current recording stream, you only need to acquire playback focus, to stop the current playback stream, and start to play yours. And vice versa.</p>
+
+<p>However, don't be misguided that you can only acquire stream focus based on the strem types of yours. Even though your stream type is playback, you can also acquire recording focus if you want to stop recording stream while your stream playing. To long story make short, you can acquire both playback and recording focus for your stream at the same time.</p>
+
+<p>To acquire stream focus, use the sound_manager_acquire_focus()function. You will need a stream info hadle to specify which sound stream you want to acquire the focus.</p>
+
+<p>Don't forget to call the sound_manager_release_focus() function when you no longer need the stream focus, so that the other sound stream might resume.</p>
+
+<p>You are able to get a notice when the sate of stream focus changes through the sound_stream_focus_state_changed_cb() callback you've set when creating the stream info handle. If released, you are obliged to stop your sound stream. If acquired, you might want to resume your stream.</p>
 
 <h2 id="query" name="query">Sound Device Query</h2>
 <p>The audio behavior of your application must differ in accordance with the various sound devices that are connected.</p>

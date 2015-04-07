@@ -24,6 +24,8 @@
 		<p class="toc-title">Content</p>
 		<ul class="toc">
 			<li><a class="opensection" href="#set">Setting the Sound Session Type</a></li>
+			<li><a class="opensection" href="#stream">Setting the Sound Stream Information</a></li>
+			<li><a class="opensection" href="#focus">Managing Stream Focus</a></li>
 			<li><a class="opensection" href="#manage">Managing Volume Control</a></li>
 			<li><a class="opensection" href="#query">Querying Sound Devices</a></li>
 			<li><a class="opensection" href="#session">Managing Sound Manager Session Parameters</a></li>
@@ -46,8 +48,14 @@
 
 <p>Become familiar with the Sound Manager API basics by learning about:</p>  
 <ul>  
-<li><a class="opensection" href="#set">Setting the Sound Session Type</a>
+<li><a class="opensection" href="#set">Setting the Sound Session Type (deprecated)</a>
 <p>Set a sound session type for your application.</p></li>
+
+<li><a class="opensection" href="#stream">Setting the Sound Stream Information (since 2.4)</a>
+<p>Create a sound stream information handle.</p></li>
+
+<li><a class="opensection" href="#focus">Managing Stream Focus (since 2.4)</a>
+<p>Control the stream focus of your sound stream.</p></li>
 
 <li><a class="opensection" href="#manage">Managing Volume Control</a>
 <p>Control the volume of your application.</p></li>
@@ -108,7 +116,91 @@ error_code = sound_manager_set_session_type(SOUND_SESSION_TYPE_MEDIA);
 <pre class="prettyprint">error_code = sound_manager_set_session_interrupted_cb(_sound_session_interrupted_cb, NULL);
 </pre></li></ol>
 	</div>
-		</li>		
+		</li>
+
+				<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="stream" name="stream" class="items-tit-h2">Setting the Sound Stream Information</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con">
+<p>To creat and set sound stream informaion handle:</p>
+
+
+<ol><li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__MODULE.html">Sound Manager</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sound_manager.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;sound_manager.h&gt;
+</pre></li>
+
+<li>Create the sound stream informaion handle.
+<p>Create the sound stream info handle using the <span style="font-family: Courier New,Courier,monospace">sound_manager_create_stream_information()</span> function. The function sets the type of your sound stream, and registers the sound_stream_focus_state_cahnged_cb() callback function.</p>
+
+<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__SESSION__MODULE.html#ga125699870d48881ea153a4fce7140958">sound_stream_type_e</a> enumeration defines the available sound stream types.</p>
+<pre class="prettyprint">int error_code;
+sound_stream_info_h stream_info;
+
+error_code = sound_manager_create_stream_information(SOUND_STREAM_TYPE_MEDIA, _sound_stream_focus_state_changed_cb, NULL, &stream_info);
+</pre>
+<p>Use this stream_info to handle your playback/recording stream.</p>
+<p>See <a class="opensection" href="#focus">Managing Stream Focus</a> to define sound_stream_focus_state_cahnged_cb() callback</li></ol>
+	</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+ <h2 id="focus" name="focus" class="items-tit-h2">Managing Stream Focus</h2>
+<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+  </div>
+			<div class="devicespec-con">
+<p>Control the stream focus of your sound stream:</p>
+
+
+<ol><li><p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__MODULE.html">Sound Manager</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sound_manager.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;sound_manager.h&gt;
+</pre></li>
+
+<li>Managing stream focus.
+<p>Acquire a stream focus for your sound stream using the <span style="font-family: Courier New,Courier,monospace">sound_manager_acquire_focus()</span> function. Pass the stream_info handle you've create to specify which sound stream you want to acquire the focus. Once you succeed to acquire the focus, you are free to activate your sound stream.</p>
+<p>Release the stream focus when you no longer need the focus for your sound stream using the <span style="font-family: Courier New,Courier,monospace">sound_manager_release_focus()</span> function. Also, pass the stream_info handle to specify the sound stream.
+<p>Use the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__SESSION__MODULE.html#ga125699870d48881ea153a4fce7140958">sound_stream_focus_mask_e</a> enumeration to set the type of stream focus.</p>
+<pre class="prettyprint">int error_code;
+sound_stream_focus_mask_e focus_mask;
+
+focus_mask = SOUND_STREAM_FOCUS_FOR_PLAYBACK | SOUND_STREAM_FOCUS_FOR_RECORDING;
+//Masking is possible to acquire both playback and recording focus.
+
+error_code = sound_manager_acquire_focus(stream_info, focus_mask, NULL);
+if (!error_code)
+&nbsp;&nbsp;&nbsp;//Activate your sound stream
+
+//Your sound stream has finished
+error_code = sound_manager_release_focus(stream_info, focus_mask, NULL);
+</pre></li>
+
+<li>Subscribe to the stream focus change notifications.
+<p>To be informed when a stream focus change has occurred, define the <span style="font-family: Courier New,Courier,monospace">sound_stream_focus_state_changed_cb()</span> callback function:</p>
+<p>You need to call the sound_manager_get_focus_state() function to get current state of your stream focus.</p>
+<p>The snippet below is for the sound stream which has both playback and recording focus.</p>
+
+<pre class="prettyprint">static void sound_stream_focus_state_changed_cb(sound_stream_info_h stream_info, sound_stream_focus_change_reason_e reason_for_change, const char *additional_info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int error_code;
+&nbsp;&nbsp;&nbsp;sound_stream_focus_state_e state_for_playback;
+&nbsp;&nbsp;&nbsp;sound_stream_focus_state_e state_for_recording;
+
+&nbsp;&nbsp;&nbsp;error_code = sound_manager_get_focus_state(stream_info, &state_for_playback, &state_for_recording);
+&nbsp;&nbsp;&nbsp;if(!error_code) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(state_for_playback == SOUND_STREAM_FOCUS_STATE_RELEASED || state_for_recording == SOUND_STREAM_FOCUS_STATE_RELEASED)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//You lost your focus, pause/stop your sound stream
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(state_for_playback == SOUND_STREAM_FOCUS_STATE_ACQUIRED && state_for_recording == SOUND_STREAM_FOCUS_STATE_ACQUIRED)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//You regained your focus, you might resume your sound stream
+&nbsp;&nbsp;&nbsp;printf("The stream focus changed by [%d]", reason_for_change);
+}
+</pre></li>
+<p>Register the callback fucntion when you create the stream_info handle. See <a class="opensection" href="#stream">Setting the Sound Stream Information</a> to create the stream_info handle.</p>
+	</div>
+		</li>
 		<li>
 			<div class="devicespec-tit">
  <h2 id="manage" name="manage" class="items-tit-h2">Managing Volume Control</h2>
