@@ -83,8 +83,6 @@
 <h2>Follow-up</h2> 
 <p>Once we have learned the basics of the Notification API, we can now move on to more advanced tasks, including:</p>
 <ul>
- <li><a href="#status">Displaying the Notification Status</a>
- <p>Display and track the notification status.</p></li>
  <li><a href="#bar">Displaying the Progress Bar</a>
   <p>Create, display, and update a progress bar.</p>
  </li>
@@ -110,9 +108,12 @@
 <pre class="prettyprint">
 #include &lt;notification.h&gt;</pre></li>
 
-<li>To follow this tutorial, place a JPEG image file named <span style="font-family: Courier New,Courier,monospace">notification_image.jpg</span> in your device's <span style="font-family: Courier New,Courier,monospace">/tmp</span> directory. The following variables are used in the tutorial code:
-<pre class="prettyprint">static const char *image_path = &quot;tmp/notification_image.jpg&quot;;
-static notification_h notification = NULL;</pre></li></ol>
+<li>To follow this tutorial, place an image file i.e. in yours application shared resource directory. The following variables are used in the tutorial code:
+<pre class="prettyprint">static notification_h notification = NULL;
+char *image_path[BUFLEN];
+char * shared_path = app_get_shared_resource_path();
+snprintf(image_path, BUFLEN, "%stutorial_native_api_application.png", shared_path);
+free(shared_path);</pre></li></ol>
 
 
 	</div>
@@ -436,38 +437,6 @@ if (ret != NOTIFICATION_ERROR_NONE)
 		</li>	
 		<li>
 			<div class="devicespec-tit">
- <h2 id="status" name="status" class="items-tit-h2">Displaying the Notification Status</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con"> 
-<p>To display the notification status:</p>
-
-<ol>
-<li><p>Define the message and register the callback for tracking the message status:</p>
-
-<pre class="prettyprint">
-notification_status_monitor_message_cb_set(_notification_status_message_cb, NULL);
-
-notification_status_message_post(&quot;Example 2 Msg.&quot;);
-
-notification_status_monitor_message_cb_unset();
-</pre></li>
-
-<li><p>When the message is posted on screen, the callback function is invoked:</p>
-
-<pre class="prettyprint">
-static void _notification_status_message_cb(const char *message, void *data)
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, &quot;NOTIFICATION&quot;, &quot;Callback: %s\n&quot;, message);
-}
-</pre></li></ol>
-
-    <p class="figure">Figure: Notification status</p> 
-  <p style="text-align:center;"><img alt="Notification status" src="../../images/notification_status_sd.png" /></p>
-	</div>
-		</li>			
-		<li>
-			<div class="devicespec-tit">
  <h2 id="bar" name="bar" class="items-tit-h2">Displaying the Progress Bar</h2>
 <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
   </div>
@@ -475,52 +444,57 @@ static void _notification_status_message_cb(const char *message, void *data)
 
 <p>To display the progress bar:</p>
 
-<ol><li><p>The Notification API provides allows you to create a progress bar, which is initialized by the <span style="font-family: Courier New,Courier,monospace">NOTIFICATION_LY_ONGOING_PROGRESS</span> argument in the <span style="font-family: Courier New,Courier,monospace">GetNewNotification()</span> function.</p>
+<ol><li><p>Notification with progress bar, is created with <span style="font-family: Courier New,Courier,monospace">NOTIFICATION_TYPE_ONGOING</span> parameter. Then progress may be updated like in following example:</p>
 <p>To set the initial progress:</p>
 
 <pre class="prettyprint">
-static GMainLoop* gmainloop = NULL;
-mainloop = g_main_loop_new(NULL, FALSE);
+notification_h notification = NULL;
 
-GetNewNotification(&amp;notification, &quot;Notification&quot;, NOTIFICATION_LY_ONGOING_PROGRESS);
+// Create notification
+notification = notification_create(NOTIFICATION_TYPE_ONGOING);
+PRINT_MSG("notification_create %s", (notification != NULL) ? "succeed" : "failed");
 
-notification_set_progress(notification, 0);
+// Set parameters
+int ret = notification_set_text(notification, NOTIFICATION_TEXT_TYPE_TITLE, "text", NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+PRINT_MSG("notification_set_text %s", (ret == 0) ? "succeed" : "failed");
 
-notification_set_tag(notification, &quot;noti_tag&quot;);
+ret = notification_set_progress(notification, 0);
+PRINT_MSG("notification_set_progress %s", (ret == 0) ? "succeed" : "failed");
 
-notification_post(notification);
+ret = notification_set_tag(notification, "noti_tag");
+PRINT_MSG("notification_set_tag %s", (ret == 0) ? "succeed" : "failed");
 
-g_timeout_add(1000, timeout_func, gmainloop);
-g_main_loop_run(gmainloop);
-g_main_loop_unref(gmainloop);
+// Send notification
+ret = notification_post(notification);
+PRINT_MSG("notification_post %s", (ret == 0) ? "succeed" : "failed");
 
-notification_delete(notification);
+// Change status of notification
+ecore_timer_add(1, timeout_func, NULL);
 </pre></li>
 
 <li>To update the progress bar, use the <span style="font-family: Courier New,Courier,monospace">notification_load_by_tag()</span> function for getting the notification handle:
 
 <pre class="prettyprint">
-static gboolean timeout_func(gpointer data)
+static Eina_Bool timeout_func(void *data)
 {
-&nbsp;&nbsp;&nbsp;static int i = 0;
-&nbsp;&nbsp;&nbsp;double percent = 0;
-&nbsp;&nbsp;&nbsp;i++;
-&nbsp;&nbsp;&nbsp;notification_h notification = notification_load_by_tag(&quot;noti_tag&quot;);
-&nbsp;&nbsp;&nbsp;notification_set_progress(notification, ((double) i / 10.0));
-&nbsp;&nbsp;&nbsp;notification_get_progress(notification, &amp;percent);
-&nbsp;&nbsp;&nbsp;notification_update(notification);
+&nbsp;&nbsp;static int i = 0;
+&nbsp;&nbsp;double progress = 0;
+&nbsp;&nbsp;i++;
+&nbsp;&nbsp;notification_h notification = notification_load_by_tag("noti_tag");
+&nbsp;&nbsp;notification_set_progress(notification, ((double) i / 10.0));
+&nbsp;&nbsp;notification_get_progress(notification, &progress);
+&nbsp;&nbsp;notification_update(notification);
 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, &quot;NOTIFICATION&quot;, &quot;Progress: %f\n&quot;, percent);
+&nbsp;&nbsp;dlog_print(DLOG_INFO, "NOTIFICATION", "Progress: %f\n", progress);
 
-&nbsp;&nbsp;&nbsp;if (timeout == i) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_main_loop_quit((GMainLoop*) data);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, &quot;NOTIFICATION&quot;, &quot;End of awaiting!\n&quot;);
+&nbsp;&nbsp;if (10 == i)
+&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, "NOTIFICATION", "End of awaiting!n"); 
+&nbsp;&nbsp;&nbsp;&nbsp;notification_delete(notification); 
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_DONE; 
+&nbsp;&nbsp;} 
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;return TRUE;
+&nbsp;&nbsp;return ECORE_CALLBACK_PASS_ON;
 }
 </pre></li></ol>
 
