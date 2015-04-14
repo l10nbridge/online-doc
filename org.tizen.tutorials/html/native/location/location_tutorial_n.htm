@@ -1,0 +1,431 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Location: Using Location Information and Service</title>
+ </head>
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#initial">Initializing the Location Service</a></li>
+			<li><a href="#last_known">Getting the Last Known Location</a></li>
+			<li><a href="#update">Getting Location Updates</a></li>
+			<li><a href="#bound">Using Location Bounds</a></li>
+			<li><a href="#satellite">Getting Satellite Information</a></li>
+			<li><a href="#track">Tracking the Route</a></li>
+		</ul>        
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/location/location_n.htm">Location Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__LOCATION__FRAMEWORK.html">Location API</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Location: Using Location Information and Service</h1>
+<div class="cont"><div class="static-cont">	
+
+<p>This tutorial demonstrates how you can obtain the device's geographical location i the device's geographical locationnformation periodically.</p>
+
+  
+  <h2>Warm-up</h2> 
+  <p>Become familiar with the Location API basics by learning about:</p>
+		<ul>
+		<li><a href="#initial">Initializing the Location Service</a>
+		<p>Fulfill the prerequisites, start the location service, and stop it when no longer needed.</p></li>
+		<li><a href="#last_known">Getting the Last Known Location</a>
+		<p>Retrieve the last known position of the device.</p></li>
+
+		<li><a href="#update">Getting Location Updates</a>
+		<p>Acquire the device&#39;s position (given as coordinates) and keep tracking whenever the position is updated.</p></li>
+
+		<li><a href="#bound">Using Location Bounds</a>
+		<p>Create a location area and track its bounds.</p></li>
+
+		<li><a href="#satellite">Getting Satellite Information</a>
+		<p>Acquire information on satellites, which connect with the device to get location information.</p></li>
+		</ul>
+  
+  <h2>Follow-up</h2> 
+  <p>Once we have learned the basics of the Location API, we can now move on to more advanced tasks, including:</p>
+		<ul>
+		<li><a href="#track">Tracking the Route</a>
+		<p>Get information about the current position, velocity, and distance.</p></li>
+		</ul>
+
+<div class="devicespecs-util mt5 clfix">
+		<ul class="dutil">
+			<li><a href="#" class="showA">Show All</a></li>
+			<li class="none"><a href="#" class="hideA">Hide All</a></li>
+		</ul>
+	</div>
+	<!-- Folds -->
+	<ul class="devicespecifications">
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="initial" name="initial" class="items-tit-h2">Initializing the Location Service</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<ol><li><p>To use the location-related features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__LOCATION__MANAGER__MODULE.html">Location Manager</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;locations.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;locations.h&gt;
+</pre></li>
+<li><p>Create a location manager handle using the <span style="font-family: Courier New,Courier,monospace">location_manager_create()</span> function before you use it. For this example, the GPS is used as the source of the position data, so the first argument is <span style="font-family: Courier New,Courier,monospace">LOCATIONS_METHOD_GPS</span>. You can use other values of the <span style="font-family: Courier New,Courier,monospace">location_method_e</span> enumeration, such as <span style="font-family: Courier New,Courier,monospace;">LOCATIONS_METHOD_HYBRID</span> or <span style="font-family: Courier New,Courier,monospace;">LOCATIONS_METHOD_WPS</span>, but they are less accurate.</p>
+<pre class="prettyprint">
+location_manager_h manager;
+location_manager_create(LOCATIONS_METHOD_GPS, &amp;manager);
+</pre>
+<p>Each location manager is an independent service. Multiple location managers can be created in the same application to provide different services, such as GPS and Bluetooth. Callbacks are set for a given location manager and are called depending on whether the service was started for its manager.</p></li>
+
+<li><p>Start the location service using the <span style="font-family: Courier New,Courier,monospace">location_manager_start()</span> function. This call is asynchronous and only initiates the process of starting the service of the location manager. Once the manager is started, the registered callbacks are invoked when their corresponding events take place. To know when the service becomes enabled, use the <span style="font-family: Courier New,Courier,monospace">location_manager_set_service_state_changed_cb()</span> function.</p>
+<pre class="prettyprint">
+location_manager_start(manager);</pre></li>
+
+<li><p>Using the location service is power consuming, so if the service is not used, you can stop updating the location using the <span style="font-family: Courier New,Courier,monospace">location_manager_stop()</span> function. Call the <span style="font-family: Courier New,Courier,monospace">location_manager_start()</span> function again if the update position information is needed.</p>
+<pre class="prettyprint">location_manager_stop(manager);</pre></li>
+
+<li><p>At the end of the application, destroy all used resources, such as the location manager (<span style="font-family: Courier New,Courier,monospace">location_manager_destroy()</span>):</p>
+<pre class="prettyprint">
+location_manager_destroy(manager);
+manager = NULL;
+</pre>
+<p>If you destroy the handle, there is no need to call the <span style="font-family: Courier New,Courier,monospace">location_manager_stop()</span> function to stop the service, the service is automatically stopped. Also, you do not have to unset previously set callbacks.</p></li></ol>  
+			</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="last_known" name="last_known" class="items-tit-h2">Getting the Last Known Location</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+				  <p>To retrieve synchronously the last known location of the device:</p>
+  <ol>
+   <li> <p>Create the variable for <span style="font-family: Courier New,Courier,monospace">location_manager_h</span> with the method you want to apply for the application:</p> <pre class="prettyprint">
+location_manager_h manager;
+int ret = location_manager_create(LOCATIONS_METHOD_GPS, &amp;manager);
+</pre>  </li>
+
+	<li>Register a callback function for location service state changes and start the Location Manager:
+	<pre class="prettyprint">
+ret = location_manager_set_service_state_changed_cb(manager, __state_changed_cb, NULL);
+ret = location_manager_start(manager);</pre>
+	<p>The function <span style="font-family: Courier New,Courier,monospace">__state_changed_cb</span> is a callback function, which is called when the status of location service state changes. </p>
+	<pre class="prettyprint">
+static location_service_state_e service_state;
+static void __state_changed_cb(location_service_state_e state, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;service_state = state;
+}
+</pre>
+</li>
+<li>After starting the Location Manager, call the <span style="font-family: Courier New,Courier,monospace">location_manager_get_last_location()</span> function to get the last location information including altitude, latitude, and direction:
+<pre class="prettyprint">
+double altitude, latitude, longitude, climb, direction, speed;
+double horizontal, vertical;
+location_accuracy_level_e level;
+time_t timestamp;
+ret = location_manager_get_last_location(manager, &amp;altitude, &amp;latitude, &amp;longitude,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;climb, &amp;direction, &amp;speed, &amp;level, &amp;horizontal, &amp;vertical, &amp;timestamp);</pre>
+
+<p>The function returns the last location stored in the system. The last location may be not the current location but old location when the current location is not fixed.</p> 
+<p>It is recommended to use this function instead of repeatedly requesting current locations to spare the Location Manager from running costly positioning systems.</p></li>
+
+<li>In case of getting the current location information, call the <span style="font-family: Courier New,Courier,monospace">location_manager_get_location()</span> function after serivce is enabled:
+<pre class="prettyprint">
+static void __state_changed_cb(location_service_state_e state, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;double altitude, latitude, longitude, climb, direction, speed;
+&nbsp;&nbsp;&nbsp;double horizontal, vertical;
+&nbsp;&nbsp;&nbsp;location_accuracy_level_e level;
+&nbsp;&nbsp;&nbsp;time_t timestamp;
+
+&nbsp;&nbsp;&nbsp;if (state == LOCATIONS_SERVICE_ENABLED) {
+&nbsp;&nbsp;&nbsp;ret = location_manager_get_location(manager, &amp;altitude, &amp;latitude, &amp;longitude,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;climb, &amp;direction, &amp;speed, &amp;level, &amp;horizontal, &amp;vertical, &amp;timestamp);
+}
+</pre>
+</li>
+
+<li>When you no longer need the Location Manager, destroy it. You must also unset all connected callback functions and stop the Location Manager:
+<pre class="prettyprint">
+location_manager_unset_service_state_changed_cb(manager);
+location_manager_stop(manager);
+location_manager_destroy(manager);</pre></li></ol>
+</div></li>
+
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="update" name="update" class="items-tit-h2">Getting Location Updates</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>You can acquire the device&#39;s position (given as coordinates) and convert it to the corresponding address. You can get a notification of the position update periodically using the position update callback. The position update callback is invoked periodically, receiving the device&#39;s current position with every call.</p>
+<ol><li><p>Register the callback using the <span style="font-family: Courier New,Courier,monospace">location_manager_set_position_updated_cb()</span> function:</p>
+<pre class="prettyprint">location_manager_set_position_updated_cb(manager, position_updated, 2, NULL);</pre>
+<p>The third parameter determines the frequency of callback calls. In this example, the callback is called every 2 seconds.</p></li>
+<li><p>When the update is received, you can, for example, update the variables that store the current position:</p>
+<pre class="prettyprint">
+static double user_latitude, user_longitude;
+static void position_updated(double latitude, double longitude, double altitude, time_t timestamp, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;user_latitude = latitude;
+&nbsp;&nbsp;&nbsp;user_longitude = longitude;
+}
+</pre>
+
+	  <table class="note">
+	   <tbody>
+		<tr>
+		 <th class="note">Note</th>
+		</tr>
+		<tr>
+		 <td class="note">The callback is called only if the Location Manager has been started. The same holds for all other callbacks registered with the manager.</td>
+		</tr>
+	   </tbody>
+	  </table> </li></ol>  
+			</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="bound" name="bound" class="items-tit-h2">Using Location Bounds</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>You can define a virtual perimeter, which is tracked to see whether you enter or exit the area.</p>
+<p>To use location bounds:</p>
+
+<ol>
+<li>Create location bounds with the required type (rectangle, circle, or polygon) needed for your application (each type has their own API sets):
+<pre class="prettyprint">
+int poly_size = 3; // Triangle shaped bounds
+location_coords_s coord_list[poly_size];
+coord_list[0].latitude = 37; // Temporary value
+coord_list[0].longitude = 126;
+coord_list[1].latitude = 38;
+coord_list[1].longitude = 128;
+coord_list[2].latitude = 35;
+coord_list[2].longitude = 128;
+location_bounds_h bounds_poly;
+ret = location_bounds_create_polygon(coord_list, poly_size, &amp;bounds_poly);
+</pre>
+<p>When a circular bound is needed, use the <span style="font-family: Courier New,Courier,monospace">location_bounds_create_circle()</span> function.</p></li>
+
+<li>Get the coordinates of the generated polygon bounds. Register a callback function to notify you of the polygon coordinates:
+<pre class="prettyprint">
+ret = location_bounds_foreach_polygon_coords(bounds_poly, capi_poly_coords_cb, NULL);</pre>
+<p>For the callback function (the second parameter in the function above) implement the function separately:</p>
+<pre class="prettyprint">
+static double latitude, longitude;
+static bool capi_poly_coords_cb(location_coords_s coords, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;latitude = coords.latitude;
+&nbsp;&nbsp;&nbsp;longitude = coords.longitude;
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+<li><p>Register the callback using the <span style="font-family: Courier New,Courier,monospace">location_bounds_set_state_changed_cb()</span> function:</p>
+<pre class="prettyprint">location_bounds_set_state_changed_cb(bounds_poly, bounds_state_changed_cb, NULL);</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">bounds_state_changed_cb</span> function is a callback, which is called when you enter or exit the defined region.</p>
+<pre class="prettyprint">
+static location_boundary_state_e bound_state;
+static void bounds_state_changed_cb(location_boundary_state_e state, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;bound_state = state;
+}
+</pre>
+</li>
+<li><p>Call the <span style="font-family: Courier New,Courier,monospace">location_manager_add_boundary()</span> function to get the boundary information.</p>
+<pre class="prettyprint">location_manager_add_boundary(manager, bounds_poly);</pre>
+</li>
+
+<li>After using the polygon bounds, destroy them:
+<pre class="prettyprint">
+location_bounds_destroy(bounds_poly);</pre></li>
+</ol>  
+			</div>
+		</li>
+		<li>
+			<div class="devicespec-tit">
+				<h2 id="satellite" name="satellite" class="items-tit-h2">Getting Satellite Information</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>You can acquire and update information of the satellite connected with the device. The information includes azimuth, elevation, PRN, SNR, and NMEA data. You can also get a notification of the satellite update periodically using the satellite update callback. The satellite update callback is invoked periodically, receiving the information of connected satellites with every call.</p>
+<ol><li><p>Register the callback using the <span style="font-family: Courier New,Courier,monospace">location_manager_set_satellite_updated_cb()</span> function:</p>
+<pre class="prettyprint">
+gps_status_set_satellite_updated_cb(manager, capi_gps_status_satellite_updated_cb, 10, NULL);
+</pre>
+<p>The third parameter determines the frequency of callback calls. In this example, the callback is called every 10 seconds.</p> </li>
+<li>When the update is received, callback having brief satellite information is called. In order to get the detailed satellite information in the sky, call <span style="font-family: Courier New,Courier,monospace">gps_status_foreach_satellites_in_view()</span> in callback. Variables that store current satellite information are updated:
+<pre class="prettyprint">
+int cur_azimuth, cur_elevation, cur_prn, cur_snr;
+static bool capi_gps_status_get_satellites_cb(unsigned int azimuth, unsigned int elevation, unsigned int prn, int snr, bool is_in_use, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;cur_azimuth = azimuth;
+&nbsp;&nbsp;&nbsp;cur_elevation = elevation;
+&nbsp;&nbsp;&nbsp;cur_prn = prn;
+&nbsp;&nbsp;&nbsp;cur_snr = snr;
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+static int numofactive, numofinview;
+static void capi_gps_status_satellite_updated_cb(int num_of_active, int num_of_inview, time_t timestamp, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;numofinview = num_of_active;
+&nbsp;&nbsp;&nbsp;if (num_of_inview &gt; 0)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gps_status_foreach_satellites_in_view(manager, capi_gps_status_get_satellites_cb, NULL);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+	  <table class="note">
+	   <tbody>
+		<tr>
+		 <th class="note">Note</th>
+		</tr>
+		<tr>
+		 <td class="note">Note that the callback is called only if the location manager has been started. The same holds for all other callbacks registered with the manager.</td>
+		</tr>
+	   </tbody>
+	  </table> </li></ol>  
+			</div>
+		</li>	
+
+<li>
+			<div class="devicespec-tit">
+				<h2 id="track" name="track" class="items-tit-h2">Tracking the Route</h2>
+				<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+			</div>
+			<div class="devicespec-con">
+<p>To get information about the current position, velocity, and distance.</p>
+ 
+<ol><li>Receive periodic notifications.
+<ol><li>
+<p>You can get notifications of the position and velocity updates using the position and velocity update callbacks. The callbacks are invoked periodically, receiving the device&#39;s current position or velocity with every call.</p>
+
+<ul class="ul"><li><p>Register the position update callback using the <span style="font-family: Courier New,Courier,monospace;">location_manager_set_position_updated_cb()</span> function:</p>
+
+<pre class="prettyprint">
+location_manager_set_position_updated_cb(manager, position_updated, 2, NULL);
+</pre></li>
+
+<li><p>Register the velocity update callback using the <span style="font-family: Courier New,Courier,monospace;">location_manager_set_velocity_updated_cb()</span> function:</p>
+
+<pre class="prettyprint">
+location_manager_set_position_updated_cb(manager, velocity_updated, 2, NULL);
+</pre></li></ul>
+
+<p>The third parameter determines the frequency of the callback calls. In this example, the callback is called every 2 seconds.</p></li>
+
+<li><p>Define the position and velocity callback functions:</p>
+
+<pre class="prettyprint">
+void position_updated(double latitude, double longitude, double altitude, time_t timestamp, void *user_data);
+void velocity_updated(double speed, double direction, double climb, time_t timestamp, void *user_data);
+</pre>
+
+<p>Within the function, you can collect obtained data to get the points you have visited, to calculate traveled distance more precisely, or to calculate the average speed or climb.</p></li></ol></li>
+
+<li>Receive the current information.
+<p>You can get the current information about position, velocity, or localization accuracy:</p>
+<ul class="ul"><li>To get information about the current position (altitude, latitude, and longitude), use the <span style="font-family: Courier New,Courier,monospace;">location_manager_get_position()</span> function:
+
+<pre class="prettyprint">
+time_t timestamp;
+double altitude;
+double latitude;
+double longitude;
+location_manager_get_position(manager, &amp;altitude, &amp;latitude, &amp;longitude, &amp;timestamp);
+</pre></li>
+
+<li><p>To get information about the current velocity (climb in km/h, direction as degrees from the north and speed in km/h), use the <span style="font-family: Courier New,Courier,monospace;">location_manager_get_velocity()</span> function:</p>
+
+<pre class="prettyprint">
+double climb;
+double direction;
+double speed;
+location_manager_get_velocity(manager, &amp;climb, &amp;direction, &amp;speed, &amp;timestamp);
+</pre></li>
+
+<li><p>To get information about the current accuracy (level – see the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__LOCATION__MANAGER__MODULE.html#ga4878b9a0afa5990dd2bb500850c1828b">location_accuracy_level_e</a> enumeration, and horizontal and vertical accuracy), use the <span style="font-family: Courier New,Courier,monospace;">location_manager_get_accuracy()</span> function:</p>
+
+<pre class="prettyprint">
+location_accuracy_level_e level;
+double horizontal;
+double vertical;
+location_manager_get_accuracy(manager, &amp;level, &amp;horizontal, &amp;vertical);
+</pre></li>
+
+<li><p>Use the <span style="font-family: Courier New,Courier,monospace;">location_manager_get_location()</span> function to get all of the above 10 values at once:</p>
+
+<pre class="prettyprint">
+location_manager_get_location(manager, &amp;altitude, &amp;latitude, &amp;longitude, &amp;climb, &amp;direction, &amp;speed, &amp;level, &amp;horizontal, &amp;vertical, &amp;timestamp);
+</pre></li>
+
+<li><p>If the location service is currently unavailable, get the last values recorded by the location manager when the GPS signal was available. To get the information, use the following functions:</p>
+<ul class="ul">
+<li><span style="font-family: Courier New,Courier,monospace;">location_manager_get_last_position()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">location_manager_get_last_velocity()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">location_manager_get_last_accuracy()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">location_manager_get_last_location()</span></li>
+</ul>
+
+<p>The syntax of these functions corresponds to the functions presented above.</p></li></ul></li>
+
+<li>Get the distance.
+<p>To get a distance (in meters) between 2 points, use the <span style="font-family: Courier New,Courier,monospace;">location_manager_get_distance()</span> function. The obtained value is a great-circle distance; the shortest distance between 2 points on the sphere.</p>
+<p>Provide the latitude and longitude of the starting point, the latitude and longitude of the end point, and the variable to store obtained distance:</p>
+
+<pre class="prettyprint">
+double distance;
+location_manager_get_distance(37.28, 127.01, 52.23, 21.01, &amp;distance);
+</pre>
+
+<p>To get more precise traveled distance, sum distances between each 2 consecutive points, delivered by the periodic position update callback.</p></li></ol>
+ 
+			</div>
+		</li>	
+		
+	</ul>	
+</div></div>			
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+</body>
+</html>
