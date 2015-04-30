@@ -10,138 +10,66 @@
     <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
-  <title>Oauth2 Authentication</title>
+  <title>OAuth2: Using the Authorization Framework</title>
  </head>
 <body onload="prettyPrint()" style="overflow: auto;">
 
-<div id="navigation">
+<div id="toc-navigation">
     <div id="profile">
-        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/> <img alt="Wearable native" src="../../images/wn_icon.png"/></p>
     </div>
     <div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a class="opensection" href="#mgr_init">Initializing the OAuth2 Manager</a></li>
-			<li><a class="opensection" href="#request">Creating and Managing an Oauth2 Request</a>
-				<ul class="toc">
-					<li><a class="opensection" href="#create_req">Creating Request Handle</a></li>
-					<li><a class="opensection" href="#set_req">Setting Request Parameters</a></li>
-					<li><a class="opensection" href="#get_req">Retrieving Request Parameters</a></li>
-					<li><a class="opensection" href="#des_req">Destroying Request Handle</a></li>
-				</ul>
-			</li>
-			<li><a class="opensection" href="#token">Request server for Grant/ Token</a></li>
-				<ul class="toc">
-					<li><a class="opensection" href="#req_code">Requesting Authorization Code</a></li>
-					<li><a class="opensection" href="#req_token">Requesting Access Token</a></li>
-					<ol>
-						<li><a class="opensection" href="#code_token">Requesting access token with the authorization code obtained</a></li>
-						<li><a class="opensection" href="#direct_token">Requesting access token directly</a></li>
-					</ol>
-					<li><a class="opensection" href="#req_refresh">Refreshing Access Token</a></li>
-				</ul>
-
-			<li><a class="opensection" href="#response">Managing an Oauth2 Response</a>
-				<ul class="toc">
-					<li><a class="opensection" href="#get_res">Retrieving Response Parameters</a></li>
-					<li><a class="opensection" href="#err_res">Error Handling in Response</a></li>
-					<li><a class="opensection" href="#des_res">Destroying Response Handle</a></li>
-				</ul>
-			</li>
-			<li><a class="opensection" href="#des_mgr">Destroying Oauth2 Manager Handle</a></li>
+			<li><a href="#mgr_init">Initializing the OAuth2 Manager</a></li>
+			<li><a href="#request">Creating and Managing an OAuth2 Request</a></li>
+			<li><a href="#token">Requesting the Server for a Grant or Token</a></li>
+			<li><a href="#response">Managing an OAuth2 Response</a></li>
+			<li><a href="#des_mgr">Releasing the Resources</a></li>
 		</ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
-        	<li><a href="../../../../org.tizen.guides/html/native/oauth2/oauth2_guide_n.htm">OAuth2 Authorization Framework</a></li>
-		<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__OAUTH2__MODULE.html">OAuth2 API</a></li>
+        	<li><a href="../../../../org.tizen.guides/html/native/oauth2/oauth2_guide_n.htm">OAuth2 Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__OAUTH2__MODULE.html">OAuth2 API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__OAUTH2__MODULE.html">OAuth2 API for Wearable Native</a></li>
         </ul>
     </div></div>
 </div>
 
 <div id="container"><div id="contents"><div class="content">
+<h1>OAuth2: Using the Authorization Framework</h1>
 
- <h1>Oauth2 Authentication</h1>
-  <div class="cont"><div class="static-cont">
+<p>This tutorial demonstrates how you can create a request for OAuth2 authentication and authorization grant from a server, obtain an access token using the manager handle, and retrieve this info from the response handle returned in the callback.</p>
 
- <p>This tutorial demonstrates how you can create a request for OAuth2 authentication and authorization grant from a server, obtain the access token using manager handle, and retrieve this info from the response handle returned in the callback.</p>
+<h2>Warm-up</h2>
 
-<h2>API Usage</h2>
-<p>Become familiar with the OAtuh2 API basics by learning about:</p>
+<p>Become familiar with the OAuth2 API basics by learning about:</p>
 <ul>
-		<li><a class="opensection" href="#mgr_init">Initializing the OAuth2 Manager</a>
-		<p>Initialize the oauth2 manager for use.</p></li>
+		<li><a href="#mgr_init">Initializing the OAuth2 Manager</a>
+		<p>Initialize the OAuth2 manager for use.</p></li>
 		
-		<li><a class="opensection" href="#request">Creating and Managing an OAuth2 Request</a>
-		<p>Create a request, set its parameters, and pass it to oauth2 manager for requesting token.</p>
-		<ul>
-		<li><a class="opensection" href="#create_req">Creating Request Handle</a>
-		<p>Create a oauth2 request handle.</p></li>
-		<li><a class="opensection" href="#set_req">Setting Request Parameters</a>
-		<p>Add parameters needed to make a request oauth2 token/ grant.</p></li>
-		<li><a class="opensection" href="#get_req">Retrieving Request Parameters</a>
-		<p>Retrieve the various request parameters set.</p></li>
-		<li><a class="opensection" href="#des_req">Destroying Request Handle</a>
-		<p>Delete and free the request handle.</p></li>
-		</ul>
-		</li>
+		<li><a href="#request">Creating and Managing an OAuth2 Request</a>
+		<p>Create a request handle, set and retrieve request parameters, and pass the request to the OAuth2 manager to request a token.</p></li>
 
-		<li><a class="opensection" href="#token">Request server for Grant/ Token</a>
-		<p>Request the authorization server for the required oauth2 grant or token.</p>
-		<ul>
-			<li><a class="opensection" href="#req_code">Requesting Authorization Code</a>
-			<p>Request the authorization code to obtain access or refresh tokens.</p></li>
-			<li><a class="opensection" href="#req_token">Requesting Access Token</a>
-			<p>Request an access token from the authorization server.</p></li>
-			<ol>
-				<li><a class="opensection" href="#code_token">Requesting access token with the authorization code obtained</a>
-				<p>Request access token using the authorization code received from the server.</p></li>
-				<li><a class="opensection" href="#direct_token">Requesting access token directly</a>
-				<p>Request access token with a single API.</p></li>
-			</ol>
-			<li><a class="opensection" href="#req_refresh">Refreshing Access Token</a>
-			<p>Refresh an access token using refresh token.</p></li>
-		</ul>
-		</li>
+		<li><a href="#token">Requesting the Server for a Grant or Token</a>
+		<p>Request the authorization server for the required OAuth2 grant or token using various methods and grant types.</p></li>
 
-		<li><a class="opensection" href="#request">Managing an OAuth2 Response</a>
-		<p>Obtain information the oauth2 response handle returned in callback.</p>
-		<ul>
-		<li><a class="opensection" href="#get_res">Retrieving Response Parameters</a>
-		<p>Retrieve the response parameters from handle.</p></li>
-		<li><a class="opensection" href="#err_res">Error Handling in Response</a>
-		<p>Handling an error response from the server.</p></li>
-		<li><a class="opensection" href="#des_res">Destroying Response Handle</a>
-		<p>Delete and free the response handle.</p></li>
-		</ul>
-		</li>
+		<li><a href="#response">Managing an OAuth2 Response</a>
+		<p>Obtain information from the OAuth2 response handle returned in a callback.</p></li>
 
-		<li><a class="opensection" href="#disconnect">Destroying the Oauth2 Manager Handle</a>
-		<p>Destroy the manager handle.</p></li>
+		<li><a href="#des_mgr">Releasing the Resources</a>
+		<p>Destroy the OAuth2 manager handle.</p></li>
 </ul>
 
-<div class="devicespecs-util mt5 clfix">
-		<ul class="dutil">
-			<li><a href="#" class="showA">Show All</a></li>
-			<li class="none"><a href="#" class="hideA">Hide All</a></li>
-		</ul>
-	</div>
+<h2 id="mgr_init" name="mgr_init">Initializing the OAuth2 Manager</h2>
 
-		<ul class="devicespecifications">
-
-
-		<li>
-			<div class="devicespec-tit">
- <h2 id="mgr_init" name="mgr_init" class="items-tit-h2">Initializing the Oauth2 Manager</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>To initialize the oauth2 manager:</p>
+<p>To initialize the OAuth2 manager:</p>
 <ol>
-<li> <p>To use the functions and data types of the <a href="../../../../org.tizen.native.apireference/group__CAPI__OAUTH2__MANAGER__MODULE.html">Oauth2 Manager</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;oauth2.h&gt;</span> header file in your application:</p>
+<li> <p>To use the functions and data types of the OAuth2 Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__OAUTH2__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__OAUTH2__MANAGER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;oauth2.h&gt;</span> header file in your application:</p>
 <pre class="prettyprint">
 #include &lt;oauth2.h&gt;
 </pre></li>
-<li><p>Declare the necessary global variables and create the manager handle using <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_create()</span>. To know, whether a function has been executed properly, see that the return is equal to <span style="font-family: Courier New,Courier,monospace;">OAUTH2_ERROR_NONE</span>.</p>
+<li><p>Declare the necessary global variables and create the manager handle using the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_create()</span> function. To know whether a function has been executed properly, make sure that the return value is <span style="font-family: Courier New,Courier,monospace;">OAUTH2_ERROR_NONE</span>.</p>
 
 <pre class="prettyprint">
 static oauth2_manager_h mgr = NULL;
@@ -150,50 +78,24 @@ ret = oauth2_manager_create(&amp;mgr)
 </pre></li>
 
 <li><p>Set up the required privileges for your application:</p>
+<p>To use APIs for OAuth2 authentication and connecting to the Web servers, add the <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/internet</span> privilege to the manifest file.</p></li>
 
-<ul class="ul">
-<li>To use APIs for oauth2 authentication and connecting to the web servers, add the <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/internet</span> privilege to the manifest file.
-</li>
+</ol>
 
-</ul></li></ol>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="request" name="request" class="items-tit-h2">Creating and Managing an Oauth2 Request</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>To make a request with oauth2 manager, create a request, set it properties, and pass it as a parameter in the oauth2 manager API:</p>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="create_req" name="create_req" class="items-tit-h2">Creating Request Handle</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>Define an <span style="font-family: Courier New,Courier,monospace;">oauth2_request_h</span> handle.</p>
-<ul>
-<li>Create an oauth2 request using the <span style="font-family: Courier New,Courier,monospace;">oauth2_request_create()</span> function after defining the above mentioned request handle:
+ <h2 id="request" name="request">Creating and Managing an OAuth2 Request</h2>
+
+<p>To make a request with the OAuth2 manager:</p>
+
+<ol>
+<li>Create an <span style="font-family: Courier New,Courier,monospace;">oauth2_request_h</span> request handle and use the <span style="font-family: Courier New,Courier,monospace;">oauth2_request_create()</span> function to create the OAuth2 request:
 
 <pre class="prettyprint">
 oauth2_request_h request = NULL;
-ret = oauth2_request_create(&request);
+ret = oauth2_request_create(&amp;request);
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="set_req" name="set_req" class="items-tit-h2">Setting Request Parameters</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
- <p>Set all the parameters needed for making an oauth2 request.</p>
-<ul>
-<li>When the request is created, you can set its properties, such as end points for authentication and token, grant type, user name, and password:
+<li>Set the parameters needed for making an OAuth2 request.
+<p>You can set various request properties, such as end points for authentication and token, grant type, user name, and password.</p>
 
 <pre class="prettyprint">
 char* auth_url = &quot;https://accounts.google.com/o/oauth2/auth&quot;;
@@ -210,21 +112,9 @@ ret = oauth2_request_set_grant_type(request, OAUTH2_GRANT_TYPE_AUTH_CODE);
 ret = oauth2_request_set_user_name(request, user_name);
 
 ret = oauth2_request_set_password(request, password);request
-
 </pre>
-</li>
-</ul>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="get_req" name="get_req" class="items-tit-h2">Retrieving Request Parameters</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>Retrieve information for an existing request handle.</p>
-<ul>
-<li>To get request information, such as end points for authentication and token, grant type, user name, and password:
+
+<p>You can also retrieve request parameters from an existing request handle:</p>
 
 <pre class="prettyprint">
 char* auth_url = NULL;
@@ -233,308 +123,246 @@ char* user_name = NULL;
 char* password = NULL;
 oauth2_grant_type_e grant_type;
 
-ret = oauth2_request_get_auth_end_point_url(request, &auth_url);
+ret = oauth2_request_get_auth_end_point_url(request, &amp;auth_url);
 
-ret = oauth2_request_get_token_end_point_url(request, &token_url);
+ret = oauth2_request_get_token_end_point_url(request, &amp;token_url);
 
-ret = oauth2_request_get_grant_type(request, &grant_type)
+ret = oauth2_request_get_grant_type(request, &amp;grant_type)
 
-ret = oauth2_request_get_user_name(request, &user_name);
+ret = oauth2_request_get_user_name(request, &amp;user_name);
 
-ret = oauth2_request_get_password(request, &password);
+ret = oauth2_request_get_password(request, &amp;password);
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="des_req" name="des_req" class="items-tit-h2">Destroying Request Handle</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>To free the request handle.</p>
-<ul>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">oauth2_request_destroy()</span> function to destroy the request handle:
+<li>When you no longer need it, free the request handle with the <span style="font-family: Courier New,Courier,monospace;">oauth2_request_destroy()</span> function:
 
 <pre class="prettyprint">
 ret = oauth2_request_destroy(request);
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
+</ol>
+	
+ <h2 id="token" name="token">Requesting the Server for a Grant or Token</h2>
 
-		<li>
-			<div class="devicespec-tit">
- <h2 id="token" name="token" class="items-tit-h2">Request server for Grant/ Token</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>Obtain the required authorization code or access token.</p>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="req_code" name="req_code" class="items-tit-h2">Requesting Authorization Code</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>The authorization code grant type is used to obtain both access tokens and refresh tokens. It is a redirection-based flow that requires the client to 
-interact with the server and receiving the incoming requests (via redirection) from the authorization server.
-</p>
-<ul>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_request_authorization_grant()</span> function to request for authorization code:
+<p>To obtain the required authorization code or access token:</p>
+
+<ul><li id="req_code">Request the authorization code.
+<p>The authorization code grant type is used to obtain both access tokens and refresh tokens. It is a redirection-based flow that requires the client to interact with the server and receive the incoming requests (through redirection) from the authorization server.</p>
+<p>To request the authorization code, use the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_request_authorization_grant()</span> function:</p>
 
 <pre class="prettyprint">
 void
 grant_response_cb(oauth2_response_h response, void* user_data)
 {
-&nbsp;&nbsp;&nbsp;// authorization code response callback
+&nbsp;&nbsp;&nbsp;// Authorization code response callback
 &nbsp;&nbsp;&nbsp;char *auth_code = NULL;
-&nbsp;&nbsp;&nbsp;oauth2_response_get_authorization_code(response, &auth_code);
+&nbsp;&nbsp;&nbsp;oauth2_response_get_authorization_code(response, &amp;auth_code);
 }
 
 void
 request_auth_code(void)
 {
 &nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
-&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
+&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&amp;mgr);
 
 &nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&request);
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&amp;request);
 
-&nbsp;&nbsp;&nbsp;/*
-&nbsp;&nbsp;&nbsp; * Set all the required parameters needed as per the web server's
-&nbsp;&nbsp;&nbsp; * OAuth2 authentication policy before making the request.
-&nbsp;&nbsp;&nbsp; */
+&nbsp;&nbsp;&nbsp;// Set all the required parameters needed as per the Web server&#39;s
+&nbsp;&nbsp;&nbsp;// OAuth2 authentication policy before making the request
 
-&nbsp;&nbsp;&nbsp;// Setting the response_type as "code"
+&nbsp;&nbsp;&nbsp;// Set the response_type as &quot;code&quot;
 &nbsp;&nbsp;&nbsp;ret = oauth2_request_set_response_type(request, OAUTH2_RESPONSE_TYPE_CODE);
 
-&nbsp;&nbsp;&nbsp;// Setting the applications client_id registered in server
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, "app_client_id");
+&nbsp;&nbsp;&nbsp;// Set the application&#39;s client_id registered in the server
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, &quot;app_client_id&quot;);
 
-&nbsp;&nbsp;&nbsp;// Setting the redirect_uri for the server to redirect flow after authentication
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, "https://developer.tizen.org");
+&nbsp;&nbsp;&nbsp;// Set the redirect_uri for the server to redirect the flow after the authentication
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, &quot;https://developer.tizen.org&quot;);
 
-&nbsp;&nbsp;&nbsp;// Request server for authorization grant. The reponse from server is returned in the callback.
+&nbsp;&nbsp;&nbsp;// Request the server for the authorization grant; the response from the server is returned in the callback
 &nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_authorization_grant(mgr, request, grant_response_cb, user_data);
 }
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="req_token" name="req_token" class="items-tit-h2">Requesting Access Token</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>Access tokens are credentials used to access protected resources.  An access token is a string representing an authorization issued to the client. Tokens represent specific scopes and durations of access, granted by the resource owner, and enforced by the resource server and authorization server.</p>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="code_token" name="code_token" class="items-tit-h2">Requesting access token with the authorization code obtained</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>In the authorization code grant type, instead of requesting authorization directly from the resource owner, the client directs the resource owner to an 
-   authorization server, which in turn directs the resource owner back to the client with the authorization code.
-</p>
+<li id="req_token">Request the access token.
+
+<p>Access tokens are credentials used to access protected resources. An access token is a string representing an authorization issued to the client. Tokens represent specific access scopes and durations, granted by the resource owner, and enforced by the resource server and authorization server.</p>
+
 <ul>
-<li>Authorization code can be requested by using <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_request_authorization_grant()</span> API.
-After authentication, the response from the server is returned in the <span style="font-family: Courier New,Courier,monospace;">oauth2_auth_grant_cb</span> callback function as shown in the <a class="opensection" href="#req_code">previous</a> section.</li>
-<li> Once authorization code is obtained, we can reuqest for the access token using this code by calling the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_request_access_token()</span> API. The reponse from server is returned in the <span style="font-family: Courier New,Courier,monospace;">oauth2_access_token_cb</span> callback function where access token can be retrieved:
-
+<li id="code_token">Request the access token with the authorization code.
+<p>In the authorization code grant type, instead of requesting authorization directly from the resource owner, the client directs the resource owner to an authorization server, which in turn directs the resource owner back to the client with the authorization code.</p>
+<ol type="a">
+<li><a href="#req_code">Request the authorization code</a> with the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_request_authorization_grant()</span> function. The authorization code is returned in the callback.
 <pre class="prettyprint">
-void
-access_token_cb(oauth2_response_h response, void* user_data)
-{
-&nbsp;&nbsp;&nbsp;// access token response callback
-
-&nbsp;&nbsp;&nbsp;char *access_token = NULL;
-&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &access_token);
-}
-
-void
-grant_response_cb(oauth2_response_h response, void* user_data)
-{
-&nbsp;&nbsp;&nbsp;// authorization code response callback
-&nbsp;&nbsp;&nbsp;char *auth_code = NULL;
-&nbsp;&nbsp;&nbsp;oauth2_response_get_authorization_code(response, &auth_code);
-
-&nbsp;&nbsp;&nbsp;if (auth_code)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// request handle was passed as the user data
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_request_h request = (oauth2_request_h) user_data;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_authorization_code(request, auth_code);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (mgr && request)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_access_token(mgr, request, access_token_cb, NULL);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
-}
-
 void
 request_auth_code(void)
 {
 &nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
-&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
+&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&amp;mgr);
 
 &nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&request);
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&amp;request);
 
-&nbsp;&nbsp;&nbsp;/*
-&nbsp;&nbsp;&nbsp; * Set all the required parameters needed as per the web server's
-&nbsp;&nbsp;&nbsp; * OAuth2 authentication policy before making the request.
-&nbsp;&nbsp;&nbsp; */
+&nbsp;&nbsp;&nbsp;// Set all the required parameters needed as per the Web server&#39;s
+&nbsp;&nbsp;&nbsp;// OAuth2 authentication policy before making the request
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, "https://login.live.com/oauth20_authorize.srf");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, &quot;https://login.live.com/oauth20_authorize.srf&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_token_end_point_url(request, "https://login.live.com/oauth20_token.srf");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_token_end_point_url(request, &quot;https://login.live.com/oauth20_token.srf&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, "https://developer.tizen.org");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, &quot;https://developer.tizen.org&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, "WINDOWS_CLIENT_ID");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, &quot;WINDOWS_CLIENT_ID&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, "WINDOWS_CLIENT_SECRET");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, &quot;WINDOWS_CLIENT_SECRET&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_scope(request, "wl.basic");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_scope(request, &quot;wl.basic&quot;);
 
 &nbsp;&nbsp;&nbsp;ret = oauth2_request_set_response_type(request, OAUTH2_RESPONSE_TYPE_CODE);
 
-&nbsp;&nbsp;&nbsp;if (mgr && request)
+&nbsp;&nbsp;&nbsp;if (mgr &amp;&amp; request)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_authorization_grant(mgr, request, grant_response_cb, request);
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="direct_token" name="direct_token" class="items-tit-h2">Requesting access token directly</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>We can also request for an access token in a single step without obtaining authorization code explicitly in this method. The code is obtained after authentication and passed to the server to obtain the access token internally in case of  Authorization Code grant type. In case of Implicit, Resourse Owner Password Credentials and Client Credentials grant type, we can obtain the access token directly as follows.
-</p>
-<ul>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_request_token()</span> API to request for access token as shown below. We can check the response from the server in the <span style="font-family: Courier New,Courier,monospace;">oauth2_token_cb</span> callback function:
+<li>Use the authorization code to request the access token by calling the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_request_access_token()</span> function. The response from the server is returned in the <span style="font-family: Courier New,Courier,monospace;">oauth2_access_token_cb</span> callback function where the access token can be retrieved:
+
+<pre class="prettyprint">
+void
+access_token_cb(oauth2_response_h response, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Access token response callback
+
+&nbsp;&nbsp;&nbsp;char *access_token = NULL;
+&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &amp;access_token);
+}
+
+void
+grant_response_cb(oauth2_response_h response, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Authorization code response callback
+&nbsp;&nbsp;&nbsp;char *auth_code = NULL;
+&nbsp;&nbsp;&nbsp;oauth2_response_get_authorization_code(response, &amp;auth_code);
+
+&nbsp;&nbsp;&nbsp;if (auth_code)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&amp;mgr);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Request handle was passed as the user data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_request_h request = (oauth2_request_h) user_data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_authorization_code(request, auth_code);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (mgr &amp;&amp; request)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_access_token(mgr, request, access_token_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li></ol></li>
+
+<li id="direct_token">Request the access token directly.
+
+<p>You can request an access token in a single step without obtaining the authorization code explicitly. The code is obtained after the authentication and passed to the server to obtain the access token internally in case of the authorization code grant type. In case of the implicit, resource owner password credentials, and client credentials grant types, you can obtain the access token directly.</p>
+
+<p>To obtain the access token directly, use the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_request_token()</span> function. The response from the server is included in the <span style="font-family: Courier New,Courier,monospace;">oauth2_token_cb</span> callback.</p>
 
 <pre class="prettyprint">
 void
 token_response_cb(oauth2_response_h response, void* user_data)
 {
-&nbsp;&nbsp;&nbsp;// access token response callback
+&nbsp;&nbsp;&nbsp;// Access token response callback
 &nbsp;&nbsp;&nbsp;char *access_token = NULL;
-&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &access_token);
+&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &amp;access_token);
 }
 
 void
 request_access_token(void)
 {
 &nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
-&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
+&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&amp;mgr);
 
 &nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&request);
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&amp;request);
 
-&nbsp;&nbsp;&nbsp;/*
-&nbsp;&nbsp;&nbsp; * Set all the required parameters needed as per the web server's
-&nbsp;&nbsp;&nbsp; * OAuth2 authentication policy before making the request.
-&nbsp;&nbsp;&nbsp; */
+&nbsp;&nbsp;&nbsp;// Set all the required parameters needed as per the Web server&#39;s
+&nbsp;&nbsp;&nbsp;// OAuth2 authentication policy before making the request
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, "https://www.facebook.com/dialog/oauth");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, &quot;https://www.facebook.com/dialog/oauth&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, "https://developer.tizen.org");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, &quot;https://developer.tizen.org&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, "SAMPLE_CLIENT_ID");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, &quot;SAMPLE_CLIENT_ID&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_scope(request, "read_stream");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_scope(request, &quot;read_stream&quot;);
 
 &nbsp;&nbsp;&nbsp;ret = oauth2_request_set_response_type(request, OAUTH2_RESPONSE_TYPE_TOKEN);
 
-&nbsp;&nbsp;&nbsp;if (mgr && request)
+&nbsp;&nbsp;&nbsp;if (mgr &amp;&amp; request)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_token(mgr, request, token_response_cb, request);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != OAUTH2_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGE("Access Token request failed"); 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGE(&quot;Access Token request failed&quot;); 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="req_refresh" name="req_refresh" class="items-tit-h2">Refreshing Access Token</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>Refresh tokens are credentials used to obtain access tokens. Refresh tokens are issued to the client by the authorization server and are used to obtain a new access token when the current access token becomes invalid or expires, or to obtain additional access tokens with identical or narrower scope.</p>
-<ul>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_refresh_access_token()</span> API to refresh an access token as shown below. We can check the response from the server in the <span style="font-family: Courier New,Courier,monospace;">oauth2_refresh_token_cb</span> callback function:
+</ul></li>
+<li>Refresh the access token.
+<p>Refresh tokens are credentials used to obtain access tokens. Refresh tokens are issued to the client by the authorization server and are used to obtain a new access token when the current access token becomes invalid or expires, or to obtain additional access tokens with an identical or narrower scope.</p>
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_refresh_access_token()</span> function to refresh an access token. The response from the server is included in the <span style="font-family: Courier New,Courier,monospace;">oauth2_refresh_token_cb</span> callback.</p>
 
 <pre class="prettyprint">
 void
 token_response_cb(oauth2_response_h response, void* user_data)
 {
-&nbsp;&nbsp;&nbsp;// access token response callback
+&nbsp;&nbsp;&nbsp;// Access token response callback
 &nbsp;&nbsp;&nbsp;char *access_token = NULL;
-&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &access_token);
+&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &amp;access_token);
 }
 
 void
 refresh_token_response_cb(oauth2_response_h response, void* user_data)
 {
 &nbsp;&nbsp;&nbsp;char *acc_token = NULL;
-&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &acc_token);
+&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &amp;acc_token);
 
 &nbsp;&nbsp;&nbsp;char *ref_token = NULL;
-&nbsp;&nbsp;&nbsp;oauth2_response_get_refresh_token(response, &ref_token);
+&nbsp;&nbsp;&nbsp;oauth2_response_get_refresh_token(response, &amp;ref_token);
 
 &nbsp;&nbsp;&nbsp;char *auth_code = NULL;
-&nbsp;&nbsp;&nbsp;oauth2_response_get_authorization_code(response, &auth_code);
+&nbsp;&nbsp;&nbsp;oauth2_response_get_authorization_code(response, &amp;auth_code);
 &nbsp;&nbsp;&nbsp;if (auth_code)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = (oauth2_manager_h) user_data;
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = oauth2_request_create(&request);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = oauth2_request_create(&amp;request);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * Set all the required parameters needed as per the web server's
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * OAuth2 authentication policy before making the request.
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Set all the required parameters needed as per the Web server&#39;s
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// OAuth2 authentication policy before making the request
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_refresh_token_url(request, "https://www.googleapis.com/oauth2/v3/token");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_refresh_token_url(request, &quot;https://www.googleapis.com/oauth2/v3/token&quot;);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_refresh_token(request, ref_token);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, "GOOGLE_CLIENT_ID");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, &quot;GOOGLE_CLIENT_ID&quot;);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, "GOOGLE_CLIENT_SECRET");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, &quot;GOOGLE_CLIENT_SECRET&quot;);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_grant_type(request, OAUTH2_GRANT_TYPE_REFRESH);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_authentication_type(request, OAUTH2_CLIENT_AUTHENTICATION_TYPE_REQUEST_BODY);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (mgr && request)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (mgr &amp;&amp; request)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_refresh_access_token(mgr, request, token_response_cb, NULL);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
@@ -545,31 +373,29 @@ void
 request_access_token(void)
 {
 &nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
-&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
+&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&amp;mgr);
 
 &nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&request);
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&amp;request);
 
-&nbsp;&nbsp;&nbsp;/*
-&nbsp;&nbsp;&nbsp; * Set all the required parameters needed as per the web server's
-&nbsp;&nbsp;&nbsp; * OAuth2 authentication policy before making the request.
-&nbsp;&nbsp;&nbsp; */
+&nbsp;&nbsp;&nbsp;// Set all the required parameters needed as per the Web server&#39;s
+&nbsp;&nbsp;&nbsp;// OAuth2 authentication policy before making the request
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, "https://accounts.google.com/o/oauth2/auth");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, &quot;https://accounts.google.com/o/oauth2/auth&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_token_end_point_url(request, "https://accounts.google.com/o/oauth2/token");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_token_end_point_url(request, &quot;https://accounts.google.com/o/oauth2/token&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, "https://localhost:8080");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, &quot;https://localhost:8080&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, "GOOGLE_CLIENT_ID");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, &quot;GOOGLE_CLIENT_ID&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, "GOOGLE_CLIENT_SECRET");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, &quot;GOOGLE_CLIENT_SECRET&quot;);
 
-&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_scope(request, "email");
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_scope(request, &quot;email&quot;);
 
 &nbsp;&nbsp;&nbsp;ret = oauth2_request_set_response_type(request, OAUTH2_RESPONSE_TYPE_CODE);
 
-&nbsp;&nbsp;&nbsp;if (mgr && request)
+&nbsp;&nbsp;&nbsp;if (mgr &amp;&amp; request)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_token(mgr, request, refresh_token_response_cb, mgr);
 &nbsp;&nbsp;&nbsp;}
@@ -577,29 +403,16 @@ request_access_token(void)
 </pre>
 </li>
 </ul>
-	</div>
-		</li>
 
-		<li>
-			<div class="devicespec-tit">
- <h2 id="response" name="response" class="items-tit-h2">Managing an Oauth2 Response</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>The response from server is bundled in the <span style="font-family: Courier New,Courier,monospace;">oauth2_response_h</span> handle and returned in the callbacks, 
-from which all the various response parameters can be obtained.
-</p>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="get_res" name="get_res" class="items-tit-h2">Retrieving Response Parameters</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>Retrieve information for the response handle.</p>
-<ul>
-<li>To get response information, such as authorization code, access token, state, token type:
+<h2 id="response" name="response" class="items-tit-h2">Managing an OAuth2 Response</h2>
+
+<p>The response from the server is bundled in the <span style="font-family: Courier New,Courier,monospace;">oauth2_response_h</span> handle and returned in the callbacks, from which all the various response parameters can be obtained.</p>
+
+<p>To manage the OAuth2 response:</p>
+
+<ol>
+<li>Retrieve the response parameters from the response handle.
+<p>You can get various response information, such as the authorization code, access token, state, and token type.</p>
 
 <pre class="prettyprint">
 char* auth_code = NULL;
@@ -607,27 +420,18 @@ char* access_token = NULL;
 char* state = NULL;
 char* token_type = NULL;
 
-ret = oauth2_response_get_authorization_code(response, &auth_code);
+ret = oauth2_response_get_authorization_code(response, &amp;auth_code);
 
-ret = oauth2_response_get_access_token(response, &access_token);
+ret = oauth2_response_get_access_token(response, &amp;access_token);
 
-ret = oauth2_response_get_state(response, &state);
+ret = oauth2_response_get_state(response, &amp;state);
 
-ret = oauth2_response_get_token_type(response, &token_type);
+ret = oauth2_response_get_token_type(response, &amp;token_type);
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="err_res" name="err_res" class="items-tit-h2">Error Hanlding in Response</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>If the request created is incorrect or the required permissions are not present, then there is an in response from server.</p>
-<ul>
-<li>We can retrieve the error information from the response handle to check the issue:
+
+<li>Handle response errors.
+<p>If the created request is incorrect or missing required permissions, the server response contains an error. Retrieve the error information from the response handle to check the issue:</p>
 
 <pre class="prettyprint">
 oauth2_error_h e_handle =  NULL;
@@ -637,61 +441,32 @@ char *description = NULL;
 char *uri = NULL;
 char *error_val = NULL;
 
-oauth2_response_get_error(response, &e_handle);
+oauth2_response_get_error(response, &amp;e_handle);
 
-oauth2_error_get_code(e_handle, &error_code, &platform_error_code);
+oauth2_error_get_code(e_handle, &amp;error_code, &amp;platform_error_code);
 
-oauth2_error_get_description(e_handle, &description);
+oauth2_error_get_description(e_handle, &amp;description);
 
-oauth2_error_get_uri(e_handle, &uri);
+oauth2_error_get_uri(e_handle, &amp;uri);
 
-oauth2_error_get_custom_data(e_handle, "error", &error_val);
-
+oauth2_error_get_custom_data(e_handle, &quot;error&quot;, &amp;error_val);
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
-		<li>
-			<div class="devicespec-tit">
- <h2 id="des_res" name="des_res" class="items-tit-h2">Destroying Response Handle</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>To free the response handle.</p>
-<ul>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">oauth2_response_destroy()</span> function to destroy the response handle:
+<li>When you no longer need the it, free the response handle with the <span style="font-family: Courier New,Courier,monospace;">oauth2_response_destroy()</span> function:
 
 <pre class="prettyprint">
 ret = oauth2_response_destroy(response);
 </pre>
 </li>
-</ul>
-	</div>
-		</li>
-		
-		<li>
-			<div class="devicespec-tit">
- <h2 id="des_mgr" name="des_mgr" class="items-tit-h2">Destroying Oauth2 Manager Handle</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con">
-<p>To free the oauth2 manager handle.</p>
-<ul>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_destroy()</span> function to destroy the manager handle:
+</ol>
+
+ <h2 id="des_mgr" name="des_mgr">Releasing the Resources</h2>
+
+<p>To free the OAuth2 manager handle, use the <span style="font-family: Courier New,Courier,monospace;">oauth2_manager_destroy()</span> function:</p>
 
 <pre class="prettyprint">
 ret = oauth2_manager_destroy(mgr);
 </pre>
-</li>
-</ul>
-	</div>
-		</li>
-
-
-		</ul>
-</div>
-</div>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
