@@ -109,7 +109,7 @@
  
 
 <pre class="prettyprint">
-#define BUFFER 300 // Buffer size, used in functions
+#define BUFLEN 300 // Buffer size, used in functions
 const int key_len = 256; // AES key length
 
 static const unsigned char password[] = {&quot;DummyPassword&quot;}; // Password to generate key
@@ -118,18 +118,9 @@ sqlite3 *db; // Database handle
 
 unsigned char salt[9]; // Encryption salt
 unsigned char iv[17]; // Encryption initial vector
-  
-char *hellomsg = {&quot;Hello Tizen! SQLite OpenSSL&quot;};
-char text[BUFFER];
 </pre>
 
 <pre class="prettyprint">
-time_t rawtime;
-struct tm *timeinfo;
-
-time(&amp;rawtime);
-timeinfo = localtime(&amp;rawtime);
-sprintf(text, &quot;%s %s&quot;, hellomsg, asctime(timeinfo));
 
 sqlite3_shutdown();
 
@@ -150,6 +141,7 @@ memset(path, 0, siz);
 sqlite3_open(path, &amp;db);
 
 free(path);
+free(resource);
 
 CreateTable();
 
@@ -264,11 +256,11 @@ static int EncryptMsg(char* in, unsigned char* out, const unsigned char* passwor
 &nbsp;&nbsp;&nbsp;int iter = (int)vector[0];
 &nbsp;&nbsp;&nbsp;unsigned char key[key_len+1];
 &nbsp;&nbsp;&nbsp;char *msgbuff;
-&nbsp;&nbsp;&nbsp;unsigned char buf[BUFFER];
+&nbsp;&nbsp;&nbsp;unsigned char buf[BUFLEN];
 &nbsp;&nbsp;&nbsp;unsigned int retlen;
 &nbsp;&nbsp;&nbsp;int x;
 
-&nbsp;&nbsp;&nbsp;memset(buf,0x00,BUFFER);
+&nbsp;&nbsp;&nbsp;memset(buf,0x00,BUFLEN);
 
 &nbsp;&nbsp;&nbsp;PKCS5_PBKDF2_HMAC_SHA1((char *)password,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(password)/sizeof(unsigned char),
@@ -282,9 +274,7 @@ static int EncryptMsg(char* in, unsigned char* out, const unsigned char* passwor
 &nbsp;&nbsp;&nbsp;AES_set_encrypt_key(key, key_len, &amp;encryption_key);
 &nbsp;&nbsp;&nbsp;AES_encrypt((unsigned char *)in, (unsigned char *)buf, &amp;encryption_key);
 
-&nbsp;&nbsp;&nbsp;for (x=0; buf[x]!=0x00; x++);
-
-&nbsp;&nbsp;&nbsp;msgbuff = base64_encode(buf, x, &amp;retlen);
+&nbsp;&nbsp;&nbsp;msgbuff = base64_encode(buf, 16, &amp;retlen);
 
 &nbsp;&nbsp;&nbsp;memcpy(buf, msgbuff, retlen);
 &nbsp;&nbsp;&nbsp;buf[retlen+1]=0x00;
@@ -305,12 +295,18 @@ static int EncryptMsg(char* in, unsigned char* out, const unsigned char* passwor
 static int InsertRecord(unsigned char *msg, int encrypted,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int part, int len)
 {
-&nbsp;&nbsp;&nbsp;char sqlbuff[BUFFER]; 
-&nbsp;&nbsp;&nbsp;snprintf(sqlbuff, BUFFER, &quot;INSERT INTO EncryptedData
+&nbsp;&nbsp;&nbsp;char sqlbuff[BUFLEN]; 
+&nbsp;&nbsp;&nbsp;char *ErrMsg;
+&nbsp;&nbsp;&nbsp;snprintf(sqlbuff, BUFLEN, &quot;INSERT INTO EncryptedData
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VALUES(\&#39;%s\&#39;, %d, \&#39;%s\&#39;, \&#39;%s\&#39;, %d, NULL);&quot;,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;msg, encrypted, salt, iv, part);
 
-&nbsp;&nbsp;&nbsp;sqlite3_exec(db, sqlbuff, callback, 0, &amp;ErrMsg);
+&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sqlbuff, callback, 0, &amp;ErrMsg);
+&nbsp;&nbsp;&nbsp;if (ret)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Error: %s\n&quot;, ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_free(ErrMsg);
+&nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;return 0;
 }
@@ -326,7 +322,7 @@ static int InsertRecord(unsigned char *msg, int encrypted,
 	<pre class="prettyprint">
 static int InsertMessage(unsigned char* text)
 {
-&nbsp;&nbsp;&nbsp;unsigned char encrypted_out[BUFFER];
+&nbsp;&nbsp;&nbsp;unsigned char encrypted_out[BUFLEN];
 &nbsp;&nbsp;&nbsp;int ret = 0;
 &nbsp;&nbsp;&nbsp;int x;
 &nbsp;&nbsp;&nbsp;int len, retlen, parts=0, pos;
@@ -352,8 +348,8 @@ static int InsertMessage(unsigned char* text)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;retlen = EncryptMsg((char *)&amp;text[pos],
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encrypted_out, password, salt, iv);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InsertRecord(encrypted_out, 1, parts, retlen);
 &nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;InsertRecord(encrypted_out, 1, parts, retlen);
 
 &nbsp;&nbsp;&nbsp;return 0;
 }
@@ -438,7 +434,7 @@ static void DecryptRecords()
 <pre class="prettyprint">
 static int callbackdecrypt(void *counter, int argc, char **argv, char **azColName)
 {
-&nbsp;&nbsp;&nbsp;unsigned char decrypted_out[BUFFER];
+&nbsp;&nbsp;&nbsp;unsigned char decrypted_out[BUFLEN];
 &nbsp;&nbsp;&nbsp;int *localcounter = (int *)counter;
 &nbsp;&nbsp;&nbsp;int i;
 &nbsp;&nbsp;&nbsp;unsigned int olen;
@@ -487,7 +483,7 @@ static int DecryptMsg(unsigned char* in, unsigned char * out, const unsigned cha
 &nbsp;&nbsp;&nbsp;unsigned char key[key_len+1];
 &nbsp;&nbsp;&nbsp;int x;
 
-&nbsp;&nbsp;&nbsp;memset(out, 0x00, BUFFER);
+&nbsp;&nbsp;&nbsp;memset(out, 0x00, BUFLEN);
 
 &nbsp;&nbsp;&nbsp;PKCS5_PBKDF2_HMAC_SHA1((char *)password,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(password)/sizeof(unsigned char),
@@ -500,8 +496,7 @@ static int DecryptMsg(unsigned char* in, unsigned char * out, const unsigned cha
 &nbsp;&nbsp;&nbsp;AES_set_decrypt_key(key, key_len, &amp;decryption_key);
 &nbsp;&nbsp;&nbsp;AES_decrypt((unsigned char *)in, out, &amp;decryption_key);
 
-&nbsp;&nbsp;&nbsp;for (x = 0; out[x]!=0x00; x++)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x++;
+&nbsp;&nbsp;&nbsp;for (x = 0; out[x]!=0x00; x++);
 
 &nbsp;&nbsp;&nbsp;return x;
 }
@@ -509,7 +504,7 @@ static int DecryptMsg(unsigned char* in, unsigned char * out, const unsigned cha
 </li>
 
 <li>Clean up.
-<p>Despite the resources allocated with the <span style="font-family: Courier New,Courier,monospace">malloc()</span> function, the SQLite library has to be closed properly when not needed anymore:</p>
+<p>The SQLite library has to be closed properly when not needed anymore:</p>
 <pre class="prettyprint">
 base64_cleanup();
 sqlite3_close(db);
@@ -601,6 +596,7 @@ unsigned char *base64_decode(const char *data, size_t input_length, size_t *outp
 void base64_cleanup() 
 {
 &nbsp;&nbsp;&nbsp;free(decoding_table);
+&nbsp;&nbsp;&nbsp;decoding_table = NULL;
 }
 </pre>
 </li>
@@ -610,14 +606,22 @@ void base64_cleanup()
 <pre class="prettyprint">
 int OpenSQL_AES_example_1(void)
 {
-&nbsp;&nbsp;&nbsp;unsigned char decrypted_out[BUFFER];
+&nbsp;&nbsp;&nbsp;unsigned char decrypted_out[BUFLEN];
 &nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;char *hellomsg = {&quot;Hello Tizen! SQLite OpenSSL&quot;};
+&nbsp;&nbsp;&nbsp;char text[BUFLEN];
+&nbsp;&nbsp;&nbsp;time_t rawtime;
+&nbsp;&nbsp;&nbsp;struct tm *timeinfo;
 
 &nbsp;&nbsp;&nbsp;if (init_err)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Initial error\n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
 &nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;time(&amp;rawtime);
+&nbsp;&nbsp;&nbsp;timeinfo = localtime(&amp;rawtime);
+&nbsp;&nbsp;&nbsp;sprintf(text, &quot;%s %s&quot;, hellomsg, asctime(timeinfo));
 
 &nbsp;&nbsp;&nbsp;// Insert long message
 &nbsp;&nbsp;&nbsp;ret = InsertMessage((unsigned char *)text);
@@ -630,7 +634,7 @@ int OpenSQL_AES_example_1(void)
 &nbsp;&nbsp;&nbsp;// Insert message up to 16 characters
 &nbsp;&nbsp;&nbsp;char *ShortMsg = &quot;Short Msg.&quot;;
 &nbsp;&nbsp;&nbsp;EncryptMsg(ShortMsg, decrypted_out, password, salt, iv);
-&nbsp;&nbsp;&nbsp;InsertRecord(decrypted_out, 1, 0, strlen(ShortMsg));
+&nbsp;&nbsp;&nbsp;ret = InsertRecord(decrypted_out, 1, 0, strlen(ShortMsg));
 &nbsp;&nbsp;&nbsp;if (ret)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Insert ENCRYPTED MessageError\n&quot;);
