@@ -1,0 +1,218 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>External Output Manager (EOM)</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#mode">Mode</a></li>
+            <li><a href="#attribute">Attribute for Presentation Mode</a></li>
+            <li><a href="#noti">Notify to application</a></li>
+            <li><a href="#getinfo">Get Information of External Output Device</a></li>
+            <li><a href="#setinfo">Set to External Output Device</a></li>
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/eom_tutorial_n.htm">EOM Tutorial</a></li>
+<!-- (            <li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__EOM__MODULE.html">EOM API</a></li>) -->
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+ 
+<h1>External Output Manager (EOM)</h1>
+  <p>External Output Manager(EOM) is a module to control external output devices.</p>
+  <p>Until Tizen 2.3, Devicemgr(private module) is used for external output. But Devicemgr has some problems.</p>
+  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Devicemgr problems</p>
+  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1. Cannot know video-only mode start and stop.</p>
+  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2. Doesn't have method to notify to application about external output informations.</p>
+  <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3. Application cannot display specific images to external output.)</p>
+  <p>So module for external output is replaced to EOM from Tizen 2.4. EOM fixes devicemgr's problems and manages all convergence scenarios of external output.</p>
+  <p>EOM is a module of enlightenment. And EOM has X and Walyland backend.</p>
+
+  <h2 id="mode" name="mode">Mode</h2>
+    <p>EOM has two modes. One is Mirror mode, the other is Presentation mode.</p>
+    <pre class="prettyprint">
+      <p class="figure">Figure: EOM mode</p>
+      <p style="text-align:center;"><img alt="Window layers" src="../../images/eom_mode.png" /></p>
+    </pre>
+    <P>Mirror mode is default mode. So if any application doesn't set presentation mode, Mirror mode will work by EOM module when external output device is connected.</P>
+    <P>Presentation mode can be set by application. If application wants to display it's own image or video to external output device, application must use presentation mode.</P>
+
+  <h2 id="attribute" name="attribute">Attribute for Presentation Mode</h2>
+    <p>Applications have to use EOM attributes to set presentation mode.</p>
+    <p>There are three priorities of EOM attribute. The meaning of set attribute is the application wants to display a window with fullscreen size on the external output. </p>
+    <table>
+      <caption>
+      Table: Attribute for presentation mode
+      </caption>
+      <tbody>
+      <tr>
+        <th>Attribute</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td rowspan="2"><span style="font-family: Courier New,Courier,monospace">EOM_OUTPUT_ATTRIBUTE_NORMAL</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Can set normal if none(mirror mode) or normal attribute state</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">Cannot set normal if exclusive_share or exclusive attribute state</span></td>
+      </tr>
+      <tr>
+        <td rowspan="2"><span style="font-family: Courier New,Courier,monospace">EOM_OUTPUT_ATTRIBUTE_EXCLUSIVE_SHARE</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Can set exclusive_share if none(mirror mode), normal or exclusive_share attribute state</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">Cannot set exclusive_share if exclusive attribute set state</span></td>
+      </tr>
+      <tr>
+        <td rowspan="2"><span style="font-family: Courier New,Courier,monospace">EOM_OUTPUT_ATTRIBUTE_EXCLUSIVE</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Can set exclusive if none(mirror mode), normal or exclusive_share attribute state</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">Cannot set exclusive if exclusive attribute set state</span></td>
+      </tr>
+      </tbody>
+    </table>
+
+  <h2 id="noti" name="noti">Notify to application</h2>
+    <p>EOM can send notification event to application. Eom checks several changes(external output add and remove, mode change, attribute state change) and sends notification events to EOM client.</p>
+    <p>So application(EOM client) can get the status of external output. EOM client has to register callback functions to get information.</p>
+    <table>
+      <caption>
+      Table: EOM Notify event
+      </caption>
+      <tbody>
+      <tr>
+        <th>Callback Type</th>
+        <th>Description</th>
+        <th>Function</th>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_output_add_cb</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Send event when the external output is connected</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_set_output_added_cb, eom_unset_output_added_cb</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_output_remove_cb</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Send event when the external output is disconnected</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_set_output_removed_cb, eom_unset_output_removed_cb</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_mode_change_cb</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Send event when the EOM output mode is changed</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_set_mode_changed_cb, eom_unset_mode_changed_cb</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_attribute_change_cb</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Send event when the state of the EOM output attribute is changed</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_set_attribute_changed_cb, eom_unset_attribute_changed_cb</span></td>
+      </tr>
+      </tbody>
+    </table>
+
+  <h2 id="getinfo" name="getinfo">Get Information of External Output Device</h2>
+    <p>By using below APIs, application can get information of external output device from EOM.</p>
+    <table>
+      <caption>
+      Table: APIs for get external output device information
+      </caption>
+      <tbody>
+      <tr>
+        <th>Function</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_get_eom_output_ids</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Gets the ID of external output devices</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_get_output_type</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Gets the connection type of external output (HDMI, Virtual, VGA, etc)</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_get_output_mode</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Gets the mode of external output (NONE, MIRROR, PRESENTATION)</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_get_output_attribute</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Gets the attribute information (NORMAL, EXCLUSIVE_SHARE, EXCLUSIVE)</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_get_output_attribute_state</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Gets the attribute state information (NONE, ACTIVE, INACTIVE, LOST)</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_get_output_resolution</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Gets the best resolution of external output device</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_get_output_physical_size</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Gets the physical size of external output device</span></td>
+      </tr>
+      </tbody>
+    </table>
+
+  <h2 id="setinfo" name="setinfo">Set to External Output Device</h2>
+    <p>By using below APIs, application can set information to EOM.</p>
+    <table>
+      <caption>
+      Table: APIs for set information
+      </caption>
+      <tbody>
+      <tr>
+        <th>Function</th>
+        <th>Description</th>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_set_output_attribute</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Sets to presentation mode by setting attribute to EOM</span></td>
+      </tr>
+      <tr>
+        <td><span style="font-family: Courier New,Courier,monospace">eom_set_output_window</span></td>
+        <td><span style="font-family: Courier New,Courier,monospace">Sets window to the external output best resolution of external output device</span></td>
+      </tr>
+      </tbody>
+    </table>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer"> 
+<p class="footer">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p> 
+</div> 
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
