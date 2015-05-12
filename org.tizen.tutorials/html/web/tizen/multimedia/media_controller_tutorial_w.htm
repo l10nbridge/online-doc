@@ -23,10 +23,13 @@
     <div id="toc_border"><div id="toc">
         <p class="toc-title">Content</p>
         <ul class="toc">
-            <li><a href="#example1">Example 1</a></li>
-            <li><a href="#example2">Example 2</a></li>
-            <li><a href="#example3">Example 3</a></li>
-            <li><a href="#example4">Example 4</a></li>
+            <li><a href="#example1">Creating a new server</a></li>
+            <li><a href="#example2">Getting a client and finding all active servers</a></li>
+            <li><a href="#example3">Setting up a server</a></li>
+            <li><a href="#example4">Sending requests from a client to a server</a></li>
+            <li><a href="#example5">Receiving notifications from a server</a></li>
+            <li><a href="#example6">Sending custom commands by a client</a></li>
+            <li><a href="#example7">Receiving and handling custom commands by a server</a></li>
         </ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
@@ -41,7 +44,11 @@
 <h1>Media Controller: Communication between the media controller server and client.</h1>
 
 
-<p>This tutorial demonstrates how you can receive information from the media controller server and how to control media controller server state from the client by sending commands.</p>
+<p>
+This tutorial demonstrates how to use Media Controller API.  It shows how to develop server and client applications for controlling various media functions of the device.
+In order to manage media using Media Controller API you have to develop two applications.  One is a client and the second is a server which directly manages media on the device.
+The client sends requests to the server in order to change playback state, position modes etc.
+</p>
 
 <table class="note">
 <tbody>
@@ -58,13 +65,65 @@
 <h2>Warm-up</h2>
 <p>Become familiar with the Media Controller API basics by learning about:</p>
 <ul>
- <li><a href="#example1">Example 1</a> <p>Short description.</p> </li>
- <li><a href="#example2">Example 2</a> <p>Short description.</p> </li>
- <li><a href="#example3">Example 3</a> <p>Short description.</p> </li>
- <li><a href="#example4">Example 4</a> <p>Short description.</p> </li>
+  <li>
+    <p>Creating a client and a server</p>
+    <p><a href="#example1">Creating a new Media Controller server</a>.</p>
+    <p>How to <a href="#example2">get a client</a> and how to find all active servers.</p>
+  </li>
+  <li>
+    <p>Setting up connection between the client and the server and sending and receiving requests from the client to the server</p>
+    <p>How to <a href="#example3">set up the server</a> to receive and handle requests from the client in order to change playback state and position.</p>
+    <p>How to <a href="#example4">send requests</a> by the client to the server.</p>
+  </li>
+  <li>
+    <p>Listenign changes on the server by the client</p>
+    <p>How to <a href="#example5">set up a listener on the client</a> to receive notification of changes made by the server.</p>
+  </li>
+  <li>
+    <p>Sending and handling custom commands</p>
+    <p>How <a href="#example6">the client sends custom commands</a> to the server.</p>
+    <p>How <a href="#example7">the server receives and handles</a> custom commands sent by the client.</p>
+  </li>
 </ul>
 
-                <h2 id="example1" name="example1">Example 1 title</h2>
+<h2 id="task" name="task">Task</h2>
+<p>In this task, we will walk through how to change playback state and position by the Media Controller client and how to send custom commands from the client to the server.</p>
+
+<div class="devicespecs-util mt7 clfix">
+  <ul class="dutil">
+    <li><a href="#" class="showA">Show All</a></li>
+    <li class="none"><a href="#" class="hideA">Hide All</a></li>
+  </ul>
+</div>
+
+<ul class="devicespecifications">
+
+<li>
+<div class="devicespec-tit">
+  <h2 id="example1" name="example1" class="items-tit-h2">Creating a new server</h2>
+  <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+</div>
+
+<div class="devicespec-con">
+
+<p>Create new server.</p>
+<ol>
+<li>Create a media controller server using the <span style="font-family: Courier New,Courier,monospace">createServer()</span> method:
+<pre class="prettyprint">
+var mcServer = tizen.mediacontroller.createServer();
+</pre>
+</li>
+</ol>
+</div>
+</li>
+
+<li>
+<div class="devicespec-tit">
+  <h2 id="example2" name="example2" class="items-tit-h2">Getting a client and finding all active servers</h2>
+  <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+</div>
+
+<div class="devicespec-con">
 
 <p>Feature description.</p>
 <ol>
@@ -105,8 +164,68 @@ mcServerInfo.sendPlaybackState(&quot;STOP&quot;, function() {
 
 </li>
 </ol>
+</div>
+</li>
 
-                <h2 id="example2" name="example2">Example 2 title</h2>
+<li>
+<div class="devicespec-tit">
+  <h2 id="example3" name="example3" class="items-tit-h2">Setting up a server</h2>
+  <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+</div>
+
+<div class="devicespec-con">
+<p>Set up the server to receive requests from the client and to update state, position etc.</p>
+<ol>
+<li>Create <span style="font-family: Courier New,Courier,monospace">MediaControllerChangeRequestPlaybackInfoCallback</span> object which defines listeners for getting requests from a client:
+<pre class="prettyprint">
+var requestPlaybackInfoCb = {
+  onplaybackstaterequest: function(state) {
+    console.log('Request to change the playback state to: ' + state);
+    mcServer.updatePlaybackState(state);
+  },
+  onplaybackpositionrequest: function(position) {
+    console.log('Request to change the playback position to: ' + position);
+    mcServer.updatePlaybackPosition(position);
+  },
+  onshufflemoderequest: function(mode) {
+    console.log('Request to change the playback shufflemode to: ' + (mode ? 'TRUE' : 'FALSE'));
+    mcServer.updateShuffleMode(mode);
+  },
+  onrepeatmoderequest: function(mode) {
+    console.log('Request to change the playback repeat mode to: ' + (mode ? 'TRUE' : 'FALSE'));
+    mcServer.updateRepeatMode(mode);
+  }
+};
+</pre>
+Every listener should invoke an appropriate function to update state, position and modes.  They are:
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">updatePlaybackState()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">updatePlaybackPosition()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">updateShuffleMode()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">updateRepeatMode()</span></li>
+</ul>
+These functions change the values  on the server and send an appropriate notifications to the client.
+</li>
+
+<li>Add listeners defined in <span style="font-family: Courier New,Courier,monospace">MediaControllerChangeRequestPlaybackInfoCallback</span> object to the server.
+<pre class="prettyprint">
+var watchId = mcServer.addChangeRequestPlaybackInfoListener(requestPlaybackInfoCb);
+</pre>
+The <span style="font-family: Courier New,Courier,monospace">watchId</span> variable stores the value which can be used in the future to remove the listeners from the server with the function
+<span style="font-family: Courier New,Courier,monospace">removeChangeRequestPlaybackInfoListener</span>.
+</li>
+
+</ol>
+</div>
+</li>
+
+<li>
+<div class="devicespec-tit">
+  <h2 id="example4" name="example4" class="items-tit-h2">Sending requests from a client to a server</h2>
+  <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+</div>
+
+<div class="devicespec-con">
 
 <p>Feature description.</p>
 <ol>
@@ -147,8 +266,16 @@ mcServerInfo.sendPlaybackState(&quot;STOP&quot;, function() {
 
 </li>
 </ol>
+</div>
+</li>
 
-<h2 id="example3" name="example3">Example 3 title</h2>
+<li>
+<div class="devicespec-tit">
+  <h2 id="example5" name="example5" class="items-tit-h2">Receiving notifications from a server</h2>
+  <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+</div>
+
+<div class="devicespec-con">
 
 <p>Feature description.</p>
 <ol>
@@ -189,8 +316,16 @@ mcServerInfo.sendPlaybackState(&quot;STOP&quot;, function() {
 
 </li>
 </ol>
+</div>
+</li>
 
-<h2 id="example4" name="example4">Example 4 title</h2>
+<li>
+<div class="devicespec-tit">
+  <h2 id="example6" name="example6" class="items-tit-h2">Sending custom commands by a client</h2>
+  <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+</div>
+
+<div class="devicespec-con">
 
 <p>Feature description.</p>
 <ol>
@@ -231,6 +366,46 @@ mcServerInfo.sendPlaybackState(&quot;STOP&quot;, function() {
 
 </li>
 </ol>
+</div>
+</li>
+
+<li>
+<div class="devicespec-tit">
+  <h2 id="example7" name="example7" class="items-tit-h2">Receiving and handling custom commands by a server</h2>
+  <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
+</div>
+
+<div class="devicespec-con">
+
+<p>Set up a server to receive and handle custom commands sent by a client.</p>
+<ol>
+<li>Create the <span style="font-family: Courier New,Courier,monospace">MediaControllerReceiveCommandCallback</span> object which defines a listener for receving custom commands from a client:
+
+<pre class="prettyprint">
+var commandReceiveListener = function(client, command, data) {
+  console.log('command: ' + command + ' client: ' + client + ' data: ' + JSON.stringify(data));
+  return { reply: 'response from server' };
+};
+</pre>
+The included callback function returns the object with the response to the client.  The client can obtain this value as an argument of the success callback of the function
+<span style="font-family: Courier New,Courier,monospace">sendCommand()</span>
+invoked by the client when it is sending the custom command.
+</li>
+
+<li>Add the listener included in the created <span style="font-family: Courier New,Courier,monospace">MediaControllerReceiveCommandCallback</span> object to the server.
+<pre class="prettyprint">
+var watcherId = mcServer.addCommandListener(commandReceiveListener);
+</pre>
+The <span style="font-family: Courier New,Courier,monospace">watcherId</span> variable stores the value which can be used in the future to remove the listener from the server with the function
+<span style="font-family: Courier New,Courier,monospace">removeCommandListener()</span>.
+</li>
+</ol>
+</div>
+</li>
+
+</ul>
+
+
 
 <script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../../scripts/showhide.js"></script>
