@@ -26,7 +26,7 @@
 			<li><a href="#init">Initializing the Audio Devices</a></li>
 			<li><a href="#simple">Managing Simple Recording and Playback</a></li>
 			<li><a href="#async">Managing Asynchronous Recording and Playback</a></li>
-			<li><a href="#release">Stopping and Releasing Resources</a></li>
+			<li><a href="#release">Releasing Resources</a></li>
 		</ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
@@ -58,7 +58,7 @@
  <li><a href="#async">Managing Asynchronous Recording and Playback</a>
   <p>Record an audio sample from the audio input device, play the recorded audio sample through the audio output device, and modify the volume in the recorded audio sample using a low-latency API.</p>
  </li>
- <li><a href="#release">Stopping and Releasing Resources</a>
+ <li><a href="#release">Releasing Resources</a>
   <p>Finish all audio device operations.</p>
  </li>
 </ul>
@@ -73,61 +73,22 @@
 #include &lt;audio_io.h&gt;
 #include &lt;sound_manager.h&gt;
 </pre></li>
-<li><p>To initialize the audio input and output devices, use the <span style="font-family: Courier New,Courier,monospace">audio_in_create()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_create_new()</span> functions:</p>
+<li><p>To initialize the audio input and output devices, use the <span style="font-family: Courier New,Courier,monospace">audio_in_create()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_create()</span> functions:</p>
 <pre class="prettyprint">#define SAMPLE_RATE 44100
 
 audio_in_h input; // Declare audio input handle
-audio_out_h output; // Declare audio output handle
 audio_io_error_e ret;
 
 // Audio input device initialization
 ret = audio_in_create(SAMPLE_RATE, AUDIO_CHANNEL_MONO, AUDIO_SAMPLE_TYPE_S16_LE, &amp;input);
 
+audio_out_h output; // Declare audio output handle
 // Audio output device initialization
-// audio_out_create() function was deprecated in Tizen 2.4, use audio_out_create_new() function instead
-ret = audio_out_create_new(SAMPLE_RATE, AUDIO_CHANNEL_MONO, AUDIO_SAMPLE_TYPE_S16_LE, &amp;output);
+ret = audio_out_create(SAMPLE_RATE, AUDIO_CHANNEL_MONO, AUDIO_SAMPLE_TYPE_S16_LE, SOUND_TYPE_SYSTEM, &amp;output);
 </pre>
 <p>The audio input and output devices support the channel types defined in the <span style="font-family: Courier New,Courier,monospace">audio_channel_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga4e07ead99d581a0a049e8ee632b858b4">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga4e07ead99d581a0a049e8ee632b858b4">wearable</a> applications), and the sample types defined in the <span style="font-family: Courier New,Courier,monospace">audio_sample_type_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga1e66f976b2890f5fc2e9e6ec71af7536">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga1e66f976b2890f5fc2e9e6ec71af7536">wearable</a> applications). Set the same channel and sample type for both devices.</p>
 
-<p>The sound type is defined in the <span style="font-family: Courier New,Courier,monospace">&lt;sound_manager.h&gt;</span> header file. You can select the sound type according to the audio sample type.</p></li>
-
-<li><p>To set the configuration stream type properly, fill the <span style="font-family: Courier New,Courier,monospace">sound_stream_info_h</span> structure and pass it to the audio input or output stream. If you skip this step, the stream runs as the <span style="font-family: Courier New,Courier,monospace">SOUND_STREAM_TYPE_MEDIA</span> sound type by default.</p>
-<pre class="prettyprint">
-int ret;
-sound_stream_info_h g_stream_info_h = NULL;
-
-// Create stream info structure as media type
-ret = sound_manager_create_stream_information(SOUND_STREAM_TYPE_MEDIA, focus_callback, NULL, &amp;g_stream_info_h);
-
-// Set stream info for audio input
-ret = audio_in_set_stream_info(input, g_stream_info_h);
-
-// Set stream info for audio output
-ret = audio_out_set_stream_info(output, g_stream_info_h);
-</pre>
-<p>For more information about streams, see the Sound Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__SOUND__MANAGER__MODULE.html">wearable</a> applications).</p></li>
-
-<li><p>If you want to get state change events, you can register a user callback:</p>
-<pre class="prettyprint">
-static void _audio_in_state_cb (audio_in_h handle, audio_io_state_e previous, audio_io_state_e current, bool by_policy, void *user_data)
-{
-&nbsp;&nbsp;&nbsp;printf(&quot;>>> _audio_in_state_cb() : handle(%p), current(%d), previous(%d), by_policy(%d), user_data(%p)\n&quot;, handle, current, previous, by_policy, user_data);
-}
-
-static void _audio_out_state_cb (audio_in_h handle, audio_io_state_e previous, audio_io_state_e current, bool by_policy, void *user_data)
-{
-&nbsp;&nbsp;&nbsp;printf(&quot;>>> _audio_out_state_cb() : handle(%p), current(%d), previous(%d), by_policy(%d), user_data(%p)\n&quot;, handle, current, previous, by_policy, user_data);
-}
-
-// Register state changed callback for audio input
-ret = audio_in_set_state_changed_cb(input, _audio_in_state_cb, NULL);
-
-// Register state changed callback for audio output
-ret = audio_out_set_state_changed_cb(output, _audio_out_state_cb, NULL);
-</pre>
-</p></li>
-
-</ol>
+<p>The sound type is defined in the <span style="font-family: Courier New,Courier,monospace">&lt;sound_manager.h&gt;</span> header file. You can select the sound type according to the audio sample type.</p></li></ol>
 
  <h2 id="simple" name="simple">Managing Simple Recording and Playback</h2>
  
@@ -141,8 +102,6 @@ ret = audio_in_prepare(input);
 // Audio output prepare
 ret = audio_out_prepare(output);
 </pre>
-
-<p>Audio devices will be open in this step, therefore you able to read or write audio buffer from/to audio_in or audio_out immediately.</p>
 
 <h3 id="set" name="set">Creating an Audio Buffer</h3>
 
@@ -163,7 +122,7 @@ if (ret != AUDIO_IO_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;return -1;
 }</pre>
 
-<p>Please note that <span style="font-family: Courier New,Courier,monospace">buffer_size</span> returned invalid buffer size when you call them before <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span>. Because, buffer size is only accessible while running audio device.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">buffer_size</span> parameter returns the preferred size of the buffer based on the specified audio parameters.</p>
 
 </li>
 
@@ -173,13 +132,11 @@ if (ret != AUDIO_IO_ERROR_NONE)
 
 <pre class="prettyprint">void *buffer = malloc(buffer_size);</pre>
 
-<p>This <span style="font-family: Courier New,Courier,monospace">buffer_size</span> could be used as unit amount size per iteration that reads buffers using such as <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> function. Your application seems to be stored at <span style="font-family: Courier New,Courier,monospace">buffer</span> every iteration of read, and then write to file system or something.</p>
-
 </li>
 
 </ol>
 
-<p>Alternatively, create whole buffer by explicitly calculating the buffer size:</p>
+<p>Alternatively, create the buffer by explicitly calculating the buffer size:</p>
 
 <ol>
 
@@ -211,13 +168,9 @@ if (ret != AUDIO_IO_ERROR_NONE)
 
 <p>Calculate the buffer size based on the retrieved information, and allocate memory for the buffer using the <span style="font-family: Courier New,Courier,monospace">malloc()</span> function:</p>
 
-<pre class="prettyprint">#define RECORDING_DURATION_SEC 5
-
-buffer_size = RECORDING_DURATION_SEC * SAMPLE_RATE * (channel == AUDIO_CHANNEL_STEREO ? 2 : 1) * (sample_type == AUDIO_SAMPLE_TYPE_S16_LE ? 2 : 1);
+<pre class="prettyprint">buffer_size = 5* SAMPLE_RATE * (channel == AUDIO_CHANNEL_STEREO ? 2 : 1) * (sample_type == AUDIO_SAMPLE_TYPE_S16_LE ? 2 : 1);
 // Allocate memory using malloc
 buffer = malloc(buffer_size);</pre>
-
-<p>This example shows that allocates memory once amount of 5 seconds prior to record.</p>
 
 </li>
 
@@ -239,8 +192,7 @@ buffer = malloc(buffer_size);</pre>
 
 <li><p>To modify the volume of the audio sample playback:</p>
 
-<pre class="prettyprint">#define MIN_SIGNED_SHORT (-32768)
-#define MAX_SIGNED_SHORT 32767
+<pre class="prettyprint">#include &lt;limits.h&gt;
 
 void modify_sound()
 {
@@ -257,8 +209,8 @@ void modify_sound()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int tmp = (*value) * 8; // Why not 8 times louder? (on dB scale even much louder)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tmp &gt; MAX_SIGNED_SHORT)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tmp = MAX_SIGNED_SHORT;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tmp &lt; MIN_SIGNED_SHORT)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tmp =  MIN_SIGNED_SHORT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tmp &lt; MIN_SIGHED_SHORT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tmp =  MIN_SIGHED_SHORT;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*value) = tmp;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
@@ -276,35 +228,14 @@ void modify_sound()
 &nbsp;&nbsp;&nbsp;}
 }</pre>
 
-<p>In this example, the volume is significantly increased. You can also make other modifications to the audio sample playback.</p>
-<p><span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_write()</span>are blocking functions by default. They will be return as soon as read or write amount of <span style="font-family: Courier New,Courier,monospace">buffer_size</span> successfully. Please note that big size of <span style="font-family: Courier New,Courier,monospace">buffer_size</span> parameter may cause block your application until complete read or write. Audio I/O allows any amount of <span style="font-family: Courier New,Courier,monospace">buffer_size</span> for recording and playing, your application able to decide proper <span style="font-family: Courier New,Courier,monospace">buffer_size</span> regardless of this example. If you want to read or write buffer more efficiency, please refer next asynchronous method.</p></li></ol>
+<p>In this example, the volume is significantly increased. You can also make other modifications to the audio sample playback.</p></li></ol>
 
-<h3 id="record" name="record">Pausing or Resuming</h3>
-
-<p>To pause or resume each recording and playing audio sample:</p>
-
-<ol><li><p>To pause and resume recording, use the <span style="font-family: Courier New,Courier,monospace">audio_in_pause()</span> and <span style="font-family: Courier New,Courier,monospace">audio_in_resume()</span> function:</p>
-<pre class="prettyprint">ret = audio_in_pause(input);
-
-ret = audio_in_resume(input);</pre>
-</li>
-
-<li><p>To pause and resume playing, use the <span style="font-family: Courier New,Courier,monospace">audio_out_pause()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_resume()</span> function:</p>
-<pre class="prettyprint">ret = audio_out_pause(output);
-
-ret = audio_out_resume(output);</pre>
-</li></ol>
-
-<p><I>Note : Pause/resume APIs are newly added at Tizne 2.4. They are equivalent to prepare/unprepare APIs at Tizen 2.3.1 or older.</I></p>
-
-<h2 id="async" name="async">Managing Asynchronous Recording and Playback</h2>
+ <h2 id="async" name="async">Managing Asynchronous Recording and Playback</h2>
 
 <p>To manage asynchronous recording and playback:</p>
 
 <ol><li>Create audio callback functions:
 <ol type="a"><li>Create a callback function for recording:
-
-<p><span style="font-family: Courier New,Courier,monospace">audio_in_peek</span> and <span style="font-family: Courier New,Courier,monospace">audio_in_drop</span> are used for asynchronous recording instead of <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span>.</p>
 
 <pre class="prettyprint">FILE* fp_w = NULL;
 fp_w = fopen(&quot;/tmp/pcm_w.raw&quot;, &quot;w&quot;);
@@ -364,11 +295,7 @@ void _audio_io_stream_write_cb(audio_out_h handle, size_t nbytes, void *userdata
 
 <li><p>To set an output callback, use the <span style="font-family: Courier New,Courier,monospace">audio_out_set_stream_cb()</span> function:</p>
 
-<pre class="prettyprint">ret = audio_out_set_stream_cb(output, _audio_io_stream_write_cb, NULL);</pre></li></ol>
-
-<p>Should be set callback prior to <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> functions to use asynchronous method, because callback be invoked as soon as call these prepare functions.</p>
-
-</li>
+<pre class="prettyprint">ret = audio_out_set_stream_cb(output, _audio_io_stream_write_cb, NULL);</pre></li></ol></li>
 
 <li>Prepare the audio input and output devices
 
@@ -379,39 +306,30 @@ ret = audio_in_prepare(input);
 
 // Audio output prepare
 ret = audio_out_prepare(output);
-</pre>
+</pre></li></ol>
 
-<p>Audio callbacks will be invoked immediately as soon as call <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> functions because audio devices be opened and occupied actually. Your application becomes able to read or write audio buffer in this step. Whereas, audio callbacks will no longer be invoked as soon as call <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_unprepare()</span>.</p>
+ <h2 id="release" name="release">Releasing Resources</h2>
 
-</li></ol>
+<p>To destroy the audio handles and release the allocated resources after you have finished working with the audio input and output devices:</p>
 
-<h2 id="release" name="release">Stopping and Releasing Resources</h2>
+<ol><li><p>Release the memory allocated to the buffer using the <span style="font-family: Courier New,Courier,monospace">free()</span> function:</p>
 
-<p>To stop recording and playing, destroy the audio handles and release the allocated resources after you have finished working with the audio input and output devices:</p>
+<pre class="prettyprint">free(buffer);</pre></li>
 
-<ol><li><p>Stop the recording and playing using the <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_unprepare()</span> functions. Audio input and output devices will be closed actually.</p>
+<li><p>Unprepare the audio input and output devices using the <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_unprepare()</span> functions. Destroy the audio input and output handles using the <span style="font-family: Courier New,Courier,monospace">audio_in_destroy()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_destroy()</span> functions.</p>
 
 <pre class="prettyprint">ret = audio_in_unprepare(input);
 
+ret = audio_in_destroy(input);
+
 ret = audio_out_unprepare(output);
-</pre></li>
-
-<li><p>Destroy the audio input and output handles using the <span style="font-family: Courier New,Courier,monospace">audio_in_destroy()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_destroy()</span> functions.</p>
-
-<pre class="prettyprint">ret = audio_in_destroy(input);
 
 ret = audio_out_destroy(output);
 </pre></li>
 
-<li><p>If you created the stream information structure before recording and playback, destroy it using the <span style="font-family: Courier New,Courier,monospace">sound_manager_destroy_stream_information()</span> function:</p>
-<pre class="prettyprint">ret = sound_manager_destroy_stream_information(g_stream_info_h);</pre></li>
+<li><p>Close opened file using the <span style="font-family: Courier New,Courier,monospace">fclose()</span> function:</p>
 
-
-<li><p>Release the memory allocated to the buffer using the <span style="font-family: Courier New,Courier,monospace">free()</span> function and close the opened file using the <span style="font-family: Courier New,Courier,monospace">fclose()</span> function:</p>
-
-<pre class="prettyprint">free(buffer);
-
-fclose(fp_w);
+<pre class="prettyprint">fclose(fp_w);
 fp_w = NULL;
 
 fclose(fp_r);
