@@ -56,7 +56,7 @@
   <p>Connect and Start the screen mirroring sink.</p>
  </li>
  <li><a class="opensection" href="#release">Releasing Resources</a>
-  <p>Stop and unprepare the screen mirroring sink, unregister the callback functions, and destroy the sink handle and release all its resources.</p>
+  <p>Disconnect and unprepare the screen mirroring sink, and destroy the sink handle and release all its resources.</p>
  </li>
  <li><a class="opensection" href="#handle">Handling exception of the screen mirroring sink</a>
   <p>Handle exception of the screen mirroring sink</p>
@@ -146,7 +146,7 @@ static int prepare_scmirroring_sink(scmirroring_display_type_e display_type, Eva
 
 static void scmirroring_state_callback(scmirroring_error_e error_code, scmirroring_state_e state, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Received Callback error code[%d]", error_code);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Received Callback error code[%d], state[%d]", error_code, state);
 
 &nbsp;&nbsp;&nbsp;switch(state)
 &nbsp;&nbsp;&nbsp;{
@@ -216,7 +216,7 @@ static int start_scmirroring_sink(const char* peer_ip, const char* peer_port)
 static void scmirroring_state_callback(scmirroring_error_e error_code, scmirroring_state_e state, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;int ret;
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Received Callback error code[%d]", error_code);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Received Callback error code[%d], state[%d]", error_code, state);
 
 &nbsp;&nbsp;&nbsp;switch(state)
 &nbsp;&nbsp;&nbsp;{
@@ -229,7 +229,7 @@ static void scmirroring_state_callback(scmirroring_error_e error_code, scmirrori
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(ret != SCMIRRORING_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, " scmirroring_sink_start fail [%d]", ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SCMIRRORING_STATE_PLAYING:
@@ -253,19 +253,19 @@ static void scmirroring_state_callback(scmirroring_error_e error_code, scmirrori
 <span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
   </div>
 			<div class="devicespec-con">
-<p>After you have finished working with the screen mirroring sink, stop the screen mirroring sink and release all resources:</p>
+<p>After you have finished working with the screen mirroring sink, disconnect the screen mirroring sink and release all resources:</p>
 
 <ol>
- <li>Stop the screen mirroring sink using <span style="font-family: Courier New,Courier,monospace">scmirroring_sink_stop()</span> function. The screen mirroring state will be <span style="font-family: Courier New,Courier,monospace">SCMIRRORING_STATE_DISCONNECTED</span> immediately.</li>
+ <li>Disconnect the screen mirroring sink using <span style="font-family: Courier New,Courier,monospace">scmirroring_sink_disconnect()</span> function. The screen mirroring state will be <span style="font-family: Courier New,Courier,monospace">SCMIRRORING_STATE_DISCONNECTED</span> immediately.</li>
  <li>Unprepare the screen mirroring sink using <span style="font-family: Courier New,Courier,monospace">scmirroring_sink_unprepare()</span> function. The screen mirroring state will be <span style="font-family: Courier New,Courier,monospace">SCMIRRORING_STATE_NULL</span> immediately.</li>
  <li>Destroy the screen mirroring sink using <span style="font-family: Courier New,Courier,monospace">scmirroring_sink_destroy()</span> function. The screen mirroring state will be <span style="font-family: Courier New,Courier,monospace">SCMIRRORING_STATE_NONE</span> immediately.</li>
  <pre class="prettyprint">
 static int destroy_scmirroring_sink()
 {
-&nbsp;&nbsp;&nbsp;ret = scmirroring_sink_stop(g_scmirroring);
+&nbsp;&nbsp;&nbsp;ret = scmirroring_sink_disconnect(g_scmirroring);
 &nbsp;&nbsp;&nbsp;if(ret != SCMIRRORING_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, " scmirroring_sink_stop fail [%d]", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, " scmirroring_sink_disconnect fail [%d]", ret);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
 &nbsp;&nbsp;&nbsp;}
 
@@ -302,7 +302,7 @@ static int destroy_scmirroring_sink()
 static void scmirroring_state_callback(scmirroring_error_e error_code, scmirroring_state_e state, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;int ret;
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Received Callback error code[%d]", error_code);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Received Callback error code[%d], state[%d]", error_code, state);
 
 &nbsp;&nbsp;&nbsp;switch(state)
 &nbsp;&nbsp;&nbsp;{
@@ -317,11 +317,13 @@ static void scmirroring_state_callback(scmirroring_error_e error_code, scmirrori
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SCMIRRORING_STATE_PAUSED:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SCMIRRORING_STATE_DISCONNECTED:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = destroy_scmirroring_sink(); // (see <a href="#release">Release Resources</a>)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(ret == FALSE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = scmirroring_sink_unprepare(g_scmirroring);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(ret != SCMIRRORING_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, " Failed to destroy the screen mirroring sink");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, " scmirroring_sink_unprepare fail [%d]", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Fill what you want to do*/
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SCMIRRORING_STATE_NONE:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
