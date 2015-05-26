@@ -42,7 +42,7 @@
 <li><a href="#multi">Using multi-point touch</a></li>
 <li><a href="#file">Sharing directory</a></li>
 <li><a href="#webcam">Using a webcam</a></li>
-<li><a href="#net">Using network features</a></li>
+<li><a href="#net">Using Emulator in a Network</a></li>
 <li><a href="#skin">Using custom skin layout</a></li>
 <li><a href="#eventcast">Using EventCast</a></li>
 <li><a href="#startup">Emulator start-up options</a></li>
@@ -217,31 +217,60 @@ Contrast<br/>
 <h2 id="net" name="net">Using Emulator in a Network</h2>
 
 
-<p>The Tizen Emulator is based on the QEMU virtual machine, and uses QEMU user networking (SLIRP), which is the default networking backend and generally the easiest to use. The Emulator supports TCP and UDP, and &quot;ping&quot; within a guest (QEMU is patched for ping to work; however, raw socket is not supported). For more information, see <a href="http://wiki.qemu.org/Documentation/Networking" target="_blank">QEMU Networking documentation</a>.</p> 
+<p> The Tizen Emulator provides two types of network backend, NAT-based TCP/IP communication and a bridged network. By default, NAT-based network is used. You can configure the type on Emulator Manager > Network Configuration. The Emulator is based on the QEMU virtual machine. "NAT" type exploits QEMU user networking (SLIRP) and "Bridge" type uses tap networking. For more information about networking, refer to <a href="http://wiki.qemu.org/Documentation/Networking" target="_blank">QEMU Networking documentation</a>.</p>
 
-<p>The Emulator provides a sub-network, such as the following:</p> 
+ <h3 id="Proxy" name="Proxy">Proxy Configuration</h3>
+ <p> The Tizen Emulator provides three methods of configuration proxy. This can be configurable on Emulator Manager > Network Configuration.</p>
+<ul>
+<li>No proxy: does not use proxy configuration.</li>
+<li>Use host proxy: sets the same proxy value that host uses.</li>
+<li>Use manual proxy: sets proxy value manually different from host.</li>
+</ul>
+
+<table>
+ <tbody>
+        <tr>
+          <th class="note">Note</th>
+        </tr>
+        <tr>
+          <td class="note">The following preallocated addresses are not supported as a manual proxy:
+			<ul>
+				<li>Localhost</li>
+				<li>127.0.0.0/8</li>
+				<li>10.0.0.0/16</li>
+			</ul>
+			<p>The automatic proxy configuration is not supported, due to license issues.</p> </td>
+        </tr>
+      </tbody>
+    </table>
+
+<h3 id="NAT" name="NAT">NAT(Network Address Translation)</h3>
+<p>NAT is a default networking backend and has a better usability than other backends. The Emulator supports TCP, UDP, and "ping" within a guest. However, raw socket is not supported.</p>
+<p>The Emulator virtually provides a LAN(Local Area Network), such as the following:</p>
 <ul>
 <li>10.0.2.2: Gateway, host machine</li>
 
-<li>10.0.2.3: DNS (you can specify the Emulator to use the host DNS IP when the Emulator starts)</li> 
+<li>10.0.2.3: DNS (you can specify the Emulator to use the host DNS IP when the Emulator starts)</li>
 
-<li>10.0.2.16: Guest OS IP (different from QEMU&#39;s default setting of 10.0.2.15)</li> 
+<li>10.0.2.15: Emulator's IP</li>
 </ul>
 
-<p class="figure">Figure: Emulator network architecture</p>
+<p class="figure">Figure: Emulator NAT network architecture</p>
 
-<p style="text-align:center;"><img alt="Emulator network architecture"
-src="../images/emulator_network_architecture.png"/></p>
+<p style="text-align:center;"><img alt="Emulator network architecture" src="../images/emulator_nat_architecture.png"/></p>
 
-<h3 id="network" name="network">Network Connections</h3>
+<h4 id="network" name="network">Network Connections for NAT</h4>
 
-The Emulator provides the following network connection solutions (external to internal): 
-<ul>
-<li>Guest to External: Connection available</li> 
+<p>Inbound connection from external to emulator fails in the NAT backed. If you want to permit inbound connection and test, you should forward port by using one of following methods:</p>
 
-<li>External to Guest: Port redirection required when starting to boot
+<ol><li>ECP(Emulator Control Panel)</li>
+<p>You can add port forwarding by using ECP. In ECP > Device Manager > Network tab > User Network Information, click <b>Add port-forwarding</b> button and enter ports to forward</p>
+<li>SBD(Smart Development Bridge)</li>
+<p>SDB provides port forwarding as command. For more information about SDB command, refer to <a href="smart_dev_bridge.htm#command">sdb forward</a>.</p>
+<li>Xml on boot </li>
+<p>You can forward the port on booting the Emulator by modifying QEMU redirection option.</p>
 <p>The QEMU redirection option can be appended in the <span style="font-family: Courier New,Courier,monospace">&lt;TIZEN_SDK_DATA&gt;/emulator/vms/&lt;image name&gt;/vm_config.xml</span> file with the following appending command:</p>
-<pre class="prettyprint">-redir &lt;PROTOCOL&gt;:&lt;HOST_PORT&gt;:10.0.2.16:&lt;GUEST_PORT&gt;</pre>
+<pre class="prettyprint">-redir &lt;PROTOCOL&gt;:&lt;HOST_PORT&gt;:10.0.2.15:&lt;GUEST_PORT&gt;</pre>
 <p>Note that <span style="font-family: Courier New,Courier,monospace">&lt;PROTOCOL&gt;</span> supports only  <span style="font-family: Courier New,Courier,monospace">udp</span> and <span style="font-family: Courier New,Courier,monospace">tcp</span> in the <span style="font-family: Courier New,Courier,monospace">&lt;advancedOptions&gt;</span> section:</p>
 <pre class="prettyprint">&lt;usability&gt;
 &nbsp;&nbsp;&nbsp;&lt;logging&gt;
@@ -249,35 +278,35 @@ The Emulator provides the following network connection solutions (external to in
 &nbsp;&nbsp;&nbsp;&lt;/logging&gt;
 &nbsp;&nbsp;&nbsp;&lt;fileSharing/&gt;
 &nbsp;&nbsp;&nbsp;&lt;hwVirtualization&gt;true&lt;/hwVirtualization&gt;
-&nbsp;&nbsp;&nbsp;&lt;advancedOptions&gt;-redir tcp:1202:10.0.2.16:22&lt;/advancedOptions&gt;
+&nbsp;&nbsp;&nbsp;&lt;advancedOptions&gt;-redir tcp:1202:10.0.2.15:22&lt;/advancedOptions&gt;
 &lt;/usability&gt;</pre>
 
 <p>You can also connect one Emulator instance with another by using redirection. To set up redirection (where A and B are Emulator instances):</p> 
 
-<ol><li>Set up the server on A, listening to <span style="font-family: Courier New,Courier,monospace">10.0.2.16:&lt;ServerPort&gt;</span>.</li> 
+<ol><li>Set up the server on A, listening to <span style="font-family: Courier New,Courier,monospace">10.0.2.15:&lt;ServerPort&gt;</span>.</li>
 
-<li>On A, append the <span style="font-family: Courier New,Courier,monospace">-redir tcp:&lt;B&#39;s localPort&gt;:10.0.2.16:&lt;A&#39;s serverPort&gt;</span> redirection option in the <span style="font-family: Courier New,Courier,monospace">vm_config.xml</span> file.</li> 
+<li>On A, append the <span style="font-family: Courier New,Courier,monospace">-redir tcp:&lt;B&#39;s localPort&gt;:10.0.2.15:&lt;A&#39;s serverPort&gt;</span> redirection option in the <span style="font-family: Courier New,Courier,monospace">vm_config.xml</span> file.</li>
 
 <li>On B, let the client connect to <span style="font-family: Courier New,Courier,monospace">10.0.2.2:&lt;B&#39;s localPort&gt;</span>.
 </li></ol>
+<p>For more information, see <a href="http://www.h7.dion.ne.jp/~qemu-win/HowToNetwork-en.html#redir" shape="rect" target="_blank">How to use Network</a>.</p>
+</ol>
 
-</li> 
+</li>
 
-</ul>
 
-<p>For more information, see <a href="http://www.h7.dion.ne.jp/%7Eqemu-win/HowToNetwork-en.html#redir" shape="rect" target="_blank">How to use Network</a>.</p> 
-
-<h3 id="proxy" name="proxy">Proxy Configuration</h3>
-<p>The Tizen Emulator uses a host network proxy when connecting to the Internet.</p> 
-<p>Direct Internet and manual proxy configuration are supported, but the following preallocated addresses are not supported as a manual proxy:</p>
+<h3 id="Bridge" name="Bridge">Bridge(Bridged Network)</h3>
+<p>Bridge backend requires a dedicated IP for emulator and you can communicate to external without any port forwarding. If you want one of followings, you can try the bridge backend.</p>
 <ul>
-<li>Localhost</li>
-<li>127.0.0.0/8</li>
-<li>10.0.0.0/16</li>	
+<li>You want to permit inbound connection with no port forwarding.</li>
+<li>Your application should send and receive broadcast/multicast packet. e.g. DLNA(Digital Living Network Alliance) application.</li>
+<li>You want to use firewall-free IP for emulator</li>
+<li>High performance of network</li>
 </ul>
-<p>The automatic proxy configuration is not supported, due to license issues.</p>
+<p>You can configure the Emulator's IP on Emulator Manager > Network configuration. If you have DHCP server on network, you can configure the Emulator's IP by using DHCP. If not, you should configure the IP manually.</p>
+<p class="figure">Figure: Emulator bridged network architecture</p>
 
-
+<p style="text-align:center;"><img alt="Emulator network architecture" src="../images/emulator_bridge_architecture.png"/></p>
 
 <h2 id="skin" name="skin">Using Custom Skin Layout</h2>
 
@@ -632,6 +661,7 @@ If this option is <span style="font-family: Courier New,Courier,monospace">true<
 <td>Enables a rotary device.</td>
 </tr>
 
+
 <tr>
 <td>Brightness</td>
 <td><span style="font-family: Courier New,Courier,monospace">-device maru-brightness</span></td>
@@ -684,10 +714,10 @@ If this option is <span style="font-family: Courier New,Courier,monospace">true<
   <li>Mobile	  		 
 <pre class="prettyprint">&lt;TIZEN_SDK&gt;/tools/emulator/bin/emulator-x86.exe --skin-args width=480 height=800 skin.path=
 &lt;TIZEN_SDK&gt;/platforms/&lt;PROFILE_NAME&gt;/emulator-resources/skins/&lt;SKIN_NAME&gt; --qemu-args -drive file=
-&lt;TIZEN_SDK_DATA&gt;/emulator/vms/&lt;VM_NAME&gt;/emulimg-&lt;VM_NAME&gt;.x86,if=virtio,index=1 -boot c -append &quot;console=ttyS0 video=LVDS-1:480x800-32@60 dpi=2330 ip=10.0.2.16::10.0.2.2:255.255.255.0::eth0:none vm_name=&lt;VM_NAME&gt;&quot; -serial file:
+&lt;TIZEN_SDK_DATA&gt;/emulator/vms/&lt;VM_NAME&gt;/emulimg-&lt;VM_NAME&gt;.x86,if=virtio,index=1 -boot c -append &quot;console=ttyS0 video=LVDS-1:480x800-32@60 dpi=2330 ip=10.0.2.15::10.0.2.2:255.255.255.0::eth0:none vm_name=&lt;VM_NAME&gt;&quot; -serial file:
 &lt;TIZEN_SDK_ DATA &gt;/emulator/vms/&lt;VM_NAME&gt;/logs/emulator.klog -m 512 -M maru-x86-machine -net nic,model=virtio,macaddr=&lt;MAC_ADDRESS&gt; -soundhw all -usb -vga none -enable-vigs -L 
 &lt;TIZEN_SDK&gt;/tools/emulator/data/bios -kernel 
-&lt;TIZEN_SDK&gt;/tools/emulator/data/kernel/bzImage.x86 -net user,dhcpstart=10.0.2.16 -rtc base=utc -drive file=
+&lt;TIZEN_SDK&gt;/tools/emulator/data/kernel/bzImage.x86 -net user -rtc base=utc -drive file=
 &lt;TIZEN_SDK_DATA&gt;/emulator/vms/&lt;VM_NAME&gt;/swap-&lt;VM_NAME&gt;.img,if=virtio,
 index=2 -enable-hax -vigs-backend gl -enable-yagl -yagl-backend vigs -device virtio-esm-pci -device virtio-hwkey-pci -device 
 virtio-keyboard-pci -device virtio-evdi-pci -device virtio-sensor-pci,sensors=accel&amp;geo&amp;gyro&amp;light&amp;proxi&amp;
@@ -700,9 +730,9 @@ maru-brightness -device virtio-vmodem-pci -device maru-camera -device virtio-tou
 <pre class="prettyprint">&lt;TIZEN_SDK&gt;/tools/emulator/bin/emulator-x86.exe --skin-args width=360 height=360 skin.path=
 &lt;TIZEN_SDK&gt;/platforms/&lt;PROFILE_NAME&gt;/emulator-resources/skins/&lt;SKIN_NAME&gt; --qemu-args -drive file=
 &lt;TIZEN_SDK_DATA&gt;/emulator/vms/
-&lt;VM_NAME&gt;/emulimg-&lt;VM_NAME&gt;.x86,if=virtio,index=1 -boot c -append &amp;quot;console=ttyS0 video=LVDS-1:360x360-32@60 dpi=302 ip=10.0.2.16::10.0.2.2:255.255.255.0::eth0:none vm_name=&lt;VM_NAME&gt;&amp;quot; -serial file:
+&lt;VM_NAME&gt;/emulimg-&lt;VM_NAME&gt;.x86,if=virtio,index=1 -boot c -append &amp;quot;console=ttyS0 video=LVDS-1:360x360-32@60 dpi=302 vm_name=&lt;VM_NAME&gt;&amp;quot; -serial file:
 &lt;TIZEN_SDK_DATA&gt;/emulator/vms/&lt;VM_NAME&gt;/logs/emulator.klog -m 512 -M maru-x86-machine -net nic,model=virtio,macaddr=&lt;MAC_ADDRESS&gt; -soundhw all -usb -vga none -enable-vigs -L 
-&lt;TIZEN_SDK&gt;/tools/emulator/data/bios -kernel &lt;TIZEN_SDK&gt;/tools/emulator/data/kernel/bzImage.x86 -net user,dhcpstart=10.0.2.16 -rtc base=utc -drive file=
+&lt;TIZEN_SDK&gt;/tools/emulator/data/bios -kernel &lt;TIZEN_SDK&gt;/tools/emulator/data/kernel/bzImage.x86 -net user -rtc base=utc -drive file=
 &lt;TIZEN_SDK_DATA&gt;/emulator/vms/&lt;VM_NAME&gt;/swap-&lt;VM_NAME&gt;.img,if=virtio,index=2 -enable-hax -vigs-backend gl -enable-yagl -yagl-backend vigs -device 
 virtio-esm-pci -device virtio-hwkey-pci -device virtio-evdi-pci -device virtio-sensor-pci,
 sensors=accel&amp;geo&amp;gyro&amp;light&amp;proxi&amp;haptic&amp;press&amp;uv&amp;hrm -device 
