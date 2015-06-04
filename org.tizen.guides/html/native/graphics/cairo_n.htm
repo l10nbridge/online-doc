@@ -10,106 +10,149 @@
     <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
-  <title>Cairo Integration</title>
+  <title>Cairo</title>
  </head>
  <body onload="prettyPrint()" style="overflow: auto;">
 
- <div id="navigation">
+ <div id="toc-navigation">
     <div id="profile">
-        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/> <img alt="Wearable native" src="../../images/wn_icon.png"/></p>
     </div>
 
     <div id="toc_border"><div id="toc">
         <p class="toc-title">Content</p>
         <ul class="toc">
             <li><a href="#create">Creating an Evas_Object Image</a></li>
-			<li><a href="#link">Linking Evas_Object Image to Cairo</a></li>
-			<li><a href="#paint">Painting with Cairo</a></li>
+			<li><a href="#link">Linking Evas_Object Images to Cairo</a></li>
+			<li><a href="#paint">Drawing with Cairo</a></li>
         </ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
-            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/cairo_tutorial_n.htm">Cairo Integration Tutorial</a></li>
-			<li><a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__CAIRO__FRAMEWORK.html">Cairo API</a></li>
+            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/cairo_tutorial_n.htm">Cairo Tutorial</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__CAIRO__FRAMEWORK.html">Cairo API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__OPENSRC__CAIRO__FRAMEWORK.html">Cairo API for Wearable Native</a></li>
             </ul>
     </div></div>
 </div>
 
 <div id="container"><div id="contents"><div class="content">
  
-  <h1>Cairo Integration</h1>
+  <h1>Cairo</h1>
   
-<p>Evas Cairo is the connection between the Cairo buffer and the Evas buffer.</p>
-<p>EFL and more especially Evas are optimized and designed with bitmaps in mind, and it is more complicated to display vector images with EFL. There is an svg loader for evas, which loads a vectorial file as an evas object image, in other words as pixels. But if you want to create graphs, for example to display the evolutions of stocks during time, you need an external library, and this programming guide explains how to link this external library to evas.</p>
-<p>This library is the <a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__CAIRO__FRAMEWORK.html">Cairo</a> API. It is one of the most famous open source libraries for 2D graphics. Evas and EFL already have most of Cairo features, but if you want to display Bezier curves on screen it is advisable to use Cairo.</p>
-<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__Evas.html">Evas</a> API and Cairo have completely different concepts. Evas knows the state of each object on screen and manipulates the state. So when you create, for example, a rectangle with <span style="font-family: Courier New,Courier,monospace">evas_object_rectangle_add</span>, it is not rendered on screen. After the render is launched, the rectangle may be overlayed by an opaque image and never be rendered on canvas. This is how evas manages the surfaces. Cairo works as a person draws on a paper sheet. Once something is painted on the surface it is rendered on the screen.</p>
+<p><a href="http://cairographics.org" target="_blank">Cairo</a> is an open source library for 2D vector graphics with support for multiple output devices. In Tizen, Cairo can support output to 2 different backends, such as the image and evas-gl (similar to gl) backend. This guide explains how you can link the Cairo image backend with Evas (in <a href="../../../../org.tizen.native.mobile.apireference/group__Evas.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__Evas.html">wearable</a> applications), so that Cairo can draw on the image surface and an Evas object can get the image data from the Cairo image buffer.</p> 
+
 
 <h2 id="create" name="create">Creating an Evas_Object Image</h2>
 
-<p>This is how to create an Evas_Object. We use an Image object as it is displayed as pixels on the screen.</p>
-<pre class="prettyprint">Evas_Object *image;
+<p>Cairo and Evas have completely different concepts:</p>
+<ul><li>Evas knows the state of each object on the screen and manipulates the state. So when you create, for example, a rectangle with the <span style="font-family: Courier New,Courier,monospace">evas_object_rectangle_add()</span> function, it is not rendered on the screen when the function is called. In the rendering stage, the rectangle can be overlaid by an opaque image and never be rendered on the canvas.</li>
+<li>Cairo draws as a person on a paper sheet. Once something is drawn on the Cairo surface, it is rendered on the screen.</li></ul>
 
-image = evas_object_image_add(evas);
+<p>First, as shown in the following code snippet, you can define the <span style="font-family: Courier New,Courier,monospace">appdata</span> structure, which contains all the pointers to the objects to be manipulated:</p>
+ 
+<pre class="prettyprint">
+typedef struct appdata 
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;Evas_Object *img;
+&nbsp;&nbsp;&nbsp;cairo_surface_t *surface;
+&nbsp;&nbsp;&nbsp;cairo_t *cairo;
+&nbsp;&nbsp;&nbsp;unsigned char *pixels;
+} appdata_s;
 </pre>
 
-<p>To have transparent values enabled, we use ARGB8888 colorspace for the pixels. To do that, use the following code:</p>
-<pre class="prettyprint">evas_object_image_alpha_set(image, EINA_TRUE);
-evas_object_image_colorspace_set(image, EVAS_COLORSPACE_ARGB8888);
+<p>To create a new <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image, use the <span style="font-family: Courier New,Courier,monospace">evas_object_image_add()</span> function. The image object can be used for displaying as pixels on the screen:</p>
+ 
+<pre class="prettyprint">
+appdata_s * ad;
+ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+evas_object_show(ad-&gt;win);
+ad-&gt;img = evas_object_image_add(evas_object_evas_get(ad-&gt;win));
+evas_object_show(ad-&gt;img);
 </pre>
 
-<p>The image is now ready to be linked to Cairo.</p>
+<h2 id="link" name="link">Linking Evas_Object Images to Cairo</h2>
 
-<h2 id="link" name="link">Linking Evas_Object Image to Cairo</h2>
+<p>You can now create a Cairo image surface for the provided pixel and other data by using the <span style="font-family: Courier New,Courier,monospace">cairo_image_surface_create_for_data()</span> function. The pixel data is a pointer to a buffer supplied by the application in which you want to write content.</p>
+<p>The size of the row stride is called by the <span style="font-family: Courier New,Courier,monospace">cairo_format_stride_for_width()</span> function. The function provides a stride value that respects all alignment requirements of the accelerated image-rendering code within Cairo.</p>
 
-<p>Now we create the real pixels Cairo uses for painting and EFL for displaying. We allocate the pixels for both Cairo and evas. The size of the row stride is called by <span style="font-family: Courier New,Courier,monospace">cairo_format_stride_for_width</span>. To set the size of the pixels to be allocated, use the following code.</p>
-<pre class="prettyprint">cairo_format_t image_format;
-cairo_t *cairo;
-cairo_surface_t *surface;
-unsigned char *pixels;
-
-image_format = CAIRO_FORMAT_ARGB32;
-row_stride = cairo_format_stride_for_width(image_format, WIDTH);
-// Create the pixels here
-pixels = (unsigned char *) calloc(sizeof(unsigned char) * row_stride * HEIGHT, 1);
+<pre class="prettyprint">
+int row_stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, WIDTH);
+ad-&gt;pixels = (unsigned char *) calloc(sizeof(unsigned char) * row_stride * HEIGHT, 1);
+ad-&gt;surface = cairo_image_surface_create_for_data(ad-&gt;pixels,CAIRO_FORMAT_ARGB32, WIDTH, HEIGHT, row_stride);
 </pre>
 
-<p>This is how to create a Cairo structure which uses these pixels:</p>
-<pre class="prettyprint">surface = cairo_image_surface_create_for_data(pixels, image_format,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;WIDTH, HEIGHT, row_stride);
-</pre>
 <p>To create the Cairo context used for all operations, use the following code.</p>
-<pre class="prettyprint">cairo = cairo_create(surface);
+<pre class="prettyprint">
+cairo = cairo_create(ad-&gt;surface);
 </pre>
 
-<p>This is how to associate the pixels to the Evas_Object Image and set the size of the image to be the same as the one on the Cairo canvas.</p>
-<pre class="prettyprint">evas_object_image_size_set(image, WIDTH, HEIGHT);
-evas_object_image_fill_set(image, 0, 0, WIDTH, HEIGHT);
-evas_object_image_data_set(image, pixels);
+<p>Associate the pixels (as raw data) to given image object. The pixels must be of the same size and colorspace as the image object.</p>
+<pre class="prettyprint">
+evas_object_image_data_set(ad-&gt;img, ad-&gt;pixels);
 </pre>
 
-<p>Each time we finish painting with Cairo, evas renders the pixels on screen with the following code.</p>
-<pre class="prettyprint">evas_object_image_data_update_add(image, 0, 0, WIDTH, HEIGHT);
+<p>Once you finish painting by using Cairo, Evas renders a particular rectangular region to be redrawn on the screen:</p>
+<pre class="prettyprint">
+evas_object_image_data_update_add(ad-&gt;img, 0, 0, WIDTH, HEIGHT);
 </pre>
 
-<h2 id="paint" name="paint">Painting with Cairo</h2>
+<h2 id="paint" name="paint">Drawing with Cairo</h2>
 
-<p>All painting operations use the Cairo object created previously. To place the pencil at a specific position, use <span style="font-family: Courier New,Courier,monospace">cairo_move_to</span>. To paint a line between the current position and a point on the surface, use <span style="font-family: Courier New,Courier,monospace">cairo_line_to</span>. Here we paint a line with the current style from the point (x, y) 10, 10 to the point 10, 110.</p>
-<pre class="prettyprint">cairo_move_to(cairo, 10, 10);
-cairo_line_to(cairo, 10, 110);
-</pre>
+<p>Before drawing a line, set the current line width or color as a style. For example, you can set the line width as 2 and the line color as opaque red:</p>
+<pre class="prettyprint">
+cairo_set_line_width(ad-&gt;cairo, 2);
+cairo_set_source_rgba(ad-&gt;cairo, 1.0, 0.0, 0.0, 1.0);</pre>
 
-<p>Create a rectangle by using the <span style="font-family: Courier New,Courier,monospace">cairo_rectangle</span> API. This call draws a rectangle from position 10,10 and with 100px width and height.</p>
-<pre class="prettyprint">cairo_rectangle(cairo, 10, 10, 110, 110);
-</pre>
+<p>You can draw various lines:</p>
+<ul> 
+<li><p>To set the start position with a user-specific offset, use the <span style="font-family: Courier New,Courier,monospace">cairo_translate()</span> function. It modifies the current transformation matrix (CTM) by translating the user-space origin by (x, y).</p>
+<pre class="prettyprint">
+cairo_translate(ad-&gt;cairo, 40, 40);</pre></li>
 
-<p>Change the color of the pen by using the API <span style="font-family: Courier New,Courier,monospace">cairo_set_source_rgba</span> or <span style="font-family: Courier New,Courier,monospace">cairo_set_source_rgb</span>. This call changes the  color to red with half transparency.</p>
-<pre class="prettyprint">cairo_set_source_rgba(cairo, 1.0, 0.0, 0.0, 0.5);
-</pre>
+<li><p>Cairo uses a connect-the-dots style system when creating a path. To draw a line between 2 points (100,100 and 200,150) on the surface, use the <span style="font-family: Courier New,Courier,monospace">cairo_move_to()</span> and <span style="font-family: Courier New,Courier,monospace">cairo_line_to()</span> functions:</p>
+<pre class="prettyprint">
+cairo_move_to(ad-&gt;cairo, 100, 100);
+cairo_line_to(ad-&gt;cairo, 200, 150);</pre></li>
 
-<p>Changing the size of the pen is done by calling <span style="font-family: Courier New,Courier,monospace">cairo_set_line_width</span>. For a two pixel width use the following code.</p>
-<pre class="prettyprint">cairo_set_line_width(cairo, 2);
-</pre>
+<li><p>To draw a line from the endpoint of the current path, use the <span style="font-family: Courier New,Courier,monospace">cairo_rel_line_to()</span> function. The offset by (dx, dy) must be specified as (100, -50).</p>
+<pre class="prettyprint">
+cairo_rel_line_to(ad-&gt;cairo, 100, -50);</pre></li>
 
-<p>For the complete official Cairo documentation, see <a href="http://cairographics.org/documentation/" target="_blank">http://cairographics.org/documentation/</a>.</p>  
+<li><p>To draw a circular arc of the given radius (100 * sqrt(2)) to the current path, use the <span style="font-family: Courier New,Courier,monospace">cairo_arc()</span> function.</p>
+<p>The arc is centered at (200, 200), begins at angle1 (-0.25 * M_PI) and proceeds in the direction of increasing angles to end at angle2 (0.25 * M_PI). If angle2 is less than angle1, it is progressively increased by 2*M_PI until it is greater than angle1.</p>
+<pre class="prettyprint">
+cairo_arc(ad-&gt;cairo, 200, 200, 100 * sqrt(2), -0.25 * M_PI, 0.25 * M_PI);</pre></li>
+
+<li><p>To draw a cubic Bézier spline to the path from the end position of the previous path, use the <span style="font-family: Courier New,Courier,monospace">cairo_rel_curve_to()</span> function. You can use the points offset by (-100, -50) and (-100, 50) as the control points. After the call, the current point is offset by (-200, 0).</p>
+<pre class="prettyprint">
+cairo_rel_curve_to(ad-&gt;cairo, -100, -50, -100, 50, -200, 0);</pre></li>
+
+<li><p>You can add a line segment to the path from the current point to the beginning of the current sub-path. After this call, the current point is at the joined endpoint of the sub-path. The <span style="font-family: Courier New,Courier,monospace">cairo_close_path()</span> function differs from simply calling the <span style="font-family: Courier New,Courier,monospace">cairo_line_to()</span> function with the equivalent coordinate in the case of stroking: there is a line join connecting the final and initial segments of the sub-path.</p>
+<pre class="prettyprint">
+cairo_close_path(ad-&gt;cairo);</pre></li>
+
+<li><p>To create a rectangle, use the <span style="font-family: Courier New,Courier,monospace">cairo_rectangle()</span> function. This call draws a rectangle with 400 px in width and height from point (0, 0).</p>
+<pre class="prettyprint">
+cairo_rectangle(ad-&gt;cairo, 0, 0, 400, 400);</pre></li>
+
+<li><p>To stroke the paths, use the <span style="font-family: Courier New,Courier,monospace">cairo_stroke()</span> function. It is a drawing operator that strokes the current path according to the current line width, line join, line cap, and dash settings. After the function call, the current path is cleared from the cairo context.</p>
+<pre class="prettyprint">
+cairo_stroke(ad-&gt;cairo);</pre></li>
+
+<li><p>To ensure that any pending Cairo operation are drawn, use the <span style="font-family: Courier New,Courier,monospace">cairo_surface_flush()</span> function after finishing the Cairo drawing:</p>
+
+<pre class="prettyprint">
+cairo_surface_flush(ad-&gt;surface);</pre></li></ul>
+
+<p>You need to destroy Cairo objects before terminating your application:</p> 
+<pre class="prettyprint">
+cairo_destroy(ad-&gt;cairo);
+cairo_surface_destroy(ad-&gt;surface);</pre>
+
+  <p class="figure">Figure: Drawing paths and a rectangle with Cairo</p> 
+  <p align="center"><img alt="Drawing paths and a rectangle with Cairo" src="../../images/cairo.png" /></p>
+
   
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>

@@ -16,71 +16,60 @@
 
 <body onload="prettyPrint()" style="overflow: auto;">
 
-<div id="navigation">
+<div id="toc-navigation">
     <div id="profile">
-        <p><img alt="Mobile native" src="../../images/mn_icon.png"/></p>
+        <p><img alt="Mobile native" src="../../images/mn_icon.png"/> <img alt="Wearable native" src="../../images/wn_icon.png"/></p>
     </div>
     <div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a class="opensection" href="#init">Initializing the Database</a></li>
-			<li><a class="opensection" href="#store">Storing Encrypted Data</a></li>
+			<li><a href="#init">Initializing the Database</a></li>
+			<li><a href="#store">Storing Encrypted Data</a></li>
 		</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
 			<li><a href="../../../../org.tizen.guides/html/native/base/base_guide_n.htm">Base Guides</a></li>
-			<li><a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__SQLITE__FRAMEWORK.html">Sqlite API</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__SQLITE__FRAMEWORK.html">Sqlite API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__OPENSRC__SQLITE__FRAMEWORK.html">Sqlite API for Wearable Native</a></li>
 		</ul>
     </div></div>
 </div>
 
 <div id="container"><div id="contents"><div class="content">
 <h1>Sqlite: Managing the SQL Database</h1>
-  <div class="cont"><div class="static-cont">
+
   
-<p>This tutorial demonstrates how you can use the open source modules, whose functions provide access to SQLite and OpenSSL and demonstrate how to encrypt and store application data. The open source modules supported by Tizen are located within the <a href="../../../../org.tizen.gettingstarted/html/details/tizen_apis.htm#layout">native API layout</a>.</p>
+<p>This tutorial demonstrates how you can use the open source modules, whose functions provide access to SQLite and OpenSSL and demonstrate how to encrypt and store application data. The open source modules supported by Tizen are located within the API layout (for <a href="../../../../org.tizen.gettingstarted/html/native/details/tizen_apis_n.htm#layout">mobile</a> and <a href="../../../../org.tizen.gettingstarted/html/native/details/tizen_apis_n.htm#layout_w">wearable</a> applications).</p>
 
 <h2>Warm-up</h2> 
 <p>Become familiar with the basics of the Sqlite API by learning about:</p> 
 	<ul>
-		<li><a class="opensection" href="#init">Initializing the Database</a>
+		<li><a href="#init">Initializing the Database</a>
 		<p>Initialize the database for use.</p></li>
-		<li><a class="opensection" href="#store">Storing Encrypted Data</a>
+		<li><a href="#store">Storing Encrypted Data</a>
 		<p>Store AES encrypted data in the SQL database.</p></li>
 	</ul>
 
-<div class="devicespecs-util mt5 clfix">
-		<ul class="dutil">
-			<li><a href="#" class="showA">Show All</a></li>
-			<li class="none"><a href="#" class="hideA">Hide All</a></li>
-		</ul>
-	</div>
+ <h2 id="init" name="init">Initializing the Database</h2>
 
-		<ul class="devicespecifications">
-		<li>
-			<div class="devicespec-tit">
- <h2 id="init" name="init" class="items-tit-h2">Initializing the Database</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con"> 
 <p>Initialize external open source libraries:</p>
 
 <ol><li><p>To operate on an SQL database provided by SQLite:</p>
-<ol>
+<ol type="a">
 	<li>Configure the database interface <span style="font-family: Courier New,Courier,monospace">sqlite3_config</span> (<span style="font-family: Courier New,Courier,monospace">SQLITE_CONFIG_URI, 1</span>). It allows setting the path to the database using URI.</li>
 	<li>Initialize the interface with the <span style="font-family: Courier New,Courier,monospace">sqlite3_initialize()</span> function.</li>
-	<li>Open database. If it is not configured in other way, <span style="font-family: Courier New,Courier,monospace">sqlite3_open(&quot;file:/opt/usr/media/Documents/test.db&quot;, &amp;db)</span> creates a new database file, if the URI points to non-existing one. The handle to the database is stored in a database variable.</li>
+	<li>Open database. If it is not configured in other way, <span style="font-family: Courier New,Courier,monospace">sqlite3_open(&quot;/opt/usr/media/Documents/test.db&quot;, &amp;db)</span> creates a new database file, if the URI points to non-existing one. The handle to the database is stored in a database variable.</li>
 	<li>Create a table, this step is described later.</li>
 </ol></li>
 
 <li><p>To operate with OpenSSL AES, salt and initial vectors are needed. Those are auxiliary variables, which are used to generate a cryptographic key:</p>
-<ul class="ul">
+<ul>
 	<li><span style="font-family: Courier New,Courier,monospace">RAND_bytes()</span> generates a random chain of bytes.</li>
 	<li>An additional character is appended after the last character of a chain to point the end of the salt[8]=0x00 variable.</li>
 	<li><span style="font-family: Courier New,Courier,monospace">PrepareToSQL()</span> removes some of the SQL special characters from the chain to make it possible to insert it to the database.</li>
 </ul></li>
 <li><p>Include the required headers:</p>
-<ul class="ul">
+<ul>
 <li><span style="font-family: Courier New,Courier,monospace">#include &lt;stdio.h&gt;</span></li>
 <li><span style="font-family: Courier New,Courier,monospace">#include &lt;string.h&gt;</span></li>
 <li><span style="font-family: Courier New,Courier,monospace">#include &lt;time.h&gt;</span></li>
@@ -121,7 +110,6 @@ unsigned char iv[17]; // Encryption initial vector
 </pre>
 
 <pre class="prettyprint">
-
 sqlite3_shutdown();
 
 sqlite3_config(SQLITE_CONFIG_URI, 1);
@@ -200,8 +188,8 @@ static int CreateTable()
 <pre class="prettyprint">
 void PrepareToSQL(unsigned char* msg)
 {
-&nbsp;&nbsp;&nbsp;int i=0;
-&nbsp;&nbsp;&nbsp;while(msg[i]!=0x00)
+&nbsp;&nbsp;&nbsp;int i = 0;
+&nbsp;&nbsp;&nbsp;while (msg[i]!=0x00)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i]==&#39;\&#39;&#39;)msg[i]=&#39;a&#39;;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i]==&#39;\&quot;&#39;)msg[i]=&#39;b&#39;;
@@ -209,16 +197,11 @@ void PrepareToSQL(unsigned char* msg)
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
-	</div>
-		</li>			
-		<li>
-			<div class="devicespec-tit">
- <h2 id="store" name="store" class="items-tit-h2">Storing Encrypted Data</h2>
-<span class="fr"><a href="#" class="bt-arr"><em>Hide</em></a></span>
-  </div>
-			<div class="devicespec-con"> 
+
+ <h2 id="store" name="store">Storing Encrypted Data</h2>
+ 
 <p>This scenario shows how to:</p>
-<ul class="ul">
+<ul>
 <li>Encrypt a message with OpenSSL</li>
 <li>Prepare it to store in the database with Base64</li>
 <li>Store in the SQLite database</li>
@@ -230,7 +213,7 @@ void PrepareToSQL(unsigned char* msg)
 <ol>
 	<li>Store a short message.
 	<p>OpenSSL AES_Encrypt allows encrypting up to 16 characters at once. Adding a short message (length&lt;=16 characters) is divided in 2 steps:</p>
-	<ol>
+	<ol type="a">
 		<li>Encrypt plain text <span style="font-family: Courier New,Courier,monospace">EncryptMsg()</span>.</li>
 		<li>Execute database insertion <span style="font-family: Courier New,Courier,monospace">InsertRecord()</span>.</li>
 	</ol>
@@ -242,7 +225,7 @@ InsertRecord(decrypted_out, 1, 0, strlen(ShortMsg));
 	</li>
 	
 	<li>Encrypt.
-	<ol>
+	<ol type="a">
 		<li>Generate a string for key generation from password and salt using <span style="font-family: Courier New,Courier,monospace">PKCS5_PBKDF2_HMAC_SHA1()</span>. Also, an initial vector can be used in different hash functions. In this case, only the first byte of the initial vector is used as an iteration variable for a hash algorithm.</li>
 		<li>Generate the encryption key using the <span style="font-family: Courier New,Courier,monospace">AES_set_encrypt_key()</span> function. A key len defines the AES key length. Check the actual recommended length and encoding type before use. This tutorial uses AES 256, which is defined in the initialization section.</li>
 		<li>Encrypt the data.</li>
@@ -295,8 +278,8 @@ static int EncryptMsg(char* in, unsigned char* out, const unsigned char* passwor
 static int InsertRecord(unsigned char *msg, int encrypted,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int part, int len)
 {
-&nbsp;&nbsp;&nbsp;char sqlbuff[BUFLEN]; 
-&nbsp;&nbsp;&nbsp;char *ErrMsg;
+&nbsp;&nbsp;&nbsp;char sqlbuff[BUFLEN];
+&nbsp;&nbsp;&nbsp;char *ErrMsg; 
 &nbsp;&nbsp;&nbsp;snprintf(sqlbuff, BUFLEN, &quot;INSERT INTO EncryptedData
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VALUES(\&#39;%s\&#39;, %d, \&#39;%s\&#39;, \&#39;%s\&#39;, %d, NULL);&quot;,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;msg, encrypted, salt, iv, part);
@@ -425,7 +408,7 @@ static void DecryptRecords()
 <p>The callback function is similar to the function used to list records. There is an action added for the <span style="font-family: Courier New,Courier,monospace">argv[ i ] &amp;&amp; i==0</span> case. It means that if a column is not empty and the column is DATA, you must perform further actions. From an SQL query, we know that the DATA content is encrypted.</p>
 
 <p>To decrypt the message:</p>
-<ul class="ul">
+<ul>
 <li>Data is decoded from Base64</li>
 <li>Delimiting character is added</li>
 <li><span style="font-family: Courier New,Courier,monospace">DecryptMsg()</span> is called for decryption</li>
@@ -504,7 +487,7 @@ static int DecryptMsg(unsigned char* in, unsigned char * out, const unsigned cha
 </li>
 
 <li>Clean up.
-<p>The SQLite library has to be closed properly when not needed anymore:</p>
+<p>The SQLite library has to be closed properly when no longer needed:</p>
 <pre class="prettyprint">
 base64_cleanup();
 sqlite3_close(db);
@@ -652,11 +635,6 @@ int OpenSQL_AES_example_1(void)
 </pre>
 </li>
 </ol>
-	</div>
-		</li>			
-	</ul>	
-</div>				
-</div>
 	
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>

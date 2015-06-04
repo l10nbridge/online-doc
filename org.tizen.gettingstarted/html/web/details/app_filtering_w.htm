@@ -1,0 +1,609 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Application Filtering</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile Web" src="../../images/mw_icon.png"/> <img alt="Wearable Web" src="../../images/ww_icon.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#filter_w">Feature-based Filtering</a></li>
+			<li><a href="#profile_w">Profile-based Filtering</a></li>
+			<li><a href="#multi_profile">Single Web Application for Multiple Profiles</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Application Filtering</h1>
+
+<p>The Tizen platform provides a wide range of features across a variety of hardware and software components. Among the features, there are some that can be selectively supported by the Tizen device manufacturer. For application stores to correctly select your application for installation on an appropriate device, the feature and profile information must be correctly declared in your application.</p>
+  
+  <h2 id="filter_w" name="filter_w">Feature-based Filtering</h2>
+  <p>Some features can be selectively supported by the Tizen device manufacturer. To prevent problems when the user is trying to run your application on a device that does not support all the features your application is using, do one of the following:</p>
+<ul>
+<li>When the application is running, check whether the device supports the needed features. If not, the application can use other features, which are supported by the device, as a workaround.
+<p>For example, if an application wants to use location information, it can check the device capability by using the <span style="font-family: Courier New,Courier,monospace">getCapability()</span> method of the <span style="font-family: Courier New,Courier,monospace">SystemInfo</span> interface (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/systeminfo.html#SystemInfo">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/systeminfo.html#SystemInfo">wearable</a> applications). If the device supports GPS, the application uses GPS information, and if the device supports WPS only, the application uses WPS information instead of GPS.</p>
+</li>
+<li>Use feature-based filtering to prevent your application from being shown in the application list on the Tizen Store, if the user&#39;s device does not support all the features of your application. This way you can prevent the application from being installed on an unsupportive device in the first place.
+<p>Be careful when defining the feature list for feature-based filtering. The feature list can dramatically reduce your chances of getting the application downloaded by reducing the number of devices which can support the application.</p></li>
+</ul>
+ 
+<p>If the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file of the application package includes a feature list, the Tizen Store compares the capabilities of the device with the required feature conditions of the application. The store only lists the applications whose conditions match the capabilities of the device, and thus prevents unsupported applications from being installed.</p>
+
+  <p class="figure">Figure: Feature-based filtering</p> 
+  <p align="center"><img align="center" alt="Feature-based filtering" src="../../images/app_filtering_basic_flow.png" /></p> 
+ 
+<p>When multiple features are defined in the feature list for feature-based filtering, the Tizen Store creates the filtering condition for all using the &quot;AND&quot; operation. For example, if there are <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth</span> features in the feature list of the application package, only a device that has both those features can show the application on the Tizen Store application list for downloading.</p>
+
+<h3 id="screen_size" name="screen_size">Screen Size Feature</h3>
+<p>The screen size feature is the only exception to the normal feature handling process described above. When the screen size is defined in the feature list, the Tizen Store creates the filtering condition with the &quot;OR&quot; operation. For example, if the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.480.800</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.720.1280</span> features are defined in your application feature list, a device that supports one or the other of those features can show the application on the Tizen Store application list.</p>
+ <p>If you do not specify a proper screen size in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file, your application can be rejected from the Tizen store.</p>
+ <p>The following tables list the available screen size features. </p>
+ <table>
+	<caption>Table: Available screen size features for mobile applications</caption>
+	<tbody>
+	<tr>
+			<th>Feature key</th>
+			<th>Description</th>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal</span></td>
+			<td>Specify this key, if the application supports all possible current and future resolutions on the normal screen size.
+			<p>You cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously. If you do, only the most specific resolution key is considered and the less specific resolution keys are ignored. For example, if you specify both <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span> keys, only the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span> key is applied.</p> <p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p>
+			</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.240.400</span></td> 
+			<td>Specify this key, if the application supports the 240 x 400 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p>
+			</td>
+		</tr>	
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.320</span></td>
+			<td>Specify this key, if the application supports the 320 x 320 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p>
+			</td>
+		</tr>		
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span></td>
+			<td>Specify this key, if the application supports the 320 x 480 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.360.480</span></td>
+			<td>Specify this key, if the application supports the 360 x 480 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>		
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.480.800</span></td>
+			<td>Specify this key, if the application supports the 480 x 800 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.540.960</span></td>
+			<td>Specify this key, if the application supports the 540 x 960 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.600.1024</span></td>
+			<td>Specify this key, if the application supports the 600 x 1024 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.720.1280</span></td>
+			<td>Specify this key, if the application supports the 720 x 1280 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.1080.1920</span></td>
+			<td>Specify this key, if the application supports the 1080 x 1920 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.all</span></td>
+			<td>Specify this key, if the application supports all possible current and future screen sizes and all possible current and future resolutions per screen size.
+			<p>You cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously. If you do, only the most specific resolution key is considered and the less specific resolution keys are ignored.  For example, if you specify both <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.all</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span> keys, only the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span> key is applied.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>
+	</tbody>
+ </table>
+
+ <table>
+	<caption>Table: Available screen size features for wearable applications</caption>
+	<tbody>
+	<tr>
+			<th>Feature key</th>
+			<th>Description</th>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal</span></td>
+			<td>Specify this key, if the application supports all possible current and future resolutions on the normal screen size.
+			<p>You cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously. If you do, only the most specific resolution key is considered and the less specific resolution keys are ignored. For example, if you specify both <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span> keys, only the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span> key is applied.</p> <p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p>
+			</td>
+		</tr>
+
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.320</span></td>
+			<td>Specify this key, if the application supports the 320 x 320 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p>
+			</td>
+		</tr>		
+
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.360.480</span></td>
+			<td>Specify this key, if the application supports the 360 x 480 resolution on the normal screen size.
+			<p>You can specify multiple <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.*</span> keys, if your application supports multiple screen resolutions on the normal screen size. However, you cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>		
+	
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.all</span></td>
+			<td>Specify this key, if the application supports all possible current and future screen sizes and all possible current and future resolutions per screen size.
+			<p>You cannot specify keys on both <span style="font-family: Courier New,Courier,monospace">screen.size.*</span> and <span style="font-family: Courier New,Courier,monospace">screen.size.normal.*</span> levels simultaneously. If you do, only the most specific resolution key is considered and the less specific resolution keys are ignored.  For example, if you specify both <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.all</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span> keys, only the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.size.normal.320.480</span> key is applied.</p><p>If no  screen size key is declared, it is assumed that the application supports only <span style="font-family: Courier New,Courier,monospace">screen.size.normal.720.1280</span>. To avoid this, specify at least 1 screen size key.</p></td>
+		</tr>
+	</tbody>
+ </table>
+ 
+  
+<h3 id="hierarchy" name="hierarchy">Feature Hierarchy</h3>  
+
+<p>The feature keys have a hierarchy. For example, consider the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location</span>, <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps</span>, and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.wps</span> features:</p>
+<ul>
+<li>If the feature list includes the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps</span> feature, only a device which has the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps</span> feature can show the application on the Tizen Store application list.</li>
+<li>If the feature list includes the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location</span> feature, a device which has the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps</span>, <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.wps</span>, or <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location</span> feature can show the application on the Tizen Store application list.
+<p>This means that the Tizen Store considers the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location</span> feature as the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps OR http://tizen.org/feature/location.wps</span> feature. (If the feature list includes the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.wps</span> features together, only a device which supports both those features can show the application.)</p></li></ul>
+
+<h3 id="adding" name="adding">Adding the Feature List</h3> 
+ 
+ <p>To enable filtering for your Web application, add the feature list for the application <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p> 
+  <ol>
+    <li>To open the Web application configuration editor in the IDE, double-click the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file in the <strong>Project Explorer</strong> view. </li>
+   <li>In the <strong>Feature</strong> tab, click <strong>Add</strong>.</li>
+   <li>Select a feature from the list.</li>
+   <li>Click <strong>Save</strong>.</li>
+  </ol>
+
+  <p>After setting the feature information with the Web application configuration editor, you can see the added code in the <strong>Source</strong> tab.</p>
+
+  <p> The following example shows the setting in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file code:</p>
+  <pre class="prettyprint">
+&lt;tizen:feature name=&quot;http://tizen.org/feature/network.nfc&quot;/&gt;
+</pre>
+
+<p>The following tables show the available requirements for Tizen Web application package.</p>
+<table border="1" id="features">
+<caption>Table: Available requirements for mobile Web Device APIs</caption>
+   <tbody>
+<tr>
+     <th>Feature key</th>
+     <th>Description</th>
+    </tr>
+
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/datasync</span></td>
+     <td>Specify this key, if the application requires the DataSync feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/fmradio</span></td>
+     <td>Specify this key, if the application requires an FM radio.</td>
+	</tr>
+ <tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/humanactivitymonitor</span></td>
+    <td>Specify this key, if the application requires any of the Human Activity Monitor features.</td>
+    </tr>
+<tr>	
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.batch</span></td>
+     <td>Specify this key, if the application requires the location tracking with a position batch information feature for using the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/humanactivitymonitor.html">Human Activity Monitor</a> (GPS Type) API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth</span></td>
+     <td>Specify this key, if the application requires the Bluetooth feature.</td>
+	</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth.audio.media</span></td>
+     <td>Specify this key, if the application requires the Bluetooth Advanced Audio feature (A2DP).</td>
+	 </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth.health</span></td>
+     <td>Specify this key, if the application requires the Bluetooth Health feature (HDP).</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth.le</span></td>
+     <td>Specify this key, if the application requires the Bluetooth Low Energy feature (BLE).</td>
+    </tr>	
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc</span></td>
+     <td>Specify this key, if the application requires the use of any API that, in turn, requires the Near Field Communication (NFC) feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc.card_emulation</span></td>
+     <td>Specify this key, if the application requires the NFC card emulation feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc.card_emulation.hce</span></td>
+     <td>Specify this key, if the application requires the NFC host-based card emulation feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc.p2p</span></td>
+     <td>Specify this key, if the application requires the NFC P2P feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc.tag</span></td>
+     <td>Specify this key, if the application requires the NFC tag feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.push</span></td>
+     <td>Specify this key, if the application requires the network-based push service.</td>
+	</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.secure_element</span></td>
+     <td>Specify this key, if the application requires the secure element feature.</td>
+	 </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.telephony</span></td>
+     <td>Specify this key, if the application requires the use of any API that, in turn, requires the telephony feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.telephony.mms</span></td>
+     <td>Specify this key, if the application requires the MMS feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.wifi</span></td>
+     <td>Specify this key, if the application requires the use of any API that, in turn, requires the Wi-Fi feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.barometer</span></td>
+     <td>Specify this key, if the application requires a barometer sensor for using the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/sensor.html">Sensor</a> (Pressure Type) API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.heart_rate_monitor</span></td>
+     <td>Specify this key, if the application requires a heart rate monitor sensor for using the Human Activity Monitor (HRM Type) API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.magnetometer</span></td>
+     <td>Specify this key, if the application requires a magnetic sensor for using the Sensor (MAGNETIC Type) API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.pedometer</span></td>
+     <td>Specify this key, if the application requires a pedometer sensor for using the Human Activity Monitor (PEDOMETER Type) API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.photometer</span></td>
+     <td>Specify this key, if the application requires a photometer sensor for using the Sensor (LIGHT Type) API.</td>
+    </tr>	
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.proximity</span></td>
+     <td>Specify this key, if the application requires a proximity sensor for using the Sensor (PROXIMITY Type) API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.ultraviolet</span></td>
+     <td>Specify this key, if the application requires a ultraviolet sensor for using the Sensor (ULTRAVIOLET Type) API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.wrist_up</span></td>
+     <td>Specify this key, if the application requires a wrist up sensor for using the Human Activity Monitor (WRIST_UP Type) API.</td>
+    </tr>
+</tbody>
+</table>
+
+<table border="1" id="features">
+<caption>Table: Available requirements for mobile Web W3C/HTML5 APIs</caption>
+   <tbody>
+<tr>
+     <th>Feature key</th>
+     <th>Description</th>
+    </tr>
+
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/camera</span></td>
+     <td>Specify this key, if the application requires any kind of a camera for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#getusermedia">getUserMedia</a> or <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#mediacapture">HTML Media Capture</a> API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps</span></td>
+     <td>Specify this key, if the application requires the Global Positioning System (GPS) feature for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#geo">GeoLocation</a> API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/microphone</span></td>
+     <td>Specify this key, if the application requires a microphone for using the getUserMedia or HTML Media Capture API.</td>
+    </tr>
+<tr>	
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.accelerometer</span></td>
+     <td>Specify this key, if the application requires an acceleration sensor for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#orientation">DeviceOrientation Event Specification</a> API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.gyroscope</span></td>
+     <td>Specify this key, if the application requires a gyro sensor for using the DeviceOrientation Event API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.magnetometer</span></td>
+     <td>Specify this key, if the application requires a magnetic sensor for using the DeviceOrientation Event Specification or <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#sceenori">Screen Orientation</a> API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/speech.synthesis</span></td>
+     <td>Specify this key, if the application requires the speech synthesis (text-to-speech, TTS) feature for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#webspeech">Web Speech</a> API.</td>
+    </tr>
+</tbody>
+</table>
+
+
+  <table border="1" id="features">
+<caption>Table: Available requirements for wearable Web Device APIs</caption>
+   <tbody>
+<tr>
+     <th>Feature key</th>
+     <th>Description</th>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/download</span></td>
+     <td>Specify this key, if the application requires the network connection to access the Internet for using the <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/download.html">Download</a> API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/humanactivitymonitor</span></td>
+     <td><p>Specify this key, if the application requires the <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/humanactivitymonitor.html">Human Activity Monitor</a> API.</p>
+         <p>If the key is declared in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file, the application can be installed on the device with any of the Human Activity Monitor features:</p>
+        <ul>
+		<li>HRM: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.heart_rate_monitor</span></li>
+        <li>PEDOMETER: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.pedometer</span></li>
+        <li>WRIST_UP: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.wrist_up</span></li>
+        <li>GPS: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.batch</span></li>
+		</ul>
+     </td>
+   </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.batch</span></td>
+     <td>Specify this key, if the application requires the location tracking with a position batch information feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth</span></td>
+     <td>Specify this key, if the application requires the Bluetooth feature.</td>
+	</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth.audio.media</span></td>
+     <td>Specify this key, if the application requires the Bluetooth Advanced Audio feature (A2DP) feature for using the <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediakey.html">Media Key</a> API.</td>
+	 </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth.health</span></td>
+     <td>Specify this key, if the application requires the Bluetooth Health feature (HDP).</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth.le</span></td>
+     <td>Specify this key, if the application requires the Bluetooth Low Energy feature (BLE).</td>
+    </tr>	
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc</span></td>
+     <td>Specify this key, if the application requires the use of any API that, in turn, requires the Near Field Communication (NFC) feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc.card_emulation</span></td>
+     <td>Specify this key, if the application requires the NFC card emulation feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc.card_emulation.hce</span></td>
+     <td>Specify this key, if the application requires the NFC host-based card emulation feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc.p2p</span></td>
+     <td>Specify this key, if the application requires the NFC P2P feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.nfc.tag</span></td>
+     <td>Specify this key, if the application requires the NFC tag feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.push</span></td>
+     <td>Specify this key, if the application requires the network-based push service.</td>
+	</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.secure_element</span></td>
+     <td>Specify this key, if the application requires the secure element feature.</td>
+	 </tr>	
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.telephony</span></td>
+     <td>Specify this key, if the application requires the use of any API that, in turn, requires the telephony feature.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.wifi</span></td>
+     <td>Specify this key, if the application requires the use of any API that, in turn, requires the Wi-Fi feature (for example, the Download API).</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.barometer</span></td>
+     <td>Specify this key, if the application requires a barometer sensor.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.heart_rate_monitor</span></td>
+     <td>Specify this key, if the application requires a heart rate monitor sensor.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.magnetometer</span></td>
+     <td>Specify this key, if the application requires a magnetic sensor.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.pedometer</span></td>
+     <td>Specify this key, if the application requires a pedometer sensor.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.photometer</span></td>
+     <td>Specify this key, if the application requires a photometer sensor.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.proximity</span></td>
+     <td>Specify this key, if the application requires a proximity sensor.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.ultraviolet</span></td>
+     <td>Specify this key, if the application requires an ultraviolet sensor.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.wrist_up</span></td>
+     <td>Specify this key, if the application requires a wrist up sensor.</td>
+    </tr>
+</tbody>
+</table>
+
+<table border="1" id="features">
+<caption>Table: Available requirements for wearable Web W3C/HTML5 APIs</caption>
+   <tbody>
+<tr>
+     <th>Feature key</th>
+     <th>Description</th>
+    </tr>
+
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/camera</span></td>
+     <td>Specify this key, if the application requires any kind of a camera for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#getusermedia">getUserMedia</a> API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/input.rotating_bezel</span></td>
+     <td>Specify this key, if the application requires rotating bezel input.</td>
+    </tr>	
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps</span></td>
+     <td>Specify this key, if the application requires the Global Positioning System (GPS) feature for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#geo">GeoLocation</a> API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/microphone</span></td>
+     <td>Specify this key, if the application requires a microphone for using the getUserMedia API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.internet</span></td>
+     <td>Specify this key, if the application requires Internet access for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#websocket">WebSocket API</a>, <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#httpreq">XMLHttpRequest Level 1</a>, or <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#cross">Cross-Origin Resource Sharing</a> API.</td>
+    </tr>	
+<tr>	
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.shape.circle</span></td>
+     <td>Specify this key, if the application requires a circle-shaped screen.</td>
+    </tr>
+<tr>	
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/screen.shape.rectangle</span></td>
+     <td>Specify this key, if the application requires a rectangle-shaped screen.</td>
+    </tr>	
+<tr>	
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.accelerometer</span></td>
+     <td>Specify this key, if the application requires an acceleration sensor for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#orientation">DeviceOrientation Event Specification</a> API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.gyroscope</span></td>
+     <td>Specify this key, if the application requires a gyro sensor for using the DeviceOrientation Event API.</td>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/speech.synthesis</span></td>
+     <td>Specify this key, if the application requires the speech synthesis (text-to-speech, TTS) feature for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#webspeech">Web Speech</a> API.</td>
+    </tr>
+</tbody>
+</table>
+
+<table border="1" id="features">
+<caption>Table: Available requirements for wearable Web Supplementary APIs</caption>
+   <tbody>
+<tr>
+     <th>Feature key</th>
+     <th>Description</th>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/media.audio_recording</span></td>
+     <td>Specify this key, if the application requires the audio recording functionality of the device for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#camera">Camera API (Tizen Extension)</a> (Audio Recording) API.</td>
+   </tr>  
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/media.image_capture</span></td>
+     <td>Specify this key, if the application requires the image capture functionality of the device for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#camera">Camera API (Tizen Extension)</a> (Image Recording) API.</td>
+   </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/media.video_recording</span></td>
+     <td>Specify this key, if the application requires the video recording functionality of the device for using the <a href="../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#camera">Camera API (Tizen Extension)</a> (Video Recording) API.</td>
+   </tr>
+</tbody>
+</table>
+
+<table border="1" id="features">
+<caption>Table: Available requirements for wearable Web Runtime</caption>
+   <tbody>
+<tr>
+     <th>Feature key</th>
+     <th>Description</th>
+    </tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/web.service</span></td>
+     <td>Specify this key, if the application requires the Web service application feature.</td>
+   </tr>
+</tbody>
+</table>
+
+<h2 id="profile_w" name="profile_w">Profile-based Filtering</h2>
+<p>A Tizen profile describes the requirements for a category of Tizen devices that have a common application execution environment. Applications are created for a single specific target profile, such as mobile, wearable, or TV, and can run on devices compliant to that profile.</p>
+
+<p>Use profile-based filtering to ensure that your application is only downloaded on the appropriate device profile. To ensure this, declare the intended profile by adding the <span style="font-family: Courier New,Courier,monospace">profile name</span> element in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file.</p>
+
+<p>The following table lists the Tizen profiles and related profile name attributes.</p>
+ <table border="1" id="feature">
+<caption>Table: Tizen profiles and profile name attributes</caption>
+<tbody>
+<tr>
+<th width="50%">Tizen profile</th> 
+     <th>Profile name attribute</th> 
+    </tr>
+<tr>
+<td>Mobile</td> 
+     <td><span style="font-family: Courier New,Courier,monospace">mobile</span></td> 
+    </tr>
+<tr>
+<td>Wearable</td> 
+     <td><span style="font-family: Courier New,Courier,monospace">wearable</span></td> 
+    </tr>
+<tr>
+<td>TV</td> 
+     <td><span style="font-family: Courier New,Courier,monospace">TV</span></td> 
+    </tr>
+</tbody></table>
+
+<p>In a Web application, the profile name element can be added to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file as follows:</p>
+<pre class="prettyprint">
+&lt;widget xmlns=&quot;http://www.w3.org/ns/widgets&quot; xmlns:tizen=&quot;http://tizen.org/ns/widgets&quot; ... &gt;
+&lt;tizen:profile name=&quot;mobile&quot;/&gt;
+&lt;!--OR--&gt;
+&lt;tizen:profile name=&quot;wearable&quot;/&gt;
+</pre>
+
+<p>The Tizen Store compares the device profile and the <span style="font-family: Courier New,Courier,monospace">profile name</span> element in an application. The store only shows the applications with a profile name matching the device profile to prevent unsupported applications from being installed.</p>
+
+<h2 id="multi_profile" name="multi_profile">Single Web Application for Multiple Profiles</h2> 
+<p>Applications are created for a single specific target profile and can only run on devices compliant to that profile. However, it is easily possible to develop a Web application on one profile and make it work on another profile if you use Web APIs that are common to both the profiles. You just modify the <span style="font-family: Courier New,Courier,monospace"> &lt;tizen:profile&gt;</span> tag to switch profiles. You may also have to make other changes, like adapting your application to different screen sizes and input events. It is recommended that you test this modified application to ensure it performs as desired.</p> 
+		
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

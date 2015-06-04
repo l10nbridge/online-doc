@@ -1,0 +1,303 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Tizen Native Application Model</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/> <img alt="Wearable native" src="../../images/wn_icon.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#life">Native Application Life-cycle</a></li>
+			<li><a href="#start">Starting the Tizen Native Application</a></li>
+			<li><a href="#packageID">Package ID and Application ID</a></li>
+			<li><a href="#appdirectory">Application Directory Policy</a></li>
+			<li><a href="#appmanifest">Application Manifest</a></li>
+			<li><a href="#signature">Signature</a></li>
+			<li><a href="#installer">Installer and SMACK</a></li>
+			<li><a href="#commands">Package Commands</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../details/details_n.htm">Understanding Tizen Programming</a></li>  
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+ <h1>Tizen Native Application Model</h1>
+<p>The Tizen native application model handles application life-cycle and system events. Tizen native application life-cycle is handled by the Application API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APPLICATION__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__APPLICATION__MODULE.html">wearable</a> applications). It provides functions to manage the main event loop, the application state change events, and basic system events.</p>
+<p>Tizen supports both UI applications (which have a graphical user interface) and service applications (which have no graphical user interface). The UI and service applications can be packaged together, if necessary; however, a combined application package must contain only 1 UI application, while it can have several service applications. </p>
+<p>Applications in the same package follow the same installation life-cycle, which is handled by the application package manager. Each application in the package follows its own application life-cycle. Each application (UI application or service application) in an application package can be identified by its own ID.</p>
+
+<p>The following figure shows the UI and service application life-cycle.</p>
+
+  <p class="figure">Figure: UI and service application life-cycle</p> 
+  <p align="center"><img src="../../images/multiple_apps.png" alt="UI and service application life-cycle" style="display: block; text-align: center; margin-left: auto; margin-right: auto" /></p> 
+
+<p>A Tizen native application is similar to a conventional Linux application, with some additional features optimized for mobile and wearable devices. 
+These devices have constraints, such as relatively small screen sizes and lack of system resources compared to a larger system.</p> 
+<p>For example, for power management reasons, well-designed applications reduce resource usage when they detect that their display window is covered by another application window. State change events make the detection possible.</p>
+
+<h2 id="life" name="life">Native Application Life-cycle</h2>   
+
+<p>A Tizen native application can be in one of several different states. Typically, the application is launched by the user from the Launcher, or by another application. When the application is starting, the <span style="font-family: Courier New,Courier,monospace;">app_create_cb()</span> function is executed and the main event loop starts. The application normally at the top window, with focus.</p> 
+<p>When the application loses the focus status, the <span style="font-family: Courier New,Courier,monospace;">app_pause_cb()</span> callback is invoked. The application can go into the pause state, which means that your application is not terminated but continues to run on the background, when:</p>
+	
+  <ul>
+    <li><p>A new application is launched based on a request from your application.</p></li>
+    <li><p>The user requests to go to the home screen.</p></li>
+    <li><p>A system event (such as an incoming phone call) occurs and causes a resident application with a higher priority to become active and temporarily hide your application.</p></li>
+    <li><p>An alarm is triggered for another application, which becomes the top-most window and hides your application.</p> </li>
+  </ul>
+<p>When your application becomes visible again, the <span style="font-family: Courier New,Courier,monospace;">app_resume_cb()</span> callback is invoked. The visibility returns, when:</p>
+
+  <ul>
+    <li><p>Another application requests your application to run (for example, the Task Navigator, which shows all running applications and lets user select any application to run).</p></li> 
+    <li><p>All applications on top of your application in the window stack finish.</p></li>
+    <li><p>An alarm is triggered for your application, bringing it to the front and hiding other applications.</p></li>
+  </ul>
+
+<p>When your application starts exiting, the <span style="font-family: Courier New,Courier,monospace;">app_terminate_cb()</span> callback is invoked. Your application can start the termination process, when:</p>
+  <ul>
+    <li><p>Your application itself requests to exit by calling the <span style="font-family: Courier New,Courier,monospace;">ui_app_exit()</span> or <span style="font-family: Courier New,Courier,monospace;">service_app_exit()</span> function to terminate the event loop.</p></li>
+    <li><p>The low memory killer is terminating your application in a low memory situation.</p></li>
+  </ul>
+<p>Since the service application has no UI, sit also has no pause state.</p>
+  
+<p>Application state changes are managed by the underlying framework. 
+	For more information about application state transitions, see <a href="../../../../org.tizen.guides/html/native/app/application_n.htm#state_trans">Managing Application States and Transitions</a>.</p>
+ 
+
+<h2 id="start" name="start">Starting the Tizen Native Application</h2>
+
+<p>An application can be launched by the user from the Launcher or by another application. Either way, the Application Framework starts the application by creating a new process and calling the application entry point. Like in a conventional Linux application, the application main function is the entry point. For more information about launching native applications, see <a href="../../../../org.tizen.guides/html/native/app/application_n.htm#app_controls">Launching Applications</a>.</p>
+
+
+<h2 id="packageID" name="packageID">Package ID and Application ID</h2>
+
+<p>When developing a Tizen application, you must define a package and application ID:</p>
+<ul>
+<li>Package ID
+<p>The package ID, such as <span style="font-family: Courier New,Courier,monospace;">org.tizen.message</span> or <span style="font-family: Courier New,Courier,monospace;">org.tizen.call</span>, is the application package identifier.</p>
+
+<p>The package ID functions as a unit for package installation, uninstallation, and upgrades. It is also the unit of the application package DRM, sandboxing, and privilege.</p></li>
+
+<li>Application ID
+<p>The application ID (<span style="font-family: Courier New,Courier,monospace;">appid</span>) is the application identifier. Multiple applications are allowed in a package and the application ID is used to identify the different applications.</p>
+
+<p>The application ID must be the same as the package ID if the package contains a single application. If <a href="../process/app_dev_process_n.htm#develop">the package contains multiple applications</a>, the application ID must be assigned with the package ID as a prefix. For example, if the <span style="font-family: Courier New,Courier,monospace;">org.tizen.message</span> package contains two applications, the main application is named as <span style="font-family: Courier New,Courier,monospace;">org.tizen.message</span>, and the second application is named as <span style="font-family: Courier New,Courier,monospace;">org.tizen.message.app2</span>.</p>
+<p>The application ID functions as a unit for launching and terminating applications, and for App Control.</p>
+</li>
+</ul>
+
+<p>The following figure shows how to use the package and application ID.</p>
+
+    <p class="figure">Figure: Package ID and application ID</p> 
+  <p align="center"><img src="../../images/package_id.png" alt="Package ID and application ID" style="display: block; text-align: center; margin-left: auto; margin-right: auto" /></p> 
+  
+
+  <h2 id="appdirectory" name="appdirectory">Application Directory Policy</h2>
+
+<p>The following list shows the directory hierarchy:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">bin</span>
+<p>Executable binary path</p></li>
+<li><span style="font-family: Courier New,Courier,monospace;">lib</span>
+<p>Library path</p></li>
+<li><span style="font-family: Courier New,Courier,monospace;">res</span>
+<p>Resource path</p></li>
+<li><span style="font-family: Courier New,Courier,monospace;">data</span>
+<p>The application&#39;s own directory (read or write): no initial data</p></li>
+<li><span style="font-family: Courier New,Courier,monospace;">shared/</span>
+<p>For sharing with other applications</p>
+<p>Sandboxing refers to an application package which can access its own directories only. It is used to share resources in the <span style="font-family: Courier New,Courier,monospace;">shared</span> directories.</p>
+<p>In sandboxing, <a href="#installer">SMACK</a> is used, and discretionary access control (DAC) is applied to application package directories and files. The 
+uid(root, app) is applied to directories and files.</p></li>
+</ul>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file and signature files are located in the application root directory.</p>
+
+<h3>Permissions</h3>
+<p>The installed packages have a user ID, a group ID, permissions, and a smack label.</p>
+
+  <p class="figure">Figure: Permissions</p> 
+  <p align="center"><img src="../../images/permissions.png" alt="Permissions" style="display: block; text-align: center; margin-left: auto; margin-right: auto" /></p> 
+
+<p>The following table shows the details of files and directories.</p>
+  
+<table>
+<caption>Table: Package data</caption>
+<tbody>
+<tr>
+ <th>Name</th>
+ <th>File or directory</th>
+ <th>Owner:Group</th>
+ <th>Permission</th>
+ <th>Smack label</th>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">bin</span></td>
+ <td rowspan="8">Directory</td>
+ <td>root:root</td>
+ <td rowspan="13">rwxr-xr-x</td>
+ <td rowspan="4">{PackageId}<sup>1</sup></td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">data</span></td>
+ <td>app:app</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">lib</span></td>
+ <td rowspan="3">root:root</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">res</span></td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">shared</span></td>
+ <td>_</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">shared/data</span></td>
+ <td>app:app</td>
+ <td>{Random}<sup>2</sup>, transmute</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">shared/res</span></td>
+ <td>root:root</td>
+ <td>_</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">shared/trusted</span></td>
+ <td>app:app</td>
+ <td>{Cert Hash}<sup>3</sup>, transmute</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">author-signature.xml</span></td>
+ <td rowspan="5">File</td>
+ <td rowspan="5">root:root</td>
+ <td rowspan="5">{PackageId}</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">signature1.xml</span></td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">signature2.xml</span></td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">signatureN.xml</span></td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span></td>
+</tr>
+</tbody>
+</table>
+
+<p><sup>1</sup> The {PackageId} is the package ID, such as <span style="font-family: Courier New,Courier,monospace;">org.tizen.browser</span>.<br/>
+<sup>2</sup> {Random} means that there is a 28-byte random string created by the smack module.<br/>
+<sup>3</sup> {Cert Hash} refers to a 28-byte string where [Raw Hash] equals to Base64Encode (SHA1 author certificate in <span style="font-family: Courier New,Courier,monospace;">author-signature.xml</span>) and {Cert Hash} replaces &quot;/&quot; with &quot;#&quot; in [Raw Hash].</p>
+
+
+<h2  id="appmanifest" name="appmanifest">Application Manifest</h2>
+
+<p>The following example shows the beginning of the Tizen manifest schema:</p>
+<pre class="prettyprint">
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;xs:schema xmlns:xs=&quot;http://www.w3.org/2001/XMLSchema&quot; elementFormDefault=&quot;qualified&quot; targetNamespace=&quot;http://tizen.org/ns/packages&quot; xmlns:packages=&quot;http://tizen.org/ns/packages&quot;&gt;
+&nbsp;&nbsp;&nbsp;&lt;xs:import namespace=&quot;http://www.w3.org/XML/1998/namespace&quot; schemaLocation=&quot;xml.xsd&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;xs:element name=&quot;manifest&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;xs:complexType&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;xs:sequence&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;xs:choice maxOccurs=&quot;unbounded&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;xs:element ref=&quot;packages:label&quot;/&gt;
+</pre>
+
+<p>The following example shows the syntax of the manifest reference. The <span style="font-family: Courier New,Courier,monospace;">&lt;manifest&gt;</span> element serves as a container for the other configuration elements.</p>
+<pre class="prettyprint">
+&lt;manifest xmlns=http://tizen.org/ns/packages
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;package=&quot;org.tizen.application&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;version=&quot;1.0.0&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;api-version=&quot;2.3&quot;&gt;</pre>
+
+
+<h2 id="signature" name="signature">Signature</h2>
+
+<p>A Tizen package is digitally signed by an author and 1 or more distributors to produce a signature file that cryptographically covers all the package files.</p>
+<p>There are 2 types of signatures:</p>
+<ul>
+<li>Author signature
+<p>The author signature specifies which entity alleges to have authored the package, that the integrity of the package is as the author intended, and whether a set of packages came from the same author.</p></li>
+<li>Distributor signature
+<p>The distributor signature specifies that a particular distributor has distributed a package, that the integrity of the package is as the distributor intended, and whether a set of packages came from the same distributor.</p></li>
+</ul>
+
+<p>The following image describes the relationship between the signatures.</p>
+
+
+  <p class="figure">Figure: Signature</p> 
+  <p align="center"><img src="../../images/signature.png" alt="Signature" style="display: block; text-align: center; margin-left: auto; margin-right: auto" /></p>
+
+  
+  <h2 id="installer" name="installer">Installer and SMACK</h2>
+
+<p>The following figure describes how the application installer works.</p>
+
+  <p class="figure">Figure: Installer</p> 
+  <p align="center"><img src="../../images/installer.png" alt="Installer" style="display: block; text-align: center; margin-left: auto; margin-right: auto" /></p> 
+
+  <p>The installer applies smack according to the privileges that are specified in the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file.</p>
+<p>An application can only access the resources that are allowed by the privileges. The privileges are used in Tizen Store to show the permissions and receive user consent.</p>
+
+
+<h2 id="commands" name="commands">Package Commands</h2>
+
+
+<p>You can use shell commands to install, uninstall, update, and launch applications.</p>
+
+  <p class="figure">Figure: IDE interactions</p> 
+  <p align="center"><img src="../../images/ide_interactions.png" alt="IDE interactions" style="display: block; text-align: center; margin-left: auto; margin-right: auto" /></p> 
+
+
+  
+ 
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+
