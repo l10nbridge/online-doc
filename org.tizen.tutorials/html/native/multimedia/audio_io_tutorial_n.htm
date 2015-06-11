@@ -316,7 +316,7 @@ void modify_sound()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index += sample_type == AUDIO_SAMPLE_TYPE_S16_LE? 2 : 1;
 &nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;&nbsp;PRINT_MSG("Volume of the synchronous recording increased.")
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "Volume of the synchronous recording increased.");
 }
 </pre>
 
@@ -335,16 +335,22 @@ error_code = audio_in_set_stream_cb(input, _audio_io_stream_read_cb, NULL);
 <p>After this step we can call the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function and start capturing the audio. However, in this case we want to store
    the recording in a file instead of using local buffer. For this purpose we have to prepare (create and open) a file the recording will be stored in.</p>
 <pre class="prettyprint">
-FILE* fp_w = NULL;
+#include &lt;storage.h&gt;
 
 // Prepare a file, where the recorded data will be stored.
 char io_stream_w_path[200];
-snprintf(io_stream_w_path, 200, "%s%s", "/opt/usr/media/Sounds/", "pcm_w.raw");
-fp_w = fopen(io_stream_w_path, "w");
+char *storage_path;
+int error = storage_get_directory(storage_id, STORAGE_DIRECTORY_SOUNDS, &storage_path);  // storage_id could be found using storage_foreach_device_supported() function
+snprintf(io_stream_w_path, 200, "%s/%s", storage_path, "pcm_w.raw");
+free(storage_path);
+
+FILE* fp_w = fopen(io_stream_w_path, "w");
 if (!fp_w) {
     dlog_print(DLOG_ERROR, LOG_TAG, "fopen() function failed while opening %s file!", io_stream_w_path);
 }
 </pre>
+
+<p>Note : To obtain storage path, we recommend to use <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__STORAGE__MODULE.html">Storage</a> API instead of directly access.</p>
 
 <p>The file is ready and the callback function is set. Now you can proceed with the asynchronous recording. Call the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function
    to initiate the hardware recording process.</p>
@@ -436,10 +442,16 @@ error_code = audio_out_set_stream_cb(output, _audio_io_stream_write_cb, NULL);
 <p>After this step we can call the <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> function and start playing the audio. However, in this case we want to play
    the recording from a file instead of using local buffer. For this purpose we have to prepare (open for reading) a file the recording is stored in.</p>
 <pre class="prettyprint">
+#include &lt;storage.h&gt;
+
 // Prepare a file, that will be used for playback.
 char io_stream_r_path[200];
-snprintf(io_stream_r_path, 200, "%s%s", "/opt/usr/media/Sounds/", "pcm_w.raw");
-fp_r = fopen(io_stream_r_path, "r");
+char *storage_path;
+int error = storage_get_directory(storage_id, STORAGE_DIRECTORY_SOUNDS, &storage_path);  // storage_id could be found using storage_foreach_device_supported() function
+snprintf(io_stream_r_path, 200, "%s/%s", storage_path, "pcm_w.raw");
+free(storage_path);
+
+FILE* fp_r = fopen(io_stream_r_path, "r");
 </pre>
 
 <p>The file is ready and the callback function is set. Now you can proceed with the asynchronous playback. Call the <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> function
