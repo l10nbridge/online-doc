@@ -154,12 +154,12 @@ int service_adaptor_foreach_plugin(service_adaptor_h service_adaptor,
                                    service_adaptor_plugin_cb callback,
                                    void *user_data);
 </pre>
-<p>Inside callback invoked for each plugin we get plugin_uri which is passed to:</p>
+
+<p>Inside callback (which is invoked for each plugin) we get plugin_uri which is then passed to:</p>
 <pre class="prettyprint">
 int service_adaptor_create_plugin(service_adaptor_h service_adaptor,
                                   const char *plugin_uri,
                                   service_plugin_h *plugin);
-
 </pre>
 
 <p>And finally we have to request start initialization for service plugin:</p>
@@ -168,6 +168,41 @@ int service_plugin_start(service_plugin_h handle,
                          int service_flag);
 </pre>
 
+Below example starts all installed Auth and Storage plugins appending each plugin_uri to the list object:
+<pre class="prettyprint">
+bool _plugin_iterator_cb(char *plugin_uri, int service_mask, void *user_data);
+
+service_adaptor_h service_adaptor = NULL;
+ret = service_adaptor_create(&service_adaptor);
+
+Evas_Object *list;
+ret = service_adaptor_foreach_plugin(service_adaptor, _plugin_iterator_cb, (void *)list);
+
+bool _plugin_iterator_cb(char *plugin_uri, int service_mask, void *user_data)
+{
+    Evas_Object *list = (Evas_Object *)user_data;
+
+    if (!plugin_uri || !list)
+        return false;
+
+    if ((service_mask & SERVICE_PLUGIN_SERVICE_AUTH) && (service_mask & SERVICE_PLUGIN_SERVICE_STORAGE))
+    {
+        elm_list_item_append(list, plugin_uri, NULL, NULL, _show_plugin_view, plugin_uri);
+
+        service_plugin_h plugin = NULL;
+        service_adaptor_create_plugin(service_adaptor, plugin_uri, &plugin);
+
+        // This should be hidden using config file or User input, because it is security information
+        service_plugin_add_property(plugin, SERVICE_PLUGIN_PROPERTY_APP_KEY, "enasvv4l8hdbmhn");
+
+        // This should be hidden using config file or User input, because it is security information
+        service_plugin_add_property(plugin, SERVICE_PLUGIN_PROPERTY_APP_SECRET, "uqhl4pp8mo7hmgn");
+        service_plugin_start(plugin, (SERVICE_PLUGIN_SERVICE_AUTH | SERVICE_PLUGIN_SERVICE_STORAGE));
+    }
+
+    return true;
+}
+</pre>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
