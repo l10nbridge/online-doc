@@ -1,0 +1,212 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>[UI Sample] Setting Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>[UI Sample] Setting Sample Overview</h1> 
+  <p>The [UI Sample] Setting sample application demonstrates how to implement a complex view by recursive composition of standard EFL UI components and containers in a UI component hierarchy.</p>
+<p>It uses UI components, such as <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> and <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> for the view management, <span style="font-family: Courier New,Courier,monospace">elm_layout</span> for UI component management inside the view, and <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> for the content inside the main view.</p>
+
+
+  <h2>Main View</h2>
+  
+  <p>The following figure illustrates the main view of the Settings sample application, its wireframe structure, and the UI component tree.</p>
+  
+  <p class="figure">Figure: [UI Sample] Setting screen</p> 
+  <p align="center"><img alt="[UI Sample] Setting screen" src="../images/ui_setting_sd.png" /></p>
+  <p align="center"><img alt="[UI Sample] Setting screen" src="../images/ui_setting_tree.png" /></p>
+  
+  <p>The <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function is responsible for creating the application layout. It starts by creating a window, and adds <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> to it to decorate the window with an indicator. <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> is added to act as a view manager of the window and provide the window title functionality. The main view is created using the <span style="font-family: Courier New,Courier,monospace">create_genlist()</span> function and added to the naviframe.</p> 
+
+ 
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *bg;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it;
+
+&nbsp;&nbsp;&nbsp;// Window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_wm_desktop_layout_support_set(ad-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad-&gt;win)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = { 0, 90, 180, 270 };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Conformant
+&nbsp;&nbsp;&nbsp;ad-&gt;conform =  elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(ad-&gt;win, ELM_WIN_INDICATOR_SHOW);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_opacity_set(ad-&gt;win, ELM_WIN_INDICATOR_OPAQUE);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;// Indicator BG
+&nbsp;&nbsp;&nbsp;bg = elm_bg_add(ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;elm_object_style_set(bg, &quot;indicator/headerbg&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad-&gt;conform, &quot;elm.swallow.indicator_bg&quot;, bg);
+&nbsp;&nbsp;&nbsp;evas_object_show(bg);
+
+&nbsp;&nbsp;&nbsp;// Naviframe
+&nbsp;&nbsp;&nbsp;ad-&gt;nf = elm_naviframe_add(ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;nf, EEXT_CALLBACK_BACK, nf_back_cb, ad);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;nf, EEXT_CALLBACK_MORE, nf_more_cb, ad);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(ad-&gt;conform, ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;nf);
+
+&nbsp;&nbsp;&nbsp;// Genlist
+&nbsp;&nbsp;&nbsp;ad-&gt;genlist = create_genlist(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(ad-&gt;nf, &quot;Settings&quot;, NULL, NULL, ad-&gt;genlist, NULL);
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+
+&nbsp;&nbsp;&nbsp;ecore_event_handler_add(ECORE_EVENT_KEY_DOWN, keydown_cb, ad);
+}</pre>
+
+
+<h2>Pop-up View</h2>
+
+
+<p>When a menu key is clicked, the <span style="font-family: Courier New,Courier,monospace">keydown_cb()</span> function is called to create a pop-up menu.</p>
+
+<pre class="prettyprint">static Eina_Bool
+keydown_cb(void *data, int type, void *event)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;Ecore_Event_Key *ev = event;
+&nbsp;&nbsp;&nbsp;if (ev-&gt;keyname &amp;&amp; !strcmp(ev-&gt;keyname, KEY_END)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Hide the window
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_lower(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_DONE;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (ev-&gt;keyname &amp;&amp; !strcmp(ev-&gt;keyname, KEY_MORE)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!ad-&gt;popup)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;popup = create_menu_popup(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(ad-&gt;popup);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;popup = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_DONE;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_PASS_ON;
+}
+</pre>
+
+<p class="figure">Figure: Pop-up screen</p> 
+<p align="center"><img alt="Pop-up screen" src="../images/ui_setting_popup_sd.png" /></p>
+
+
+<p>The pop-up menu has 2 items. When the user clicks one of them, the main view is changed to the second view.</p>
+
+<pre class="prettyprint">
+static void
+popup_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;Evas_Object *label;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it = elm_naviframe_top_item_get(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;const char *text = elm_object_item_text_get((Elm_Object_Item *) event_info);
+&nbsp;&nbsp;&nbsp;const char *title = elm_object_item_text_get(nf_it);
+
+&nbsp;&nbsp;&nbsp;evas_object_del(ad-&gt;popup);
+&nbsp;&nbsp;&nbsp;ad-&gt;popup = NULL;
+
+&nbsp;&nbsp;&nbsp;if (text &amp;&amp; !strcmp(text, &quot;Second View&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (tot; e &amp;&amp; strcmp(title, label)) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;label = create_label(ad-&gt;nf, &quot;Second View&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_naviframe_item_push(ad-&gt;nf, &quot;Help&quot;, NULL, NULL, layout, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (text &amp;&amp; !strcmp(text, &quot;Settings&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (title &amp;&amp; strcmp(title, label)) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}</pre>
+
+<h2>Second View</h2>
+
+<p>When a genlist or pop-up menu item is clicked, the main view is changed to the second view.</p>
+
+<p class="figure">Figure: Second View screen</p> 
+<p align="center"><img alt="Second View screen" src="../images/ui_setting_2nd_sd.png" /></p>
+
+
+
+<pre class="prettyprint">
+static void
+gl_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *nf = (Evas_Object *)data, *label;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = event_info; 
+&nbsp;&nbsp;&nbsp;item_data_s *id = elm_object_item_data_get(it);
+
+&nbsp;&nbsp;&nbsp;// Downplay the item
+&nbsp;&nbsp;&nbsp;elm_genlist_item_selected_set(it, EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;// Create the second view
+
+&nbsp;&nbsp;&nbsp;label = create_label(nf, &quot;Second View&quot;);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_push(nf, &quot;Second View&quot;, NULL, NULL, label, NULL);
+}
+</pre>  
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

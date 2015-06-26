@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>(Circle) Setting Time Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Wearable native" src="../images/wn_icon.png"/></p>
+	</div>
+
+  <h1>(Circle) Setting Time Sample Overview</h1> 
+  
+<p>The (Circle) Setting Time sample application demonstrates how to implement a circular view with elementary UI components and EFL Extension circle UI components.</p>
+
+<p>The sample application uses UI components, such as <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> and <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> for view management, <span style="font-family: Courier New,Courier,monospace">elm_layout</span> for UI component management inside the view, and <span style="font-family: Courier New,Courier,monospace">elm_label</span> and <span style="font-family: Courier New,Courier,monospace">elm_button</span> for the content inside the main view. The Datetime component that is provided by EFL Extension is also used for content of the main view.</p>
+
+<p>The following figure illustrates the main view of the (Circle) Setting Time sample application, its wireframe structure, and component tree.</p>
+
+    <p class="figure">Figure: (Circle) Setting Time main view</p> 
+  <p align="center"><img alt=" (Circle) Setting Time main view" src="../images/circle_setting_time_sd.png" /></p>
+  <p align="center"><img alt=" (Circle) Setting Time tree" src="../images/circle_setting_time_tree.png" /></p>
+
+<h2>Implementation</h2>
+
+<h3 id="mainview">Main View</h3>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function is responsible for creating the application layout. It starts by creating a window, and adds <span style="font-family: Courier New,Courier,monospace">elm_conformant</span>. The conformant contains a naviframe for main view of this application. <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> adds the surface for the circular UI component visual effect rendering, and it is added to act as a view manager of the window and to provide the window title functionality. The main view is created using the <span style="font-family: Courier New,Courier,monospace">create_main_view()</span> function and added to the naviframe.</p>
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win, *conform;
+&nbsp;&nbsp;&nbsp;// Window
+&nbsp;&nbsp;&nbsp;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+&nbsp;&nbsp;&nbsp;// eext_object_event_callback_add(ad-&gt;win, EEXT_CALLBACK_BACK, win_back_cb, ad);
+
+&nbsp;&nbsp;&nbsp;// Conformant
+&nbsp;&nbsp;&nbsp;conform = elm_conformant_add(win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(conform);
+
+&nbsp;&nbsp;&nbsp;// Naviframe
+&nbsp;&nbsp;&nbsp;ad-&gt;nf = elm_naviframe_add(conform);
+&nbsp;&nbsp;&nbsp;create_main_view(ad);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(conform, ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;nf, EEXT_CALLBACK_BACK, eext_naviframe_back_cb, NULL);
+	
+&nbsp;&nbsp;&nbsp;// Add a surface for the circle object
+&nbsp;&nbsp;&nbsp;ad-&gt;circle_surface = eext_circle_surface_naviframe_add(ad-&gt;nf);
+	
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(win);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">create_main_view()</span> function creates the content of the main view. It consists of a naviframe containing a layout that has a bottom button swallow part. The naviframe has a title on top, and a content area in the middle of the view. The <span style="font-family: Courier New,Courier,monospace">elm_label</span> is added to the content area of naviframe. This function calls the <span style="font-family: Courier New,Courier,monospace">current_time_set()</span> function to set the text of the <span style="font-family: Courier New,Courier,monospace">elm_label</span>.</p>
+<pre class="prettyprint">
+static void
+create_main_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it;
+&nbsp;&nbsp;&nbsp;Evas_Object *button, *layout;
+&nbsp;&nbsp;&nbsp;time_t local_time = time(NULL);
+&nbsp;&nbsp;&nbsp;struct tm *time_info = localtime(&amp;local_time);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;saved_time = *time_info;
+
+&nbsp;&nbsp;&nbsp;layout = elm_layout_add(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_layout_theme_set(layout, &quot;layout&quot;, &quot;bottom_button&quot;, &quot;default&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_show(layout);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;label = elm_label_add(layout);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;label, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+&nbsp;&nbsp;&nbsp;label_text_set(ad-&gt;label, ad-&gt;saved_time);
+
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;label);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(layout, &quot;elm.swallow.content&quot;, ad-&gt;label);
+
+&nbsp;&nbsp;&nbsp;button = elm_button_add(layout);
+&nbsp;&nbsp;&nbsp;elm_object_style_set(button, &quot;bottom/queue&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(button, &quot;Set Time&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(layout, &quot;elm.swallow.button&quot;, button);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button, &quot;clicked&quot;, time_set_button_clicked_cb, ad);
+&nbsp;&nbsp;&nbsp;evas_object_show(button);
+
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(ad-&gt;nf, &quot;Setting time&quot;, NULL, NULL, layout, NULL);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(nf_it, naviframe_pop_cb, NULL);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">label_text_set()</span> function gets the time according to the format specification (hour and minute in this case), and places the result in the label.</p>
+<pre class="prettyprint">
+static void
+label_text_set(Evas_Object *label, struct tm t)
+{
+&nbsp;&nbsp;&nbsp;char buf[200] = {0};
+&nbsp;&nbsp;&nbsp;char text_buf[PATH_MAX];
+
+&nbsp;&nbsp;&nbsp;strftime(buf, sizeof(buf), &quot;%H:%M&quot;, &amp;t);
+&nbsp;&nbsp;&nbsp;snprintf(text_buf, sizeof(text_buf), &quot;&lt;align=center&gt;&lt;font_size=80&gt;%s&lt;/font_size&gt;&lt;/align&gt;&quot;, buf);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(label, text_buf);
+}
+</pre>
+
+<h3 id="set_time">Set Time View</h3>
+
+<p>When the bottom button is clicked, the time picker view is added on main view.</p>
+
+    <p class="figure">Figure: (Circle) Setting Time set time view</p> 
+  <p align="center"><img alt="(Circle) Setting Time set time view" src="../images/circle_setting_time_set_time_view.png" /></p>
+  
+<p>The <span style="font-family: Courier New,Courier,monospace">time_set_button_clicked_cb()</span> function is called when the user clicks the bottom button in the main view.</p>
+<p>The function creates the content of the time picker. The time picker consists of a layout containing the datetime view and a bottom button area. The <span style="font-family: Courier New,Courier,monospace">elm_button</span> has been added to the bottom of layout with a check icon. Then the text for <span style="font-family: Courier New,Courier,monospace">elm.text</span> part is set as <strong>Set Time</strong>, and the <span style="font-family: Courier New,Courier,monospace">eext_circle_object_datetime_add()</span> function is called with the created circle surface object to represent the circular visual effect on the datetime. The <span style="font-family: Courier New,Courier,monospace">eext_rotary_object_event_activated_set()</span> function is also needed to let the datetime get the rotary event callback.</p>
+<pre class="prettyprint">
+static void
+time_set_button_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;struct appdata *ad = data;
+&nbsp;&nbsp;&nbsp;Evas_Object *button, *icon, *layout, *circle_datetime;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it = NULL;
+
+&nbsp;&nbsp;&nbsp;layout = elm_layout_add(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;elm_layout_theme_set(layout, &quot;layout&quot;, &quot;circle&quot;, &quot;datetime&quot;);
+
+&nbsp;&nbsp;&nbsp;button = elm_button_add(layout);
+&nbsp;&nbsp;&nbsp;elm_object_style_set(button, &quot;bottom&quot;);
+
+&nbsp;&nbsp;&nbsp;icon = elm_image_add(button);
+&nbsp;&nbsp;&nbsp;elm_image_file_set(icon, ICON_DIR &quot;/check.png&quot;, NULL);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(button, icon);
+&nbsp;&nbsp;&nbsp;evas_object_show(icon);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(layout, &quot;elm.swallow.btn&quot;, button);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button, &quot;clicked&quot;, set_clicked_cb, ad);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(layout, &quot;elm.text&quot;, &quot;Set Time&quot;);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;datetime = elm_datetime_add(layout);
+
+&nbsp;&nbsp;&nbsp;circle_datetime = eext_circle_object_datetime_add(ad-&gt;datetime, ad-&gt;circle_surface);
+&nbsp;&nbsp;&nbsp;eext_rotary_object_event_activated_set(circle_datetime, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;elm_datetime_format_set(ad-&gt;datetime, FORMAT);
+&nbsp;&nbsp;&nbsp;elm_datetime_value_set(ad-&gt;datetime, &amp;ad-&gt;saved_time);
+
+&nbsp;&nbsp;&nbsp;elm_object_style_set(ad-&gt;datetime, &quot;timepicker/circle&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(layout, &quot;elm.swallow.content&quot;, ad-&gt;datetime);
+
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(ad-&gt;nf, &quot;Time picker&quot;, NULL, NULL, layout, NULL);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_title_enabled_set(nf_it, EINA_FALSE, EINA_FALSE);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">set_clicked_cb()</span> function is called when the user clicks the bottom button in the time picker view. It changes the label text to the selected value and the view is changed to the main view.</p>
+<pre class="prettyprint">
+static void
+set_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;elm_datetime_value_get(ad-&gt;datetime, &amp;ad-&gt;saved_time);
+
+&nbsp;&nbsp;&nbsp;label_text_set(ad-&gt;label, ad-&gt;saved_time);
+
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop(ad-&gt;nf);
+}
+</pre>
+
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

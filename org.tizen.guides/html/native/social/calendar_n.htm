@@ -548,32 +548,42 @@ calendar_record_add_child_record(event, _calendar_event.calendar_alarm, alarm);<
 <h3 id="utc" name="utc">UTC Time Usage</h3>
 <p>Structures with UTC time are used for non-all-day events. In such cases, you must convert local time to UTC time. The local time zone identifier must be stored in the record, in the corresponding property.</p>
 <p>For example, when setting the start time of an event, the local time zone must be stored in the <span style="font-family: Courier New,Courier,monospace">start_tzid</span> property.</p>
-<p>When converting local time to UTC time, use the function illustrated in the following example. It converts the given date and time to the corresponding UTC time, considering the given time zone (first argument). The function uses <a href="http://icu-project.org/apiref/icu4c/ucal_8h.html" target="blank">UCalendar</a>.</p>
+<p>When converting local time to UTC time, use the function illustrated in the following example. It converts the given date and time to the corresponding UTC time, considering the given time zone (first argument). The function uses the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__MODULE.html">i18n</a> API.</p>
 
 <pre class="prettyprint">#define ms2sec(ms) (long long int)(ms / 1000.0)
  
 long long int _time_convert_itol(char *tzid, int y, int mon, int d, int h, int min, int s)
 {
-&nbsp;&nbsp;&nbsp;UErrorCode status = U_ZERO_ERROR;
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;i18n_uchar utf16_timezone[64] = {0};
+&nbsp;&nbsp;&nbsp;i18n_ustring_copy_ua_n(utf16_timezone, tzid, sizeof(utf16_timezone)/sizeof(i18n_uchar));
 
-&nbsp;&nbsp;&nbsp;UChar uft16_timezone[16] = {0};
-&nbsp;&nbsp;&nbsp;U_uastrncpy(uft16_timezone, tzid, sizeof(uft16_timezone));
+&nbsp;&nbsp;&nbsp;i18n_ucalendar_h ucal = NULL;
+&nbsp;&nbsp;&nbsp;char *loc_default = NULL;
 
-&nbsp;&nbsp;&nbsp;UCalendar *ucal = NULL;
-&nbsp;&nbsp;&nbsp;ucal = ucal_open(uft16_timezone, -1, uloc_getDefault(), UCAL_GREGORIAN, &amp;status); 
- 
-&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_YEAR, y); 
-&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_MONTH, mon -1);
-&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_DATE, d); 
-&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_HOUR, h); 
-&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_MINUTE, min);
-&nbsp;&nbsp;&nbsp;ucal_set(ucal, UCAL_SECOND, s);
+&nbsp;&nbsp;&nbsp;i18n_ulocale_get_default((const char **)&amp;loc_default);
+&nbsp;&nbsp;&nbsp;ret = i18n_ucalendar_create(utf16_timezone, -1, loc_default, I18N_UCALENDAR_GREGORIAN, &amp;ucal);
+&nbsp;&nbsp;&nbsp;if (I18N_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;i18n_ucalendar_create() is failed (%d)\n&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;long long int lli = 0;
-&nbsp;&nbsp;&nbsp;lli = ms2sec(ucal_getMillis(ucal, &amp;status));
-&nbsp;&nbsp;&nbsp;ucal_close(ucal);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return lli;
+&nbsp;&nbsp;&nbsp;i18n_ucalendar_set_date_time(ucal, y, mon - 1, d, h, min, s);
+
+&nbsp;&nbsp;&nbsp;i18n_udate date;
+&nbsp;&nbsp;&nbsp;ret = i18n_ucalendar_get_milliseconds(ucal, &amp;date);
+&nbsp;&nbsp;&nbsp;if (I18N_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;i18n_ucalendar_create() is failed (%d)\n&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i18n_ucalendar_destroy(ucal);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;i18n_ucalendar_destroy(ucal);
+
+&nbsp;&nbsp;&nbsp;return ms2sec(date);
 }</pre>
 
 

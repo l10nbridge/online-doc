@@ -58,7 +58,7 @@
 <ol type="a">
 	<li>Configure the database interface <span style="font-family: Courier New,Courier,monospace">sqlite3_config</span> (<span style="font-family: Courier New,Courier,monospace">SQLITE_CONFIG_URI, 1</span>). It allows setting the path to the database using URI.</li>
 	<li>Initialize the interface with the <span style="font-family: Courier New,Courier,monospace">sqlite3_initialize()</span> function.</li>
-	<li>Open database. If it is not configured in other way, <span style="font-family: Courier New,Courier,monospace">sqlite3_open(&quot;/opt/usr/media/Documents/test.db&quot;, &amp;db)</span> creates a new database file, if the URI points to non-existing one. The handle to the database is stored in a database variable.</li>
+	<li>Open database using the <span style="font-family: Courier New,Courier,monospace">sqlite3_open(file_path, &amp;db)</span> function. It creates a new database file, if the URI points to a non-existing one. The handle to the database is stored in a <span style="font-family: Courier New,Courier,monospace">db</span> variable.</li>
 	<li>Create a table, this step is described later.</li>
 </ol></li>
 
@@ -70,7 +70,6 @@
 </ul></li>
 <li><p>Include the required headers:</p>
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace">#include &lt;stdio.h&gt;</span></li>
 <li><span style="font-family: Courier New,Courier,monospace">#include &lt;string.h&gt;</span></li>
 <li><span style="font-family: Courier New,Courier,monospace">#include &lt;time.h&gt;</span></li>
 <li><span style="font-family: Courier New,Courier,monospace">#include &lt;stdint.h&gt;</span></li>
@@ -116,20 +115,18 @@ sqlite3_config(SQLITE_CONFIG_URI, 1);
 
 sqlite3_initialize();
 
-char* resource = app_get_data_path();
-int siz = strlen(resource)+10;
+char file_path[BUFLEN];
 
-char* path = malloc(sizeof(char)*siz);
+char *document_path;
+// Fill the variable with the value obtained using storage_foreach_device_supported()
+int internal_storage_id = 0; 
+storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_DOCUMENTS, &amp;document_path);
+snprintf(file_path, size, &quot;%s/test.db&quot;, document_path);
+free(document_path);
 
-strncat(path, resource, siz);
-strncat(path, &quot;test.db&quot;, siz);
+sqlite3_open(file_path, &amp;db);
 
-memset(path, 0, siz);
-
-sqlite3_open(path, &amp;db);
-
-free(path);
-free(resource);
+free(file_path);
 
 CreateTable();
 

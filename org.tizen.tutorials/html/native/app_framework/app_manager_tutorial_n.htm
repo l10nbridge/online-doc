@@ -24,6 +24,7 @@
 		<p class="toc-title">Content</p>
 		<ul class="toc">
 			<li><a href="#manage_context">Managing the Application Context</a></li>
+			<li><a href="#filter">Getting Information on Filtered Applications</a></li>
 		</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
@@ -45,8 +46,8 @@
 <p>Become familiar with the Application Manager API basics by learning about:</p>
 <ul>
 	<li><a href="#manage_context">Managing the Application Context</a> <p>Retrieve the application context and operate on it.</p></li>
+	<li><a href="#filter">Getting Information on Filtered Applications</a> <p>Retrieve information on filtered applications.</p></li>
 </ul>
-
 
  <h2 id="manage_context" name="manage_context">Managing the Application Context</h2>
 
@@ -131,12 +132,70 @@ else
 if (app_context) 
 {
 &nbsp;&nbsp;&nbsp;ret = app_context_destroy(app_context);
-&nbsp;&nbsp;&nbsp;if (APP_MANAGER_ERROR_NONE != ret) // Error occurred 
+&nbsp;&nbsp;&nbsp;if (APP_MANAGER_ERROR_NONE != ret) // Error handling 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_context = NULL;
 }
 </pre>	</li>
 </ol>
 
+ <h2 id="filter" name="filter">Getting Information on Filtered Applications</h2>
+<p>To get information on filtered applications:</p>
+
+<ol>
+<li><p>To use the functions and data types of the Application Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APPLICATION__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__APPLICATION__MANAGER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace;">&lt;app_manager.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;app_manager.h&gt;
+</pre></li>
+
+<li>Create the <span style="font-family: Courier New,Courier,monospace">app_info_filter_h</span> handle using the <span style="font-family: Courier New,Courier,monospace">app_info_filter_create()</span> function:
+
+<pre class="prettyprint">
+app_info_filter_h app_info_filter = NULL;
+
+int ret = app_info_filter_create(&amp;app_info_filter);
+</pre></li>
+
+<li>Add filter rules:
+
+<pre class="prettyprint">
+ret = app_info_filter_add_string(app_info_filter, PACKAGE_INFO_PROP_APP_TYPE, &quot;capp&quot;);
+</pre></li>
+
+<li>Use the <span style="font-family: Courier New,Courier,monospace">app_info_filter_cb()</span> callback to retrieve all filtered applications and print their information:
+
+<pre class="prettyprint">
+void app_info_filter_cb(app_info_filter_h app_info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;char *app_id = NULL;
+
+&nbsp;&nbsp;&nbsp;app_info_get_app_id(app_info, &amp;app_id);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;app_id \t= [%s]\n&quot;, app_id);
+
+&nbsp;&nbsp;&nbsp;free(app_id);
+}
+
+ret = app_info_filter_foreach_appinfo(app_info_filter_cb, NULL);
+if (ret != APP_MANAGER_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;foreach_app_info_filter error : %d&quot;, ret);
+}
+</pre></li>
+<li>When you no longer need the filter, call the <span style="font-family: Courier New,Courier,monospace">app_info_filter_destroy()</span> function to remove the handle and release all resources:
+
+<pre class="prettyprint">
+if (app_info_filter_h)
+{
+&nbsp;&nbsp;&nbsp;ret = app_info_filter_destroy(app_info_filter_h);
+&nbsp;&nbsp;&nbsp;if (APP_MANAGER_ERROR_NONE != ret) // Error handling
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_info_filter_h = NULL;
+}
+</pre> </li>
+</ol>
+
+ 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
 

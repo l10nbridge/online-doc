@@ -1,0 +1,1110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Paint Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>Paint Sample Overview</h1> 
+
+<p>The Paint sample application demonstrates how you can use the EFL Evas API to draw the following rectangle, polygon, and line shapes.</p>
+
+  <p>The following figure illustrates the application main view.</p>
+  <p class="figure">Figure: Paint screen</p>
+  <p align="center"><img alt="Paint screen" src="../images/paint_app_layout.png" /> <img alt="Paint screen with a drawing" src="../images/paint_app_layout_drawing.png" /></p>
+
+<p>You can:</p>
+
+<ul>
+	<li>Clear the drawing area</li>
+	<li>Select an object already in the drawing area</li>
+	<li>Draw using the freehand, rectangle, circle, or line tool</li>
+	<li>Remove the selected object</li>
+	<li>Show and hide the colorselector panel</li>
+</ul>
+
+<p>The following figure illustrates the structure of the user interface.</p>
+
+<p class="figure" id="ui-struct">Figure: Paint UI layout structure</p>
+	<p align="center"><img alt="Paint UI layout structure"  src="../images/paint_gui_edc.png" /> <img alt="Paint UI widget structure" src="../images/paint_gui_layout.png" /></p>
+
+<p>The application workflow can be divided into 2 logical blocks - startup and drawing - described in the following figure.</p>
+
+<p class="figure">Figure: Application workflow</p>
+	<p align="center"><img alt="Application workflow" src="../images/paint_workflow.png" /></p>
+
+<h2>Implementation</h2>
+
+<h3 id="type-defs">Type Definitions</h3>
+<p>The <span style="font-family: Courier New,Courier,monospace">appdata_s</span> is the main data structure used as a container for the application data:</p>
+<pre class="prettyprint">
+typedef struct
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win; // Application main window
+&nbsp;&nbsp;&nbsp;Evas_Object *layout; // Application layout
+&nbsp;&nbsp;&nbsp;Evas_Object *conform; // Application conformant
+&nbsp;&nbsp;&nbsp;Evas_Object *draw_area; // Drawing area
+&nbsp;&nbsp;&nbsp;Evas_Object *color_selector_panel; // Colorselector box
+&nbsp;&nbsp;&nbsp;icon_data_s icon_data[IMAGE_POOL_SIZE]; // Icon data used in the toolbar widget
+} appdata_s;
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">s_info</span> structure contains the data necessary for drawing the shapes:</p>
+<pre class="prettyprint">
+static struct
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win; // Application main window
+&nbsp;&nbsp;&nbsp;Evas_Object *layout; // Application layout
+&nbsp;&nbsp;&nbsp;Evas_Object *draw_area; // Drawing area rectangle
+&nbsp;&nbsp;&nbsp;object_t *current_object; // Currently drawn object
+&nbsp;&nbsp;&nbsp;object_t *selected; // Currently selected object
+&nbsp;&nbsp;&nbsp;Evas_Object *selection_frame; // Frame surrounding the selected object
+&nbsp;&nbsp;&nbsp;Evas *evas; // Application&#39;s Evas canvas
+&nbsp;&nbsp;&nbsp;int r1; // Red component of the color from the MAIN colorselector
+&nbsp;&nbsp;&nbsp;int g1; // Green component of the color from the MAIN colorselector
+&nbsp;&nbsp;&nbsp;int b1; // Blue component of the color from the MAIN colorselector
+&nbsp;&nbsp;&nbsp;int a1; // Alpha component of the color from the MAIN colorselector
+&nbsp;&nbsp;&nbsp;int r2; // Red component of the color from the FILL colorselector
+&nbsp;&nbsp;&nbsp;int g2; // Green component of the color from the FILL colorselector
+&nbsp;&nbsp;&nbsp;int b2; // Blue component of the color from the FILL colorselector
+&nbsp;&nbsp;&nbsp;int a2; // Alpha component of the color from the FILL colorselector
+&nbsp;&nbsp;&nbsp;Evas_Coord_Point start; // Position in which the cursor was pressed
+&nbsp;&nbsp;&nbsp;Evas_Coord_Point curr; // Current cursor position
+&nbsp;&nbsp;&nbsp;Evas_Coord_Point prev; // Previous cursor position
+&nbsp;&nbsp;&nbsp;mode_type_t mode; // Application mode (such as rectangle drawing)
+&nbsp;&nbsp;&nbsp;mode_type_t prev_mode; // Previous mode the application was in
+&nbsp;&nbsp;&nbsp;bool mouse_pressed; // Flag indicating whether the mouse button is pressed
+&nbsp;&nbsp;&nbsp;Eina_List *objects; // List of drawn objects
+&nbsp;&nbsp;&nbsp;int win_layer; // Evas_Layer of the main window
+} s_info
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">object_t</span> structure contains the type of the drawn object and an <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> pointer list of objects it is built with:</p>
+<pre class="prettyprint">
+typedef struct
+{
+&nbsp;&nbsp;&nbsp;mode_type_t type; // Object type (such as LINE or CIRCLE)
+&nbsp;&nbsp;&nbsp;Eina_List *parts; // List containing the object parts
+} object_t;
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">icon_data_s</span> structure contains the data used by the toolbar icons:</p>
+<pre class="prettyprint">
+typedef struct
+{
+&nbsp;&nbsp;&nbsp;const char *file_path; // Path to the icon image file
+&nbsp;&nbsp;&nbsp;const char *tooltip; // Icon tooltip text
+&nbsp;&nbsp;&nbsp;mode_type_t mode; // Application mode associated with the toolbar item
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *item; // Object added to the toolbar
+} icon_data_s;
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">mode_type_t</span> enum contains the modes used by the application. The enum values are also used as indexes of the toolbar items.</p>
+<pre class="prettyprint">
+typedef enum
+{
+&nbsp;&nbsp;&nbsp;CLEAN = 0, // Clear all (application never uses this mode)
+&nbsp;&nbsp;&nbsp;SELECT, // Object selection
+&nbsp;&nbsp;&nbsp;FREEHAND, // Freehand drawing
+&nbsp;&nbsp;&nbsp;RECTANGLE, // Rectangle drawing
+&nbsp;&nbsp;&nbsp;CIRCLE, // Circle drawing
+&nbsp;&nbsp;&nbsp;LINE, // Line drawing
+&nbsp;&nbsp;&nbsp;COLOR_SELECTOR, // Show and hide the colorselector panel (application never uses this mode)
+&nbsp;&nbsp;&nbsp;REMOVE, // Remove the selected object (application never uses this mode)
+} mode_type_t;
+</pre>
+
+<h3 id="app-init">Application Initialization</h3>
+<p>The entire application life-cycle is implemented in the <span style="font-family: Courier New,Courier,monospace">paint.c</span> file, using the common Tizen application structure:</p>
+
+<pre class="prettyprint">
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;appdata_s ad = {{0,},};
+&nbsp;&nbsp;&nbsp;// Variable declaration and initialization
+
+&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+&nbsp;&nbsp;&nbsp;event_callback.terminate = app_terminate;
+&nbsp;&nbsp;&nbsp;event_callback.pause = app_pause;
+&nbsp;&nbsp;&nbsp;event_callback.resume = app_resume;
+&nbsp;&nbsp;&nbsp;event_callback.app_control = app_control;
+
+&nbsp;&nbsp;&nbsp;// Event handler assignment
+
+&nbsp;&nbsp;&nbsp;ret = ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+
+<p>The Paint sample application is implemented using the MVC design pattern. Its initialization is done within the <span style="font-family: Courier New,Courier,monospace">app_create()</span> callback function where the user interface creation and application data initialization is triggered using the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function.</p>
+
+<pre class="prettyprint">
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Hook to take necessary actions before main event loop starts
+&nbsp;&nbsp;&nbsp;// Initialize UI resources and application data
+&nbsp;&nbsp;&nbsp;// If this function returns true, the main loop of application starts
+&nbsp;&nbsp;&nbsp;// If this function returns false, the application is terminated
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return create_base_gui(ad);
+}
+</pre>
+
+<p>When the application terminates, the <span style="font-family: Courier New,Courier,monospace">app_terminate()</span> callback function frees the allocated resources. The deletion of the main window also deletes all of its children.</p>
+
+<pre class="prettyprint">
+static void
+app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Release all resources
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;evas_object_del(ad-&gt;win);
+}
+</pre>
+
+<h3 id="view">View</h3>
+
+<p>The entire application layout is implemented using EDJE scripts. All the top level swallows are designed for EFL Elementary UI component embedding. The following EDJE swallow - EFL Elementary UI component relations and assigned functionalities are used (for more information, see the <a href="#ui-struct">Paint UI layout structure</a> figure):</p>
+
+<ul>
+	<li><span style="font-family: Courier New,Courier,monospace">elm_toolbar</span> (application toolbar):
+		<ul>
+			<li>Sets the drawing mode the application is in</li>
+			<li>Selects an object</li>
+			<li>Removes the selected object</li>
+			<li>Shows and hides the colorselector panel</li>
+			<li>Clears the drawing area</li>
+		</ul></li>
+	<li><span style="font-family: Courier New,Courier,monospace">Evas_Object</span> (drawing area rectangle): Area where the user can perform the drawing</li>
+</ul>
+
+<p>The following table defines the code snippets that create the UI layout.</p>
+<table>
+   <caption>
+     Table: UI layout code snippets and figures
+   </caption> 
+    <tr> 
+     <th>Code snippet</th> 
+     <th>Figure</th> 
+    </tr> 
+
+  <tr>
+    <td colspan = "2">
+      <strong>The main layout is defined in the <span style="font-family: Courier New,Courier,monospace">paint.edc</span> file:</strong>
+    </td>
+  </tr>
+	<tr>
+		<td>
+			<pre class="prettyprint">
+collections
+{
+&nbsp;&nbsp;&nbsp;group
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;main&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Toolbar part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_TOOLBAR;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_TOOLBAR height equals 10% of total window height
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The toolbar created with toolbar_create() function is here
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Drawing area part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DRAW_AREA;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DRAW_AREA is under the PART_TOOLBAR and covers the rest of the window
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Rectangle created with draw_area_create() is here
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+	</td>
+		<td><p align="center"><img alt="Main layout" src="../images/paint_gui_layout_main.png" /></p>
+		</td>
+	</tr>
+</table>
+
+
+<p>Based on the layout defined with the EDJE scripts, the <a href="#app-init">application interface is created</a> with the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function. The function takes 1 parameter: a pointer to the <a href="#type-defs">structure containing the application data</a> (<span style="font-family: Courier New,Courier,monospace">appdata_s</span>). The functions responsible for creating the GUI are invoked in this function.</p>
+
+<pre class="prettyprint">
+Eina_Bool
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;ad-&gt;win = app_win_create();
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;ad-&gt;conform = conformant_create(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;ad-&gt;layout = layout_create(ad-&gt;conform, ad);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!toolbar_create(ad-&gt;layout, ad))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!color_selector_panel_create(ad-&gt;win, ad-&gt;color_selector))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!win_evas_get(ad-&gt;win))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!selection_frame_create(ad))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!draw_area_create(ad-&gt;layout))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p>The following table defines the base view creation details.</p>
+<table>
+   <caption>
+     Table: Base view creation code snippets and figures
+   </caption> 
+  <col width="25%"/>
+  <col width="50%"/>
+  <col width="25%"/>
+      <tr> 
+	  <th>Description</th> 
+     <th>Code snippet</th> 
+     <th>Figure</th> 
+    </tr> 
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">app_win_create()</span>:
+		<p>Creates the application main window (<span style="font-family: Courier New,Courier,monospace">ad-&gt;win</span>).</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static Evas_Object*
+app_win_create(void)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win = NULL;
+
+&nbsp;&nbsp;&nbsp;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Standard window setup
+
+&nbsp;&nbsp;&nbsp;return win;
+}
+</pre>
+		</td>
+		<td><p align="center"><img alt="Win layout" src="../images/paint_win.png" /></p>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">conformant_create()</span>:
+		<p>Creates the conformant and inserts it into the main window (<span style="font-family: Courier New,Courier,monospace">ad-&gt;conform</span>).</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static Evas_Object*
+conformant_create(Evas_Object *win)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *conform = NULL;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;conform = elm_conformant_add(win);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(conform, EVAS_HINT_EXPAND, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(conform);
+
+&nbsp;&nbsp;&nbsp;return conform;
+}
+</pre>
+		</td>
+		<td><p align="center"><img alt="Conformant layout" src="../images/paint_conformant.png" /></p>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">layout_create()</span>:
+<p>Creates the main layout by loading the main group from the EDJE layout (<span style="font-family: Courier New,Courier,monospace">paint.edj</span> file), and embeds it into the <span style="font-family: Courier New,Courier,monospace">ad-&gt;layout</span> container. The newly created layout is then added as the content to the conformant.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static Evas_Object*
+layout_create(Evas_Object *conform, appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;char path[PATH_MAX];
+&nbsp;&nbsp;&nbsp;Evas_Object *layout = NULL;
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;app_get_resource(EDJ_FILE, path, (int)PATH_MAX);
+
+&nbsp;&nbsp;&nbsp;layout = elm_layout_add(conform);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!elm_layout_file_set(layout, path, GRP_MAIN))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;ecore_event_handler_add(ECORE_EVENT_KEY_DOWN, key_press_cb, ad);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(conform, layout);
+&nbsp;&nbsp;&nbsp;s_info.layout = ad-&gt;layout;
+
+&nbsp;&nbsp;&nbsp;return layout;
+}
+</pre>
+		</td>
+		<td><p align="center"><img alt="Main layout" src="../images/paint_layout.png" /></p>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">toolbar_create()</span>:
+<p>Creates an <span style="font-family: Courier New,Courier,monospace">elm_toolbar</span> widget and adds it to the layout that was created earlier.</p>
+<p>The toolbar is then filled using the data from <span style="font-family: Courier New,Courier,monospace">ad-&gt;icon_data</span>.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static Eina_Bool
+toolbar_create(Evas_Object *layout, appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object* toolbar = NULL;
+&nbsp;&nbsp;&nbsp;int i = 0;
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;toolbar = elm_toolbar_add(layout);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Toolbar items appending
+
+&nbsp;&nbsp;&nbsp;elm_toolbar_homogeneous_set(toolbar, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;// Toolbar is expanded so that all of its items fit inside
+&nbsp;&nbsp;&nbsp;elm_toolbar_shrink_mode_set(toolbar, ELM_TOOLBAR_SHRINK_EXPAND);
+
+&nbsp;&nbsp;&nbsp;elm_layout_content_set(layout, PART_TOOLBAR, toolbar);
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+		</td>
+		<td><p align="center"><img alt="Toolbar layout" src="../images/paint_toolbar.png" /></p>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">color_selector_create()</span>:
+<p>Creates 2 <span style="font-family: Courier New,Courier,monospace">elm_colorselector</span> instances. They are not used as content of a different UI component.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static Evas_Object*
+color_selector_create(Evas_Object *win)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *cs = elm_colorselector_add(win);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;evas_object_layer_set(cs, EVAS_LAYER_MAX);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(cs, COLOR_SELECTOR_COLOR_SELECTED, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;colorselector_color_set_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;return cs;
+}
+</pre>
+		</td>
+		<td><p align="center"><img alt="Colorselector layout" src="../images/paint_colorselector.png" /></p>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">win_evas_get()</span>:
+<p>Retrieves the <span style="font-family: Courier New,Courier,monospace">Evas</span> of the window (<span style="font-family: Courier New,Courier,monospace">ad-&gt;win</span>).</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static Eina_Bool
+win_evas_get(Evas_Object *win)
+{
+&nbsp;&nbsp;&nbsp;s_info.evas = evas_object_evas_get(win);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+		</td>
+		<td><p align="center"><img alt="Application Evas layout" src="../images/paint_evas.png" /></p>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">selection_frame_create()</span>:
+<p>Creates the selection frame image object. This object is later used to highlight the selected object.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static Eina_Bool
+selection_frame_create(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;char path[PATH_MAX] = {0,};
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;s_info.selection_frame = evas_object_image_filled_add(s_info.evas);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Preparing the frame
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+		</td>
+		<td><p align="center"><img alt="Selection frame layout" src="../images/paint_frame.png" /></p>
+		</td>
+
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">draw_area_create()</span>:
+<p>Creates the drawing area object. This is a rectangle which is used as the drawing background.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static Eina_Bool
+draw_area_create(Evas_Object *layout)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;s_info.draw_area = evas_object_rectangle_add(s_info.evas);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Size setting
+
+&nbsp;&nbsp;&nbsp;// Callback invoked when the mouse button is pressed
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(s_info.draw_area, EVAS_CALLBACK_MOUSE_DOWN, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mouse_down_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Callback invoked when the mouse button is released
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(s_info.draw_area, EVAS_CALLBACK_MOUSE_UP, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mouse_up_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Callback invoked when the mouse cursor is moved 
+&nbsp;&nbsp;&nbsp;// while the mouse button is pressed
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(s_info.draw_area, EVAS_CALLBACK_MOUSE_MOVE, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mouse_move_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;elm_layout_content_set(layout, PART_DRAW_AREA, s_info.draw_area);
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+		</td>
+		<td><p align="center"><img alt="Drawing area layout" src="../images/paint_draw_area.png" /></p>
+		</td>
+	</tr>
+</table>
+
+<h3>Callbacks</h3>
+
+<p>The following figure illustrates how various callbacks are invoked when mouse action takes place.</p>
+  <p class="figure">Figure: Mouse callback order</p>
+<p align="center"><img alt="Mouse callback order" src="../images/paint_mouse_callback_call_order.png" /></p>
+
+<p>The mouse callbacks are added to the <span style="font-family: Courier New,Courier,monospace">ad-&gt;draw_area</span> component so that any action outside the drawing area (like a click on the toolbar) is ignored.</p>
+
+<p>The following table defines the mouse callback details.</p>
+<table>
+   <caption>
+     Table: Mouse callbacks
+   </caption> 
+  <col width="30%"/>
+  <col width="70%"/>
+      <tr> 
+	  <th>Description</th> 
+     <th>Code snippet</th> 
+    </tr> 
+	<tr>
+		<td>
+			<span style="font-family: Courier New,Courier,monospace">mouse_down_cb()</span>:
+<p>Called when the user taps the <span style="font-family: Courier New,Courier,monospace">ad-&gt;draw_area</span> element. The tap position is stored in the <span style="font-family: Courier New,Courier,monospace">s_info.start</span> structure and the <span style="font-family: Courier New,Courier,monospace">s_info.pressed</span> flag is set. The flag is required because of the callback call order (see the above image).</p>
+<p>The functions called by the callback are invoked based on the mode set by the <span style="font-family: Courier New,Courier,monospace">ad-&gt;toolbar</span> element.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static void
+mouse_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Evas_Event_Mouse_Down *eemd = (Evas_Event_Mouse_Down *)event_info;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;s_info.mouse_pressed = true;
+
+&nbsp;&nbsp;&nbsp;s_info.start.x = eemd-&gt;canvas.x;
+&nbsp;&nbsp;&nbsp;s_info.start.y = eemd-&gt;canvas.y;
+
+&nbsp;&nbsp;&nbsp;s_info.prev.x = eemd-&gt;canvas.x;
+&nbsp;&nbsp;&nbsp;s_info.prev.y = eemd-&gt;canvas.y;
+
+&nbsp;&nbsp;&nbsp;s_info.curr.x = eemd-&gt;canvas.x;
+&nbsp;&nbsp;&nbsp;s_info.curr.y = eemd-&gt;canvas.y;
+
+&nbsp;&nbsp;&nbsp;item_unselect();
+
+&nbsp;&nbsp;&nbsp;if (s_info.mode == SELECT)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;select_clicked_item();
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_unselect();
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span>:
+<p>Called whenever the user moves the cursor. Since the callback is connected to the <span style="font-family: Courier New,Courier,monospace">ad-&gt;draw_area</span> element, the function is not called if the cursor is moved outside its boundaries. The callback is not invoked when the mouse button is released.</p>
+<p>Based on the mode set using the <span style="font-family: Courier New,Courier,monospace">ad-&gt;toolbar</span> element, appropriate functions are called. The callback also sets the values of the current (<span style="font-family: Courier New,Courier,monospace">s_info.current</span>) and previous (<span style="font-family: Courier New,Courier,monospace">s_info.previous</span>) cursor positions.</p>
+
+		</td>
+		<td>
+<pre class="prettyprint">
+static void
+mouse_move_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;int x = 0, y = 0, w = 0, h = 0;
+
+&nbsp;&nbsp;&nbsp;Evas_Event_Mouse_Move *eemm = (Evas_Event_Mouse_Move *)event_info;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;evas_object_geometry_get(obj, &amp;x, &amp;y, &amp;w, &amp;h);
+
+&nbsp;&nbsp;&nbsp;s_info.prev.x = s_info.curr.x;
+&nbsp;&nbsp;&nbsp;s_info.prev.y = s_info.curr.y;
+
+&nbsp;&nbsp;&nbsp;if (eemm-&gt;cur.canvas.x &lt; x)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.curr.x = x;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (eemm-&gt;cur.canvas.x &gt; x + w)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.curr.x = x + w;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.curr.x = eemm-&gt;cur.canvas.x;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (eemm-&gt;cur.canvas.y &lt; y)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.curr.y = y;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (eemm-&gt;cur.canvas.y &gt; y + h)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.curr.y = y + h;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.curr.y = eemm-&gt;cur.canvas.y;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;switch (s_info.mode)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case FREEHAND:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freehand_update();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case RECTANGLE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rect_update();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CIRCLE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;circle_update();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case LINE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line_update();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SELECT:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;object_move();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+		</td>
+	</tr>
+
+	<tr>
+		<td>
+			<span style="font-family: Courier New,Courier,monospace">mouse_up_cb()</span>:
+<p>Called when the mouse button is released. The <span style="font-family: Courier New,Courier,monospace">s_info.mouse_pressed</span> flag is unset, and the <span style="font-family: Courier New,Courier,monospace">s_info.current_object</span> (recently drawn) object is set as the selected object.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static void
+mouse_up_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;s_info.mouse_pressed = false;
+&nbsp;&nbsp;&nbsp;selected_item_set(s_info.current_object);
+&nbsp;&nbsp;&nbsp;s_info.current_object = NULL;
+}
+</pre>
+		</td>
+	</tr>
+</table>
+
+<p>The following table defines the toolbar callback details.</p>
+<table>
+   <caption>
+     Table: Toolbar callbacks
+   </caption> 
+  <col width="30%"/>
+  <col width="70%"/>
+      <tr> 
+	  <th>Description</th> 
+     <th>Code snippet</th> 
+    </tr> 
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">toolbar_clear_clicked_cb()</span>:
+		<p>Called when the user wants to clear the drawing area. The area is cleared by deleting all the previously drawn objects and their parts (<span style="font-family: Courier New,Courier,monospace">evas_object_delete()</span>).</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static void
+toolbar_clear_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;draw_area_clear();
+}
+
+static void
+draw_area_clear(void)
+{
+&nbsp;&nbsp;&nbsp;Eina_List *l = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *obj = NULL;
+
+&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH(s_info.objects, l, obj)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(obj);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;s_info.objects = eina_list_free(s_info.objects);
+&nbsp;&nbsp;&nbsp;evas_object_hide(s_info.selection_frame);
+}
+</pre>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">toolbar_colorselector_show_cb()</span>:
+		<p>Called when the user wants to select a new color. The colorselectors are shown, but the toolbar&#39;s colorselector item is not set as selected.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static void
+toolbar_colorselector_show_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_toolbar_item_selected_set(ad-&gt;icon_data[s_info.mode].item, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;color_selector_panel_visibility_set(ad, EINA_TRUE);
+}
+</pre>
+		</td>
+	</tr>
+
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">toolbar_selected_item_del_cb()</span>:
+		<p>Called when the user wants to deleted a selected item. The currently selected (<span style="font-family: Courier New,Courier,monospace">s_info.selected</span>) object and all of its parts are removed.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static void
+toolbar_selected_item_del_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Eina_List *l = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *part = NULL;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_toolbar_item_selected_set(ad-&gt;icon_data[s_info.mode].item, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH(s_info.selected-&gt;parts, l, part)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGI(&quot;Removing part of type: %s&quot;, evas_object_type_get(part));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(part);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;s_info.objects = eina_list_remove(s_info.objects, s_info.selected);
+&nbsp;&nbsp;&nbsp;free(s_info.selected);
+&nbsp;&nbsp;&nbsp;item_unselect();
+}
+</pre>
+		</td>
+	</tr>
+</table>
+
+<p>The drawing and selection modes are described in <a href="#drawing">Drawing</a>.</p>
+
+<h3 id="drawing">Drawing</h3>
+
+<p>While the user is drawing, you must control the colorselectors, base shapes, and selections.</p>
+
+<h4>Colorselectors</h4>
+
+<p>The  application uses 2 colorselectors:</p>
+
+<ul><li><span style="font-family: Courier New,Courier,monospace">MAIN</span> 
+<p>Used to set the color of all the parts of the line and freehand shapes, and the boards of the rectangle and circle objects.</p>
+<p>When the <span style="font-family: Courier New,Courier,monospace">MAIN</span> colorselector field is clicked, the <span style="font-family: Courier New,Courier,monospace">s_info.r1</span>, <span style="font-family: Courier New,Courier,monospace">s_info.g1</span>, <span style="font-family: Courier New,Courier,monospace">s_info.b1</span>, and <span style="font-family: Courier New,Courier,monospace">s_info.a1</span> values are set.</p></li>
+<li><span style="font-family: Courier New,Courier,monospace">FILL</span>
+<p>Used to control the color of the fill part of the rectangle and circle objects.</p>
+<p>When the <span style="font-family: Courier New,Courier,monospace">FILL</span> colorselector field is clicked, the <span style="font-family: Courier New,Courier,monospace">s_info.r2</span>, <span style="font-family: Courier New,Courier,monospace">s_info.g2</span>, <span style="font-family: Courier New,Courier,monospace">s_info.b2</span>, and <span style="font-family: Courier New,Courier,monospace">s_info.a2</span> values are set.</p></li></ul>
+ 
+<p>The values set with the colorselectors are used to set the color of the created or selected objects.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">color_set()</span> function is called when the user changes the active color of one of the colorselectors. If an object is selected (<span style="font-family: Courier New,Courier,monospace">s_info.selected != NULL</span>), the color of its parts is also updated.</p>
+
+ <pre class="prettyprint">
+static void
+color_set(color_selector_t cs_num, int r, int g, int b, int a)
+{
+&nbsp;&nbsp;&nbsp;Eina_List *l = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *part = NULL;
+
+&nbsp;&nbsp;&nbsp;if (cs_num == COLOR_SELECTOR_MAIN)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.r1 = r;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.g1 = g;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.b1 = b;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.a1 = a;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.r2 = r;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.g2 = g;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.b2 = b;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.a2 = a;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (s_info.selected-&gt;type == LINE || s_info.selected-&gt;type == FREEHAND)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH(s_info.selected-&gt;parts, l, part)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(part, s_info.r1, s_info.g1, s_info.b1, s_info.a1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (cs_num == COLOR_SELECTOR_MAIN)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part = eina_list_nth(s_info.selected-&gt;parts, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part = eina_list_nth(s_info.selected-&gt;parts, 1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(part, r, g, b, a);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+
+<h4>Base Shapes</h4>
+
+<p>Every object that appears on the canvas is made from 1 or more rectangle, polygon, or line parts.</p>
+<p>The drawing is performed inside the <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> function. If the <span style="font-family: Courier New,Courier,monospace">s_info.current_object</span> value is equal to <span style="font-family: Courier New,Courier,monospace">NULL</span>, a new <span style="font-family: Courier New,Courier,monospace">object_t</span> variable is created and added to the <span style="font-family: Courier New,Courier,monospace">s_info.objects</span> list. Usually, this happens in the first <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> call after the <span style="font-family: Courier New,Courier,monospace">mouse_down_cb()</span> call.</p>
+<p>Depending on the drawing mode, new <span style="font-family: Courier New,Courier,monospace">Evas_Objects</span> are created or modified (with every <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> call) and added to the <span style="font-family: Courier New,Courier,monospace">s_info.current_object</span> structure as drawn object&#39;s parts. The object is modified (parts are added or resized) until the user releases the mouse button. When it happens, the newly created object is marked as selected (<span style="font-family: Courier New,Courier,monospace">s_info.selected = s_info.current_object</span>).</p>
+
+<p>The following table defines the update functions for different base shapes.</p>
+<table>
+   <caption>
+     Table: Base shape updates
+   </caption> 
+  <col width="30%"/>
+  <col width="70%"/>
+      <tr> 
+	  <th>Description</th> 
+     <th>Code snippet</th> 
+    </tr>
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">freehand_update()</span>:
+<p>Called by the <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> callback. With every <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> call (except the one before <span style="font-family: Courier New,Courier,monospace">mouse_down_cb()</span>), an <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> line is created and added to the <span style="font-family: Courier New,Courier,monospace">object_t</span> object as a part.</p>
+<p>When the new part is created, the <span style="font-family: Courier New,Courier,monospace">s_info.prev</span> and <span style="font-family: Courier New,Courier,monospace">s_info.curr</span> values are used as its start and end points. The start point&#39;s vertical position value has to be lower than the end point&#39;s vertical position value.</p>
+		</td>
+
+		<td>
+<pre class="prettyprint">
+static void
+freehand_update(void)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *part = NULL;
+&nbsp;&nbsp;&nbsp;int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!s_info.current_object)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.current_object = object_create(FREEHAND);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.objects = eina_list_append(s_info.objects, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.current_object);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;part = evas_object_line_add(s_info.evas);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;object_part_add(s_info.current_object, part);
+
+&nbsp;&nbsp;&nbsp;if (s_info.prev.y &lt;= s_info.curr.y)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x1 = s_info.prev.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x2 = s_info.curr.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y1 = s_info.prev.y;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y2 = s_info.curr.y;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x2 = s_info.prev.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x1 = s_info.curr.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y2 = s_info.prev.y;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y1 = s_info.curr.y;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_color_set(part, s_info.r1, s_info.g1, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.b1, s_info.a1);
+&nbsp;&nbsp;&nbsp;evas_object_line_xy_set(part, x1, y1, x2, y2);
+
+&nbsp;&nbsp;&nbsp;LOGI(&quot;Updating line at: [%d, %d] - [%d, %d]&quot;, x1, y1, x2, y2);
+
+&nbsp;&nbsp;&nbsp;evas_object_repeat_events_set(part, true);
+&nbsp;&nbsp;&nbsp;evas_object_show(part);
+&nbsp;&nbsp;&nbsp;evas_object_layer_set(part, s_info.win_layer + 1);
+}
+</pre>
+		</td>
+	</tr>
+		<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">rect_update()</span>:
+<p>Creates a rectangle object.</p>
+<p>Rectangle is made with 2 parts: a frame and the fill. After the parts are created, the frame part is moved to the appropriate position.</p>
+<p>The fill part&#39;s initial position is translated (from the frame part&#39;s initial position) by <span style="font-family: Courier New,Courier,monospace">OBJECT_BORDER</span> in both horizontal and vertical directions. Each time the <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> callback is called, the frame and fill parts are resized accordingly. To calculate the width and the height of the frame part, substract the mouse cursor coordinates (<span style="font-family: Courier New,Courier,monospace">x2 = s_info.start.x &lt; s_info.curr.x; y2 = s_info.start.y &lt; s_info.curr.y;</span>) from the start point coordinates. In case of the fill part, the size is further reduced by <span style="font-family: Courier New,Courier,monospace">2 * OBJECT_BORDER</span>.</p>
+
+  <p align="center"><img alt="Rectangle drawing" src="../images/paint_rectangle.png" /></p>
+		</td>
+
+		<td>
+<pre class="prettyprint">
+static void
+rect_update(void)
+{
+&nbsp;&nbsp;&nbsp;int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+&nbsp;&nbsp;&nbsp;Evas_Object *part = NULL;
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (s_info.start.x &lt; s_info.curr.x)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x1 = s_info.start.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x2 = s_info.curr.x - s_info.start.x;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x1 = s_info.curr.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x2 = s_info.start.x - s_info.curr.x;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (s_info.start.y &lt; s_info.curr.y)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y1 = s_info.start.y;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y2 = s_info.curr.y - s_info.start.y;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y1 = s_info.curr.y;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y2 = s_info.start.y - s_info.curr.y;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;part = eina_list_nth(s_info.current_object-&gt;parts, 0);
+&nbsp;&nbsp;&nbsp;evas_object_move(part, x1, y1);
+&nbsp;&nbsp;&nbsp;evas_object_resize(part, x2, y2);
+
+&nbsp;&nbsp;&nbsp;part = eina_list_nth(s_info.current_object-&gt;parts, 1);
+&nbsp;&nbsp;&nbsp;evas_object_move(part, x1 + OBJECT_BORDER, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y1 + OBJECT_BORDER);
+&nbsp;&nbsp;&nbsp;evas_object_resize(part, x2 - (OBJECT_BORDER*2), 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y2 - (OBJECT_BORDER*2));
+}
+</pre>
+		</td>
+	</tr>
+	<tr>
+		<td>
+			<span style="font-family: Courier New,Courier,monospace">circle_update()</span>:
+<p>Creates and resizes a circle object based on user actions.</p>
+<p>The circle object is created from 2 parts: border and fill. Since the Evas API does not provide a circle, the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> polygon is used instead.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">s_info.start</span> value is used as the center of the circle (ellipse). Based on the difference between the <span style="font-family: Courier New,Courier,monospace">s_info.start</span> and the <span style="font-family: Courier New,Courier,monospace">s_info.curr</span> coordinates, the horizontal and vertical radius is calculated. The polygon is made out of 360 points placed on the canvas in appropriate positions calculated with the <span style="font-family: Courier New,Courier,monospace">sin()</span> and <span style="font-family: Courier New,Courier,monospace">cos()</span> functions.</p>
+<p>To update the size of the circle (at every <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> call), all of its points are removed and created again in new positions. The fill parts are added the same way, but the fill radius is smaller by <span style="font-family: Courier New,Courier,monospace">OBJECT_BORDER</span>.</p>
+		</td>
+
+		<td>
+<pre class="prettyprint">
+static void
+circle_update(void)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *part = NULL;
+&nbsp;&nbsp;&nbsp;int radius_x = 0;
+&nbsp;&nbsp;&nbsp;int radius_y = 0;
+&nbsp;&nbsp;&nbsp;int center_x = 0;
+&nbsp;&nbsp;&nbsp;int center_y = 0;
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!s_info.current_object)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.current_object = object_create(CIRCLE);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;circle_part_create(s_info.current_object, s_info.r1, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.g1, s_info.b1, s_info.a1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;circle_part_create(s_info.current_object, s_info.r2, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.g2, s_info.b2, s_info.a2);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.objects = eina_list_append(s_info.objects, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.current_object);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;radius_x = (s_info.curr.x - s_info.start.x) / 2;
+&nbsp;&nbsp;&nbsp;radius_y = (s_info.curr.y - s_info.start.y) / 2;
+
+&nbsp;&nbsp;&nbsp;center_x = s_info.start.x + radius_x;
+&nbsp;&nbsp;&nbsp;center_y = s_info.start.y + radius_y;
+
+&nbsp;&nbsp;&nbsp;radius_x = abs(radius_x);
+&nbsp;&nbsp;&nbsp;radius_y = abs(radius_y);
+
+&nbsp;&nbsp;&nbsp;part = eina_list_nth(s_info.current_object-&gt;parts, 0);
+&nbsp;&nbsp;&nbsp;circle_part_update(part, radius_x, radius_y, center_x, center_y);
+
+&nbsp;&nbsp;&nbsp;part = eina_list_nth(s_info.current_object-&gt;parts, 1);
+&nbsp;&nbsp;&nbsp;circle_part_update(part, radius_x - OBJECT_BORDER, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radius_y - OBJECT_BORDER, center_x, center_y);
+}
+</pre>
+		</td>
+	</tr>
+		<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">line_update()</span>:
+		<p>Created from 2 points, where the beginning point&#39;s vertical position value has to be the smaller. Based on that, the <span style="font-family: Courier New,Courier,monospace">s_info.start</span> and <span style="font-family: Courier New,Courier,monospace">s_info.curr</span> structures are used. The points are updated at every <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> callback call.</p>
+		</td>
+		<td>
+<pre class="prettyprint">
+static void
+line_update(void)
+{
+&nbsp;&nbsp;&nbsp;int x1 = 0, y1 = 0, x2 = 0, y2 = 0;
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!s_info.current_object)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line_create();
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (s_info.start.y &lt;= s_info.curr.y)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x1 = s_info.start.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x2 = s_info.curr.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y1 = s_info.start.y;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y2 = s_info.curr.y;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x2 = s_info.start.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x1 = s_info.curr.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y2 = s_info.start.y;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y1 = s_info.curr.y;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;evas_object_line_xy_set(current_object_first_part_get(), 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x1, y1, x2, y2);
+}
+</pre>
+		</td>
+	</tr>
+</table>
+
+<h4>Selections</h4>
+
+<p>Objects are selected on 2 occasions:</p>
+<ul>
+	<li>When the user finishes drawing a new object.</li>
+	<li>When the user taps a part of an already drawn object when the application mode is set to <span style="font-family: Courier New,Courier,monospace">SELECT</span>.</li>
+</ul>
+
+<p>When an object is selected, the <span style="font-family: Courier New,Courier,monospace">s_info.selection_frame</span> (<span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image) is shown and its size and position are adjusted so that the frame surrounds all of the object parts. The <span style="font-family: Courier New,Courier,monospace">object_move()</span> function is called by the <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> callback. The function calculates the offset of the mouse position and translates all the object parts by that same distance.</p>
+<p>When the user clicks the <span style="font-family: Courier New,Courier,monospace">_info.selection_frame</span> and there is no other object in that position, the current selection remains active.</p>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

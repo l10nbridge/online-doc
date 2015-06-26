@@ -1,0 +1,313 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Simple Homescreen Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>Simple Homescreen Sample Overview</h1> 
+
+  <p>The Simple Homescreen sample application demonstrates how to implement a Homescreen-like application using the <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__APPLICATION__MANAGER__MODULE.html">Application Manager</a> API.</p>
+  <p>The following figure illustrates the application views.</p>
+  <p class="figure">Figure: Simple Homescreen screens</p>
+  <p align="center"><img alt="Main view" src="../images/simple_home_main_view_sd.png" /> <img alt="App info displayed" src="../images/simple_home_app_info_view_sd.png" /> <img alt="Icon rearrangement" src="../images/simple_home_icons_rearrangement_sd.png" /></p>
+
+  <p>The application displays a list of all applications that are installed on the device and available for the end user
+  (the <span style="font-family: Courier New,Courier,monospace">nodisplay</span> flag is set to <span style="font-family: Courier New,Courier,monospace">false</span> in the applications&#39; <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> files).</p>
+ 
+  <p>The main window contains an application grid, horizontally scrollable, where appropriate icons are displayed. The application scans all installed packages looking for displayable ones (those that can be displayed to the end user). </p>
+  <p>You can:</p>
+    <ul>
+      <li>Tap on application icon to see a pop-up window with the following information:</li>
+	  <ul>
+	    <li>Simplified application name (typically displayed below the icon on the home screen)</li>
+		<li>Full path to the application icon resource image</li>
+		<li>Package name of the application</li>
+	  </ul>
+      <li>Drag and drop the application icon to rearrange the icon position within the Simple Homescreen application</li>
+    </ul>
+
+
+<h2>Implementation</h2>
+<p>The <span style="font-family: Courier New,Courier,monospace">_on_create_cb()</span> callback function initializes the application model and user interface:</p>
+
+<pre class="prettyprint">
+static bool _on_create_cb(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;app_data *ad = user_data;
+&nbsp;&nbsp;&nbsp;RETVM_IF(!ad, false, &quot;ad is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;elm_app_base_scale_set(1.8);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;win = win_create();
+&nbsp;&nbsp;&nbsp;RETVM_IF(!ad-&gt;win, false, &quot;win is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *content = main_view_add(ad, ad-&gt;win-&gt;conform);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!content, false, &quot;content is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;win_set_content(ad-&gt;win, content);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>The following figure illustrates the structure of application base view.</p>
+<p class="figure">Figure: Simple Homescreen base view</p>
+<p align="center"><img alt="Simple Homescreen base view" src="../images/simple_home_tree.png" /></p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">win_create()</span> function creates a window which consists of an indicator (<span style="font-family: Courier New,Courier,monospace">elm_conformant</span>) and a background.</p>
+<pre class="prettyprint">
+window_obj *win_create()
+{
+&nbsp;&nbsp;&nbsp;window_obj *obj = calloc(1, sizeof(window_obj));
+&nbsp;&nbsp;&nbsp;if (!obj)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;obj-&gt;win = elm_win_util_standard_add(APP_NAME, APP_NAME);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(obj-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_win_conformant_set(obj-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(obj-&gt;win, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(obj-&gt;win, ELM_WIN_INDICATOR_SHOW);
+&nbsp;&nbsp;&nbsp;evas_object_show(obj-&gt;win);
+
+&nbsp;&nbsp;&nbsp;obj-&gt;conform = elm_conformant_add(obj-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(obj-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(obj-&gt;win, obj-&gt;conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(obj-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;obj-&gt;bg = elm_bg_add(obj-&gt;conform);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(obj-&gt;bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_show(obj-&gt;bg);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(obj-&gt;conform, &quot;elm.swallow.bg&quot;, obj-&gt;bg);
+
+&nbsp;&nbsp;&nbsp;return obj;
+}
+</pre>
+
+
+<p>The <span style="font-family: Courier New,Courier,monospace">main_view_add()</span> function creates the main view gengrid, gets all applications from the model, and pushes the application icons into the gengrid. This function also registers a callback for the back key click.</p>
+<pre class="prettyprint">
+Evas_Object *main_view_add(app_data *app, Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app || !parent, NULL, &quot;Passed NULL input data&quot;);
+
+&nbsp;&nbsp;&nbsp;main_view_data *data = calloc(1, sizeof(main_view_data));
+&nbsp;&nbsp;&nbsp;data-&gt;win = app-&gt;win;
+&nbsp;&nbsp;&nbsp;app-&gt;main_view_data = data;
+
+&nbsp;&nbsp;&nbsp;data-&gt;gengrid = gengrid_create(data-&gt;win-&gt;win);
+
+&nbsp;&nbsp;&nbsp;data-&gt;app_list = app_manager_all_apps_get();
+&nbsp;&nbsp;&nbsp;Eina_List *it = NULL;
+&nbsp;&nbsp;&nbsp;app_info_h *app_info = NULL;
+&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH(data-&gt;app_list, it, app_info)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gengrid_item_append(data-&gt;gengrid, app_info);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(data-&gt;gengrid, EEXT_CALLBACK_BACK, _main_view_hardware_buttons_cb, data);
+
+&nbsp;&nbsp;&nbsp;return data-&gt;gengrid;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">app_manager_all_apps_get()</span> function iterates over all the installed applications using the <span style="font-family: Courier New,Courier,monospace">app_manager_foreach_app_info()</span> function. The <span style="font-family: Courier New,Courier,monospace">_app_manager_app_info_cb()</span> clones each application context handle and pushes them to the list.</p>
+<pre class="prettyprint">
+bool _app_manager_app_info_cb(app_info_h app_info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;bool nodisplay;
+&nbsp;&nbsp;&nbsp;_app_is_success(app_info_is_nodisplay(app_info, &amp;nodisplay));
+&nbsp;&nbsp;&nbsp;if (!nodisplay)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;Eina_List **app_list = user_data;
+&nbsp;&nbsp;&nbsp;app_info_h *clone = malloc(sizeof(app_info_h));
+&nbsp;&nbsp;&nbsp;_app_is_success(app_info_clone(clone, app_info));
+&nbsp;&nbsp;&nbsp;*app_list = eina_list_append(*app_list, clone);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+Eina_List *app_manager_all_apps_get()
+{
+&nbsp;&nbsp;&nbsp;Eina_List *app_list = NULL;
+&nbsp;&nbsp;&nbsp;app_manager_foreach_app_info(_app_manager_app_info_cb, &amp;app_list);
+
+&nbsp;&nbsp;&nbsp;return app_list;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">gengrid_create()</span> function creates a gengrid using the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_add()</span> function.</p>
+<p>The gengrid item size is set to predefined values with the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_size_set()</span> function. In order to allow the item position rearrangement by drag and drop, the reorder mode is set using the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_reorder_mode_set()</span> function. </p>
+
+<pre class="prettyprint">
+Evas_Object *gengrid_create(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;RETVM_IF(!parent, NULL, &quot;Passed NULL parent data&quot;);
+
+&nbsp;&nbsp;&nbsp;if (!itc)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; _gengrid_item_class_initialize();
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;Evas_Object *gengrid = elm_gengrid_add(parent);
+&nbsp;&nbsp;&nbsp;elm_gengrid_item_size_set(gengrid, ELM_SCALE_SIZE(GENGRID_ITEM_WIDTH), ELM_SCALE_SIZE(GENGRID_ITEM_HEIGHT));
+&nbsp;&nbsp;&nbsp;elm_gengrid_reorder_mode_set(gengrid, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_gengrid_horizontal_set(gengrid, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(gengrid, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(gengrid, EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+&nbsp;&nbsp;&nbsp;return gengrid;
+}
+</pre>
+<p>Each item is appended using the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_append()</span> function. The function takes 5 parameters:</p>
+<ul>
+  <li>Gengrid object to which an item is appended</li>
+  <li>Item class</li>
+  <li>Item data</li>
+  <li>Function to be called when the item is selected</li>
+  <li>Additional data to be passed to the function</li>
+</ul>
+<pre class="prettyprint">
+Elm_Object_Item *gengrid_item_append(Evas_Object *gengrid, app_info_h *app_info)
+{
+&nbsp;&nbsp;&nbsp;RETVM_IF(!gengrid || !app_info, NULL, &quot;Passed NULL input data&quot;);
+
+&nbsp;&nbsp;&nbsp;if (!itc)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_gengrid_item_class_initialize();
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *item = elm_gengrid_item_append(gengrid, itc, app_info, _gengrid_item_selected, app_info);
+
+&nbsp;&nbsp;&nbsp;return item;
+}
+</pre>
+
+<p>The gengrid item class defines an item style as well as callbacks to be used at retrieving item attributes (text, content, or state). The class is used when an item is added to a gengrid. The gengrid item class used in this application is initialized in the <span style="font-family: Courier New,Courier,monospace">_gengrid_item_class_initialize()</span> function. The item style is set to default. Items in the gengrid consist only of an icon, so the <span style="font-family: Courier New,Courier,monospace">text_get</span> callback and <span style="font-family: Courier New,Courier,monospace">state_get</span> callbacks are set to <span style="font-family: Courier New,Courier,monospace">NULL</span> as they are not used.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">_grid_content_get()</span> function is the <span style="font-family: Courier New,Courier,monospace">content_get</span> callback invoked when an item is added, returning an icon of the given application. For the default gengrid item theme used in the application, each item has 2 content parts: &quot;elm.swallow.icon&quot; and &quot;elm.swallow.end&quot;. Only &quot;elm.swallow.icon&quot; is used here, but the <span style="font-family: Courier New,Courier,monospace">content_get</span> callback is used to retrieve content for both parts. For that reason, a part name check is needed before the icon image is created and returned as the icon content.</p>
+<pre class="prettyprint">
+Evas_Object *_grid_content_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;if (!strcmp(part, &quot;elm.swallow.icon&quot;))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *image = elm_image_add(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_info_h *app_info = (app_info_h*)data;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *icon;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_info_get_icon(*app_info, &amp;icon);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!elm_image_file_set(image, icon, NULL))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(image);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *bg = elm_bg_add(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_bg_color_set(bg, 255, 255, 0);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return bg;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return image;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return NULL;
+}
+
+void _gengrid_item_class_initialize()
+{
+&nbsp;&nbsp;&nbsp;itc = elm_gengrid_item_class_new();
+&nbsp;&nbsp;&nbsp;itc-&gt;item_style = &quot;default&quot;;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.text_get = NULL;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.content_get = _grid_content_get;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.state_get = NULL;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.del = NULL;
+}
+</pre>
+
+<p>When an item is selected, a pop-up is created to display the selected application&#39;s data.</p>
+<pre class="prettyprint">
+void _gengrid_item_selected(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;popup_create(obj, (app_info_h*)data);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">popup_create()</span> function takes <span style="font-family: Courier New,Courier,monospace">app_info_h</span> as a parameter, which is then used to acquire the application label, icon, and package name. The label is set as the pop-up title (the <span style="font-family: Courier New,Courier,monospace">&quot;title,text&quot;</span> part) whereas the remaining data is set as its content (the <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> part). The <span style="font-family: Courier New,Courier,monospace">elm_popup_timeout_set()</span> function sets a timeout to hide the pop-up automatically after <span style="font-family: Courier New,Courier,monospace">POPUP_TIMEOUT</span> (5) seconds.</p>
+<p>A callback on the <span style="font-family: Courier New,Courier,monospace">&quot;block,clicked&quot;</span> event is set for the pop-up so that it is deleted after the user clicks outside its area.</p>
+<pre class="prettyprint">
+void popup_create(Evas_Object *parent, app_info_h *app_info)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!parent || !app_info, &quot;Passed NULL input data&quot;);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *popup = elm_popup_add(parent);
+
+&nbsp;&nbsp;&nbsp;char *label;
+&nbsp;&nbsp;&nbsp;char *icon;
+&nbsp;&nbsp;&nbsp;char *package;
+&nbsp;&nbsp;&nbsp;app_label_get(app_info, &amp;label);
+&nbsp;&nbsp;&nbsp;app_icon_get(app_info, &amp;icon);
+&nbsp;&nbsp;&nbsp;app_package_get(app_info, &amp;package);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(popup, &quot;title,text&quot;, label);
+&nbsp;&nbsp;&nbsp;char info[BUF_SIZE];
+&nbsp;&nbsp;&nbsp;snprintf(info, BUF_SIZE, &quot;Icon path:&lt;br&gt;%s&lt;br&gt;&lt;br&gt;Package:&lt;br&gt;%s&quot;, icon, package);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(popup, &quot;default&quot;, info);
+
+&nbsp;&nbsp;&nbsp;free(label);
+&nbsp;&nbsp;&nbsp;free(icon);
+&nbsp;&nbsp;&nbsp;free(package);
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(popup, &quot;block,clicked&quot;, _block_clicked, NULL);
+&nbsp;&nbsp;&nbsp;elm_popup_timeout_set(popup, 5.0);
+
+&nbsp;&nbsp;&nbsp;evas_object_show(popup);
+}
+
+static void _block_clicked(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;evas_object_del(obj);
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,696 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Calculator Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>Calculator Sample Overview</h1> 
+  
+  <p>The Calculator sample demonstrates how to implement a complex view using recursive composition of the standard EFL UI components and containers in a UI component hierarchy. It aims to explain how such an application can be developed using view and model parts.</p>
+<p>The sample uses UI components (such as <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> and <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span>) for the view management, containers (such as <span style="font-family: Courier New,Courier,monospace">elm_grid</span> and <span style="font-family: Courier New,Courier,monospace">elm_table</span>) for UI component management inside the view, and UI components (such as <span style="font-family: Courier New,Courier,monospace">elm_bg</span>, <span style="font-family: Courier New,Courier,monospace">elm_button</span>, and <span style="font-family: Courier New,Courier,monospace">elm_label</span>) for the content inside view.</p>
+
+<p>The following figure illustrates the main screen of the Calculator (portrait and landscape), the wireframe structure, and the UI component tree. </p>
+
+    <p class="figure">Figure: Calculator screen</p> 
+  <p align="center"><img alt="Calculator screen" src="../images/calculator_sd.png" /></p>
+  <p align="center"><img alt="Calculator screen" src="../images/calculator_wire.png" /></p>
+  <p align="center"><img alt="Calculator screen" src="../images/calculator_tree.png" /></p>
+
+<h2>Implementation</h2>
+<p>The <span style="font-family: Courier New,Courier,monospace">_on_create_cb()</span> callback function initializes the application model and user interface.</p>
+
+<pre class="prettyprint">
+static Evas_Object *_add_naviframe(app_data *app)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *result = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *parent = win_get_host_layout(app-&gt;win);
+&nbsp;&nbsp;&nbsp;if (parent)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = ui_utils_navi_add(parent, _navi_back_cb, app);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (result)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;win_set_layout(app-&gt;win, result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return result;
+}
+
+static bool _on_create_cb(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;app_data *app = user_data;
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app, false, &quot;ad is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;result_type result = RES_OK;
+&nbsp;&nbsp;&nbsp;app-&gt;model = calc_create(&amp;result);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app-&gt;model, false, &quot;calc instance creation failed: %d&quot;, result);
+
+&nbsp;&nbsp;&nbsp;app-&gt;win = win_create();
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app-&gt;win, false, &quot;Window creation failed.&quot;);
+
+&nbsp;&nbsp;&nbsp;app-&gt;navi = _add_naviframe(app);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app-&gt;navi, false, &quot;Naviframe creation failed.&quot;);
+
+&nbsp;&nbsp;&nbsp;main_view_add(app);
+&nbsp;&nbsp;&nbsp;return true;
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">win_create()</span> function creates the window which consists of the indicator (<span style="font-family: Courier New,Courier,monospace">elm_conformant</span>) and the background with a red color to easily see if the view does not have its own background component.</p>
+
+<pre class="prettyprint">
+window_obj *win_create()
+{
+&nbsp;&nbsp;&nbsp;window_obj *obj = calloc(1, sizeof(window_obj));
+&nbsp;&nbsp;&nbsp;RETVM_IF(!obj, NULL, &quot;Cannot allocate memory&quot;);
+
+&nbsp;&nbsp;&nbsp;obj-&gt;win = elm_win_add(NULL, APP_NAME, ELM_WIN_BASIC);
+&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(obj-&gt;win, AVAILABLE_ROTATIONS, AVAILABLE_ROTATIONS_LENGTH);
+&nbsp;&nbsp;&nbsp;elm_win_conformant_set(obj-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_show(obj-&gt;win);
+
+&nbsp;&nbsp;&nbsp;obj-&gt;conform = elm_conformant_add(obj-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(obj-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(obj-&gt;win, obj-&gt;conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(obj-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;obj-&gt;bg = elm_bg_add(obj-&gt;conform);
+&nbsp;&nbsp;&nbsp;elm_bg_color_set(obj-&gt;bg, WIN_FAIL_BG_COLOR);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(obj-&gt;bg, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_show(obj-&gt;bg);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(obj-&gt;conform, &quot;elm.swallow.bg&quot;, obj-&gt;bg);
+
+&nbsp;&nbsp;&nbsp;return obj;
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">main_view_add()</span> function creates the main view layout and all its UI components and pushes itself to the naviframe. This function also registers the rotation change callback with the <span style="font-family: Courier New,Courier,monospace">evas_object_smart_callback_add()</span> function, the callback on model display change with the <span style="font-family: Courier New,Courier,monospace">calc_set_display_change_cb()</span> function and the region format change callback by assigning a function pointer and data to the main application structure.</p>
+
+<pre class="prettyprint">
+void main_view_add(app_data *app)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!app, &quot;app is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;main_view_data *data = calloc(1, sizeof(main_view_data));
+&nbsp;&nbsp;&nbsp;RETM_IF(!data, &quot;Failed to allocate the instance&quot;);
+
+&nbsp;&nbsp;&nbsp;result_type result = _main_view_init(data, app);
+&nbsp;&nbsp;&nbsp;if (RES_OK != result)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_main_view_del(data);
+&nbsp;&nbsp;&nbsp;}
+}
+
+result_type _main_view_init(main_view_data *data, app_data *app)
+{
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app-&gt;model, RES_ILLEGAL_ARGUMENT, &quot;app-&gt;model is NULL&quot;);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app-&gt;win, RES_ILLEGAL_ARGUMENT, &quot;app-&gt;win is NULL&quot;);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app-&gt;win-&gt;win, RES_ILLEGAL_ARGUMENT, &quot;app-&gt;win-&gt;win is NULL&quot;);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!app-&gt;navi, RES_ILLEGAL_ARGUMENT, &quot;app-&gt;navi is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;data-&gt;app = app;
+&nbsp;&nbsp;&nbsp;data-&gt;model = app-&gt;model;
+&nbsp;&nbsp;&nbsp;data-&gt;window = app-&gt;win-&gt;win;
+&nbsp;&nbsp;&nbsp;data-&gt;orientation = elm_win_rotation_get(data-&gt;window);
+
+&nbsp;&nbsp;&nbsp;result_type result = RES_INTERNAL_ERROR;
+
+&nbsp;&nbsp;&nbsp;result = _main_view_make_layout(data, app-&gt;navi);
+&nbsp;&nbsp;&nbsp;RETVM_IF(RES_OK != result, result, &quot;Failed to make layout: %d&quot;, result);
+
+&nbsp;&nbsp;&nbsp;result = _main_view_make_widgets(data);
+&nbsp;&nbsp;&nbsp;RETVM_IF(RES_OK != result, result, &quot;Failed to make widgets: %d&quot;, result);
+
+&nbsp;&nbsp;&nbsp;_main_view_repack_widgets(data);
+
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *navi_item = elm_naviframe_item_push(app-&gt;navi, STR_MAIN_TITLE, NULL, NULL, data-&gt;layout, NULL);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!navi_item, RES_OUT_OF_MEMORY, &quot;Failed to push naviframe item&quot;);
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(data-&gt;window, &quot;wm,rotation,changed&quot;, _main_view_win_rotate_cb, data);
+&nbsp;&nbsp;&nbsp;calc_set_display_change_cb(data-&gt;model, _main_view_display_changed_cb, data);
+&nbsp;&nbsp;&nbsp;app-&gt;region_fmt_change_cb = _main_view_region_fmt_changed_cb;
+&nbsp;&nbsp;&nbsp;app-&gt;region_fmt_change_cb_data = data;
+
+&nbsp;&nbsp;&nbsp;return RES_OK;
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_main_view_make_layout()</span> function creates the main view layout components:</p>
+<ul><li>Table: Holds other UI components and adds border padding around the view</li>
+<li>Grid: Positions all UI components on the view in a scalable manner</li>
+<li>Background: Colors the view with the default background color</li></ul>
+
+ <p class="figure">Figure: Calculator main view layout</p> 
+ <p align="center"><img alt="Calculator main view layout" src="../images/calculator_main_view.png" /></p>
+
+<p>The view object is deleted when the main layout component (table) is deleted by its parent. The callback is registered using the <span style="font-family: Courier New,Courier,monospace">evas_object_event_callback_add()</span> function.</p>
+
+<pre class="prettyprint">
+result_type _main_view_make_layout(main_view_data *data, Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;int scaled_border_padding = (int)utils_round(ELM_SCALE_SIZE(VIEW_BORDER_WIDTH));
+
+&nbsp;&nbsp;&nbsp;// Create a single cell table so the internal grid can support padding
+&nbsp;&nbsp;&nbsp;Evas_Object *layout = elm_table_add(parent);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!layout, RES_OUT_OF_MEMORY, &quot;Failed to create elm_table&quot;);
+
+&nbsp;&nbsp;&nbsp;data-&gt;layout = layout;
+&nbsp;&nbsp;&nbsp;elm_table_homogeneous_set(layout, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(layout, EVAS_CALLBACK_FREE, _main_view_layout_free_cb, data);
+&nbsp;&nbsp;&nbsp;evas_object_show(layout);
+
+&nbsp;&nbsp;&nbsp;// Add a background to the view with the default theme color
+&nbsp;&nbsp;&nbsp;Evas_Object *bg = elm_bg_add(layout);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!bg, RES_OUT_OF_MEMORY, &quot;Failed to create elm_bg&quot;);
+
+&nbsp;&nbsp;&nbsp;elm_table_pack(layout, bg, 0, 0, 1, 1);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(bg, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(bg);
+
+&nbsp;&nbsp;&nbsp;// Create a grid for holding and aligning the UI components
+&nbsp;&nbsp;&nbsp;Evas_Object *grid = elm_grid_add(layout);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!grid, RES_OUT_OF_MEMORY, &quot;Failed to create elm_grid&quot;);
+
+&nbsp;&nbsp;&nbsp;data-&gt;grid = grid;
+&nbsp;&nbsp;&nbsp;elm_table_pack(layout, grid, 0, 0, 1, 1);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(grid, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_padding_set(grid,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scaled_border_padding, scaled_border_padding,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scaled_border_padding, scaled_border_padding);
+&nbsp;&nbsp;&nbsp;evas_object_show(grid);
+
+&nbsp;&nbsp;&nbsp;return RES_OK;
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_main_view_make_widgets()</span> function creates all UI components (the display label and buttons), but does not pack them to the grid yet. For each UI component, a separate single cell table is created. This table is needed to add padding around a specific UI component, since the grid does not support padding for its elements.</p>
+<p>You can use a single table instead of a grid (without additional single cell tables), but the grid is more stable as it resizes all UI components in a single calculation and does not stretch if the UI components are too large. To handle button events, a smart <span style="font-family: Courier New,Courier,monospace">clicked</span> callback is registered with the <span style="font-family: Courier New,Courier,monospace">evas_object_smart_callback_add()</span> function.</p>
+
+<pre class="prettyprint">
+result_type _main_view_make_widgets(main_view_data *data)
+{
+&nbsp;&nbsp;&nbsp;int scaled_widget_padding = (int)utils_round(ELM_SCALE_SIZE(WIDGET_PADDING));
+&nbsp;&nbsp;&nbsp;int scaled_number_padding = (int)utils_round(ELM_SCALE_SIZE(DISP_NUMBER_RIGHT_PADDING));
+
+&nbsp;&nbsp;&nbsp;int btn_idx = 0;
+&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; WIDGETS_COUNT; ++i)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const widget_params *params = &amp;WIDGET_PARAMS[i];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// For each UI component in the grid cell, create an additional single cell table
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This allows adding paddings for UI components because grid does not support paddings
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *table = elm_table_add(data-&gt;grid);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RETVM_IF(!table, RES_OUT_OF_MEMORY, &quot;Failed to create elm_table&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data-&gt;widgets[i] = table; // Registering the UI component in the array to pack it to the grid later
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_table_homogeneous_set(table, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(table);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool is_button = (CALC_KEY_NONE != params-&gt;key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *obj = is_button ? elm_button_add(table) : elm_label_add(table);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RETVM_IF(!obj, RES_OUT_OF_MEMORY, &quot;Failed to create widget object&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_table_pack(table, obj, 0, 0, 1, 1);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (is_button)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RETVM_IF(BUTTONS_COUNT == btn_idx, RES_INTERNAL_ERROR, &quot;Too many buttons in params!&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;main_view_btn_data *btn_data = &amp;data-&gt;btns_data[btn_idx];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++btn_idx;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;btn_data-&gt;view = data;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;btn_data-&gt;key = params-&gt;key;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(obj, &quot;clicked&quot;, _main_view_btn_click_cb, btn_data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int text_size = (int)utils_round(ELM_SCALE_SIZE(((CALC_KEY_ERASE == params-&gt;key) ? ERASE_BTN_TEXT_SIZE : GENERAL_BTN_TEXT_SIZE)));
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char buff[DISP_STR_SIZE] = {&#39;\0&#39;};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (CALC_KEY_DEC == params-&gt;key)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(buff, DISP_STR_SIZE, params-&gt;text, text_size, calc_get_dec_point_str(data-&gt;model));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(buff, DISP_STR_SIZE, params-&gt;text, text_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(obj, buff);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(obj, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_padding_set(obj,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scaled_widget_padding, scaled_widget_padding,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scaled_widget_padding, scaled_widget_padding);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data-&gt;label = obj;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_main_view_update_disp_label(data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(obj, 1, EO_ALIGN_HINT_CENTER);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_padding_set(obj,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scaled_widget_padding, scaled_widget_padding + scaled_number_padding,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scaled_widget_padding, scaled_widget_padding);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(obj);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return RES_OK;
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_main_view_repack_widgets()</span> function clears the grid from UI components (if any) and packs it again according to the current screen orientation.</p>
+
+<pre class="prettyprint">
+void _main_view_repack_widgets(main_view_data *data)
+{
+&nbsp;&nbsp;&nbsp;// Remove all UI components from the grid without deleting
+&nbsp;&nbsp;&nbsp;elm_grid_clear(data-&gt;grid, EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;// Obtain the UI component position parameters and resize the grid according to the orientation
+&nbsp;&nbsp;&nbsp;const widget_pos *pos_array = NULL;
+&nbsp;&nbsp;&nbsp;if ((((abs(data-&gt;orientation) + CIRCLE_HALF_QUARTER_DEG) / CIRCLE_QUARTER_DEG) &amp; 1) == 0)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pos_array = PORT_WPOS;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_grid_size_set(data-&gt;grid, PORT_GRID_W, PORT_GRID_H);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pos_array = LAND_WPOS;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_grid_size_set(data-&gt;grid, LAND_GRID_W, LAND_GRID_H);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Packing UI components to the grid using information from the array
+&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; WIDGETS_COUNT; ++i)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_grid_pack(data-&gt;grid, data-&gt;widgets[i],
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pos_array[i].x, pos_array[i].y,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pos_array[i].w, pos_array[i].h);
+&nbsp;&nbsp;&nbsp;}
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_main_view_layout_free_cb()</span> function removes the view object from the memory when the main layout component is deleted by the parent.</p>
+
+<pre class="prettyprint">
+void _main_view_layout_free_cb(void *data, Evas *e, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;main_view_data *view_data = data;
+&nbsp;&nbsp;&nbsp;// NULL the layout so you do not delete it twice in _main_view_del()
+&nbsp;&nbsp;&nbsp;view_data-&gt;layout = NULL; 
+&nbsp;&nbsp;&nbsp;// Delete self when layout is deleted by parent object
+&nbsp;&nbsp;&nbsp;_main_view_del(view_data); 
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_main_view_display_changed_cb()</span> function handles the model display change event and updates the display label. The current display value is retrieved from the model using the <span style="font-family: Courier New,Courier,monospace">calc_get_display_str()</span> function. The label is updated with the <span style="font-family: Courier New,Courier,monospace">elm_object_text_set(</span>) function.</p>
+
+<pre class="prettyprint">
+void _main_view_display_changed_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;_main_view_update_disp_label((main_view_data *)data);
+}
+
+void _main_view_update_disp_label(main_view_data *data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!data-&gt;label, &quot;label is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;int text_size = (int)utils_round(ELM_SCALE_SIZE(DISP_NUMBER_TEXT_SIZE));
+
+&nbsp;&nbsp;&nbsp;char buff[DISP_STR_SIZE] = {&#39;\0&#39;};
+&nbsp;&nbsp;&nbsp;snprintf(buff, DISP_STR_SIZE, &quot;&lt;font_size=%d&gt;%s&lt;/font_size&gt;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text_size, calc_get_display_str(data-&gt;model));
+&nbsp;&nbsp;&nbsp;elm_object_text_set(data-&gt;label, buff);
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_main_view_region_fmt_changed_cb()</span> function handles the device region format change event. Before the view update, call the <span style="font-family: Courier New,Courier,monospace">calc_update_region_fmt()</span> function to update the model. After this, the decimal point button text can be updated using the result of the <span style="font-family: Courier New,Courier,monospace">calc_get_dec_point_str()</span> function.</p>
+
+<pre class="prettyprint">
+void _main_view_region_fmt_changed_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;_main_view_update_region_fmt((main_view_data *)data);
+}
+
+void _main_view_update_region_fmt(main_view_data *data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!data-&gt;dec_btn, &quot;dec_btn is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;calc_update_region_fmt(data-&gt;model);
+
+&nbsp;&nbsp;&nbsp;int text_size = (int)utils_round(ELM_SCALE_SIZE(GENERAL_BTN_TEXT_SIZE));
+
+&nbsp;&nbsp;&nbsp;char buff[DISP_STR_SIZE] = {&#39;\0&#39;};
+&nbsp;&nbsp;&nbsp;snprintf(buff, DISP_STR_SIZE, &quot;&lt;font_size=%d&gt;%s&lt;/font_size&gt;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text_size, calc_get_dec_point_str(data-&gt;model));
+&nbsp;&nbsp;&nbsp;elm_object_text_set(data-&gt;dec_btn, buff);
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_main_view_btn_click_cb()</span> function handles the button clock event. The function is implemented mostly by calling the <span style="font-family: Courier New,Courier,monospace">calc_handle_key_press()</span> model function. The model method can generate the display change event described earlier.</p>
+
+<pre class="prettyprint">
+void _main_view_btn_click_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;main_view_btn_data *btn_data = data;
+&nbsp;&nbsp;&nbsp;_main_view_handle_key_press(btn_data-&gt;view, btn_data-&gt;key);
+}
+
+void _main_view_handle_key_press(main_view_data *data, key_type key)
+{
+&nbsp;&nbsp;&nbsp;result_type result = calc_handle_key_press(data-&gt;model, key);
+&nbsp;&nbsp;&nbsp;if (RES_MAX_DIGITS_REACHED == result)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char msg[DISP_STR_SIZE] = {&#39;\0&#39;};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(msg, DISP_STR_SIZE, &quot;&lt;p align=center&gt;&quot;STR_POPUP_MAX_INPUT&quot;&lt;/p&gt;&quot;, DISP_MAX_DIGITS);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_main_view_create_msg_popup(data, msg);
+&nbsp;&nbsp;&nbsp;}
+}</pre>
+
+<p>The computation logic of the application is implemented in a separate <span style="font-family: Courier New,Courier,monospace">calc.c</span> module. Before using the module, create the <span style="font-family: Courier New,Courier,monospace">calc</span> object using the <span style="font-family: Courier New,Courier,monospace">calc_create()</span> function. The <span style="font-family: Courier New,Courier,monospace">calc_handle_key_press()</span> function handles a specific calculator key specified by the <span style="font-family: Courier New,Courier,monospace">key_type</span> enumeration.</p>
+<p>Handling keys usually changes the calculator display string, which  the <span style="font-family: Courier New,Courier,monospace">calc_get_display_str()</span> function can retrieve.</p>
+<p>To listen on display string change events, the application can register a callback using the <span style="font-family: Courier New,Courier,monospace">calc_set_display_change_cb()</span> function. By registering this callback, the view can avoid manual checking of the display string value after each key handling.</p>
+
+<pre class="prettyprint">
+// Create and initialize a calc object instance
+calc *calc_create(result_type *result);
+
+// Destroy and free the calc instance referenced
+void calc_destroy(calc *obj);
+
+// Register the callback to be invoked on display string change
+void calc_set_display_change_cb(calc *obj, notify_cb cb, void *cb_data);
+
+// Get current display string message
+const char *calc_get_display_str(calc *obj);
+
+// Handle calculator key press
+result_type calc_handle_key_press(calc *obj, key_type key);
+
+// Update region format dependent properties (decimal point character)
+void calc_update_region_fmt(calc *obj);
+
+// Get current decimal point character used by the object
+const char *calc_get_dec_point_str(calc *obj);</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_calc</span> structure in the <span style="font-family: Courier New,Courier,monospace">calc.c</span> module defines the <span style="font-family: Courier New,Courier,monospace">calc</span> object structure. A pointer to this structure is passed to all functions of this module.</p>
+
+<pre class="prettyprint">
+// Internal data structure of the calc object
+struct _calc
+{
+&nbsp;&nbsp;&nbsp;// Error flag to indicate critical failure and block computations until reset
+&nbsp;&nbsp;&nbsp;bool error;
+
+&nbsp;&nbsp;&nbsp;// Major state variables of the calculator
+&nbsp;&nbsp;&nbsp;bool dirty; // In the middle of expression calculation
+&nbsp;&nbsp;&nbsp;bool num_is_new; // Indicates that number in num register is new (entered by user of by unary function)
+&nbsp;&nbsp;&nbsp;bool in_edit_mode; // Indicates that the user is entering number to the display
+&nbsp;&nbsp;&nbsp;key_type op; // Current operation to apply to operands
+
+&nbsp;&nbsp;&nbsp;// Calculator registers used in the computations
+&nbsp;&nbsp;&nbsp;double num; // Corresponds to the number on display (not actual in edit mode)
+&nbsp;&nbsp;&nbsp;double acc; // Left operand of the operation, stores the result of the operation
+&nbsp;&nbsp;&nbsp;double rep; // Special repeat register, used to repeat last operation on result key
+
+&nbsp;&nbsp;&nbsp;// Display object to handle I/O
+&nbsp;&nbsp;&nbsp;display disp;
+
+&nbsp;&nbsp;&nbsp;// 1 char string to hold current decimal point character
+&nbsp;&nbsp;&nbsp;char dec_point_str[CALC_DEC_POINT_STR_SIZE];
+};</pre>
+
+<p>The following example shows how to implement the <span style="font-family: Courier New,Courier,monospace">calc.c</span> module functions:</p> 
+
+<pre class="prettyprint">
+result_type calc_handle_key_press(calc *obj, key_type key)
+{
+&nbsp;&nbsp;&nbsp;RETVM_IF(!obj, RES_INTERNAL_ERROR, &quot;obj is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;if (CALC_KEY_RESET == key)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_calc_reset(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return RES_OK;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;RETVM_IF(obj-&gt;error, RES_ILLEGAL_STATE, &quot;Calculator is in error state&quot;);
+
+&nbsp;&nbsp;&nbsp;result_type result = RES_INTERNAL_ERROR;
+
+&nbsp;&nbsp;&nbsp;switch (key &amp; CALC_KEY_TYPE_MASK)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_TYPE_NUM:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = _calc_handle_num_key(obj, key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_TYPE_OP:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = _calc_handle_op_key(obj, key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = _calc_handle_etc_key(obj, key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (RES_OK != result)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_calc_handle_error(obj, result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return result;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return RES_OK;
+}
+
+result_type _calc_handle_etc_key(calc *obj, key_type key)
+{
+&nbsp;&nbsp;&nbsp;switch (key)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_RESULT:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return _calc_handle_result_key(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_SIGN:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return _calc_handle_sign_key(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_ERASE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return _calc_handle_erase_key(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return RES_ILLEGAL_ARGUMENT;
+&nbsp;&nbsp;&nbsp;}
+}
+
+result_type _calc_handle_num_key(calc *obj, key_type key)
+{
+&nbsp;&nbsp;&nbsp;bool reset = false;
+&nbsp;&nbsp;&nbsp;if (!obj-&gt;in_edit_mode)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;in_edit_mode = true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;reset = true;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return display_enter_key(&amp;obj-&gt;disp, key, reset);
+}
+
+result_type _calc_handle_op_key(calc *obj, key_type key)
+{
+&nbsp;&nbsp;&nbsp;switch (key)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_ADD:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_SUB:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_MUL:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_DIV:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return RES_ILLEGAL_ARGUMENT;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;_calc_end_edit_mode(obj);
+
+&nbsp;&nbsp;&nbsp;result_type result = RES_OK;
+
+&nbsp;&nbsp;&nbsp;if (!obj-&gt;dirty)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;dirty = true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;acc = obj-&gt;num;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (obj-&gt;num_is_new)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = _calc_perform_op(obj, obj-&gt;num);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;obj-&gt;num_is_new = false;
+&nbsp;&nbsp;&nbsp;obj-&gt;op = key;
+
+&nbsp;&nbsp;&nbsp;return result;
+}
+
+result_type _calc_handle_result_key(calc *obj)
+{
+&nbsp;&nbsp;&nbsp; _calc_end_edit_mode(obj);
+
+&nbsp;&nbsp;&nbsp;if (obj-&gt;dirty)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;dirty = false;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;rep = obj-&gt;num;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (obj-&gt;num_is_new)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;acc = obj-&gt;num;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;obj-&gt;num_is_new = false;
+
+&nbsp;&nbsp;&nbsp;return _calc_perform_op(obj, obj-&gt;rep);
+}
+
+result_type _calc_handle_sign_key(calc *obj)
+{
+&nbsp;&nbsp;&nbsp;if (obj-&gt;in_edit_mode)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_negate(&amp;obj-&gt;disp);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_calc_perform_negate_func(obj);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return RES_OK;
+}
+
+result_type _calc_handle_erase_key(calc *obj)
+{
+&nbsp;&nbsp;&nbsp;RETVM_IF(!obj-&gt;in_edit_mode, RES_ILLEGAL_STATE, &quot;Not in edit mode&quot;);
+
+&nbsp;&nbsp;&nbsp;return display_erase(&amp;obj-&gt;disp);
+}
+
+void _calc_end_edit_mode(calc *obj)
+{
+&nbsp;&nbsp;&nbsp;if (obj-&gt;in_edit_mode)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;in_edit_mode = false;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;num = display_get_number(&amp;obj-&gt;disp);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;num_is_new = true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This removes extra chars from the current display (for example: 2.300 -&gt; 2.3; -0.0 -&gt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_set_number(&amp;obj-&gt;disp, obj-&gt;num);
+&nbsp;&nbsp;&nbsp;}
+}
+
+result_type _calc_perform_op(calc *obj, double rv)
+{
+&nbsp;&nbsp;&nbsp;switch (obj-&gt;op)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_ADD:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;acc += rv;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_SUB:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;acc -= rv;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_MUL:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;acc *= rv;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case CALC_KEY_DIV:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (fabs(rv) &lt;= CALC_ZERO_EPS)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ((fabs(obj-&gt;acc) &lt;= CALC_ZERO_EPS) ? RES_UNDEFINED_VALUE : RES_DIVISION_BY_ZERO);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;acc /= rv;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return RES_INTERNAL_ERROR;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;result_type result = display_set_number(&amp;obj-&gt;disp, obj-&gt;acc);
+&nbsp;&nbsp;&nbsp;RETVM_IF(RES_OK != result, result, &quot;Failed to set display number: f&quot;, obj-&gt;acc);
+
+&nbsp;&nbsp;&nbsp;// Get number back from display to get rounded value
+&nbsp;&nbsp;&nbsp;obj-&gt;num = display_get_number(&amp;obj-&gt;disp);
+&nbsp;&nbsp;&nbsp;obj-&gt;acc = obj-&gt;num;
+
+&nbsp;&nbsp;&nbsp;return RES_OK;
+}
+
+void _calc_perform_negate_func(calc *obj)
+{
+&nbsp;&nbsp;&nbsp;if (0.0 != obj-&gt;num)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj-&gt;num = -obj-&gt;num;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void)display_set_number(&amp;obj-&gt;disp, obj-&gt;num);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;obj-&gt;num_is_new = true;
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">disp.c</span> module handles user number input and rounds calculation results in a string representation. This module contains the following functions:</p>
+
+<ul><li><span style="font-family: Courier New,Courier,monospace">display_reset()</span> function resets the display to the initial state (<span style="font-family: Courier New,Courier,monospace">0</span>).</li> 
+<li><span style="font-family: Courier New,Courier,monospace">display_set_number()</span> function is used to set a number to the display after the computations in the model. The number is rounded and converted to a string.</li> 
+<li><span style="font-family: Courier New,Courier,monospace">display_get_number()</span> function converts a string number on the display to a double value.</li>
+<li><span style="font-family: Courier New,Courier,monospace">display_enter_key()</span> and <span style="font-family: Courier New,Courier,monospace">display_erase()</span> functions are used to edit a number in the display.</li>
+<li><span style="font-family: Courier New,Courier,monospace">display_negate()</span> function adds or removes a negative sign on the non-zero number on the display. If the number is zero, this function does nothing. </li>
+<li><span style="font-family: Courier New,Courier,monospace">display_set_str()</span> function is used in special cases to set an error message to the display of the calculator. After this function, the display must be reset to work properly.</li></ul>
+
+<pre class="prettyprint">
+// Data structure of the display object
+typedef struct
+{
+&nbsp;&nbsp;&nbsp;char str[DISP_STR_SIZE]; // String buffer of the display
+&nbsp;&nbsp;&nbsp;int len; // Length of the string in the buffer
+&nbsp;&nbsp;&nbsp;int dig_count; // Count of decimal digits in the string
+&nbsp;&nbsp;&nbsp;bool is_neg; // Is number in the string negative
+&nbsp;&nbsp;&nbsp;bool has_dec_point; // Does number in the string contain decimal point
+
+&nbsp;&nbsp;&nbsp;notify_cb change_cb; // Callback to be invoked on display string change
+&nbsp;&nbsp;&nbsp;void *change_cb_data; // Data pointer for the callback
+
+&nbsp;&nbsp;&nbsp;char dec_point_char; // Current decimal point character used by the display
+} display;
+
+// Reset display to &quot;0&quot;
+void display_reset(display *obj);
+
+// Set new decimal pointer character to use
+void display_set_dec_point_char(display *obj, char new_dec_point_char);
+
+// Set double value number to the display
+result_type display_set_number(display *obj, double value);
+
+// Get number from display as double value
+double display_get_number(display *obj);
+
+// Process number key category to enter new characters to display
+result_type display_enter_key(display *obj, key_type key, bool reset);
+
+// Erase last entered character
+result_type display_erase(display *obj);
+
+// Negate number on display
+void display_negate(display *obj);
+
+// Set string message to display
+void display_set_str(display *obj, const char *new_str);</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

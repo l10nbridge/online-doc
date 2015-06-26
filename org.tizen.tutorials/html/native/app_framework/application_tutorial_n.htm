@@ -102,11 +102,11 @@
 
  <h2 id="fundamentals" name="fundamentals">Handling the Application Fundamentals</h2>
 
-<p>Appcore is the framework all Tizen applications are based on. It is simple and only handles interactions between applications and the operating system.</p>
-<p>An application starts with the <span style="font-family: Courier New,Courier,monospace;">main()</span> function. It initializes the appcore and starts it.</p>
-<p>The code below is the minimal application using appcore. It only builds and runs.</p>
+<p>The Application API is the framework all Tizen applications are based on. It is simple and only handles interactions between applications and the operating system.</p>
+<p>An application starts with the <span style="font-family: Courier New,Courier,monospace;">main()</span> function. It initializes the Application API and starts it.</p>
+<p>The code below is the minimal application using the Application API. It only builds and runs.</p>
 <pre class="prettyprint">
-// Add this include to be able to use the functions from appcore.
+// Add this include to be able to use the functions from the Application API
 #include &lt;app.h&gt;
 
 int
@@ -120,23 +120,23 @@ main(int argc, char *argv[])
 }
 </pre>
 
-<p>Appcore is based on callbacks. There are two classes of callbacks: those about the application&#39;s life-cycle and those about the system.</p>
+<p>The Application API has 2 classes of application state callbacks: those about the application&#39;s life-cycle and those about the system.</p>
 <p>The application&#39;s life-cycle callbacks are:</p>
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace;">create</span>: first initialization, comes after <span style="font-family: Courier New,Courier,monospace;">app_main()</span> has been called and initializes UI.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">create</span>: first initialization, comes after <span style="font-family: Courier New,Courier,monospace;">ui_app_main()</span> has been called and initializes UI.</li>
 <li><span style="font-family: Courier New,Courier,monospace;">control</span>: triggered when the application is started to do something. It can be called several times during the lifespan of an application, it shows the screen for the action requested. It requires specific information given to the callback.</li>
 <li><span style="font-family: Courier New,Courier,monospace;">terminate</span>: saves work, releases resources, and exits.</li>
 <li><span style="font-family: Courier New,Courier,monospace;">pause</span>: sets the application&#39;s window not visible and switches to a mode which uses less resources.</li>
 <li><span style="font-family: Courier New,Courier,monospace;">resume</span>: sets the application&#39;s window to be visible again.</li>
 </ul>
 
-<p>Then, system-related callbacks:</p>
+<p>The system-related callbacks can be handled with the <span style="font-family: Courier New,Courier,monospace;">app_event_cb()</span> callback:</p>
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace;">low_memory</span>: the system is running low on memory, saves work, and releases resources; if this is not enough are freed, some applications will be killed.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">low_battery</span>: the system is running low on battery (less than 5%), saves work and avoids battery-draining workloads.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">device_orientation</span>: the screen orientation changed between vertical and horizontal, orientation information is given to the callback.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">language_changed</span>: language of the system is changed and messages are translated.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">region_format_changed</span>: time zone has changed.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_LOW_MEMORY</span>: Event type responsible for saving data in the main memory to a persistent memory or storage to avoid data loss in case the Tizen platform Low Memory Killer kills your application to get more free memory. The event is also used to release any cached data in the main memory to secure more free memory.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_LOW_BATTERY</span>: Event type responsible for saving data in the main memory to a persistent memory or storage to avoid data loss in case the power goes off completely. The event is also used to stop heavy CPU consumption or power consumption activities to save the remaining power.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_DEVICE_ORIENTATION_CHANGED</span>: Event type responsible for changing the display orientation to match the device orientation.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_LANGUAGE_CHANGED</span>: Event type responsible for refreshing the display into the new language.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_REGION_FORMAT_CHANGED</span>: Event type responsible for refreshing the display into the new time zone.</li>
 </ul>
 
 <p>A basic implementation is shown below:</p>
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
 #include &lt;app.h&gt;
 
 // Structure to store the data for application&#39;s logic; it is given
-// to each callback invoked through appcore
+// to each callback invoked through the Application API
 typedef struct appdata 
 {
 &nbsp;&nbsp;&nbsp;char *several;
@@ -200,12 +200,6 @@ app_terminate(void *data)
 &nbsp;&nbsp;&nbsp;// destroy_gui(ad);
 }
 
-static void
-app_device_orientation(void *data)
-{
-&nbsp;&nbsp;&nbsp;// Takes necessary actions when device orientation changes
-}
-
 int
 main(int argc, char *argv[])
 {
@@ -226,7 +220,7 @@ main(int argc, char *argv[])
 </pre>
 
 <p> The last section of this tutorial describes app control. It is a mechanism through which an application receives additional information about why it was started and with which parameters.</p>
-<p>An application receives a handle to an app control object in the <span style="font-family: Courier New,Courier,monospace;">app_control callback</span>. A definition for that callback is: </p>
+<p>An application receives a handle to an app control object in the <span style="font-family: Courier New,Courier,monospace;">app_control</span> callback. A definition for that callback is: </p>
 <pre class="prettyprint">app_control_cb(app_control_h app_control, void *user_data);
 </pre>
 
@@ -269,75 +263,105 @@ ret = app_control_create(&amp;app);
 if (ret != APP_CONTROL_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_create() is failed. err = %d&quot;, ret);
 
-ret = app_control_set_operation(app, APP_CONTROL_OPERATION_SEND);
+ret = app_control_set_operation(app, APP_CONTROL_OPERATION_VIEW);
 if (ret != APP_CONTROL_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_set_operation() is failed. err = %d&quot;, ret);
 
-ret = app_control_add_extra_data(app, APP_CONTROL_DATA_TEXT, message);
+ret = app_control_set_mime(app, &quot;image/jpeg&quot;);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_set_mime() is failed. err = %d&quot;, ret);
+
+ret = app_control_add_extra_data(app, Your Message Key, message);
 if (ret != APP_CONTROL_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_add_extra_data() is failed. err = %d&quot;, ret);
-
-ret = app_control_add_extra_data(app, APP_CONTROL_DATA_TO, mail_address);
-if (ret != APP_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_add_extra_data() is failed. err = %d&quot;, ret);
-
-ret = app_control_add_extra_data(app, APP_CONTROL_DATA_SUBJECT, subject);
-if (ret != APP_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_add_extra_data() is failed. err = %d&quot;, ret);
-
-ret = app_control_set_app_id (app, &lt;Your app ID&gt;);				
-if (ret != APP_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_set_app_id() is failed. err = %d&quot;, ret); 
 </pre>
 
-<p>The following table lists the available extra data parameters.</p>
+<p>The following table lists the available base application services.</p>
 
-<table> 
-   <caption>
-     Table: Extra data parameters
-   </caption> 
-   <tbody> 
-    <tr> 
-     <th>Extra data</th> 
-     <th>Description</th> 
-    </tr> 
-    <tr> 
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_SUBJECT</span></td> 
-     <td>Subject line of the email</td> 
-    </tr> 
-    <tr> 
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_TO</span></td> 
-     <td>Email address(es) of the primary recipient(s)</td> 
-    </tr> 
-    <tr> 
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_CC</span></td> 
-     <td>Email address(es) of the recipient(s) to be carbon-copied</td> 
-    </tr>
-    <tr> 
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_BCC</span></td> 
-     <td>Email address(es) of the private recipient(s)</td> 
-    </tr>
-    <tr> 
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_TEXT</span></td> 
-     <td>Message body of the email</td> 
-    </tr>
-    <tr> 
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_TITLE</span></td> 
-     <td>The title of the data</td> 
-    </tr>
-    <tr> 
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_SELECTED</span></td> 
-     <td>The path of the selected item</td> 
-    </tr>	
-   </tbody> 
-</table> 
+   <table style="vertical-align: middle; text-align: center;">
+		   <caption>
+				   Table: Tizen base application services
+		   </caption>
+
+		   <tbody>
+		   <tr>
+				   <th>Service</th>
+				   <th>Operation</th>
+				   <th>Scheme</th>
+				   <th>MIME</th>
+		   </tr>
+		   <tr>
+				   <td style="vertical-align: middle; text-align: center;">Browsing a Web page</td>
+				   <td style="vertical-align: middle; text-align: center;" rowspan="4"><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+				   <td style="vertical-align: middle; text-align: center;">
+						   <ul>
+								   <li><span style="font-family: Courier New,Courier,monospace">http</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">https</span></li>
+						   </ul>
+				   </td>
+				   <td style="vertical-align: middle; text-align: center;">-</td>
+		   </tr>
+		   <tr>
+				   <td style="vertical-align: middle; text-align: center;">Displaying an image</td>
+				   <td style="vertical-align: middle; text-align: center;">
+						   <ul>
+								   <li><span style="font-family: Courier New,Courier,monospace">file</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">http</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">https</span></li>
+						   </ul>
+				   </td>
+				   <td style="vertical-align: middle; text-align: center;">
+						   <ul>
+								   <li><span style="font-family: Courier New,Courier,monospace">image/bmp</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">image/gif</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">image/jpeg</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">image/png</span></li>
+						   </ul>
+				   </td>
+		   </tr>
+		   <tr>
+				  <td style="vertical-align: middle; text-align: center;">Playing a sound file</td>
+				   <td style="vertical-align: middle; text-align: center;" rowspan="3"><span style="font-family: Courier New,Courier,monospace">file</span></td>
+				   <td style="vertical-align: middle; text-align: center;">
+						   <ul>
+								   <li><span style="font-family: Courier New,Courier,monospace">audio/aac</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">audio/amr</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">audio/mp3</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">audio/wav</span></li>
+						   </ul>
+				   </td>
+		   </tr>
+		   <tr>
+				   <td style="vertical-align: middle; text-align: center;">Playing a video file</td>
+				   <td style="vertical-align: middle; text-align: center;">
+						   <ul>
+								   <li><span style="font-family: Courier New,Courier,monospace">video/mp4</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">video/3gpp</span></li>
+						   </ul>
+				   </td>
+		   </tr>
+		   <tr>
+				   <td style="vertical-align: middle; text-align: center;">Selecting a file</td>
+				   <td style="vertical-align: middle; text-align: center;"><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/pick</span></td>
+				   <td style="vertical-align: middle; text-align: center;">
+						   <ul>
+								   <li><span style="font-family: Courier New,Courier,monospace">*/*</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">image/*</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">video/*</span></li>
+								   <li><span style="font-family: Courier New,Courier,monospace">audio/*</span></li>
+						   </ul>
+				   </td>
+		   </tr>
+		   </tbody>
+   </table>
 </li>
 
 <li>
-  <p>Launch <span style="font-family: Courier New,Courier,monospace">app_control</span>.</p>	
-  
-  <p>After preparing <span style="font-family: Courier New,Courier,monospace">app_control</span>, launch it using the <span style="font-family: Courier New,Courier,monospace">app_control_send_launch_request()</span> function, as described above.</p>
-  <pre class="prettyprint">
+<p>Launch <span style="font-family: Courier New,Courier,monospace">app_control</span>.</p>
+
+<p>After preparing <span style="font-family: Courier New,Courier,monospace">app_control</span>, launch it using the <span style="font-family: Courier New,Courier,monospace">app_control_send_launch_request()</span> function:</p>
+
+<pre class="prettyprint">
 ret = app_control_send_launch_request(app, NULL, NULL);
 if (ret != APP_CONTROL_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_send_launch_request() is failed. err = %d&quot;, ret);
@@ -391,6 +415,7 @@ if (ret != APP_CONTROL_ERROR_NONE)
 <ol><li>To use the functions and data types of the Alarm API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__ALARM__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__ALARM__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;app.h&gt;</span> header file in your application:
 <pre class="prettyprint">
 #include &lt;app.h&gt;
+#include &lt;app_alarm.h&gt;
 </pre></li>
 
 <li>The <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.get</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.set</span> privileges are required for the Alarm API.
@@ -398,16 +423,17 @@ if (ret != APP_CONTROL_ERROR_NONE)
 
 <h2 id="scenario_1" name="scenario_1">Setting an Alarm after Specific Time</h2>
 
-   <table class="note">
+<table class="note">
     <tbody>
      <tr>
       <th class="note">Note</th>
      </tr>
      <tr>
-      <td class="note">Since 2.4, <span style="font-family: Courier New,Courier,monospace">alarm_schedule_after_delay()</span> method does not support exact period and delay for minimizing the wakeups of the device. The system can adjust when the alarm expires.</td>
+      <td class="note">Since 2.4, the <span style="font-family: Courier New,Courier,monospace">alarm_schedule_after_delay()</span> function does not support an exact period and delay for minimizing the wake-ups of the device. The system can adjust when the alarm expires.</td>
      </tr>
     </tbody>
-   </table>
+</table>
+
 
 <p>To set an alarm after a specific time:</p>
 
@@ -440,8 +466,8 @@ bool init_alarm()
 	<p>To schedule an alarm after a delay, the function requires 4 parameters:</p>
   <ul>
 	<li>[in] <span style="font-family: Courier New,Courier,monospace">app_control</span>: The destination <span style="font-family: Courier New,Courier,monospace">app_control</span> to perform the specific work when the alarm is triggered</li>	
-	<li>[in] <span style="font-family: Courier New,Courier,monospace">delay</span>: The amount of time before the first execution (in seconds) Since 2.4, Although this is inexact, the alarm will not fire before this time</li>
-	<li>[in] <span style="font-family: Courier New,Courier,monospace">period</span>: The amount of time before a subsequent alarm (in seconds). Since 2.4, This value does not guarantee the accuracy. The actual interval is calculated by the OS. The minimum value is 600sec.</li>
+	<li>[in] <span style="font-family: Courier New,Courier,monospace">delay</span>: The amount of time before the first execution (in seconds). Since 2.4, although this is inexact, the alarm does not fire before this time. </li>
+	<li>[in] <span style="font-family: Courier New,Courier,monospace">period</span>: The amount of time before a subsequent alarm (in seconds). Since 2.4, this value does not guarantee accuracy. The actual interval is calculated by the OS, and the minimum value is 600 seconds.</li>
 	<li>[out] <span style="font-family: Courier New,Courier,monospace">alarm_id</span> The alarm ID that uniquely identifies an alarm</li>
   </ul>
 
@@ -542,17 +568,17 @@ date.tm_sec+=4;
 ret = alarm_schedule_at_date(app, &amp;date, 0, &amp;alarm_id);	
 </pre>
 
-
-   <table class="note">
+<table class="note">
     <tbody>
      <tr>
       <th class="note">Note</th>
      </tr>
      <tr>
-      <td class="note">The <span style="font-family: Courier New,Courier,monospace">alarm_schedule_at_date()</span> method has been deprecated since Tizen 2.4. Use the <span style="font-family: Courier New,Courier,monospace">alarm_schedule_once_at_date()</span> method instead.</td>
+      <td class="note">The <span style="font-family: Courier New,Courier,monospace">alarm_schedule_at_date()</span> function has been deprecated since Tizen 2.4. Use the <span style="font-family: Courier New,Courier,monospace">alarm_schedule_once_at_date()</span> function instead.</td>
      </tr>
     </tbody>
-   </table>
+</table>
+
 
 <h2 id="scenario_3" name="scenario_3">Setting a Recurring Alarm at a Specific Time of the Day</h2>
 
@@ -603,20 +629,19 @@ int alarm_cancel(int alarm_id)
 static bool on_foreach_registered_alarm(int alarm_id, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;int flag;
-&nbsp;&nbsp;&nbsp;int ret=0;
+&nbsp;&nbsp;&nbsp;int ret = 0;
 &nbsp;&nbsp;&nbsp;struct tm date;
 &nbsp;&nbsp;&nbsp;time_t time_current;
 
 &nbsp;&nbsp;&nbsp;ret = alarm_get_scheduled_date(alarm_id, &amp;date);
-&nbsp;&nbsp;&nbsp;if (ret != ALARM_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;if (ret != ALARM_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Get time Error : %d &quot;, ret);
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;
 &nbsp;&nbsp;&nbsp;// Logging scheduled alarm&#39;s info
 &nbsp;&nbsp;&nbsp;time_current = mktime(&amp;date);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, 
-&nbsp;&nbsp;&nbsp;&quot; Registered alarm:%d on date:%s &quot;, alarm_id, ctime(&amp;time_current));
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Registered alarm:%d on date:%s &quot;, alarm_id, ctime(&amp;time_current));
 
 &nbsp;&nbsp;&nbsp;ret = alarm_get_scheduled_recurrence_week_flag(alarm_id, &amp;flag);
 &nbsp;&nbsp;&nbsp;if (ret==0)
@@ -624,8 +649,7 @@ static bool on_foreach_registered_alarm(int alarm_id, void *user_data)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_SUNDAY)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on SUNDAY \n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_MONDAY)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &quot; Alarm Recurrence on MONDAY \n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on MONDAY \n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_TUESDAY)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Alarm Recurrence on TUESDAY \n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (flag &amp; ALARM_WEEK_FLAG_WEDNESDAY)
@@ -650,8 +674,7 @@ static bool on_foreach_registered_alarm(int alarm_id, void *user_data)
 </pre>
 
 <pre class="prettyprint">
-ret = alarm_foreach_registered_alarm(
-&nbsp;&nbsp;&nbsp;on_foreach_registered_alarm, NULL);
+ret = alarm_foreach_registered_alarm(on_foreach_registered_alarm, NULL);
 if (ret != ALARM_ERROR_NONE) 
 {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Listing Error : %d &quot;, ret);
@@ -661,12 +684,15 @@ if (ret != ALARM_ERROR_NONE)
 
  <h2 id="manage_pref" name="manage_pref">Managing Application Preferences</h2>
 
+ <p>You can set and get application preference data. Any stored preference data can also be shared with among the applications in the same package.</p>
+ 
 <p>To manage preferences:</p>
 
 <ol><li>			
 <p>To use the functions and data types of the Preference API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PREFERENCE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__PREFERENCE__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;app.h&gt;</span> header file in your application:</p>
 <pre class="prettyprint">
 #include &lt;app.h&gt;
+#include &lt;app_preference.h&gt;
 </pre></li>
 
 <li>Store and retrieve simple type variables.

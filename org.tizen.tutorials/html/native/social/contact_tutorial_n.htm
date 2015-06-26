@@ -486,13 +486,14 @@ static contacts_gl_person_data_t* _create_gl_person_data(contacts_record_h recor
 <p>You can get the associated contacts of a person by query. In this example, you get the associated contact records.</p>
 <pre class="prettyprint">static bool _get_associated_contacts(contacts_record_h record, contacts_list_h *associated_contacts)
 {
-&nbsp;&nbsp;&nbsp;int error_code = CONTACTS_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;int error_code;
 &nbsp;&nbsp;&nbsp;int person_id;
 &nbsp;&nbsp;&nbsp;contacts_query_h query = NULL;
 &nbsp;&nbsp;&nbsp;contacts_filter_h filter = NULL;
 
 &nbsp;&nbsp;&nbsp;error_code = contacts_record_get_int(record, _contacts_person.id, &amp;person_id);
 
+&nbsp;&nbsp;&nbsp;error_code = CONTACTS_ERROR_NONE;
 &nbsp;&nbsp;&nbsp;error_code += contacts_query_create(_contacts_contact._uri, &amp;query);
 &nbsp;&nbsp;&nbsp;error_code += contacts_filter_create(_contacts_contact._uri, &amp;filter);
 &nbsp;&nbsp;&nbsp;error_code += contacts_filter_add_int(filter, _contacts_contact.person_id, CONTACTS_MATCH_EQUAL, person_id);
@@ -1359,6 +1360,7 @@ error_code = contacts_vcard_parse_to_contact_foreach(temp_path, // File path of 
 &nbsp;&nbsp;&nbsp;return true;
 }</pre>
 
+
  <h2 id="sd_create" name="sd_create">Creating a Speed Dial</h2>
 
 <p>To create a speed dial record:</p>
@@ -1762,6 +1764,7 @@ int speeddial_number = ... // Acquire speed dial number
 
 error_code = contacts_db_delete_record(_contacts_speeddial._uri, speeddial_number);
 </pre>
+ 
 
  <h2 id="pl_create" name="pl_create">Creating a Log</h2>
 
@@ -2956,23 +2959,63 @@ bool contacts_vcard_cb(contacts_record_h record, void *user_data)
 </li>
 
 <li>Import the vCard stream.
-<ul><li><p>Get all the files with a .vcf extension from the directory. It can be done through dirent structures available in the <span style="font-family: Courier New,Courier,monospace;">&lt;dirent.h&gt;</span> header. The following example gets the path to every file in a directory:</p>
+<ul><li><p>Get all the files with a <span style="font-family: Courier New,Courier,monospace;">.vcf</span> extension from the directory. It can be done through dirent structures available in the <span style="font-family: Courier New,Courier,monospace;">&lt;dirent.h&gt;</span> header. The following example gets the path to every file in a directory:</p>
 
 <pre class="prettyprint">
-char folder[] = &quot;/tmp&quot;;
-DIR *dir = opendir(folder);
-struct dirent *pDirent = NULL;
-if (dir) 
+int internal_storage_id;
+char *vcf_path = NULL;
+
+static bool 
+storage_cb(int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;while ((pDirent = readdir(dir)) != NULL) 
+&nbsp;&nbsp;&nbsp;if (type == STORAGE_TYPE_INTERNAL)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_storage_id = storage_id;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+void 
+_get_storage_path()
+{
+&nbsp;&nbsp;&nbsp;int error_code = 0;
+&nbsp;&nbsp;&nbsp;char *path = NULL;
+
+&nbsp;&nbsp;&nbsp;error_code = storage_foreach_device_supported(storage_cb, NULL);
+&nbsp;&nbsp;&nbsp;error_code = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_DOWNLOADS, &amp;path);
+&nbsp;&nbsp;&nbsp;if (error_code != STORAGE_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vcf_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;}
+}
+
+void 
+_import_vcard()
+{
+&nbsp;&nbsp;&nbsp;int path_len = 0;
+
+&nbsp;&nbsp;&nbsp;DIR *dir = opendir(vcf_path);
+&nbsp;&nbsp;&nbsp;struct dirent *pDirent = NULL;
+&nbsp;&nbsp;&nbsp;if (NULL == dir)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(vcf_path);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;while ((pDirent = readdir(dir)) != NULL)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (pDirent-&gt;d_type != DT_REG)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *extension = strrchr(pDirent-&gt;d_name, &#39;.&#39;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!extension || strcmp(extension, &quot;.vcf&quot;))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char * filepath = malloc(strlen(folder)+strlen(pDirent-&gt;d_name)+4);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(filepath, &quot;%s/%s&quot;, folder, pDirent-&gt;d_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char * filepath = malloc(strlen(vcf_path)+strlen(pDirent-&gt;d_name)+4);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(filepath, &quot;%s/%s&quot;, vcf_path, pDirent-&gt;d_name);
         
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Full path to file available through filepath string
 
@@ -3010,7 +3053,7 @@ free(vcard_stream);
 <pre class="prettyprint">
 bool contacts_vcard_cb(contacts_record_h record, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;// Here you have record
+&nbsp;&nbsp;&nbsp;// Here you have a record
 &nbsp;&nbsp;&nbsp;return true;
 }
 
@@ -3081,7 +3124,7 @@ if (dir)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Here import
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Import the contacts
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;contacts_list_h list_import;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;err = contacts_vcard_parse_to_contacts(vcard_stream, &amp;list_import);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (err != 0)

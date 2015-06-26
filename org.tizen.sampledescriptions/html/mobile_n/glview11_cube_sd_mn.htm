@@ -1,0 +1,329 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>GLView11Cube Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>GLView11Cube Sample Overview</h1> 
+
+<p>The GLView11Cube sample demonstrates how you can use ElmGLView to create a 3D cube using OpenGL&reg; ES 1.1.</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">The application presented in this overview is not a full Tizen application, since it does not use the Application Framework. The application simply starts and runs.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+
+<p>This sample extends the functionality of OpenGL&reg; ES 1.1 on the Tizen platform to create spinning 3D cubes. OpenGL&reg; is a standard specification defining a cross-language, cross-platform API for writing applications that produce 2D and 3D computer graphics. OpenGL&reg; ES 1.1 is light-weight but packed with functionalities for hardware acceleration, improved image quality with multi-texture support, and optimizations to increase performance while reducing memory bandwidth usage to save power. ElmGLView can support the surface for 3D rendering.</p>
+
+ <p class="figure">Figure: GLView11Cube</p> 
+ <p align="center"><img alt="GLView11Cube" src="../images/glview11_cube.png" /></p>  
+
+ 
+<h2>Initializing the Application</h2>
+<p>The easiest way to use OpenGL&reg; within an EFL application is to rely on the Elementary GLView component.</p>
+<p>Current GLView can support both GELS2.0 and 1.1. GLView with the GLES 1.1 basic application has a similar basic format as the other GLView application.</p>
+<p>Create a basic application:</p>
+<pre class="prettyprint">
+#include &lt;Evas_GL.h&gt;
+#include &lt;Elementary.h&gt;
+#include &lt;efl_extension.h&gt;
+#include &lt;dlog.h&gt;
+</pre>
+
+<p>The GLView application should include the header files as the <span style="font-family: Courier New,Courier,monospace">&lt;Evas_GL.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace">&lt;Elementary.h&gt;</span>. The <span style="font-family: Courier New,Courier,monospace">&lt;efl_extension.h&gt;</span> header file is related to key events and the <span style="font-family: Courier New,Courier,monospace">&lt;dlog.h&gt;</span> header file is for seeing logs.</p>
+<pre class="prettyprint">
+#define S(a) evas_object_show(a)
+
+#define SX(a) do 
+{
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(a, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(a, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_show(a);
+} while (0)
+
+#define SF(a) do 
+{
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(a, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(a, 0.00001, 0.00001);
+&nbsp;&nbsp;&nbsp;evas_object_show(a);
+} while (0)
+
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *o, *t;
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s*)data;
+
+&nbsp;&nbsp;&nbsp;// Force OpenGL engine
+&nbsp;&nbsp;&nbsp;elm_config_accel_preference_set(&quot;opengl&quot;);
+
+&nbsp;&nbsp;&nbsp;// Add a window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = o = elm_win_add(NULL,&quot;glview&quot;, ELM_WIN_BASIC);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(o, &quot;delete,request&quot;, _close_cb, ad);
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(o, EVAS_CALLBACK_RESIZE, _win_resize_cb, ad);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(o, EEXT_CALLBACK_BACK, _close_cb, ad);
+&nbsp;&nbsp;&nbsp;S(o);
+
+&nbsp;&nbsp;&nbsp;// Add a background
+&nbsp;&nbsp;&nbsp;ad-&gt;bg = o = elm_bg_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;bg);
+&nbsp;&nbsp;&nbsp;elm_bg_color_set(o, 68, 68, 68);
+&nbsp;&nbsp;&nbsp;S(o);
+
+&nbsp;&nbsp;&nbsp;// Add a resize conformant
+&nbsp;&nbsp;&nbsp;ad-&gt;conform = o = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;SX(o);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;table = t = elm_table_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;S(t);
+
+&nbsp;&nbsp;&nbsp;o = elm_label_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(o, &quot;Gles 1.1 Cube&quot;);
+&nbsp;&nbsp;&nbsp;elm_table_pack(t, o, 1, 0, 3, 1);
+&nbsp;&nbsp;&nbsp;SF(o);
+
+&nbsp;&nbsp;&nbsp;o = elm_button_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(o, &quot;Quit&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(o, &quot;clicked&quot;, _close_cb, ad);
+&nbsp;&nbsp;&nbsp;elm_table_pack(t, o, 1, 9, 3, 1);
+&nbsp;&nbsp;&nbsp;SF(o);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;glview = o = _glview_create(ad);
+&nbsp;&nbsp;&nbsp;SX(o);
+
+&nbsp;&nbsp;&nbsp;// Add an animator to call _anim_cb_() every (1/60) seconds
+&nbsp;&nbsp;&nbsp;// _anim_cb() indicates that glview has changed, which eventually triggers
+&nbsp;&nbsp;&nbsp;// function (draw_gl() here) to redraw glview surface
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;ecore_animator_frametime_set(1.0 / 60.0);
+&nbsp;&nbsp;&nbsp;ad-&gt;anim = ecore_animator_add(_anim_cb, ad);
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;glview, EVAS_CALLBACK_DEL, _destroy_anim, ad-&gt;anim);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>To set the GL rendering engine, the application calls the <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set(&quot;opengl&quot;)</span> function with the special string:</p>
+<pre class="prettyprint">
+static Evas_Object*
+_glview_create(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *obj;
+
+&nbsp;&nbsp;&nbsp;// Create a GLView with an OpenGL&reg;-ES 1.1 context
+&nbsp;&nbsp;&nbsp;obj = elm_glview_version_add(ad-&gt;win, EVAS_GL_GLES_1_X);
+&nbsp;&nbsp;&nbsp;elm_table_pack(ad-&gt;table, obj, 1, 1, 3, 1);
+&nbsp;&nbsp;&nbsp;evas_object_data_set(obj, APPDATA_KEY, ad);
+
+&nbsp;&nbsp;&nbsp;elm_glview_mode_set(obj,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ELM_GLVIEW_ALPHA |
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ELM_GLVIEW_DEPTH
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  );
+&nbsp;&nbsp;&nbsp;elm_glview_resize_policy_set(obj, ELM_GLVIEW_RESIZE_POLICY_RECREATE);
+&nbsp;&nbsp;&nbsp;elm_glview_render_policy_set(obj, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);
+
+&nbsp;&nbsp;&nbsp;elm_glview_init_func_set(obj, init_gles);
+&nbsp;&nbsp;&nbsp;elm_glview_del_func_set(obj, destroy_gles);
+&nbsp;&nbsp;&nbsp;elm_glview_resize_func_set(obj, resize_gl);
+&nbsp;&nbsp;&nbsp;elm_glview_render_func_set(obj, draw_gl);
+
+&nbsp;&nbsp;&nbsp;return obj;
+}
+</pre>
+
+<p>To create ElmGLView with GLES 1.1, use the <span style="font-family: Courier New,Courier,monospace">elm_glview_version_add()</span> function with the specific version (<span style="font-family: Courier New,Courier,monospace">EVAS_GL_GLES_1_X</span>). The current ElmGLView can support both GLES 2.0 and 1.1.</p>
+
+<h2>Setting up Callbacks</h2>
+<p>To set up callbacks:</p>
+<ol>
+<li>Set the initialization callback.
+<p>The initialization callback is called when the GLView is first created, after a valid OpenGL&reg; context and surface have been created. This is called from the main loop, as are the 3 other callbacks.</p>
+<pre class="prettyprint">
+#include &lt;Elementary_GL_Helpers.h&gt;</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">&lt;Elementary_GL_Helpers.h&gt;</span> header file provides a set of convenience functions and macros. To use these functions and macros, include the header file in the application.</p>
+<pre class="prettyprint">
+void
+init_gles(Evas_Object *obj)
+{
+&nbsp;&nbsp;&nbsp;int w, h;
+&nbsp;&nbsp;&nbsp;appdata_s *ad;
+
+&nbsp;&nbsp;&nbsp;ELEMENTARY_GLVIEW_USE(obj);
+&nbsp;&nbsp;&nbsp;ad = evas_object_data_get(obj, APPDATA_KEY);
+
+&nbsp;&nbsp;&nbsp;glGenTextures(2, ad-&gt;tex_ids);
+
+&nbsp;&nbsp;&nbsp;// Create and map texture 1
+&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, ad-&gt;tex_ids[0]);
+&nbsp;&nbsp;&nbsp;glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 128, 128, 0, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4, IMAGE_4444_128_128_1);
+&nbsp;&nbsp;&nbsp;glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+&nbsp;&nbsp;&nbsp;glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+&nbsp;&nbsp;&nbsp;glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+&nbsp;&nbsp;&nbsp;glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+&nbsp;&nbsp;&nbsp;// Create and map texture 2
+&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, ad-&gt;tex_ids[1]);
+&nbsp;&nbsp;&nbsp;glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 128, 128, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, IMAGE_565_128_128_1);
+&nbsp;&nbsp;&nbsp;glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+&nbsp;&nbsp;&nbsp;glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+&nbsp;&nbsp;&nbsp;glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+&nbsp;&nbsp;&nbsp;glTexParameterx(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;current_tex_index = 0;
+
+&nbsp;&nbsp;&nbsp;glShadeModel(GL_SMOOTH);
+
+&nbsp;&nbsp;&nbsp;glEnable(GL_CULL_FACE);
+&nbsp;&nbsp;&nbsp;glCullFace(GL_BACK);
+
+&nbsp;&nbsp;&nbsp;glEnable(GL_DEPTH_TEST);
+&nbsp;&nbsp;&nbsp;glDepthFunc(GL_LESS);
+
+&nbsp;&nbsp;&nbsp;elm_glview_size_get(obj, &amp;w, &amp;h);
+&nbsp;&nbsp;&nbsp;set_perspective(obj, 60.0f, w, h, 1.0f, 400.0f);
+}
+</pre>
+
+<p>In the GLES 1.1 sample, 2 textures are created and mapped in this function.</p>
+</li>
+
+<li>Set the resize callback.
+<p>The resize callback is called whenever the GLView component is resized. A common action to take here is to reset the viewport and matrix mode.</p>
+<pre class="prettyprint">
+void resize_gl(Evas_Object *obj)
+{
+&nbsp;&nbsp;&nbsp;int w, h;
+
+&nbsp;&nbsp;&nbsp;elm_glview_size_get(obj, &amp;w, &amp;h);
+&nbsp;&nbsp;&nbsp;set_perspective(obj, 60.0f, w, h, 1.0f, 400.0f);
+}
+</pre>
+</li>
+
+<li>Set the draw callback.
+<p>The draw callback is called whenever a new frame has to be drawn. The exact moment when this function is called depends on the policy set when calling.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;elm_glview_render_policy_set(glview, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);</pre>
+
+<p>Another policy is <span style="font-family: Courier New,Courier,monospace">ELM_GLVIEW_POLICY_ALWAYS</span>.</p>
+<p>The application can now draw anything using GL primitives when this callback is triggered. All draw operations are restricted to the surface of the GLView object previously created. The following example covers the whole window:</p>
+<pre class="prettyprint">
+void draw_gl(Evas_Object *obj)
+{
+ELEMENTARY_GLVIEW_USE(obj);
+
+&nbsp;&nbsp;&nbsp;glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+&nbsp;&nbsp;&nbsp;glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+&nbsp;&nbsp;&nbsp;draw_cube1(obj);
+&nbsp;&nbsp;&nbsp;draw_cube2(obj);
+}
+</pre>
+</li>
+
+<li>Set the delete callback.
+<p>The delete callback is triggered when the GLView is destroyed from the main loop, and no other callback can be called on the same object afterwards. In GELS 1.1, 2 textures are deleted.</p>
+<pre class="prettyprint">
+void
+destroy_gles(Evas_Object *obj)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad;
+
+&nbsp;&nbsp;&nbsp;ELEMENTARY_GLVIEW_USE(obj);
+&nbsp;&nbsp;&nbsp;ad = evas_object_data_get(obj, APPDATA_KEY);
+
+&nbsp;&nbsp;&nbsp;if (ad-&gt;tex_ids[0])
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glDeleteTextures(1, &amp;(ad-&gt;tex_ids[0]));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;tex_ids[0] = 0;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (ad-&gt;tex_ids[1])
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glDeleteTextures(1, &amp;(ad-&gt;tex_ids[1]));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;tex_ids[1] = 0;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Add an animator.
+<p>The application above is technically working but the scene does not get updated unless the object is marked as such. Games usually use an animator to update the scene regularly. The following example shows a default update refresh rate:</p>
+<pre class="prettyprint">
+static Eina_Bool
+_anim_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;elm_glview_changed_set(ad-&gt;glview);
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+</pre>
+
+<p>Any other event can be used to refresh the view, for example, the user input if the view does not need to be updated.</p>
+</li>
+</ol>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">OpenGL&reg; ES 1.1 application can be implemented in Tizen. However, if OpenGL&reg; ES 1.1 and OpenGL&reg; ES 2.0 are used together, they cannot be used in the same file.</td> 
+		</tr> 
+	   </tbody> 
+	  </table>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

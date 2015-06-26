@@ -1,0 +1,203 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>[UI Sample] Animation Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+<h1>[UI Sample] Animation Sample Overview</h1>
+
+<p>The [UI Sample] Animation sample application demonstrates how to animate an object in the EDC view using an EDC context, such as <span style="font-family: Courier New,Courier,monospace;">transition</span>.</p>
+
+<p>The sample uses UI components, such as <span style="font-family: Courier New,Courier,monospace;">elm_conformant</span>, for view management, containers, such as <span style="font-family: Courier New,Courier,monospace;">elm_layout</span>, for UI component management inside the view, and the <span style="font-family: Courier New,Courier,monospace;">RECT</span> type (an EDC keyword) for the contents of the EDC view.</p>
+
+<p>The following figure illustrates the [UI Sample] Animation main screen, its wireframe structure, and the UI component tree.</p>
+
+<p class="figure">Figure: [UI Sample] Animation main screen</p>
+<p align="center"><img alt="Animation main screen" src="../images/animation_main.png" /></p>
+
+<p align="center"><img alt="Animation UI component tree" src="../images/edc_main_tree.png" /></p>
+
+<h2 id="layout" name="layout">Application Layout</h2>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">create_base_gui()</span> function creates the window, conformant, and layout. The EDC file is then inserted into the layout.</p>
+
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+
+&nbsp;&nbsp;&nbsp;// Create window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_conformant_set(ad-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad-&gt;win))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = { 0, 90, 180, 270 };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Create conformant
+&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(ad-&gt;win, ELM_WIN_INDICATOR_SHOW);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_opacity_set(ad-&gt;win, ELM_WIN_INDICATOR_OPAQUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;// Create base layout
+&nbsp;&nbsp;&nbsp;app_get_resource(EDJ_FILE, edj_path, (int)PATH_MAX);
+&nbsp;&nbsp;&nbsp;ad-&gt;layout = elm_layout_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(ad-&gt;layout, edj_path, GRP_MAIN);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;layout, EEXT_CALLBACK_BACK, layout_back_cb, ad);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(ad-&gt;conform, ad-&gt;layout);
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre>
+
+<h2 id="view" name="view">EDC View</h2>
+
+<p>The following figure illustrates the EDC view wireframe and tree structure.</p>
+<p class="figure">Figure: EDC view</p>
+<p align="center"><img alt="EDC view" src="../images/animation_view_contents_wire_tree.png" /></p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">animation.edc</span> file is used to move a rectangle (<span style="font-family: Courier New,Courier,monospace;">part_one</span>) with the EDC <span style="font-family: Courier New,Courier,monospace;">transition</span> property specified in a <span style="font-family: Courier New,Courier,monospace;">program</span> block. The file uses 3 <span style="font-family: Courier New,Courier,monospace;">program</span>s to move the rectangle.</p>
+
+<p>The following code is the entire EDC script of the <span style="font-family: Courier New,Courier,monospace;">animation.edc</span> file:</p>
+
+<pre class="prettyprint">
+collections
+{
+&nbsp;&nbsp;&nbsp;group
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;main&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;part_one&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 255 128;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;scale_down&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 100 100;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.5 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.5 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 255 50;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;move&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 100 100;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.5 0.2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.5 0.2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 255 50;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;programs
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;program
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signal: &quot;load&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;after: &quot;scale_down_animation&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;program
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;scale_down_animation&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signal: &quot;animation,start&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;scale_down&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target: &quot;part_one&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;transition: LINEAR 3.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;after: &quot;move_animation&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;program
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;move_animation&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signal: &quot;animation,start&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;move&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target: &quot;part_one&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;transition: ACCELERATE 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">parts</span> block consists of a single <span style="font-family: Courier New,Courier,monospace;">part</span>, which is the rectangle (<span style="font-family: Courier New,Courier,monospace;">RECT</span>) used to illustrate scaling and moving animations. The <span style="font-family: Courier New,Courier,monospace;">part</span> has 3 <span style="font-family: Courier New,Courier,monospace;">description</span> elements for changing its state: <span style="font-family: Courier New,Courier,monospace;">default</span>, <span style="font-family: Courier New,Courier,monospace;">scale_down</span>, and <span style="font-family: Courier New,Courier,monospace;">move</span>. Each <span style="font-family: Courier New,Courier,monospace;">description</span> defines a set of properties for changing the shape and position of the rectangle through animation. The <span style="font-family: Courier New,Courier,monospace;">scale_down</span> state defines a smaller size for the rectangle, and the <span style="font-family: Courier New,Courier,monospace;">move</span> state defines a new position for the rectangle.</p>
+
+<p>The animations are defined in the <span style="font-family: Courier New,Courier,monospace;">programs</span> block. The first <span style="font-family: Courier New,Courier,monospace;">program</span> block is used to call the second <span style="font-family: Courier New,Courier,monospace;">program</span> block, named <span style="font-family: Courier New,Courier,monospace;">scale_down_animation</span>. The <span style="font-family: Courier New,Courier,monospace;">after</span> keyword is used to call the <span style="font-family: Courier New,Courier,monospace;">scale_down_animation</span> operation.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">scale_down_animation</span> operation is defined with the following properties: <span style="font-family: Courier New,Courier,monospace;">signal</span>, <span style="font-family: Courier New,Courier,monospace;">action</span>, <span style="font-family: Courier New,Courier,monospace;">target</span>, and <span style="font-family: Courier New,Courier,monospace;">transition</span>. To use the animation, <span style="font-family: Courier New,Courier,monospace;">signal</span> is set to <span style="font-family: Courier New,Courier,monospace;">animation,start</span>, which generates the signal for the animation, and <span style="font-family: Courier New,Courier,monospace;">action</span> is set to <span style="font-family: Courier New,Courier,monospace;">STATE_SET &quot;scale_down&quot; 0.0</span>, which means that the state of the target object changes to <span style="font-family: Courier New,Courier,monospace;">scale_down</span> in the animation. The <span style="font-family: Courier New,Courier,monospace;">target</span> property defines the target object of the animation, which is the <span style="font-family: Courier New,Courier,monospace;">part_one</span> rectangle. The <span style="font-family: Courier New,Courier,monospace;">transition</span> property defines the animation type. In this example, the type is set to <span style="font-family: Courier New,Courier,monospace;">LINEAR 3.0</span>, which means that the state of the target object changes linearly over a period of 3 seconds.</p>
+
+<p>The following figure shows the result of the <span style="font-family: Courier New,Courier,monospace;">scale_down_animation</span> operation, which transitions the rectangle from the <span style="font-family: Courier New,Courier,monospace;">default</span> state (left) to the <span style="font-family: Courier New,Courier,monospace;">scale_down</span> state (right). The size and color of the rectangle are changed.</p>
+
+<p class="figure">Figure: Scale down animation</p>
+<p align="center"><img alt="Scale down animation" src="../images/animation_scale_down.png" /></p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">move_animation</span> operation moves the rectangle from the center of the view to the top. In the animation, the <span style="font-family: Courier New,Courier,monospace;">action</span> property is set to <span style="font-family: Courier New,Courier,monospace;">STATE_SET &quot;move&quot; 0.0</span>, which changes the state of the rectangle to <span style="font-family: Courier New,Courier,monospace;">move</span>, and <span style="font-family: Courier New,Courier,monospace;">transition</span> is set to <span style="font-family: Courier New,Courier,monospace;">ACCELERATE 1.0</span>, which moves the rectangle with acceleration over a period of 1 second.</p>
+
+<p>The following figure shows the result of the <span style="font-family: Courier New,Courier,monospace;">move_animation</span> operation.</p>
+
+<p class="figure">Figure: Move animation</p>
+<p align="center"><img alt="Movement animation" src="../images/animation_move.png" /></p>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

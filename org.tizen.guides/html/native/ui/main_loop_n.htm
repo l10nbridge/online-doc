@@ -24,7 +24,7 @@
 		<ul class="toc">
 			<li><a href="#Timers">Timers</a></li>
 			<li><a href="#Animators">Animators</a></li>
-			<li><a href="#Descriptors_Handling">Handling File Descriptors</a></li>
+			<li><a href="#Descriptors_Handling">File Descriptors</a></li>
 			<li><a href="#Threads">Threads</a></li>
 			<li><a href="#Idlers">Idlers</a></li>
 		</ul>
@@ -32,9 +32,9 @@
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
 			<li><a href="../../../../org.tizen.tutorials/html/native/ui/ui_tutorials_n.htm">UI Framework Tutorials</a></li>	
-			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Ecore__Group.html">Ecore API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Ecore.html">Ecore API for Mobile Native</a></li>
 			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Evas.html">Evas API for Mobile Native</a></li>
-			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Ecore__Group.html">Ecore API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Ecore.html">Ecore API for Wearable Native</a></li>
 			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Evas.html">Evas API for Wearable Native</a></li>			
 		</ul>
 	</div></div>
@@ -44,26 +44,26 @@
 
   <h1>Main Loop</h1> 
   
-<p>The EFL are event-driven: The application is be polling for data, but listening for events to interact with it.</p>
+<p>The EFL is event-driven. This means that the application polls for data, and listens for events to interact with it.</p>
 
-<p>Ecore library provides the main loop abstraction. It gets data when data is available and sends the events so that costly polling threads are not needed. Ecore manages polling, timers, events, and file descriptor handling.</p>
-
-<p>When there is no ongoing event, it automatically enters an &quot;idle&quot; mode, leading to less power being consumed. It wakes up when needed.</p>
+<p>The Ecore library provides the main loop abstraction. It gets data when data is available and sends the events so that costly polling threads are not needed. Ecore manages polling, timers, events, and file descriptors. When there is no ongoing event, the main loop automatically enters an idle mode, minimizing the power consumption. The loop wakes up when needed.</p>
   
 <h2 id="Timers" name="Timers">Timers</h2>
-<p>Ecore provides timers for applications. Timers schedule events that are executed later at a specific time, be it once or even several times with an interval.</p>
 
-<p>A timer callback prototype looks like <span style="font-family: Courier New,Courier,monospace;">Eina_Bool my_timed_cb(void *data)</span>. This function receives data from the application, and returns a Boolean value to specify whether it is called again or if it is done. The following macros are also provided:</p>
+<p>Ecore provides timers, which schedule events that are executed later at a specific time. The event can occur once or several times at specific intervals.</p>
+
+<p>A timer callback prototype looks like the <span style="font-family: Courier New,Courier,monospace;">my_timed_cb()</span> callback function. This function receives data from the application, and returns a Boolean value to specify whether it is called again or completed. The following macros are also provided:</p>
 
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span>: function is called again after the timeout.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span>: function is not called again, Ecore destroys automatically everything associated with the timer.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span>: the function is called again after the timeout.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span>: the function is not called again, Ecore destroys automatically everything associated with the timer.</li>
 </ul>
 
-<p>Adding a timer is done with <span style="font-family: Courier New,Courier,monospace;">ecore_timer_add(interval, function, data)</span>. The interval, specified in seconds, indicates when the given function is called, and receives the specified data as a parameter. It returns an <span style="font-family: Courier New,Courier,monospace;">Ecore_Timer</span> object.</p>
+<p>To create and destroy a timer:</p>
 
-<p>To create a simple timer: </p>
-
+<ul>
+<li>To create a timer, use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_add()</span> function. The interval, specified in seconds, indicates when the given function is called, and receives the specified data as a parameter. It returns an <span style="font-family: Courier New,Courier,monospace;">Ecore_Timer</span> object.
+<p>In the following example, the <span style="font-family: Courier New,Courier,monospace;">my_timed_cb()</span> function is run after 2 seconds and it receives <span style="font-family: Courier New,Courier,monospace;">my_data</span>. It is renewed while its count variable value is under 5, and stops after that.</p>
 <pre class="prettyprint">
 Eina_Bool my_timed_cb(void *data)
 {
@@ -77,37 +77,39 @@ Eina_Bool my_timed_cb(void *data)
 }
 ecore_timer_add(2.0, my_timed_cb, my_data);
 </pre>
+</li>
 
-<p>In this example, the function <span style="font-family: Courier New,Courier,monospace;">my_timed_cb</span> is run with after two seconds and it receives <span style="font-family: Courier New,Courier,monospace;">my_data</span>. It is renewed while its count variable&#39;s value is under 5, and stops after that.</p>
+<li>To delete the timer, use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_del()</span> function. The timer to delete must still be running, that is, it has not returned a <span style="font-family: Courier New,Courier,monospace;">false</span> value. If the timer is not running, the function cannot be called.</li>
+</ul>
 
-<p>Use <span style="font-family: Courier New,Courier,monospace;">ecore_timer_del(timer)</span> to delete the timer. To delete the timer, it must still be running, that is, it has not returned a false value meaning that it cannot be called any more.</p>
+<p>To manage a timer:</p>
+<ul>
+<li>To change the timer&#39;s interval, use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_interval_set()</span> function. The interval is specified in seconds. If set during a timer call, this affects the next interval. Use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_interval_get()</span> function to get the timer&#39;s current interval.</li>
 
-<p>Use <span style="font-family: Courier New,Courier,monospace;">ecore_timer_interval_set(timer, interval)</span> to change the timer&#39;s interval, the interval being specified in seconds. If set during a timer call, this affects the next interval. Use <span style="font-family: Courier New,Courier,monospace;">ecore_timer_interval_get(timer)</span> to get a timer&#39;s current interval.</p>
+<li>To get the timer&#39;s pending time, use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_pending_get()</span> function.</li>
 
-<p>Use <span style="font-family: Courier New,Courier,monospace;">ecore_timer_pending_get(timer)</span> to get a timer&#39;s pending time.</p>
+<li>To delay the timer&#39;s next occurrence, use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_delay()</span> function. The function adds the specified time to the current interval. It does not change the future occurrences&#39; interval. You can also reset the current interval to its full value by using the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_reset()</span> function.</li>
 
-<p>Delay the timer&#39;s next occurrence using <span style="font-family: Courier New,Courier,monospace;">ecore_timer_delay(timer, time)</span>, which adds the specified time to the current interval. It does not change the future occurrences&#39; interval. You can also reset the current interval to its full value by using <span style="font-family: Courier New,Courier,monospace;">ecore_timer_reset(timer)</span>.</p>
+<li>To pause the currently running timer, use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_freeze()</span> function. The remaining time is saved and used again when the timer is resumed with the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_thaw()</span> function.</li>
 
-<p>Use <span style="font-family: Courier New,Courier,monospace;">ecore_timer_freeze(timer)</span> to pause the currently running timer. The remaining time is saved and used again when the timer is resumed with <span style="font-family: Courier New,Courier,monospace;">ecore_timer_thaw(timer)</span>.</p>
-
-<p>The timer infrastructure has a defined precision. Query its current value by using <span style="font-family: Courier New,Courier,monospace;">ecore_timer_precision_get()</span>. A higher delay means that more timers can be run together. It diminishes the need to use system wake ups and thus lowers the power consumption.</p>
-
-<p>Set the precision using <span style="font-family: Courier New,Courier,monospace;">ecore_timer_precision_set(precision)</span>. This sets it for all timers. For example, there are two timers, one that expires in a 2.0s and another that expires in 2.1s. The precision is set to 0.1s, then Ecore requests for the next expiration to happen in 2.1s and run both callbacks at once, instead of one at 2.0s and another one 0.1s later. However, if there were not one in 2.1s, the timeout would have been at the minimum interval, 2s.</p>
+<li>To query the current value of the defined timer infrastructure precision, use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_precision_get()</span> function. A higher delay means that more timers can be run together. It diminishes the need to use system wake-ups and thus lowers the power consumption.
+<p>To set the precision, use the <span style="font-family: Courier New,Courier,monospace;">ecore_timer_precision_set()</span> function. This sets the precision for all timers. For example, there are 2 timers, one that expires in 2.0 seconds and another that expires in 2.1 seconds. If the precision is set to 0.1 seconds, Ecore requests the next expiration to happen in 2.1 seconds and runs both callbacks at once, instead of one at 2.0 seconds and the other one 0.1 seconds later. However, if there is no timer expiring in 2.1 seconds, the timeout is at the minimum interval, 2 seconds.</p></li>
+</ul>
 
 <h2 id="Animators" name="Animators">Animators</h2>
 
-<p>Animators are a specific type of timers, specially designed for on-screen animation purposes:</p>
+<p>Animators are a specific type of timer, specially designed for on-screen animation purposes:</p>
 
 <ul>
 <li>The time interval is usually known when they are created.</li>
-<li>They are called at each screen refresh, however that interval can vary: it may be dependant upon the system load, the target power consumption, and other factors; the exact interval is not really relevant.</li>
+<li>They are called at each screen refresh and their interval can vary. The interval can depend on the system load, the target power consumption, and other factors. The exact interval is not relevant.</li>
 </ul>
 
-<p>Due to that, Ecore provides the Ecore animator subsystem.</p>
+<p>To implement animators, Ecore provides the Ecore animator subsystem.</p>
 
 <h3>Forever-running Animator</h3>
 
-<p>To create an animation which runs for an indefinite time, the prototype is exactly the same as when using Ecore timers: </p>
+<p>To create an animation that runs for an indefinite time: </p>
 
 <pre class="prettyprint">
 Eina_Bool my_anim_cb(void *data)
@@ -122,16 +124,17 @@ Eina_Bool my_anim_cb(void *data)
 ecore_animator_add(my_anim_cb, my_data);
 </pre>
 
-<p>This example looks the same as the one using an Ecore timer, save for the use of <span style="font-family: Courier New,Courier,monospace;">ecore_animator_add</span> instead of <span style="font-family: Courier New,Courier,monospace;">ecore_timer_add</span>. <span style="font-family: Courier New,Courier,monospace;">ecore_animator_add</span> takes the function to call back and data to pass it, and returns an <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator</span> object. However, this time, the function is called at a system-defined interval until it returns <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> instead of <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span>.</p>
+<p>This example looks the same as the one using an Ecore timer. The <span style="font-family: Courier New,Courier,monospace;">ecore_animator_add()</span> function takes the callback function and data to pass to it, and returns an <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator</span> object. The function is called at a system-defined interval until it returns <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> instead of <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span>.</p>
 
 <h3>Specific-duration Animator</h3>
 
-<p>An animator callback has a different prototype <span style="font-family: Courier New,Courier,monospace;">Eina_Bool my_anim_cb(void *data, double position)</span>.</p>
+<p>An animator callback for an animator running a specific time has a different prototype than the forever running animator.</p>
 
-<p>This function receives data and a position which represents the current time among the full timeline, 0 meaning the beginning of the animation, and 1 meaning the end of the animation, returning <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> to abort or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span> to continue.</p>
+<p>This callback function receives both data and a position which represents the current time among the full timeline, 0 meaning the beginning of the animation, and 1 meaning the end of the animation, returning <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> to abort, or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span> to continue.</p>
 
-<p>The animator itself is created using <span style="font-family: Courier New,Courier,monospace;">ecore_animator_timeline_add(runtime, function, data)</span>. <span style="font-family: Courier New,Courier,monospace;">runtime</span> specifies the animator duration, <span style="font-family: Courier New,Courier,monospace;">function</span> is the one to call, and <span style="font-family: Courier New,Courier,monospace;">data</span> is the data to pass to the function and is optional. </p>
-
+<p>To create and destroy the animator:</p>
+<ul>
+<li>To create the animator, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_timeline_add()</span> function. The first parameter specifies the animator duration, the second parameter is the callback function, and the third parameter is the data to pass to the callback. The data parameter is optional.
 <pre class="prettyprint">
 Eina_Bool my_anim_cb(void *data, double position)
 {
@@ -143,50 +146,50 @@ Eina_Bool my_anim_cb(void *data, double position)
 ecore_animator_timeline_add(5., my_anim_cb, my_data);
 </pre>
 
-<p>In this example, the animator is specified to run for five seconds. The function returns <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> as soon as the position among the timeline passed half of the duration, so 2.5s.</p>
+<p>In this example, the animator is specified to run for five seconds. The function returns <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> as soon as the position among the timeline passes half of the duration, 2.5 seconds.</p>
 
 <p>Ecore can generate a virtual position from the original one using <span style="font-family: Courier New,Courier,monospace;">ecore_animator_pos_map(position, map, v1, v2)</span>. Several maps are available:</p>
 
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_LINEAR</span>: linear from 0.0 to 1.0</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_ACCELERATE</span>: start slow, then speed up</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DECELERATE</span>: start fast, then slow down</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SINUSOIDAL</span>: start slow, speed up, then slow down at end</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_ACCELERATE_FACTOR</span>: start slow, then speed up, <span style="font-family: Courier New,Courier,monospace;">v1</span> being a power factor: 0.0 is linear, 1.0 is standard acceleration, 2.0 is a much more pronounced acceleration (squared), 3.0 is cubed, etc</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DECELERATE_FACTOR</span>: start fast, then slow down, <span style="font-family: Courier New,Courier,monospace;">v1</span> being a power factor: 0.0 is linear, 1.0 is standard deceleration, 2.0 is a much more pronounced deceleration (squared), 3.0 is cubed, etc</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SINUSOIDAL_FACTOR</span>: start slow, speed up, then slow down at end, <span style="font-family: Courier New,Courier,monospace;">v1</span> being a power factor: 0.0 is linear, 1.0 is a standard sinusoidal, 2.0 is a much more pronounced sinusoidal (squared), 3.0 is cubed, etc</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DIVISOR_INTERP</span>: start at gradient <span style="font-family: Courier New,Courier,monospace;">* v1</span>, interpolated via power of <span style="font-family: Courier New,Courier,monospace;">v2</span> curve</li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_BOUNCE</span>: start at 0.0, then drop like a ball bouncing to the ground at 1.0, and bounce <span style="font-family: Courier New,Courier,monospace;">v2</span> times, with a decay factor of <span style="font-family: Courier New,Courier,monospace;">v1</span></li>
-<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SPRING</span>: start at 0.0, then wobble like a spring rest position 1.0, and wobble <span style="font-family: Courier New,Courier,monospace;">v2</span> times, with decay factor of <span style="font-family: Courier New,Courier,monospace;">v1</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_LINEAR</span>: linear from 0.0 to 1.0.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_ACCELERATE</span>: start slow, then speed up.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DECELERATE</span>: start fast, then slow down.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SINUSOIDAL</span>: start slow, speed up, then slow down at the end.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_ACCELERATE_FACTOR</span>: start slow, then speed up, <span style="font-family: Courier New,Courier,monospace;">v1</span> being a power factor: 0.0 is linear, 1.0 is standard acceleration, 2.0 is a much more pronounced acceleration (squared), and 3.0 is cubed.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DECELERATE_FACTOR</span>: start fast, then slow down, <span style="font-family: Courier New,Courier,monospace;">v1</span> being a power factor: 0.0 is linear, 1.0 is standard deceleration, 2.0 is a much more pronounced deceleration (squared), and 3.0 is cubed.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SINUSOIDAL_FACTOR</span>: start slow, speed up, then slow down at the end, <span style="font-family: Courier New,Courier,monospace;">v1</span> being a power factor: 0.0 is linear, 1.0 is a standard sinusoidal, 2.0 is a much more pronounced sinusoidal (squared), and 3.0 is cubed.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DIVISOR_INTERP</span>: start at gradient <span style="font-family: Courier New,Courier,monospace;">* v1</span>, interpolated with the power of <span style="font-family: Courier New,Courier,monospace;">v2</span> curve.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_BOUNCE</span>: start at 0.0, then drop like a ball bouncing to the ground at 1.0, and bounce <span style="font-family: Courier New,Courier,monospace;">v2</span> times, with a decay factor of <span style="font-family: Courier New,Courier,monospace;">v1</span>.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SPRING</span>: start at 0.0, then wobble like a spring to the rest position 1.0, and wobble <span style="font-family: Courier New,Courier,monospace;">v2</span> times, with a decay factor of <span style="font-family: Courier New,Courier,monospace;">v1</span>.</li>
 </ul>
 
 <p class="figure">Figure: Position maps</p> 
 <p align="center"><img alt="Position maps" src="../../images/pos_map_all.png" /></p> 
+</li>
 
-<p>Delete an animator using <span style="font-family: Courier New,Courier,monospace;">ecore_animator_del(animator)</span>. To delete the animator, it must still be running, that is, it has not returned a false value meaning that it cannot be called any more.</p>
-
-<p>Use <span style="font-family: Courier New,Courier,monospace;">ecore_animator_freeze(animator)</span> to pause a currently running animator. Note that time continues ticking even if an animator is frozen, and that resuming the animation using <span style="font-family: Courier New,Courier,monospace;">ecore_animator_thaw(animator)</span> not actually resumes if the full runtime meanwhile has been passed.</p>
-
-<p>Query Ecore for the interval between two animator calls by using <span style="font-family: Courier New,Courier,monospace;">ecore_animator_frametime_get()</span>. Use <span style="font-family: Courier New,Courier,monospace;">ecore_animator_frametime_set(interval)</span> to change it. Note that too small a value causes performance and power consumption issues, and too high value makes the animation jerky.</p>
-
-<h2 id="Descriptors_Handling" name="Descriptors_Handling">Handling File Descriptors</h2>
-
-<p>Ecore provides infrastructure to handle file descriptors monitoring, so that files do not have to be blocked or polled to read or write on them. Instead monitor sockets, pipes or other streams are used to get a file descriptor.</p>
-
-<p>Set callback using the following prototype: <span style="font-family: Courier New,Courier,monospace;">Eina_Bool _my_cb_func(void *data, Ecore_Fd_Handler *handler)</span>. Its first parameter is data passed to it (optional), the second one is the Ecore file descriptor handler. Its return value is, as most Ecore callbacks, <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span> or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span>. It tells Ecore whether it wants to be called again or is its treatment finished.</p>
-
-<p>Use <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_add(fd, flags, function, data, buffer_function, buffer_data)</span> to listen the events. Its parameters are defined as follows:</p>
-
-<ul>
-<li><span style="font-family: Courier New,Courier,monospace;">fd</span>: this is the file descriptor to monitor.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">flags</span>: this indicates what Ecore file descriptor monitors: <span style="font-family: Courier New,Courier,monospace;">ECORE_FD_READ</span> is for reading, <span style="font-family: Courier New,Courier,monospace;">ECORE_FD_WRITE</span> is for writing, <span style="font-family: Courier New,Courier,monospace;">ECORE_FD_ERROR</span> is for errors: define multiple values like <span style="font-family: Courier New,Courier,monospace;">ECORE_FD_READ | ECORE_FD_ERROR</span> to monitor for both reading and errors.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">function</span>: the function to be called back.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">dat</span>a: some data passed to the function.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">buffer_function</span>: the function to call to check whether any data has been buffered and already read from the <span style="font-family: Courier New,Courier,monospace;">fd</span>: this is for internal use only and must not be used (give NULL): its description is beyond the current guide&#39;s scope.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">buffer_data</span>: data to pass to <span style="font-family: Courier New,Courier,monospace;">buffer_function</span>.</li>
+<li>To destroy the animator, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_del()</span> function. The animator to destroy must be running, that is, it has not returned a <span style="font-family: Courier New,Courier,monospace;">false</span> value. If the animator is not running, the function cannot be called.</li>
 </ul>
 
-<p>To wait for incoming data (that is, to read data) on the <span style="font-family: Courier New,Courier,monospace;">my_fd</span> file descriptor, passing <span style="font-family: Courier New,Courier,monospace;">my_data</span>:</p>
+<p>To manage the animator:</p>
+<ul>
+<li>To pause the currently running animator, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_freeze()</span> function. Note that time continues ticking even if the animator is frozen, and that resuming the animation using the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_thaw()</span> function does not actually resume, if the full runtime has been passed in the meanwhile.</li>
+
+<li>To query Ecore for the interval between 2 animator calls, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_frametime_get()</span> function.</li>
+
+<li>To change the interval, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_frametime_set(interval)</span> function. Note that too small a value causes performance and power consumption issues, and too high a value makes the animation jerky.</li>
+</ul>
+
+<h2 id="Descriptors_Handling" name="Descriptors_Handling">File Descriptors</h2>
+
+<p>Ecore provides an infrastructure to monitor file descriptors, so that files do not have to be blocked or polled to read or write on them. Instead, monitor sockets, pipes, or other streams are used to get a file descriptor.</p>
+
+<p>To manage the file descriptors:</p>
+<ul>
+<li>To set a callback, use the <span style="font-family: Courier New,Courier,monospace;">_my_cb_func()</span> function. Its first parameter is the data passed to it (optional), and the second one is the Ecore file descriptor handler. Its return value is, as in most Ecore callbacks, <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span> or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span>. It tells Ecore whether it wants to be called again or whether its treatment is finished.</li>
+
+<li>To listen to events, use the <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_add()</span> function.</li>
+
+<li>To wait for incoming data (that is, to read data) on the <span style="font-family: Courier New,Courier,monospace;">my_fd</span> file descriptor, passing <span style="font-family: Courier New,Courier,monospace;">my_data</span>:
 
 <pre class="prettyprint">
 Eina_Bool my_fd_cb(void *data, Ecore_Fd_Handler *handler)
@@ -199,12 +202,13 @@ Eina_Bool my_fd_cb(void *data, Ecore_Fd_Handler *handler)
 }
 ecore_main_fd_handler_add(my_fd, ECORE_FD_READ, my_fd_cb, my_data, NULL, NULL);
 </pre>
+</li>
 
-<p>To delete a file descriptor handler, use <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_del(handler)</span>. This does not close the file descriptor. Always delete the handlers before closing the actual file descriptors.</p>
+<li>To delete a file descriptor handler, use the <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_del()</span> function. This does not close the file descriptor. Always delete the handlers before closing the actual file descriptors.</li>
 
-<p>Use <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_fd_get(handler)</span> to get a handler&#39;s file descriptor.</p>
+<li>To get the handler&#39;s file descriptor, use the <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_fd_get()</span> function.</li>
 
-<p>Use <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_active_get(handler, flag)</span> to select whether a flag is active on a handler. For example, the handler is set to monitor both <span style="font-family: Courier New,Courier,monospace;">ECORE_FD_READ</span> and <span style="font-family: Courier New,Courier,monospace;">ECORE_FD_ERROR</span>. The following example finds out whether the function was called because of an error:</p>
+<li>To select whether a flag is active on a handler, use the <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_active_get()</span> function. For example, the handler is set to monitor both <span style="font-family: Courier New,Courier,monospace;">ECORE_FD_READ</span> and <span style="font-family: Courier New,Courier,monospace;">ECORE_FD_ERROR</span>. The following example finds out whether the function was called because of an error:
 
 <pre class="prettyprint">
 Eina_Bool my_fd_cb(void *data, Ecore_Fd_Handler *handler)
@@ -223,20 +227,26 @@ Eina_Bool my_fd_cb(void *data, Ecore_Fd_Handler *handler)
 }
 ecore_main_fd_handler_add(my_fd, ECORE_FD_READ | ECORE_FD_ERROR, my_fd_cb, my_data, NULL, NULL);
 </pre>
+</li>
 
-<p>To change the flags the handler is monitoring, use <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_active_set(handler, flags)</span>.</p>
+<li>To change the flags the handler is monitoring, use the <span style="font-family: Courier New,Courier,monospace;">ecore_main_fd_handler_active_set()</span> function.</li>
+</ul>
 
 <h2 id="Threads" name="Threads">Threads</h2>
 
-<p>EFL is not entirely thread-safe. This means that if some task is running in another thread and, for example, an Evas object shows the status progress of this task, the object cannot be updated from within the thread. This can only be done from the main thread, the one running the main loop.</p>
+<p>EFL is not entirely thread-safe. This means that if a task is running in another thread and, for example, an Evas object shows the status progress of this task, the object cannot be updated from within the thread. Updating can only be done from the main thread that runs the main loop.</p>
 
-<p>Ecore provides a facility to have tasks be done on separate worker threads. It is not a simple wrapper around standard threads provided by the operating system. It makes it a lot easier to dispatch a worker function to perform some heavy tasks and then get the result once it completes, without blocking the application&#39;s UI. In addition, cancelling and rescheduling are easy to use and the several threads can be launched, since Ecore schedules them according to the number of processors the system has and the maximum amount of concurrent threads set for the application.</p>
+<p>Ecore provides a facility to perform tasks on separate worker threads. It is not a simple wrapper around standard threads provided by the operating system. With Ecore threads, it is easier to dispatch a worker function to perform some heavy tasks and get the result once it completes. It does not block the application UI. It is also easy to cancel and reschedule threads. Several threads can be launched simultaneously, since Ecore schedules them according to the number of processors the system has and the maximum amount of concurrent threads set for the application.</p>
 
-<p>Two kinds of Ecore threads exist: short jobs and feedback jobs. Short jobs are not giving any kind of information on their status to the parent, whereas feedback jobs are. The short jobs are best used for short computing-intensive snippets of code, whereas a typical example for the feedback jobs is an ongoing file download.</p>
+<p>Ecore has 2 kinds of threads:</p>
+<ul>
+<li>Short jobs do not give any kind of information on their status to the parent. They are best used for short computing-intensive snippets of code.</li>
+<li>Feedback jobs give information on their status to the parent. They are best used for longer snippets requiring a feedback loop, such as an ongoing file download.</li>
+</ul>
 
-<p>Ecore basically creates a pool of worker threads: the exact count is computed from the number of CPUs, cores, or may be specified by the application itself.</p>
+<p>Ecore creates a pool of worker threads. The exact count is computed from the number of CPUs or cores, or it can be specified by the application itself.</p>
 
-<p>When a worker thread is idle, it picks a job to execute from the waiting list until there is none left.</p>
+<p>When a worker thread is idle, it picks a job to execute from the waiting list until there is none left. In the following example, there are 2 threads defined by <span style="font-family: Courier New,Courier,monospace;">my_short_job()</span> and <span style="font-family: Courier New,Courier,monospace;">my_feedback_job()</span>. Both threads take 2 parameters: some data passed to them, and the actual thread running. Call a callback when the jobs end, whether they are cancelled (<span style="font-family: Courier New,Courier,monospace;">my_job_cancel()</span>) or end normally (<span style="font-family: Courier New,Courier,monospace;">my_job_end()</span>).</p>
 
 <pre class="prettyprint">
 struct feedback_msg
@@ -283,37 +293,45 @@ void my_job_cancel(void *data, Ecore_Thread *thread)
 }
 
 ecore_thread_run(my_short_job, my_job_end, my_job_cancel, my_data);
-ecore_thread_feedback_run(my_feedback_job, my_feedback_job_notify, my_job_end, my_job_cancel, my_data, EINA_FALSE);
+ecore_thread_feedback_run(my_feedback_job, my_feedback_job_notify, my_job_end, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;my_job_cancel, my_data, EINA_FALSE);
 </pre>
 
-<p>In this example, there are two threads defined by <span style="font-family: Courier New,Courier,monospace;">my_short_job</span> and <span style="font-family: Courier New,Courier,monospace;">my_feedback_job</span>. Both threads take two parameters: some data passed to them, and the actual thread running. Call a callback when the jobs are ended, whether they are cancelled (<span style="font-family: Courier New,Courier,monospace;">my_job_cancel</span>), or ended normally (<span style="font-family: Courier New,Courier,monospace;">my_job_end</span>).</p>
+<p>To manage threads:</p>
 
-<p>Cancelling a thread is done by using <span style="font-family: Courier New,Courier,monospace;">ecore_thread_cancel(thread)</span>. However, note that this is done cooperatively: the thread continues to run until it exists. Call <span style="font-family: Courier New,Courier,monospace;">ecore_thread_check(thread)</span> regularly to check whether the thread as been marked for cancellation and exit if true.</p>
+<ul>
+<li>To cancel a thread, use the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_cancel()</span> function. However, note that this is done cooperatively: the thread continues to run until it exists. Call the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_check()</span> function regularly to check whether the thread has been marked for cancellation and exit if <span style="font-family: Courier New,Courier,monospace;">true</span>.</li>
 
-<p>Run threads that are not accounted for in the worker threads pool. For that, the last parameter of <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback_run</span> must be set to <span style="font-family: Courier New,Courier,monospace;">EINA_TRUE</span>.</p>
+<li>To run threads that are not accounted for in the worker thread pool, use the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_feedback_run()</span> function with the last parameter set to <span style="font-family: Courier New,Courier,monospace;">EINA_TRUE</span>.
 
-<p>The feedback message a thread sends as notification can basically be any kind of data. Here it is a simple integer, but it can be as complex as needed.</p>
+<p>The feedback message a thread sends as notification can be any kind of data. In the above example, it is a simple integer, but it can be as complex as needed.</p>
+</li>
 
-<p>A thread can ask to be executed later by using <span style="font-family: Courier New,Courier,monospace;">ecore_thread_reschedule(thread)</span>: it is added to the end of the pending tasks.</p>
+<li>To execute a thread later, use the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_reschedule()</span> function. This function is added to the end of the pending tasks.</li>
 
-<p>Get the maximum number of concurrent threads by using <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_get()</span>. If needed, set it by using <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_set(count)</span>, or reset the default value using <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_reset()</span>.</p>
+<li>To get the maximum number of concurrent threads, use the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_get()</span> function. If needed, set it by using the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_set()</span> function, or reset the default value using the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_reset()</span> function.</li>
 
-<p>Query the number of active threads by using <span style="font-family: Courier New,Courier,monospace;">ecore_thread_active_get()</span>, and the number of available worker threads by using <span style="font-family: Courier New,Courier,monospace;">ecore_thread_available_get()</span>, which is basically the same as <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_get()</span> - <span style="font-family: Courier New,Courier,monospace;">ecore_thread_active_get()</span>.</p>
+<li>To query the number of active threads, use the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_active_get()</span> function. To query the number of available worker threads, use the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_available_get()</span> function, which is basically the same as the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_max_get()</span> - <span style="font-family: Courier New,Courier,monospace;">ecore_thread_active_get()</span>.</li>
+</ul>
 
 <h2 id="Idlers" name="Idlers">Idlers</h2>
 
-<p>When the rendering is done and all work finished, the main loop enters its idle state until the next loop. You can get functions of your application called back before the main loop enters or exits the idle state, or when it is in the idle state. They are respectively called <span style="font-family: Courier New,Courier,monospace;">Ecore_Idle_Enterer</span>, <span style="font-family: Courier New,Courier,monospace;">Ecore_Idle_Exiter</span>, and <span style="font-family: Courier New,Courier,monospace;">Ecore_Idler</span>.</p>
+<p>When the rendering is done and all work is finished, the main loop enters its idle state until the next loop. You can get the functions of your application called back before the main loop enters or exits the idle state, or when it is in the idle state. They are respectively called <span style="font-family: Courier New,Courier,monospace;">Ecore_Idle_Enterer</span>, <span style="font-family: Courier New,Courier,monospace;">Ecore_Idle_Exiter</span>, and <span style="font-family: Courier New,Courier,monospace;">Ecore_Idler</span>.</p>
 
 <p class="figure">Figure: Idle loop</p> 
 <p align="center"><img alt="Idle loop" src="../../images/idlers.png" /></p> 
 
-<p>Idle enterers, exiters, and idlers have the same prototype: <span style="font-family: Courier New,Courier,monospace;">Eina_Bool my_idler(void *data)</span>, receiving data, and returning <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span> or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> to tell Ecore whether it wants to be called again or if its treatment is finished.</p>
+<p>The idle enterers, exiters, and idlers all have the same prototype, <span style="font-family: Courier New,Courier,monospace;">my_idler()</span>, which receives data and returns <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span> or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> to tell Ecore whether it wants to be called again or is finished.</p>
 
-<p>Adding an idler is done by using <span style="font-family: Courier New,Courier,monospace;">ecore_idler_add(callback, data)</span>, and deleting one is done by using <span style="font-family: Courier New,Courier,monospace;">ecore_idler_del(idler)</span>.</p>
+<p>To manage the idlers:</p>
+<ul>
+<li>To add an idler, use the <span style="font-family: Courier New,Courier,monospace;">ecore_idler_add()</span> function.</li>
+<li>To delete an idler, use the <span style="font-family: Courier New,Courier,monospace;">ecore_idler_del()</span> function.</li>
 
-<p>For idle exiters, use <span style="font-family: Courier New,Courier,monospace;">ecore_idle_exiter_add(callback, data)</span> and <span style="font-family: Courier New,Courier,monospace;">ecore_idle_exiter_del(exiter)</span>.</p>
+<li>To add and delete idle exiters, use the <span style="font-family: Courier New,Courier,monospace;">ecore_idle_exiter_add()</span> and <span style="font-family: Courier New,Courier,monospace;">ecore_idle_exiter_del()</span> functions.</li>
 
-<p>For idle exiters, use <span style="font-family: Courier New,Courier,monospace;">ecore_idle_enterer_add(callback, data)</span> and <span style="font-family: Courier New,Courier,monospace;">ecore_idle_enterer_del(enterer)</span>. However, also <span style="font-family: Courier New,Courier,monospace;">ecore_idle_enterer_before_add(callback, data)</span> is available if you want your function to be added at the top of the list so that it is called before the others.</p>
+<li>To add and delete idle enterers, use the <span style="font-family: Courier New,Courier,monospace;">ecore_idle_enterer_add()</span> and <span style="font-family: Courier New,Courier,monospace;">ecore_idle_enterer_del()</span> functions. The <span style="font-family: Courier New,Courier,monospace;">ecore_idle_enterer_before_add()</span> function is also available, if you want your function to be added at the top of the list so that it is called before the others.</li>
+</ul>
 
 <pre class="prettyprint">
 Eina_Bool my_idle_enterer_cb(void *data)

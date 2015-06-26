@@ -1,0 +1,351 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>[UI Sample] LanguageChange Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>[UI Sample] LanguageChange Sample Overview</h1> 
+  <p>The [UI Sample] LanguageChange sample application demonstrates how to implement basic GNU internationalization and localization as well as the Elementary translatable text APIs family.</p> 
+  
+  <p>Basically, Tizen native applications are supposed to support multiple languages for worldwide users. This sample demonstrates how to support multiple languages on your application. Basically, the text translation is handled with GNU internationalization and localization (<span style="font-family: Courier New,Courier,monospace">gettext()</span>). Elementary provides additional utility functions for dynamic language change, which means your application texts can be easily updated with the current locale at runtime.</p>
+  
+  <p>The following Elementary functions are supported. For more information on the translatable text functions, see the Elementary documentation.</p>
+
+<ul><li>Elementary UI component functions:
+<pre class="prettyprint">
+elm_object_translatable_text_set();
+elm_object_translatable_part_text_set();
+elm_object_translatable_part_text_get();
+elm_object_translatable_text_get();
+elm_object_part_text_translatable_set();
+</pre>
+</li>
+<li>Elementary UI component item functions:
+<pre class="prettyprint">
+elm_object_item_translatable_text_set();
+elm_object_item_translatable_part_text_set();
+elm_object_item_translatable_part_text_get();
+elm_object_item_translatable_text_get();
+elm_object_item_part_text_translatable_set();
+</pre>
+</li>
+</ul>
+
+<p>If your application is supposed to support multiple languages, prepare text data for the languages with po files.</p>
+<p>Basically, every text in the po must consist of the msgid and msgstr fields. The msgid represents the value to be translated to the msgstr value. The <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function gets the actual msgstr value from the msgid field. So if your application displays a multi-language text, write the text with the msgid value and the actual translated text. In the meantime, set the texts with the Elementary translatable text APIs in your application.</p>
+  
+ <p class="figure">Figure: Using translatable text APIs</p> 
+ <p align="center"><img alt="Using translatable text APIs" src="../images/ui_translatable_text.png" /></p>
+
+  
+  <h2>Implementation</h2>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">app_create()</span> function constructs the base GUIs for the application layout by going through 2 functions: <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> and <span style="font-family: Courier New,Courier,monospace">create_view()</span>.</p>
+ 
+<pre class="prettyprint">
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Hook to take necessary actions before main event loop starts
+&nbsp;&nbsp;&nbsp;// Initialize UI resources and application data
+&nbsp;&nbsp;&nbsp;// If this function returns true, the main loop of application starts
+&nbsp;&nbsp;&nbsp;// If this function returns false, the application is terminated
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;create_base_gui(ad);
+&nbsp;&nbsp;&nbsp;create_view(ad);
+
+&nbsp;&nbsp;&nbsp;ecore_timer_add(1, timer_cb, ad);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>Additionally, the <span style="font-family: Courier New,Courier,monospace">app_create()</span> function calls the <span style="font-family: Courier New,Courier,monospace">ecore_timer_add()</span> function to simply increase a value every second.</p>
+<pre class="prettyprint">static Eina_Bool
+timer_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;ad-&gt;count++;
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}</pre>
+
+<p>The application creates the <span style="font-family: Courier New,Courier,monospace">elm_window</span>, <span style="font-family: Courier New,Courier,monospace">elm_conformant</span>, and <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> components for the basic layouts in the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function.</p>
+<pre class="prettyprint">static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_conformant_set(ad-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;>win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad-&gt;win)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = {0, 90, 180, 270};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Conformant
+&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;// Naviframe
+&nbsp;&nbsp;&nbsp;ad-&gt;naviframe = elm_naviframe_add(ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;naviframe, EEXT_CALLBACK_BACK, nf_back_cb, ad);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(ad-&gt;conform, ad-&gt;naviframe);
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}</pre>
+
+<p>At this moment, the <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> component has no views. In the <span style="font-family: Courier New,Courier,monospace">create_view()</span> function, it creates one view as the naviframe view item. The view consists of the entry, genlist and button. A box packs them in its own container. The following figure illustrates the final layout structure.</p>
+
+  <p class="figure">Figure: Layout structure</p> 
+  <p align="center"><img alt="Layout structure" src="../images/ui_translatable_layout.png" /></p>
+
+
+<h2>Setting Translatable Texts</h2>
+
+<p>You can set the translatable texts to each UI component – <span style="font-family: Courier New,Courier,monospace">elm_entry</span>, <span style="font-family: Courier New,Courier,monospace">elm_genlist</span>, <span style="font-family: Courier New,Courier,monospace">elm_button</span>, and <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span>.</p>
+
+<pre class="prettyprint">static void
+create_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Entry
+&nbsp;&nbsp;&nbsp;entry = elm_entry_add(box);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(entry, &quot;language,changed&quot;, entry_language_changed_cb, ad);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(entry, EVAS_HINT_FILL, 0);
+&nbsp;&nbsp;&nbsp;// Basically, use i18n_get_text() to get the current language text
+&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;%s: %d&quot;, i18n_get_text(&quot;IDS_CURRENT&quot;), ad-&gt;count);
+&nbsp;&nbsp;&nbsp;elm_entry_entry_set(entry, buf);
+&nbsp;&nbsp;&nbsp;elm_entry_editable_set(entry, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;evas_object_show(entry);
+}
+</pre>
+
+<h3>elm_entry Component</h3>
+
+<p>First, work on the <span style="font-family: Courier New,Courier,monospace">elm_entry</span> set. The sample shows the basic entry usage, and 2 additional issues: the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function and <span style="font-family: Courier New,Courier,monospace">ad-&gt;count</span>.</p>
+<p>The application calls the <span style="font-family: Courier New,Courier,monospace">evas_object_smart_callback_add()</span> function with the <span style="font-family: Courier New,Courier,monospace">language,changed</span> event type to get the callback call when the entry has a notice - the language is going change. Next, it sets the text with the <span style="font-family: Courier New,Courier,monospace">elm_entry_entry_set()</span> function, but constructs a string with the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function and <span style="font-family: Courier New,Courier,monospace">ad-&gt;count</span>.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">ad-&gt;count</span> is not noticeable, because it is only intended to display a text that is composed with a number. However, the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function is important, since it is used to get the translated text based on the current locale. If the current locale is set to English, the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function takes it&#39;s localized data.</p>
+
+<p>When the system language is changed, the <span style="font-family: Courier New,Courier,monospace">elm_entry</span> handles the change with the <span style="font-family: Courier New,Courier,monospace">entry_language_changed_cb()</span> callback, where you can reset the text with the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function based on the changed locale information.</p>
+
+<pre class="prettyprint">
+static void
+entry_language_changed_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;// Get the language changed callback call by UI component
+&nbsp;&nbsp;&nbsp;// If you need to apply some markups to text,
+&nbsp;&nbsp;&nbsp;// use the i18n_get_text() in the language,changed smart callback
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;char buf[128];
+&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;%s: %d&quot;, i18n_get_text(&quot;IDS_CURRENT&quot;), ad-&gt;count);
+&nbsp;&nbsp;&nbsp;elm_entry_entry_set(obj, buf);
+}</pre>
+
+<p>Since the <span style="font-family: Courier New,Courier,monospace">elm_entry</span> component can reset a text with the current locale info every time the language is changed, you can make the text update.</p>
+
+<h3>elm_genlist Component</h3>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> is constructed as usual.</p>
+
+<pre class="prettyprint">
+static void
+create_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Genlist
+&nbsp;&nbsp;&nbsp;genlist = elm_genlist_add(box);
+
+&nbsp;&nbsp;&nbsp;itc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;itc-&gt;item_style = &quot;default&quot;;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.text_get = gl_text_get_cb;
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 100; i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, itc, NULL, NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_class_free(itc);
+
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(genlist, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(genlist, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(genlist);
+}</pre>
+
+<p>Focus on the <span style="font-family: Courier New,Courier,monospace">gl_text_get_cb()</span> callback function that is called on the <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> item realization.</p>
+
+<pre class="prettyprint">
+static char *
+gl_text_get_cb(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;// In case of genlist, the text is updated in real time when the language is changed
+&nbsp;&nbsp;&nbsp;// No need to use any Elementary translatable_text_set() functions
+&nbsp;&nbsp;&nbsp;return strdup(i18n_get_text(&quot;IDS_SELECT_ITEM&quot;));
+}</pre>
+
+<p>The basic mechanism is the same as with the <span style="font-family: Courier New,Courier,monospace">elm_entry</span> component. Whenever items are realized, you get the current language texts by using the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function. Since the <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> items are re-realized when the system language is changed, you can keep the current language text in the <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> items.</p>
+
+<h3>elm_button Component</h3>
+
+<p>In the <span style="font-family: Courier New,Courier,monospace">elm_button</span> component, use  the <span style="font-family: Courier New,Courier,monospace">elm_object_translatable_text_set()</span> function to support the dynamic language change.</p>
+
+<pre class="prettyprint">
+static void
+create_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Button
+&nbsp;&nbsp;&nbsp;btn = elm_button_add(box);
+&nbsp;&nbsp;&nbsp;// Basically, you can use elm_object_translatable_part_text_set() API
+&nbsp;&nbsp;&nbsp;// to support dynamic language change
+&nbsp;&nbsp;&nbsp;elm_object_translatable_text_set(btn, &quot;IDS_DONE&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, 1);
+&nbsp;&nbsp;&nbsp;evas_object_show(btn);
+}</pre>
+
+<h3>Other Items</h3>
+
+<p>The Elementary provides basic text functions (<span style="font-family: Courier New,Courier,monospace">elm_object_part_text_set()</span> and <span style="font-family: Courier New,Courier,monospace">elm_object_text_set()</span>). However, if you want the text to be translated, call the <span style="font-family: Courier New,Courier,monospace">elm_object_translatable_part_text_set()</span> and <span style="font-family: Courier New,Courier,monospace">elm_object_translatable_text_set()</span> functions instead. Once you set the text with those functions, the text is translated automatically whenever the system language is changed. Remember that you need to pass the msgid value instead of the actual text.</p>
+
+<p>Some Elementary functions are provided for adding items, such as <span style="font-family: Courier New,Courier,monospace">elm_list_item_append()</span>, <span style="font-family: Courier New,Courier,monospace">elm_ctxpopup_item_append()</span>, <span style="font-family: Courier New,Courier,monospace">elm_toolbar_item_append()</span>, and <span style="font-family: Courier New,Courier,monospace">elm_naviframe_item_push()</span>. Since these functions do not fit to the translatable text functions, Elementary supports additional functions for their item texts to be translated.</p>
+
+<pre class="prettyprint">void elm_object_item_part_text_translatable_set(Elm_Object_Item *it, const char *part, Eina_Bool translatable);</pre>
+
+<p>After creating the item, you can make the item text translatable with the above function. Remember to pass the msgid value when you create the item. For example, to set the <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> title to be translated:</p> 
+<pre class="prettyprint">static void
+create_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Push a view to naviframe
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(ad-&gt;naviframe, &quot;IDS_LANGUAGE&quot;, NULL, NULL, box, NULL);
+&nbsp;&nbsp;&nbsp;// Basically, you can use
+&nbsp;&nbsp;&nbsp;// elm_object_item_part_text_translatable_set() or
+&nbsp;&nbsp;&nbsp;// elm_object_item_translatable_part_text_set() API 
+&nbsp;&nbsp;&nbsp;// to support dynamic language change
+&nbsp;&nbsp;&nbsp;elm_object_item_part_text_translatable_set(nf_it, NULL, EINA_TRUE);
+}</pre>
+
+<p>The following example shows the entire code of the <span style="font-family: Courier New,Courier,monospace">create_view()</span> function.</p>
+<pre class="prettyprint">static void
+create_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *box, *btn, *entry, *genlist;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it;
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *itc;
+&nbsp;&nbsp;&nbsp;char buf[128];
+&nbsp;&nbsp;&nbsp;int i;
+
+&nbsp;&nbsp;&nbsp;// Box
+&nbsp;&nbsp;&nbsp;box = elm_box_add(ad-&gt;naviframe);
+
+&nbsp;&nbsp;&nbsp;// Entry
+&nbsp;&nbsp;&nbsp;entry = elm_entry_add(box);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(entry, &quot;language,changed&quot;, entry_language_changed_cb, ad);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(entry, EVAS_HINT_FILL, 0);
+&nbsp;&nbsp;&nbsp;// Use i18n_get_text() to get the current language text
+&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;%s: %d&quot;, i18n_get_text(&quot;IDS_CURRENT&quot;), ad-&gt;count);
+&nbsp;&nbsp;&nbsp;elm_entry_entry_set(entry, buf);
+&nbsp;&nbsp;&nbsp;elm_entry_editable_set(entry, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;evas_object_show(entry);
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, entry);
+
+&nbsp;&nbsp;&nbsp;// Genlist
+&nbsp;&nbsp;&nbsp;genlist = elm_genlist_add(box);
+
+&nbsp;&nbsp;&nbsp;itc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;itc-&gt;item_style = &quot;default&quot;;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.text_get = gl_text_get_cb;
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 100; i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, itc, NULL, NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_class_free(itc);
+
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(genlist, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(genlist, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(genlist);
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, genlist);
+
+&nbsp;&nbsp;&nbsp;// Button
+&nbsp;&nbsp;&nbsp;// Basically, you can use elm_object_translatable_part_text_set() API
+&nbsp;&nbsp;&nbsp;// to support dynamic language change
+&nbsp;&nbsp;&nbsp;btn = elm_button_add(box);
+&nbsp;&nbsp;&nbsp;elm_object_translatable_text_set(btn, &quot;IDS_DONE&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, 1);
+&nbsp;&nbsp;&nbsp;evas_object_show(btn);
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, btn);
+
+&nbsp;&nbsp;&nbsp;// Push a view to naviframe
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(ad-&gt;naviframe, &quot;IDS_LANGUAGE&quot;, NULL, NULL, box, NULL);
+&nbsp;&nbsp;&nbsp;// Basically, you can use
+&nbsp;&nbsp;&nbsp;// elm_object_item_part_text_translatable_set() or
+&nbsp;&nbsp;&nbsp;// elm_object_item_translatable_part_text_set() API 
+&nbsp;&nbsp;&nbsp;// to support dynamic language change
+&nbsp;&nbsp;&nbsp;elm_object_item_part_text_translatable_set(nf_it, NULL, EINA_TRUE);
+}</pre>
+
+<p>However, you must check one more issue. Whenever the system language is changed, the application language changed callback is called.</p>
+<pre class="prettyprint">static void
+app_language_changed(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Set the current language
+&nbsp;&nbsp;&nbsp;char *locale = NULL;
+&nbsp;&nbsp;&nbsp;runtime_info_get_value_string(RUNTIME_INFO_KEY_LANGUAGE, &amp;locale);
+
+&nbsp;&nbsp;&nbsp;// Notify Elementary to update UI component text with new language info
+&nbsp;&nbsp;&nbsp;elm_language_set(locale);
+&nbsp;&nbsp;&nbsp;free(locale);
+}</pre>
+
+<p>In the callback, the current locale information is retrieved using the <span style="font-family: Courier New,Courier,monospace">runtime_info_get_value_string()</span> function and the locale value is passed to the <span style="font-family: Courier New,Courier,monospace">elm_language_set()</span> function directly so that the Elementary UI components texts are translated with the current locale information at the right moment.</p>
+
+<p>Now everything is ready. If the user chooses another language in the setting application, you can see the sample application texts changed to the current language texts.</p>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

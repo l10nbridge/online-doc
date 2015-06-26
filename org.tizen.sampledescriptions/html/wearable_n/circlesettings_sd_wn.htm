@@ -1,0 +1,354 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>(Circle) Settings Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Wearable native" src="../images/wn_icon.png"/></p>
+	</div>
+
+  <h1>(Circle) Settings Sample Overview</h1> 
+  
+<p>The (Circle) Settings sample application demonstrates how to implement a circular view with the elementary UI components and EFL Extension circular UI components.</p>
+
+<p>The sample uses UI components such as <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> and <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> for view management, <span style="font-family: Courier New,Courier,monospace">elm_layout</span> for UI component management inside the view, and <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> for the content inside the main view. <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> has three items: volume, brightness and information. When the item is clicked, its content is shown. To display a circular genlist component, the genlist component uses a circular genlist component supported by the EFL Extension.</p>
+
+<p>The following figure illustrates the main view of the (Circle) Settings sample application, its wireframe structure, and component tree.</p>
+
+    <p class="figure">Figure: (Circle) Settings main view</p> 
+  <p align="center"><img alt="(Circle) Settings main view" src="../images/circle_setting_sd.png" /></p>
+  <p align="center"><img alt="(Circle) Settings tree" src="../images/circle_setting_tree.png" /></p>
+
+<h2>Implementation</h2>
+
+<h3 id="mainview">Main View</h3>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function is responsible for creating the application layout. It starts by creating a window, then adds <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> to it to add surface for the circular component visual effect renderer. The conformant contains a layout for <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> which is added to act as a view manager of the window.</p>
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *conform = NULL;
+
+&nbsp;&nbsp;&nbsp;// Window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad-&gt;win)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = { 0, 90, 180, 270 };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, "delete,request", win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Conformant
+&nbsp;&nbsp;&nbsp;conform = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(conform);
+
+&nbsp;&nbsp;&nbsp;// Naviframe
+&nbsp;&nbsp;&nbsp;ad-&gt;naviframe = elm_naviframe_add(conform);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(conform, ad-&gt;naviframe);
+
+&nbsp;&nbsp;&nbsp;// Eext Circle Surface
+&nbsp;&nbsp;&nbsp;ad-&gt;circle_surface = eext_circle_surface_naviframe_add(ad-&gt;naviframe);
+
+&nbsp;&nbsp;&nbsp;// Main View
+&nbsp;&nbsp;&nbsp;create_list_view(ad);
+
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;naviframe, EEXT_CALLBACK_BACK, eext_naviframe_back_cb, NULL);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;naviframe, EEXT_CALLBACK_MORE, eext_naviframe_more_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre>
+
+<p>The main view is created using the <span style="font-family: Courier New,Courier,monospace">create_list_view()</span> function and it is added to the naviframe. In this function, the circular genlist is created for the circular UI which requires the genlist object to initialize itself. After that, three setting items are generated and appended to the circular genlist.</p>
+<pre class="prettyprint">
+static void
+create_list_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *genlist = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *naviframe = ad-&gt;naviframe;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it = NULL;
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *itc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *titc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *pitc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;item_data *id = NULL;
+&nbsp;&nbsp;&nbsp;int index = 0;
+
+&nbsp;&nbsp;&nbsp;// Genlist
+&nbsp;&nbsp;&nbsp;genlist = elm_genlist_add(naviframe);
+&nbsp;&nbsp;&nbsp;elm_genlist_mode_set(genlist, ELM_LIST_COMPRESS);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(genlist, &quot;selected&quot;, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;circle_genlist = eext_circle_object_genlist_add(genlist, ad-&gt;circle_surface);
+&nbsp;&nbsp;&nbsp;eext_circle_object_genlist_scroller_policy_set(ad-&gt;circle_genlist, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_AUTO);
+&nbsp;&nbsp;&nbsp;eext_rotary_object_event_activated_set(ad-&gt;circle_genlist, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;// Genlist item style
+&nbsp;&nbsp;&nbsp;itc-&gt;item_style = &quot;default&quot;;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.text_get = _gl_main_text_get;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.del = _gl_del;
+
+&nbsp;&nbsp;&nbsp;// Genlist title item style
+&nbsp;&nbsp;&nbsp;titc-&gt;item_style = &quot;title&quot;;
+&nbsp;&nbsp;&nbsp;titc-&gt;func.text_get = _gl_title_text_get;
+&nbsp;&nbsp;&nbsp;titc-&gt;func.del = _gl_del;
+
+&nbsp;&nbsp;&nbsp;// Genlist padding item style
+&nbsp;&nbsp;&nbsp;pitc-&gt;item_style = &quot;padding&quot;;
+
+&nbsp;&nbsp;&nbsp;// Title item here
+&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, titc, NULL, NULL, ELM_GENLIST_ITEM_NONE, NULL, ad);
+
+&nbsp;&nbsp;&nbsp;// Main menu items here
+&nbsp;&nbsp;&nbsp;id = calloc(sizeof(item_data), 1);
+&nbsp;&nbsp;&nbsp;id-&gt;index = index++;
+&nbsp;&nbsp;&nbsp;id-&gt;item = elm_genlist_item_append(genlist, itc, id, NULL, ELM_GENLIST_ITEM_NONE, _setting_volume_cb, ad);
+&nbsp;&nbsp;&nbsp;id = calloc(sizeof(item_data), 1);
+&nbsp;&nbsp;&nbsp;id-&gt;index = index++;
+&nbsp;&nbsp;&nbsp;id-&gt;item = elm_genlist_item_append(genlist, itc, id, NULL, ELM_GENLIST_ITEM_NONE, _setting_brightness_cb, ad);
+&nbsp;&nbsp;&nbsp;id = calloc(sizeof(item_data), 1);
+&nbsp;&nbsp;&nbsp;id-&gt;index = index++;
+&nbsp;&nbsp;&nbsp;id-&gt;item = elm_genlist_item_append(genlist, itc, id, NULL, ELM_GENLIST_ITEM_NONE, _setting_information_cb, ad);
+
+&nbsp;&nbsp;&nbsp;// Padding item here
+&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, pitc, NULL, NULL, ELM_GENLIST_ITEM_NONE, NULL, ad);
+
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(naviframe, NULL, NULL, NULL, genlist, &quot;empty&quot;);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(nf_it, _naviframe_pop_cb, ad-&gt;win);
+}
+</pre>
+
+<h3 id="volume">Volume View</h3>
+
+<p>When the volume item is clicked, the volume view is shown in the main view. The following figure illustrates the volume view and its wireframe structure.</p>
+
+    <p class="figure">Figure: (Circle) Settings volume view</p> 
+  <p align="center"><img alt="(Circle) Settings volume view" src="../images/circle_setting_volume_view.png" /></p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_setting_volume_cb()</span> callback function is called when the first item whose name is volume is clicked. In this function, a circular slider object is created by the <span style="font-family: Courier New,Courier,monospace">eext_circle_object_slider_add()</span> function. It needs the circular surface to render the circular slider on the surface. The <span style="font-family: Courier New,Courier,monospace">eext_rotary_object_event_activated_set()</span> function is called to receive the rotary event. After that, the <span style="font-family: Courier New,Courier,monospace">_value_changed_cb()</span> callback function is added to the circular slider to change the text as the circular slider value is changed.</p>
+<pre class="prettyprint">
+static void
+_setting_volume_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;Evas_Object *naviframe = ad-&gt;naviframe;
+&nbsp;&nbsp;&nbsp;Evas_Object *layout = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *slider = NULL;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it = NULL;
+
+&nbsp;&nbsp;&nbsp;app_get_resource(EDJ_FILE, edj_path, (int)PATH_MAX);
+&nbsp;&nbsp;&nbsp;layout = elm_layout_add(naviframe);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(layout, edj_path, &quot;slider_layout&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(layout, &quot;elm.text.slider&quot;, &quot;3.0&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_show(layout);
+
+&nbsp;&nbsp;&nbsp;slider = eext_circle_object_slider_add(layout, ad-&gt;circle_surface);
+&nbsp;&nbsp;&nbsp;eext_circle_object_value_min_max_set(slider, 0.0, 15.0);
+&nbsp;&nbsp;&nbsp;eext_circle_object_value_set(slider, 3.0);
+
+&nbsp;&nbsp;&nbsp;eext_rotary_object_event_activated_set(slider, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;eext_circle_object_slider_step_set(slider, 0.5);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(slider, &quot;value,changed&quot;, _volume_changed_cb, layout);
+
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(naviframe, _(&quot;Slider&quot;), NULL, NULL, layout, &quot;empty&quot;);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(nf_it, _setting_finished_cb, ad);
+}	
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_volume_changed_cb()</span> callback function is called when the volume value is changed. In this function, the layout text is changed using the <span style="font-family: Courier New,Courier,monospace">eext_circle_object_value_get()</span> function which gets the current value of the circular slider.</p>
+<pre class="prettyprint">
+static void
+_volume_changed_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;char buf[PATH_MAX];
+&nbsp;&nbsp;&nbsp;Evas_Object *layout = data;
+
+&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;%.1lf&quot;, eext_circle_object_value_get(obj));
+&nbsp;&nbsp;&nbsp;printf(&quot;Slider value = %s\n&quot;, buf);
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(layout, &quot;elm.text.slider&quot;, buf);
+}
+</pre>
+
+<h3 id="brightness">Brightness View</h3>
+
+<p>When the brightness item is clicked, the brightness view is shown in the main view. The following figure illustrates the brightness view and its wireframe structure.</p>
+
+    <p class="figure">Figure: (Circle) Settings brightness view</p> 
+  <p align="center"><img alt="(Circle) Settings brightness view" src="../images/circle_setting_brightness_view.png" /></p>
+  
+<p>The <span style="font-family: Courier New,Courier,monospace">_setting_brightness_cb()</span> callback function is called when the second item whose name is brightness is clicked. In this function, a circular slider object is created by the <span style="font-family: Courier New,Courier,monospace">eext_circle_object_slider_add()</span> function and 10 rectangles are created to display the circular slider value visually. Also, the <span style="font-family: Courier New,Courier,monospace">_brightness_changed_cb()</span> callback function is registered to change the value as the circular slider has changed.</p>
+<pre class="prettyprint">
+static void
+_setting_brightness_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;Evas_Object *naviframe = ad-&gt;naviframe;
+&nbsp;&nbsp;&nbsp;Evas_Object *layout = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *slider = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *box = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *rect[10] = {NULL, };
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it = NULL;
+&nbsp;&nbsp;&nbsp;int i;
+
+&nbsp;&nbsp;&nbsp;app_get_resource(EDJ_FILE, edj_path, (int)PATH_MAX);
+&nbsp;&nbsp;&nbsp;layout = elm_layout_add(naviframe);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(layout, edj_path, &quot;slider_layout&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_show(layout);
+
+&nbsp;&nbsp;&nbsp;box = elm_box_add(layout);
+&nbsp;&nbsp;&nbsp;elm_box_horizontal_set(box, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_box_padding_set(box, 3, 0);
+&nbsp;&nbsp;&nbsp;evas_object_show(box);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(layout, &quot;elm.swallow.content&quot;, box);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 10; ++i)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rect[i] = evas_object_rectangle_add(evas_object_evas_get(layout));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(rect[i], 0, 255, 0, 75);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_min_set(rect[i], 20, 20);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(rect[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, rect[i]);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 10; ++i)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;rect[i] = rect[i];
+
+&nbsp;&nbsp;&nbsp;slider = eext_circle_object_slider_add(layout, ad-&gt;circle_surface);
+&nbsp;&nbsp;&nbsp;eext_circle_object_value_min_max_set(slider, 0.0, 10.0);
+&nbsp;&nbsp;&nbsp;eext_circle_object_value_set(slider, 0.0);
+
+&nbsp;&nbsp;&nbsp;eext_rotary_object_event_activated_set(slider, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;eext_circle_object_slider_step_set(slider, 1.0);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(slider, &quot;value,changed&quot;, _brightness_changed_cb, ad);
+
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(naviframe, _(&quot;Slider&quot;), NULL, NULL, layout, &quot;empty&quot;);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(nf_it, _setting_finished_cb, ad);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">_brightness_changed_cb()</span> callback is called when the brightness value is changed. Here, the rectangles are redrawn using the <span style="font-family: Courier New,Courier,monospace">eext_circle_object_value_get()</span> function value.</p>
+<pre class="prettyprint">
+static void
+_brightness_changed_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;int i, value;
+
+&nbsp;&nbsp;&nbsp;value = eext_circle_object_value_get(obj);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 10; ++i)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (i &lt; value)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(ad-&gt;rect[i], 0, 255, 0, 150);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(ad-&gt;rect[i], 0, 255, 0, 75);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+
+<h3 id="information">Information View</h3>
+
+<p>When the information item is clicked, the information view is shown in the main view. The following figure illustrates the information view and its wireframe structure.</p>
+
+ <p class="figure">Figure: (Circle) Settings information view</p> 
+  <p align="center"><img alt="(Circle) Settings information view" src="../images/circle_setting_information_view.png" /></p>
+  
+<p>The <span style="font-family: Courier New,Courier,monospace">_setting_information_cb()</span> function creates a layout whose name is <span style="font-family: Courier New,Courier,monospace">slider_layout</span>. The layout has two swallow parts for a scroller and a button. The scroller with the label set to <span style="font-family: Courier New,Courier,monospace">elm.swallow.content</span> and the button is set to <span style="font-family: Courier New,Courier,monospace">elm.swallow.button</span> with the bottom style.</p>
+<pre class="prettyprint">
+static void
+_setting_information_cb(void *data, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;Evas_Object *naviframe = ad-&gt;naviframe;
+&nbsp;&nbsp;&nbsp;Evas_Object *layout = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *label = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *button = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *scroller = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *circle_scroller = NULL;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it = NULL;
+
+&nbsp;&nbsp;&nbsp;app_get_resource(EDJ_FILE, edj_path, (int)PATH_MAX);
+&nbsp;&nbsp;&nbsp;layout = elm_layout_add(naviframe);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(layout, edj_path, &quot;info_layout&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_show(layout);
+
+&nbsp;&nbsp;&nbsp;scroller = elm_scroller_add(layout);
+&nbsp;&nbsp;&nbsp;evas_object_show(scroller);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(layout, &quot;elm.swallow.content&quot;, scroller);
+
+&nbsp;&nbsp;&nbsp;circle_scroller = eext_circle_object_scroller_add(scroller, ad-&gt;circle_surface);
+&nbsp;&nbsp;&nbsp;eext_circle_object_scroller_policy_set(circle_scroller, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_AUTO);
+&nbsp;&nbsp;&nbsp;eext_rotary_object_event_activated_set(circle_scroller, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;label = elm_label_add(scroller);
+&nbsp;&nbsp;&nbsp;elm_label_line_wrap_set(label, ELM_WRAP_MIXED);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(label, &quot;This is setting application, &quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;By using the movement of the rotary, &quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;you can change the value of volume and brightness.&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_show(label);
+
+&nbsp;&nbsp;&nbsp;elm_object_content_set(scroller, label);
+
+&nbsp;&nbsp;&nbsp;button = elm_button_add(layout);
+&nbsp;&nbsp;&nbsp;elm_object_style_set(button, &quot;bottom/queue&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(button, &quot;OK&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(layout, &quot;elm.swallow.button&quot;, button);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button, &quot;clicked&quot;, _button_clicked_cb, ad);
+&nbsp;&nbsp;&nbsp;evas_object_show(button);
+
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(naviframe, _(&quot;Slider&quot;), NULL, NULL, layout, &quot;empty&quot;);
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

@@ -59,15 +59,16 @@
 <pre class="prettyprint">
 #include &lt;media_format.h&gt;
 </pre></li>
-<li>Define a handle for <span style="font-family: Courier New,Courier,monospace">media_format_h</span> and pass it to the <span style="font-family: Courier New,Courier,monospace">media_format_create()</span> function, which returns the handle. Set the video (or audio) information with the <span style="font-family: Courier New,Courier,monospace">media_format_set_video_info()</span> function.
+<li>Define a handle for <span style="font-family: Courier New,Courier,monospace">media_format_h</span> and pass it to the <span style="font-family: Courier New,Courier,monospace">media_format_create()</span> function, which returns the handle. <p>Set the video (or audio) information, as shown below.</p>
 <pre class="prettyprint">
 media_format_h format;
 if (media_format_create(&amp;format) == MEDIA_FORMAT_ERROR_NONE)     
 {
-&nbsp;&nbsp;&nbsp;if (media_format_set_video_info(format, MEDIA_FORMAT_H264_HP, 480, 640, 10000000, 15000000) != MEDIA_FORMAT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{             
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;media_format_set_video_info failed!&quot;);         
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_H264_HP);
+&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 640);
+&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 480);
+&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;media_format_set_video_max_bps(format, 15000000); 
 }
 else
 {         
@@ -104,7 +105,8 @@ else
 </pre></li>
 
 <li>Define a handle for <span style="font-family: Courier New,Courier,monospace">media_packet_h</span> and pass it to a creation function with an existing <span style="font-family: Courier New,Courier,monospace">media_format_h</span> handle.
-<p>To reuse the packet handle, set the return value as <span style="font-family: Courier New,Courier,monospace">MEDIA_PACKET_REUSE</span> of <span style="font-family: Courier New,Courier,monospace">int (*media_packet_finalize_cb)</span> and use <span style="font-family: Courier New,Courier,monospace">media_format_unref(media_format_h fmt)</span> after creating the handle.</p>
+<p>To reuse the packet handle even if the <span style="font-family: Courier New,Courier,monospace">media_packet_destroy() </span> function is called, set the return value as <span style="font-family: Courier New,Courier,monospace">MEDIA_PACKET_REUSE</span> of <span style="font-family: Courier New,Courier,monospace">int (*media_packet_finalize_cb)</span>.</p>
+<p>Use the <span style="font-family: Courier New,Courier,monospace">media_format_unref(media_format_h fmt)</span> function after creating the handle, because, all functions that create the <span style="font-family: Courier New,Courier,monospace">media_packet_h</span> handle increase the <span style="font-family: Courier New,Courier,monospace">media_format_h</span> handle reference count.</p>
 <p>The following creation functions are available:</p>
 <ul><li>Create a handle and allocate a buffer into the heap or TBM surface with the <span style="font-family: Courier New,Courier,monospace">media_packet_create_alloc()</span> function:
 <pre class="prettyprint">
@@ -113,10 +115,19 @@ else
 &nbsp;&nbsp;&nbsp;media_packet_h packet;
  
 &nbsp;&nbsp;&nbsp;media_format_create(&amp;fmt);
-&nbsp;&nbsp;&nbsp;media_format_set_video_info(fmt, MEDIA_FORMAT_H264_HP, 480, 640, 10000000, 15000000);
- 
+&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_H264_HP);
+&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 640);
+&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 480);
+&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;media_format_set_video_max_bps(format, 15000000); 
+
+&nbsp;&nbsp;&nbsp;// MEDIA_FORMAT_H264_HP data type is MEDIA_FORMAT_ENCODED and the buffer is allocated in heap
+&nbsp;&nbsp;&nbsp;// If the data type is MEDIA_FORMAT_RAW, the buffer is allocated in the tbm surface
+
 &nbsp;&nbsp;&nbsp;media_packet_create_alloc (fmt, _finalize_callback, fcb_data, &amp;packet);
 &nbsp;&nbsp;&nbsp;media_format_unref(fmt);
+
+&nbsp;&nbsp;&nbsp;media_packet_destroy(packet);
 }
  
 int _finalize_callback(media_packet_h packet, int err, void* userdata)
@@ -131,8 +142,13 @@ int _finalize_callback(media_packet_h packet, int err, void* userdata)
 &nbsp;&nbsp;&nbsp;media_packet_h packet;
  
 &nbsp;&nbsp;&nbsp;media_format_create(&amp;fmt);
-&nbsp;&nbsp;&nbsp;media_format_set_video_info(fmt, MEDIA_FORMAT_H264_HP, 480, 640, 10000000, 15000000);
- 
+&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_H264_HP);
+&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 640);
+&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 480);
+&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;media_format_set_video_max_bps(format, 15000000); 
+
+&nbsp;&nbsp;&nbsp;// Only create a handle, do not allocate the buffer
 &nbsp;&nbsp;&nbsp;media_packet_create (fmt, _finalize_callback, fcb_data, &amp;packet);
 &nbsp;&nbsp;&nbsp;media_format_unref(fmt);
 }
@@ -140,7 +156,6 @@ int _finalize_callback(media_packet_h packet, int err, void* userdata)
 {
 &nbsp;&nbsp;&nbsp;return MEDIA_PACKET_FINALIZE;
 }
-
 </pre>
 </li>
 <li>Create a handle and store the TBM surface data with the <span style="font-family: Courier New,Courier,monospace">media_packet_create_from_tbm_surface()</span> function:
@@ -149,7 +164,11 @@ int _finalize_callback(media_packet_h packet, int err, void* userdata)
 &nbsp;&nbsp;&nbsp;media_packet_h packet;
 
 &nbsp;&nbsp;&nbsp;media_format_create(&amp;fmt);
-&nbsp;&nbsp;&nbsp;media_format_set_video_info(fmt, MEDIA_FORMAT_RGBA, 128, 128, 2000000, 15000000);
+&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_RGBA);
+&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 128);
+&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 128);
+&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 15000000);   
 
 &nbsp;&nbsp;&nbsp;media_packet_create_from_tbm_surface (fmt, surface, _finalize_callback, fcb_data, &amp;packet);
 &nbsp;&nbsp;&nbsp;media_format_unref(fmt);
@@ -158,9 +177,33 @@ int _finalize_callback(media_packet_h packet, int err, void* userdata)
 {
 &nbsp;&nbsp;&nbsp;return MEDIA_PACKET_FINALIZE;
 }
-
 </pre>
-</li></ul></li>
+</li>
+<li>Create handle with an already allocated external buffer by using the <span style="font-family: Courier New,Courier,monospace">media_packet_create_from_external_memory()</span> function:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;media_format_h fmt;
+&nbsp;&nbsp;&nbsp;media_packet_h packet;
+ 
+&nbsp;&nbsp;&nbsp;media_format_create(&amp;fmt);
+&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_H264_HP);
+&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 640);
+&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 480);
+&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 15000000);
+
+&nbsp;&nbsp;&nbsp;media_packet_create_from_external_memory (fmt, mem_ptr, size, _finalize_callback, fcb_data, &amp;packet);
+&nbsp;&nbsp;&nbsp;media_format_unref(fmt);
+}
+int _finalize_callback(media_packet_h packet, int err, void* userdata)
+{
+&nbsp;&nbsp;&nbsp;// Do something
+
+&nbsp;&nbsp;&nbsp;return MEDIA_PACKET_FINALIZE;
+}
+</pre>
+</li>
+</ul></li>
  
 <li>Set and get the metadata with the media packet handle: 
 <pre class="prettyprint">

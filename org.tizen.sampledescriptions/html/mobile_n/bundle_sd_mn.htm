@@ -1,0 +1,1965 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Bundle Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+  <h1>Bundle Sample Overview</h1>
+
+<p>The Bundle sample demonstrates how to create and manipulate key-value data objects. In this application, a bundle object use example is shown for data exchange through a message port.</p>
+  <p>The following figure illustrates the main screens of the application.</p>
+  <p class="figure">Figure: Bundle application screens</p>
+    <p align="center">
+    <img alt="Plain data source view" src="../images/bundle_data_source_basic_view_sd.png" />
+	<img alt="Filled data source view" src="../images/bundle_data_source_filled_view_sd.png" />
+	<img alt="Data sink view" src="../images/bundle_data_sink_view_sd.png" />
+  </p>
+
+  <p>The sample application provides a user interface for:</p>
+  <ul>
+    <li>Creating a bundle object: 1 bundle object is created and filled with user-defined key-value pairs.</li>
+	<li>Sending a bundle object: the created bundle object is sent through a message port.</li>
+  </ul>
+  <p>The structure of the user interface is depicted in the following figures. EDJE layout scripts are used in the UI.</p>
+  <p id="ui-source-layout" class="figure">Figure: Bundle UI layout structure of the data source view</p>
+    <p align="center" id="ui-data-source-struct">
+    <img alt="Bundle UI layout structure" src="../images/bundle_general_edje_data_source_structure_sd.png" />
+	</p>
+	<p align="center">
+	<img alt="Bundle UI component structure" src="../images/bundle_data_source_layout_sd.png" />
+  </p>
+  <p id="ui-sink-layout" class="figure">Figure: Bundle UI layout structure of the data sink view</p>
+    <p align="center" id="ui-data-sink-struct">
+    <img alt="Bundle UI layout structure" src="../images/bundle_general_edje_data_sink_structure_sd.png" />
+	</p>
+	<p align="center">
+	<img alt="Bundle UI component structure" src="../images/bundle_data_sink_layout_sd.png" />
+  </p>
+  <p>The application workflow can be divided into the following logical pipelines:</p>
+  <ul>
+    <li>Bundle application startup</li>
+	<li>Bundle data creation</li>
+	<li>Bundle object sending</li>
+	<li>Bundle object receiving</li>
+  </ul>
+  <p>The following figure describes the workflow.</p>
+  <p id="workflow" class="figure">Figure: Bundle application workflow</p>
+    <p align="center">
+    <img alt="Application workflow - startup" src="../images/bundle_workflow_startup_sd.png"/>
+	<img alt="Application workflow - data creation" src="../images/bundle_workflow_data_creation_sd.png"/>
+	<img alt="Application workflow - object sending" src="../images/bundle_workflow_bundle_send_sd.png"/>
+	<img alt="Application workflow - object sending" src="../images/bundle_workflow_bundle_receive_sd.png"/>
+	<img alt="Application workflow - object structure" src="../images/bundle_workflow_object_structure_sd.png"/>
+	</p>
+
+
+<h2>Implementation</h2>
+
+<h3 id="type-defs">Type Definitions</h3>
+
+<p>The main data structure is used as a placeholder for the model and view data:</p>
+<pre class="prettyprint">
+typedef struct appdata
+{
+&nbsp;&nbsp;&nbsp;// View module data
+&nbsp;&nbsp;&nbsp;viewdata_s view;	
+&nbsp;&nbsp;&nbsp;// Model module data
+&nbsp;&nbsp;&nbsp;modeldata_s model;	
+} appdata_s;
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">viewdata_s</span> structure contains references to all component objects created by the <a href="#view">View</a> module:</p>
+<pre class="prettyprint">
+typedef struct 
+{
+&nbsp;&nbsp;&nbsp;// The main window object
+&nbsp;&nbsp;&nbsp;Evas_Object* win;		
+&nbsp;&nbsp;&nbsp;// The conformant object
+&nbsp;&nbsp;&nbsp;Evas_Object* conform;
+&nbsp;&nbsp;&nbsp;// The main window&#39;s layout object (embedded into the conform component)		
+&nbsp;&nbsp;&nbsp;Evas_Object* layout_main_panel;
+&nbsp;&nbsp;&nbsp;// The toolbar object (embedded into the PART_MAIN_TOOLBAR part of 
+&nbsp;&nbsp;&nbsp;// the layout_main_panel object)			
+&nbsp;&nbsp;&nbsp;Evas_Object* main_toolbar;
+&nbsp;&nbsp;&nbsp;// The data source item of the main_toolbar component
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *main_toolbar_item_data_source;
+&nbsp;&nbsp;&nbsp;// The data sink item of the main_toolbar component
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *main_toolbar_item_data_sink;	
+&nbsp;&nbsp;&nbsp;// The data source view layout (embedded into the PART_MAIN_CONTENT part 
+&nbsp;&nbsp;&nbsp;// of the layout_main_panel object)
+&nbsp;&nbsp;&nbsp;Evas_Object* layout_data_source;
+&nbsp;&nbsp;&nbsp;// The data source edit panel layout (embedded into the PART_MAIN_CONTENT 
+&nbsp;&nbsp;&nbsp;// part of the layout_main_panel object)
+&nbsp;&nbsp;&nbsp;Evas_Object* layout_data_source_edit;
+&nbsp;&nbsp;&nbsp;// The key name entry component (embedded into the PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL_ENTRY 
+&nbsp;&nbsp;&nbsp;// part of the layout_data_source_edit object)
+&nbsp;&nbsp;&nbsp;Evas_Object* data_source_key_entry;
+&nbsp;&nbsp;&nbsp;// The value entry component (embedded into the PART_DATA_SOURCE_EDIT_PANEL_VALUE_PANEL_ENTRY 
+&nbsp;&nbsp;&nbsp;// part of the layout_data_source_edit object)
+&nbsp;&nbsp;&nbsp;Evas_Object* data_source_value_entry;
+&nbsp;&nbsp;&nbsp;// The value type selector component (embedded into the PART_DATA_SOURCE_EDIT_PANEL_TYPE_PANEL_ENTRY 
+&nbsp;&nbsp;&nbsp;// part of the layout_data_source_edit object)
+&nbsp;&nbsp;&nbsp;Evas_Object* data_source_type_selector;
+&nbsp;&nbsp;&nbsp;// The data source list panel layout (embedded into the PART_DATA_SOURCE_LIST_PANEL 
+&nbsp;&nbsp;&nbsp;// part of the layout_data_source object)
+&nbsp;&nbsp;&nbsp;Evas_Object* layout_data_source_list;
+&nbsp;&nbsp;&nbsp;// The header inclusion check component (embedded into the PART_DATA_SOURCE_LIST_PANEL_CHECKBOX 
+&nbsp;&nbsp;&nbsp;// part of the layout_data_source_list object)
+&nbsp;&nbsp;&nbsp;Evas_Object* data_source_checkbox;
+&nbsp;&nbsp;&nbsp;// The list component (embedded into the PART_DATA_SOURCE_LIST_PANEL_LIST part of the 
+&nbsp;&nbsp;&nbsp;// layout_data_source_list object)
+&nbsp;&nbsp;&nbsp;Evas_Object* data_source_list;
+&nbsp;&nbsp;&nbsp;// The data source buttons panel layout (embedded into the PART_DATA_SOURCE_BUTTONS_PANEL 
+&nbsp;&nbsp;&nbsp;// part of the layout_data_source object)
+&nbsp;&nbsp;&nbsp;Evas_Object* layout_data_source_buttons;
+&nbsp;&nbsp;&nbsp;// The &quot;Send&quot; button component (embedded into the PART_DATA_SOURCE_BUTTONS_PANEL_SEND 
+&nbsp;&nbsp;&nbsp;// part of the layout_data_source_buttons object)
+&nbsp;&nbsp;&nbsp;Evas_Object* data_source_button_send;
+&nbsp;&nbsp;&nbsp;// The &quot;Add&quot; button component (embedded into the PART_DATA_SOURCE_BUTTONS_PANEL_ADD 
+&nbsp;&nbsp;&nbsp;// part of the layout_data_source_buttons object)
+&nbsp;&nbsp;&nbsp;Evas_Object* data_source_button_add;
+&nbsp;&nbsp;&nbsp;// The data sink view layout (embedded into the PART_MAIN_CONTENT part of the 
+&nbsp;&nbsp;&nbsp;// layout_main_panel object)
+&nbsp;&nbsp;&nbsp;Evas_Object* layout_data_sink;
+&nbsp;&nbsp;&nbsp;// The message entry component (embedded into the PART_DATA_SINK_ENTRY part of the 
+&nbsp;&nbsp;&nbsp;// layout_data_sink object)
+&nbsp;&nbsp;&nbsp;Evas_Object* sink_entry;			
+} viewdata_s;
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">modeldata_s</span> structure contains a list of <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> items,
+where each of the <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> structures contains data to be included in the bundle object. Additionally, the identifier of the message port for data receiving is declared.</p>
+<pre class="prettyprint">
+typedef struct _modeldata 
+{
+&nbsp;&nbsp;&nbsp;// The list that consists of bundledata_s(user input data: key name, value, value type)
+&nbsp;&nbsp;&nbsp;Eina_List *items_list;
+&nbsp;&nbsp;&nbsp;// The identifier of the local message port
+&nbsp;&nbsp;&nbsp;int msg_port_rcv_id;	
+} modeldata_s;
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> structure is used as a list item of the <span style="font-family: Courier New,Courier,monospace">modeldata_s-&gt;items_list</span> structure:</p>
+<pre class="prettyprint">
+typedef struct _bundledata 
+{
+&nbsp;&nbsp;&nbsp;// The key name provided by the user
+&nbsp;&nbsp;&nbsp;char *key;
+&nbsp;&nbsp;&nbsp;// The value provided by the user
+&nbsp;&nbsp;&nbsp;void *value;
+&nbsp;&nbsp;&nbsp;// The value type selected by the user
+&nbsp;&nbsp;&nbsp;bundle_value_type_t type;
+} bundledata_s;
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">bundle_value_type_t</span> is an enumeration type:</p>
+<pre class="prettyprint">
+typedef enum 
+{
+&nbsp;&nbsp;&nbsp;// Value type of the byte
+&nbsp;&nbsp;&nbsp;BUNDLE_VALUE_TYPE_BYTE,
+&nbsp;&nbsp;&nbsp;// Value type of the string	
+&nbsp;&nbsp;&nbsp;BUNDLE_VALUE_TYPE_STRING,
+&nbsp;&nbsp;&nbsp;// Points to the end of the enumeration type
+&nbsp;&nbsp;&nbsp;BUNDLE_VALUE_TYPE_MAX		
+} bundle_value_type_t;
+</pre>
+
+<h3 id="app-init">Application Initialization</h3>
+
+<p>The entire application life-cycle is implemented in the <span style="font-family: Courier New,Courier,monospace">main.c</span> file, using the common Tizen application structure:</p>
+<pre class="prettyprint">
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;appdata_s ad = {{0,},};
+&nbsp;&nbsp;&nbsp;// Declare and initialize the variables
+
+&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+&nbsp;&nbsp;&nbsp;event_callback.terminate = app_terminate;
+&nbsp;&nbsp;&nbsp;event_callback.pause = app_pause;
+&nbsp;&nbsp;&nbsp;event_callback.resume = app_resume;
+&nbsp;&nbsp;&nbsp;event_callback.app_control = app_control;
+
+&nbsp;&nbsp;&nbsp;// Assign the event handlers
+
+&nbsp;&nbsp;&nbsp;ret = ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+<p>The Bundle sample application is implemented using the MVC design pattern. Its initialization is done within the <span style="font-family: Courier New,Courier,monospace">app_create()</span> callback function where the <span style="font-family: Courier New,Courier,monospace">controller_initialization()</span> function is responsible for the application initialization. On the application termination, the <span style="font-family: Courier New,Courier,monospace">app_terminate()</span> callback function is called, and all the allocated resources are freed. For reference and more details,
+see <a href="#controller">Controller</a>.</p>
+<pre class="prettyprint">
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Assign the variables
+
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s*)data;
+
+&nbsp;&nbsp;&nbsp;return controller_initialization(&amp;d-&gt;view, &amp;ad-&gt;model);
+}
+
+static void
+app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s*)data;
+
+&nbsp;&nbsp;&nbsp;controller_terminate(&amp;ad-&gt;view, &amp;ad-&gt;model);
+}
+</pre>
+
+<h3 id="view">View</h3>
+
+<p>The entire application layout is implemented using EDJE scripts. All top level swallows are designed for EFL Elementary component embedding. The following EDJE swallow - EFL Elementary component relations and assigned functionalities are used:</p>
+  <ul>
+    <li><span style="font-family: Courier New,Courier,monospace">PART_MAIN_TOOLBAR-elm_toolbar</span>: Switches the view between the data source and the data sink.</li>
+    <li><span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL_ENTRY-elm_entry</span>: Key name edit field.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_EDIT_PANEL_VALUE_PANEL_ENTRY-elm_entry</span>: Value edit field.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_EDIT_PANEL_TYPE_PANEL_ENTRY-elm_spinner</span>: Sets the value type.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_LIST_PANEL_CHECKBOX-elm_check</span>: Prepends a custom header to the bundle object.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_LIST_PANEL_LIST-elm_genlist</span>: Displays the list of all key-value pairs to be added to the bundle object. 
+	<p>The list item consists of:</p>
+	  <ul>
+	    <li>Key name and value displayed as <span style="font-family: Courier New,Courier,monospace">key: value</span></li>
+	    <li>Type of the value displayed as <span style="font-family: Courier New,Courier,monospace">type: type-name</span></li>
+	  </ul>
+	</li>
+	<li><span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_BUTTONS_PANEL_ADD-elm_button</span>: Adds a key-value pair to the list.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_BUTTONS_PANEL_SEND-elm_button</span>: Creates a bundle object and sends it to the data sink.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">PART_DATA_SINK_ENTRY-elm_entry</span>: Displays the received data.</li>
+  </ul>
+<p> For more information, see also the <a href="#ui-source-layout">Bundle UI data source layout structure</a> and <a href="#ui-sink-layout">Bundle UI data sink layout structure</a> figures.</p>
+<p>The following code snippets create the application layout.</p>
+<table>
+   <caption>
+     Table: UI layout code snippets and figures
+   </caption> 
+    <tr> 
+     <th>Code snippet</th> 
+     <th>Figure</th> 
+    </tr> 
+	<tr>
+    <td colspan="2">
+	<strong>The main layout is defined in the <span style="font-family: Courier New,Courier,monospace">main.edc</span> file.</strong>
+	</td>
+  </tr>
+  <tr>
+    <td id="main-panel-layout">
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: GROUP_MAIN;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The background part occupies the entire window
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_MAIN_BACKGROUND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to PART_MAIN_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The spacer occupies the entire area of PART_MAIN_BACKGROUND 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// with a small margin all around
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_MAIN_PANEL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SPACER;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to PART_MAIN_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow occupies 6% of PART_MAIN_PANEL height
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is designed to hold the elm_toolbar component
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_MAIN_TOOLBAR;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to PART_MAIN_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow occupies 93% of PART_MAIN_PANEL height
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is designed to hold the data source/data sink layout
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_MAIN_CONTENT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+	</td>
+	<td>
+	    <p align="center">
+        <img alt="EDJE main layout" src="../images/bundle_edje_layout_main_sd.png" />
+      </p>
+	</td>
+  </tr>
+  <tr>
+    <td colspan="2">
+	  <strong>The <span style="font-family: Courier New,Courier,monospace">PART_MAIN_CONTENT</span> swallow is used as a container for:</strong>
+	  <ul>
+        <li><strong>The <a href="#data-source-panel-layout">data source layout</a> defined in the <span style="font-family: Courier New,Courier,monospace">data_source.edc</span> file.</strong></li>
+        <li><strong>The <a href="#data-sink-panel-layout">data sink layout</a> defined in the <span style="font-family: Courier New,Courier,monospace">data_sink.edc</span> file.</strong></li>
+      </ul>
+	  <p><strong>The data source and data sink layouts are switched by the toolbar item selection.</strong></p>
+	</td>
+  </tr>
+  <tr>
+    <td id="data-source-panel-layout">
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: GROUP_DATA_SOURCE;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to PART_MAIN_CONTENT 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// from the main.edc file
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The rect plays a role of the background for the edit panel 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// and occupies the entire area
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// of the PART_MAIN_CONTENT
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_BACKGROUND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies 40% height and 100% width of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is designed to hold the data source edit layout defined in 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// data_source_edit_panel.edc
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_EDIT_PANEL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies 50% height and 100% width of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is designed to hold the data source list layout defined in 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// data_source_list_panel.edc
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_LIST_PANEL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies 10% height and 100% width of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is designed to hold the data source buttons layout defined in 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// data_source_buttons_panel.edc
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_BUTTONS_PANEL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+	</td>
+	<td>
+	   <p align="center">
+        <img alt="EDJE data source layout" src="../images/bundle_edje_layout_data_source_sd.png" />
+      </p>
+	</td>
+  </tr>
+  <tr>
+    <td colspan="2">
+	  <strong>The <span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_EDIT_PANEL</span> swallow is used as a container for data edit (input) layout defined in the <span style="font-family: Courier New,Courier,monospace">data_source_edit_panel.edc</span> file (for more information, see <a href="#data-source-panel-layout">Data source panel layout</a>).</strong>
+	</td>
+  </tr>
+  <tr>
+    <td>
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: GROUP_DATA_SOURCE_EDIT_PANEL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL from the data_source.edc file
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The rect plays a role of the background for the edit panel 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// and occupies the entire area
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// of the PART_DATA_SOURCE_EDIT_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_EDIT_PANEL_BACKGROUND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ----------=============== KEY NAME INPUT PANEL ===============----------
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies 33% height and 100% width of the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_BACKGROUND. It is designed to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// organize the key name editing area
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SPACER;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The text part occupies 100% height and 33% width of the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This part is responsible for static text label display 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// only (&quot;Key name&quot;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;data_source_edit_panel_key_panel_label&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: TEXT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The rect plays a role of a background for the elm_entry 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// component. Its size is set to
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 70% width and 70% height of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL. 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This part is vertically aligned
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL_ENTRY_BACKGROUND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL_ENTRY_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies the entire area of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL_ENTRY_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is designed to hold elm_entry component for key name input
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL_ENTRY;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ----------=============== VALUE INPUT PANEL ===============----------
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The layout of the PART_DATA_SOURCE_EDIT_PANEL_VALUE_PANEL 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// part is exactly the same as the layout of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The only difference is that its vertical location is set 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// to the 33% of PART_DATA_SOURCE_EDIT_PANEL_BACKGROUND height
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// For this reason, the source code is not listed here
+
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ----------=============== VALUE TYPE INPUT PANEL ===============----------
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The layout of the PART_DATA_SOURCE_EDIT_PANEL_TYPE_PANEL part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// is exactly the same as the layout of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// There are only 2 differences:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 1. Its height is set to 34% of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_BACKGROUND height
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// 2. Its vertical location is set to the 66% of the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_EDIT_PANEL_BACKGROUND height
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// For this reason, the source code is not listed here
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+	</td>
+	<td>
+	    <p align="center">
+        <img alt="EDJE data source edit layout" src="../images/bundle_edje_layout_data_source_edit_sd.png" />
+      </p>
+	</td>
+  </tr>
+  <tr>
+    <td colspan="2">
+	  <strong>The <span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_LIST_PANEL</span> swallow is used as a container for the data source list layout defined in the <span style="font-family: Courier New,Courier,monospace">data_source_list_panel.edc</span> file (for more information, see <a href="#data-source-panel-layout">Data source panel layout</a>).</strong>
+	</td>
+  </tr>
+  <tr>
+    <td>
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: GROUP_DATA_SOURCE_LIST_PANEL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL from the data_source.edc file
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The rect plays a role of the background for the list panel 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// and occupies the entire area of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_LIST_PANEL_BACKGROUND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The spacer part occupies 15% height and 100% width of the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is designed to organize bundle header inclusion checkbox area
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_PANEL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SPACER;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The rect plays a role of a background for the elm_check component 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Its size is set to 9,7% width and 80% height of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This part is vertically aligned. Its horizontal position is 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// set to 60% width of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_BACKGROUND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The text part occupies 80% height and 60% width of the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This part is vertically aligned and is responsible for static
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// text label display only (&quot;Include bundle header&quot;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_LABEL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: TEXT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_PANEL.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies 80% height and 40% width of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is aligned next to the right border of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_CHECKBOX_LABEL and designed 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// to hold the elm_check component for bundle header inclusion
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_LIST_PANEL_CHECKBOX;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies 100% width and 85% height of the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_LIST_PANEL_BACKGROUND. It is aligned to the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// bottom border of the related part. It is designed to hold 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the elm_genlist component for input data display
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_LIST_PANEL_LIST;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+	</td>
+	<td>
+	    <p align="center">
+        <img alt="EDJE data source list layout" src="../images/bundle_edje_layout_data_source_list_sd.png" />
+      </p>
+	</td>
+  </tr>
+  <tr>
+    <td colspan="2">
+	  <strong>The <span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_BUTTONS_PANEL</span> swallow is used as a container for the data source buttons layout defined in the <span style="font-family: Courier New,Courier,monospace">data_source_buttons_panel.edc</span> file (for more information, see <a href="#data-source-panel-layout">Data source panel layout</a>).</strong>
+	</td>
+  </tr>
+  <tr>
+    <td>
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: GROUP_DATA_SOURCE_BUTTONS_PANEL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BUTTONS_PANEL from data_source.edc file
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The rect plays a role of the background for the buttons 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// panel and occupies the entire area of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BUTTONS_PANEL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_BUTTONS_PANEL_BACKGROUND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BUTTONS_PANEL_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies 80% height and 46% width of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BUTTONS_PANEL_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Its left border is set to 2% width of related container 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Vertically, the swallow is centered
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This part is designed to hold the elm_button component for input data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// addition to the data list
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_BUTTONS_PANEL_ADD;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part relations and sizing are the same as described 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// above, for PART_DATA_SOURCE_BUTTONS_PANEL_ADD part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The only difference is the left border positioning, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// which is set to 52% width of the 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SOURCE_BUTTONS_PANEL_BACKGROUND part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This part is designed to hold the elm_button component for bundle 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// sending
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SOURCE_BUTTONS_PANEL_SEND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+	</td>
+	<td>
+	    <p align="center">
+        <img alt="EDJE data source buttons layout" src="../images/bundle_edje_layout_data_source_buttons_sd.png" />
+      </p>
+	</td>
+  </tr>
+  <tr>
+    <td colspan="2">
+	  <strong>The <span style="font-family: Courier New,Courier,monospace">PART_MAIN_CONTENT</span> swallow is used as a container for the data sink layout defined in the <span style="font-family: Courier New,Courier,monospace">data_sink.edc</span> file (for more information, see <a href="#main-panel-layout">Main panel layout</a>).</strong>
+	</td>
+  </tr>
+  <tr>
+    <td id="data-sink-panel-layout">
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: GROUP_DATA_SINK;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to PART_MAIN_CONTENT 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// from main.edc file
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The rect plays a role of the background for the entry panel 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// and occupies the entire area of the PART_MAIN_CONTENT
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SINK_BACKGROUND;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The part is positioned in relation to 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SINK_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The swallow part occupies the entire area of 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// PART_DATA_SINK_BACKGROUND
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This part is designed to hold the elm_entry component for 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// received data display
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: PART_DATA_SINK_ENTRY;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+    </td>
+	<td>
+	    <p align="center">
+        <img alt="EDJE data sink layout" src="../images/bundle_edje_layout_data_sink_sd.png" />
+      </p>
+	</td>
+  </tr>
+</table>
+
+<p>Based on the layout defined with EDJE scripts, the application interface is created with the <span style="font-family: Courier New,Courier,monospace">view_base_gui_create()</span> function. The function takes 1 parameter, a pointer to the structure containing the view data. The <span style="font-family: Courier New,Courier,monospace">view_base_gui_create()</span> function is invoked in the <span style="font-family: Courier New,Courier,monospace">controller_initialization()</span> function called from the <span style="font-family: Courier New,Courier,monospace">app_create()</span> callback function. For the call stack details, see <a href="#app-init">Application Initialization</a>. The following code snippet presents the general steps in the user interface creation.</p>
+<pre class="prettyprint">
+bool
+view_base_gui_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;// The pointer to the viewdata_s structure is stored for future use
+&nbsp;&nbsp;&nbsp;// The variable viewdata is declared globally in the scope of view.c file
+&nbsp;&nbsp;&nbsp;viewdata = vd;
+
+&nbsp;&nbsp;&nbsp;// Main panel view creation (window, conformant, main layout, toolbar)
+&nbsp;&nbsp;&nbsp;if (!view_main_panel_create(vd)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Data source view creation
+&nbsp;&nbsp;&nbsp;if (!view_data_source_content_create(vd)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Data sink view creation.
+&nbsp;&nbsp;&nbsp;if (!view_data_sink_content_create(vd)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// The data source layout object is assigned to the data field of the 
+&nbsp;&nbsp;&nbsp;// &quot;Data source&quot; toolbar&#39;s item
+&nbsp;&nbsp;&nbsp;// This layout object is used in view_toolbar_item_selected_cb() callback 
+&nbsp;&nbsp;&nbsp;// function to switch between the layouts depending on toolbar&#39;s item selection
+&nbsp;&nbsp;&nbsp;elm_object_item_data_set(vd-&gt;main_toolbar_item_data_source, (void*)vd-&gt;layout_data_source);
+&nbsp;&nbsp;&nbsp;elm_object_item_data_set(vd-&gt;main_toolbar_item_data_sink, (void*)vd-&gt;layout_data_sink);
+
+&nbsp;&nbsp;&nbsp;// &quot;Data source&quot; tab is marked as selected (the view_toolbar_item_selected_cb()
+&nbsp;&nbsp;&nbsp;// callback function is not called automatically)
+&nbsp;&nbsp;&nbsp;elm_toolbar_item_selected_set(vd-&gt;main_toolbar_item_data_source, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;// Set the vd-&gt;layout_data_source object as the content of viewdata-&gt;layout_main_panel
+&nbsp;&nbsp;&nbsp;// layout because the view_toolbar_item_selected_cb() callback function is not called
+&nbsp;&nbsp;&nbsp;// when elm_toolbar_item_selected_set() is invoked
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(viewdata-&gt;layout_main_panel, PART_MAIN_CONTENT, vd-&gt;layout_data_source);
+
+&nbsp;&nbsp;&nbsp;evas_object_show(vd-&gt;win);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+<p>The entire application view creation is triggered by the <span style="font-family: Courier New,Courier,monospace">view_base_gui_create()</span> function described above. The result of the succeeding subfunction invocations is depicted in the following table.</p>
+<table>
+<caption>
+     Table: Base view creation code snippets and figures
+   </caption> 
+  <col width="25%"/>
+  <col width="50%"/>
+  <col width="25%"/>
+      <tr> 
+	  <th>Description</th> 
+     <th>Code snippet</th> 
+     <th>Figure</th> 
+    </tr> 
+  <tr>
+    <td>
+         <p>
+           <span style="font-family: Courier New,Courier,monospace">view_main_panel_create()</span>:</p>
+		  <p>The main window and descendant conformant (<span style="font-family: Courier New,Courier,monospace">vd-&gt;win</span> and <span style="font-family: Courier New,Courier,monospace">vd-&gt;conform</span> respectively) are created and used as a placeholder for the main layout (<span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_main_panel</span>).</p> 
+		  <p>The main layout is created with the <span style="font-family: Courier New,Courier,monospace">view_generic_layout_create_set()</span> function by loading the main group from the EDJE layout (<span style="font-family: Courier New,Courier,monospace">main.edj</span> file), then it is embedded into the <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_main_panel</span> container. Finally, the <span style="font-family: Courier New,Courier,monospace">view_layout_back_cb()</span> callback function is attached to the <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_main_panel</span> for the hardware <strong>Back</strong> button handling.</p>
+		   <p>When the EDJE layout is successfully loaded, the <span style="font-family: Courier New,Courier,monospace">elm_toolbar</span> component can be created as a descendant of the main layout <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_main_panel</span>.</p> 
+		   <p>At the end, 2 items are appended to the newly created <span style="font-family: Courier New,Courier,monospace">elm_toolbar</span> component with the <span style="font-family: Courier New,Courier,monospace">view_toolbar_item_selected_cb()</span> callback function attached:</p>
+               <ul>
+                 <li><a href="#ui-data-source">Data source</a></li>
+                 <li><a href="#ui-data-sink">Data sink</a></li>
+               </ul>
+            <p>The <span style="font-family: Courier New,Courier,monospace">view_toolbar_item_selected_cb()</span> callback function is responsible for switching between the layout objects embedded to the <span style="font-family: Courier New,Courier,monospace">PART_MAIN_CONTENT</span> swallow of the <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_main_panel</span>. Those layouts are defined in the <span style="font-family: Courier New,Courier,monospace">data_source.edc</span> and <span style="font-family: Courier New,Courier,monospace">data_sink.edc</span> files.</p>
+       </td>
+       <td>
+<pre class="prettyprint">
+static bool
+view_main_panel_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;vd-&gt;win = view_generic_window_create(view_win_delete_request_cb);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;conform = view_generic_conformant_create(vd-&gt;win);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;layout_main_panel = view_generic_layout_create_set(vd-&gt;conform, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EDJ_MAIN_FILE_NAME, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GROUP_MAIN, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(vd-&gt;layout_main_panel, EEXT_CALLBACK_BACK, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_layout_back_cb, (void*)vd);
+
+&nbsp;&nbsp;&nbsp;vd-&gt;main_toolbar = view_generic_toolbar_create(vd-&gt;layout_main_panel, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_MAIN_TOOLBAR);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;main_toolbar_item_data_source = elm_toolbar_item_append(vd-&gt;main_toolbar, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Data source&quot;, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_toolbar_item_selected_cb, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;main_toolbar_item_data_sink = elm_toolbar_item_append(vd-&gt;main_toolbar, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Data sink&quot;, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_toolbar_item_selected_cb, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+       </td>
+       <td>
+         <p align="center">
+        <img alt="UI main layout" src="../images/bundle_ui_layout_main_sd.png" />
+      </p>
+       </td>
+ </tr>
+  <tr>
+   <td id="ui-data-source">
+         <p><span style="font-family: Courier New,Courier,monospace">view_data_source_content_create()</span>:</p>
+		 <p>The entire data source view is created by the data source layout loading from the <span style="font-family: Courier New,Courier,monospace">data_source.edj</span> file.</p> 
+		 <p>After the layout is loaded, the following subviews are created:</p>
+           <ul>
+                 <li>Data source edit subview: <span style="font-family: Courier New,Courier,monospace">view_data_source_edit_create()</span></li>
+                 <li>Data source list subview: <span style="font-family: Courier New,Courier,monospace">view_data_source_list_create()</span></li>
+                 <li>Data source buttons subview: <span style="font-family: Courier New,Courier,monospace">view_data_source_buttons_create()</span></li>
+               </ul>
+         <p>The final layout is not inserted into the <span style="font-family: Courier New,Courier,monospace">PART_MAIN_CONTENT</span> as this operation is performed later, depending on toolbar item selection.</p>
+         <p>The side figure depicts the <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_source</span> layout only.</p>
+       </td>
+       <td>
+<pre class="prettyprint">
+static bool
+view_data_source_content_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;vd-&gt;layout_data_source = view_generic_layout_create(vd-&gt;layout_main_panel, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EDJ_DATA_SOURCE_FILE_NAME, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GROUP_DATA_SOURCE);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!view_data_source_edit_create(vd)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (!view_data_source_list_create(vd)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (!view_data_source_buttons_create(vd)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+       </td>
+       <td>
+         <p align="center">
+        <img alt="UI data source layout" src="../images/bundle_ui_layout_data_source_sd.png" />
+      </p>
+       </td>
+</tr>
+<tr>
+    <td>
+        <span style="font-family: Courier New,Courier,monospace">view_data_source_edit_create()</span>:
+		<p>The <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_source_edit</span> layout is created based on <span style="font-family: Courier New,Courier,monospace">data_source_edit_panel.edc</span>. The resulting layout is embedded into the <span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_PANEL</span>.</p>
+		<p>The <span style="font-family: Courier New,Courier,monospace">elm_entry</span> and <span style="font-family: Courier New,Courier,monospace">elm_spinner</span> components are created next and inserted into the <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_source_edit</span> layout. The newly created components are used for the bundle key name input (value and type, respectively). The <span style="font-family: Courier New,Courier,monospace">elm_spinner</span> component is then filled with the values reflecting all the available types of the key&#39;s value.</p>
+	</td>
+	<td>
+<pre class="prettyprint">
+static bool
+view_data_source_edit_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;layout_data_source_edit = view_generic_layout_create_set(vd-&gt;layout_data_source,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EDJ_DATA_SOURCE_EDIT_PANEL_FILE_NAME,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GROUP_DATA_SOURCE_EDIT_PANEL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_EDIT_PANEL);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;data_source_key_entry = view_generic_entry_create(vd-&gt;layout_data_source_edit,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_EDIT_PANEL_KEY_PANEL_ENTRY);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;data_source_value_entry = view_generic_entry_create(vd-&gt;layout_data_source_edit,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_EDIT_PANEL_VALUE_PANEL_ENTRY);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;data_source_type_selector = view_generic_spinner_create(vd-&gt;layout_data_source_edit,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_EDIT_PANEL_TYPE_PANEL_ENTRY);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_spinner_min_max_set(vd-&gt;data_source_type_selector, 0, (int)BUNDLE_VALUE_TYPE_MAX-1);
+
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; BUNDLE_VALUE_TYPE_MAX; i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_spinner_special_value_add(vd-&gt;data_source_type_selector, i, bundletypes[i].caption);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+    </td>
+       <td>
+         <p align="center">
+		 <img alt="UI data source edit layout" src="../images/bundle_ui_layout_data_source_edit_sd.png" /></p>
+      </td> 
+   </tr>
+   <tr>
+	<td>
+        <span style="font-family: Courier New,Courier,monospace">view_data_source_list_create()</span>:
+		<p>The <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_source_list</span> layout is created based on <span style="font-family: Courier New,Courier,monospace">data_source_list_panel.edc</span>. The resulting layout is embedded into the <span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_LIST_PANEL</span>.</p>
+		<p>The <span style="font-family: Courier New,Courier,monospace">elm_check</span> and the <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> components are created next and inserted into the <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_source_list</span> layout. After the <span style="font-family: Courier New,Courier,monospace">elm_check</span> component is created, the <span style="font-family: Courier New,Courier,monospace">view_checkbox_changed_cb()</span> callback function is assigned to it in order to handle the component&#39;s state <span style="font-family: Courier New,Courier,monospace">change</span> event. For the implementation details of the <span style="font-family: Courier New,Courier,monospace">view_checkbox_changed_cb()</span> callback function, see <a href="#user-interaction">User Interaction</a>.</p>
+	</td>
+	<td>
+<pre class="prettyprint">
+static bool
+view_data_source_list_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;layout_data_source_list = view_generic_layout_create_set(vd-&gt;layout_data_source,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EDJ_DATA_SOURCE_LIST_PANEL_FILE_NAME,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GROUP_DATA_SOURCE_LIST_PANEL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_LIST_PANEL);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;data_source_checkbox = view_generic_checkbox_create(vd-&gt;layout_data_source_list,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_LIST_PANEL_CHECKBOX,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&quot;);
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(vd-&gt;data_source_checkbox, &quot;changed&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_checkbox_changed_cb, (void*)vd);
+
+&nbsp;&nbsp;&nbsp;vd-&gt;data_source_list = view_generic_genlist_create(vd-&gt;layout_data_source_list,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_LIST_PANEL_LIST);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+      </td>
+       <td>
+         <p align="center"> 
+		 <img alt="UI data source list layout" src="../images/bundle_ui_layout_data_source_list_sd.png" /></p>
+	   </td>
+	</tr>
+	<tr>
+    <td>
+		<span style="font-family: Courier New,Courier,monospace">view_data_source_buttons_create()</span>:
+		<p>The <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_source_buttons</span> layout is created based on <span style="font-family: Courier New,Courier,monospace">data_source_buttons_panel.edc</span>. The resulting layout is embedded into the <span style="font-family: Courier New,Courier,monospace">PART_DATA_SOURCE_BUTTONS_PANEL</span>.</p>
+		<p>The 2 <span style="font-family: Courier New,Courier,monospace">elm_button</span> components are created next and inserted into the <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_source_buttons</span> layout. To each of the buttons created (<span style="font-family: Courier New,Courier,monospace">vd-&gt;data_source_button_add</span>, <span style="font-family: Courier New,Courier,monospace">vd-&gt;data_source_button_send</span>), the relevant callback function is attached for handling the <span style="font-family: Courier New,Courier,monospace">click</span> event:</p>
+		<ul>
+			<li><span style="font-family: Courier New,Courier,monospace">view_button_add_clicked_cb()</span>: handles input data adding to the list.</li>
+			<li><span style="font-family: Courier New,Courier,monospace">view_button_send_clicked_cb()</span>: handles bundle creation and sending through the message port.</li>
+         </ul>
+		<p>For the implementation details of the callback functions, see <a href="#user-interaction">User Interaction</a>.</p>
+       </td>
+       <td>
+<pre class="prettyprint">
+static bool
+view_data_source_buttons_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;layout_data_source_buttons = view_generic_layout_create_set(vd-&gt;layout_data_source,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EDJ_DATA_SOURCE_BUTTONS_PANEL_FILE_NAME,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GROUP_DATA_SOURCE_BUTTONS_PANEL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_BUTTONS_PANEL);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;data_source_button_add = view_generic_button_create(vd-&gt;layout_data_source_buttons,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_BUTTONS_PANEL_ADD,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Add&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_button_add_clicked_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void*)vd);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;data_source_button_send = view_generic_button_create(vd-&gt;layout_data_source_buttons,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SOURCE_BUTTONS_PANEL_SEND,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Send&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_button_send_clicked_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void*)vd);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+       </td>
+       <td>
+         <p align="center">
+		 <img alt="UI data source button layout" src="../images/bundle_ui_layout_data_source_buttons_sd.png" /> </p>
+       </td>
+   </tr>
+   <tr>
+	 <td id="ui-data-sink">
+        <span style="font-family: Courier New,Courier,monospace">view_data_sink_content_create()</span>:
+		<p>The <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_sink</span> layout is created based on <span style="font-family: Courier New,Courier,monospace">data_sink.edc</span>. The resulting layout is embedded into the <span style="font-family: Courier New,Courier,monospace">PART_MAIN_CONTENT</span>.</p>
+		<p>The <span style="font-family: Courier New,Courier,monospace">elm_entry</span> component is created next and inserted into the <span style="font-family: Courier New,Courier,monospace">vd-&gt;layout_data_sink</span> layout. The <span style="font-family: Courier New,Courier,monospace">elm_entry</span> component plays the role of a non-editable text panel for the received messages display.</p>
+      </td>
+	<td>
+<pre class="prettyprint">
+static bool
+view_data_sink_content_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;vd-&gt;layout_data_sink = view_generic_layout_create(vd-&gt;layout_main_panel,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EDJ_DATA_SINK_FILE_NAME,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GROUP_DATA_SINK);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd-&gt;sink_entry = view_generic_entry_create(vd-&gt;layout_data_sink,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART_DATA_SINK_ENTRY);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_entry_single_line_set(vd-&gt;sink_entry, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;elm_entry_editable_set(vd-&gt;sink_entry, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;elm_entry_scrollable_set(vd-&gt;sink_entry, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+       </td>
+       <td>
+         <p align="center">
+        <img alt="UI data sink layout" src="../images/bundle_ui_layout_data_sink_sd.png" /> </p>
+       </td>
+   </tr>
+   
+</table>
+
+<h3 id="user-interaction">User Interaction</h3>
+
+<p>The interaction between the user and the sample application must follow the following scheme:</p>
+    <ul>
+      <li>Inputting data (key name, key value) and selecting the data type using the provided components.</li>
+      <li>Adding input data to the data list using the <strong>Add</strong> button. This action can be performed multiple times for different sets of input data.</li>
+      <li>Optionally selecting the bundle header for inclusion using the provided check component.</li>
+      <li>Bundling the data list and sending it to the data sink through a message port using the <strong>Send</strong> button.</li>
+    </ul>
+<p>After the message is successfully sent, the user can switch the view from the data source to the data sink, where the received data is printed in a text form.</p>
+
+<h4 id="data-input">Inputting Data and Adding to the List</h4>
+
+<p>Input data addition is triggered by the <strong>Add</strong> button click:</p>
+
+<ol><li>As a result of the button click, the <span style="font-family: Courier New,Courier,monospace">view_button_add_clicked_cb()</span> callback function is invoked.
+<pre class="prettyprint">
+static void
+view_button_add_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;viewdata_s *vd = (viewdata_s*)data;
+&nbsp;&nbsp;&nbsp;bundledata_s *bundledata = NULL;
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Gather the input data and pack it to the bundledata_s structure
+&nbsp;&nbsp;&nbsp;if (!view_input_data_to_bundledata(vd, &amp;bundledata)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// If the bundledata is successfully obtained, it is added to the data list
+&nbsp;&nbsp;&nbsp;model_list_item_add(bundledata);
+
+&nbsp;&nbsp;&nbsp;// Append the bundledata content to the elm_genlist component
+&nbsp;&nbsp;&nbsp;view_genlist_item_append(bundledata);
+}
+</pre>
+</li>
+<li>Within the <span style="font-family: Courier New,Courier,monospace">view_button_add_clicked_cb()</span> callback function, the input data provided by the user is gathered from the UI and packed into the <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> structure (<span style="font-family: Courier New,Courier,monospace">view_input_data_to_bundledata()</span>) which is then added to the data list using the <span style="font-family: Courier New,Courier,monospace">model_list_item_add()</span> function.
+<p>For the <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> type specification, see <a href="#type-defs">Type Definitions</a>.</p>
+
+<pre class="prettyprint">
+static bool
+view_input_data_to_bundledata(viewdata_s *vd, bundledata_s **bundledata)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;if (!view_input_data_get(vd, &amp;key, &amp;str_value, &amp;value_type)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (view_input_data_value_pointer_get(str_value, value_type, &amp;ptr_value, &amp;val_size)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*bundledata = model_bundledata_create(key, ptr_value, val_size, value_type);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;free(key);
+&nbsp;&nbsp;&nbsp;free(str_value);
+
+&nbsp;&nbsp;&nbsp;return (*bundledata != NULL);
+}
+</pre>
+
+<p>Within the <span style="font-family: Courier New,Courier,monospace">view_input_data_to_bundledata()</span> function, the <span style="font-family: Courier New,Courier,monospace">view_input_data_get()</span> function acquires all necessary data from the user interface and performs its validation:</p>
+<pre class="prettyprint">
+static bool
+view_input_data_get(viewdata_s *vd, char **key, char **value, bundle_value_type_t *value_type)
+{
+&nbsp;&nbsp;&nbsp;// Variable declaration, initialization, and error handling
+
+&nbsp;&nbsp;&nbsp;*key = view_key_string_get(vd);
+&nbsp;&nbsp;&nbsp;*value = view_value_string_get(vd);
+&nbsp;&nbsp;&nbsp;*value_type = (bundle_value_type_t)view_type_index_get(vd);
+ 
+&nbsp;&nbsp;&nbsp;// Check whether acquired data are valid in terms of pointers and value type range correctness
+&nbsp;&nbsp;&nbsp;ret = (*key &amp;&amp; *value &amp;&amp; *value_type &gt;= BUNDLE_VALUE_TYPE_BYTE &amp;&amp; *value_type &lt; BUNDLE_VALUE_TYPE_MAX);
+
+&nbsp;&nbsp;&nbsp;if (!ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;// Free the memory consumed by *key and *value
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+<p>Within the <span style="font-family: Courier New,Courier,monospace">view_input_data_to_bundledata()</span> function, the <span style="font-family: Courier New,Courier,monospace">view_input_data_value_pointer_get()</span> function&#39;s implementation is also omitted. It converts the <span style="font-family: Courier New,Courier,monospace">str_value</span> string to the relevant data type, based on the <span style="font-family: Courier New,Courier,monospace">value_type</span> set by the user, and assigns it to the provided <span style="font-family: Courier New,Courier,monospace">ptr_value</span> of <span style="font-family: Courier New,Courier,monospace">void*</span> type. The size of the data, referenced by the <span style="font-family: Courier New,Courier,monospace">ptr_value</span>, is returned in the <span style="font-family: Courier New,Courier,monospace">val_size</span> parameter. When all the data (key, value reference, and value type) are successfully acquired, the <span style="font-family: Courier New,Courier,monospace">model_bundledata_create()</span> function is called to create the <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> structure (for implementation details, see <a href="#model">Model</a>). Otherwise, the <span style="font-family: Courier New,Courier,monospace">view_input_data_to_bundledata()</span> function fails and frees all previously allocated memory.</p>
+
+<p>After the <span style="font-family: Courier New,Courier,monospace">view_input_data_to_bundledata()</span> function successfully returns and the <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> structure is created, the <span style="font-family: Courier New,Courier,monospace">model_list_item_add()</span> function is invoked (refer to the <span style="font-family: Courier New,Courier,monospace">view_button_add_clicked_cb()</span> callback function) to store the structure for future use in a list of <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> items. For the implementation details of the <span style="font-family: Courier New,Courier,monospace">model_list_item_add()</span> function, see <a href="#model">Model</a>.</p>
+</li>
+<li>The obtained input data is appended to the <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> using the <span style="font-family: Courier New,Courier,monospace">view_genlist_item_append()</span> function.
+<p>To access the UI components directly, 3 simple functions are used: <span style="font-family: Courier New,Courier,monospace">view_key_string_get()</span>, <span style="font-family: Courier New,Courier,monospace">view_value_string_get()</span>, <span style="font-family: Courier New,Courier,monospace">view_type_index_get()</span>. Due to the implementation simplicity of the mentioned functions, they are not listed here.</p>
+
+<pre class="prettyprint">
+static Elm_Object_Item*
+view_genlist_item_append(bundledata_s *bundledata)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class* itc = view_generic_genlist_item_class_create(view_genlist_item_label_get_cb, view_genlist_item_del_cb);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *item = elm_genlist_item_append(viewdata-&gt;data_source_list, itc, (void*)bundledata,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_bring_in(item, ELM_GENLIST_ITEM_SCROLLTO_TOP);
+
+&nbsp;&nbsp;&nbsp;return item;
+}
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">view_generic_genlist_item_class_create()</span> function creates the genlist item class representing the visual style of all the items. The callback functions, passed as parameters (<span style="font-family: Courier New,Courier,monospace">view_genlist_item_label_get_cb()</span> and <span style="font-family: Courier New,Courier,monospace">view_genlist_item_del_cb()</span>), are used to control the display and release of the <span style="font-family: Courier New,Courier,monospace">bundledata</span> attached to the <span style="font-family: Courier New,Courier,monospace">itc</span> using the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function.</p>
+<pre class="prettyprint">
+Elm_Genlist_Item_Class*
+view_generic_genlist_item_class_create(Elm_Genlist_Item_Text_Get_Cb on_text_get_cb, Elm_Genlist_Item_Del_Cb on_item_del_cb)
+{
+&nbsp;&nbsp;&nbsp;static Elm_Genlist_Item_Class *itc = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!itc) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc-&gt;item_style = &quot;double_label&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc-&gt;func.text_get = on_text_get_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// NULL value assignment to unused itc fields
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc-&gt;func.del = on_item_del_cb;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return itc;
+}
+</pre>
+<p>Within the <span style="font-family: Courier New,Courier,monospace">view_genlist_item_append()</span> function, the <span style="font-family: Courier New,Courier,monospace">itc</span> class together with the previously created <span style="font-family: Courier New,Courier,monospace">bundledata_s</span> structure are passed as parameters to the  <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function. As a result, a new item representing the user input data is appended to the <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> component. The <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> is scrolled so the newly appended item becomes visible (<span style="font-family: Courier New,Courier,monospace">elm_genlist_item_bring_in()</span>).</p></li></ol>
+
+<h4>Including the Bundle Header</h4>
+
+<p>The user can add 1 additional key-value pair to the bundle, representing the data header (refer to the Bundle object structure depicted in the <a href="#workflow">Bundle application workflow</a> figure). By checking the <strong>Include bundle header</strong> checkbox, the <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> component is updated with an additional item. The &quot;real&quot; header is added to the bundle object in the bundle creation phase (see <a href="#bundling-data">Bundling and Sending the Data List</a>). The <strong>Include bundle header</strong> checkbox state change results in the <span style="font-family: Courier New,Courier,monospace">view_checkbox_changed_cb()</span> callback function invocation.</p>
+
+<h4 id="bundling-data">Bundling and Sending the Data List</h4>
+
+<p>When the user clicks <strong>Send</strong>, the <span style="font-family: Courier New,Courier,monospace">view_button_send_clicked_cb()</span> callback is triggered and creates the bundle object (with respect to the state of the <strong>Include bundle header</strong> checkbox). Afterwards, the bundle is sent using a message port.</p>
+<pre class="prettyprint">
+static void
+view_button_send_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;viewdata_s *vd = (viewdata_s*)data;
+
+&nbsp;&nbsp;&nbsp;// Obtain the state of the <strong>Include bundle header</strong> checkbox
+&nbsp;&nbsp;&nbsp;bool include_header = (bool)elm_check_state_get(vd-&gt;data_source_checkbox);
+
+&nbsp;&nbsp;&nbsp;// Bundle the bundledata_s structures created earlier and send them using a message port
+&nbsp;&nbsp;&nbsp;controller_data_source_message_send(include_header);
+}
+</pre>
+<p>For the implementation details of the <span style="font-family: Courier New,Courier,monospace">controller_data_source_message_send()</span> function, see <a href="#controller-data-source">Data Source Controller</a>.</p>
+
+
+<h3 id="controller">Controller</h3>
+ 
+<p>The general Controller module handles the application initialization and termination procedures. For more information on the invocation context of the functions, see <a href="#app-init">Application Initialization</a>.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">controller_initialization()</span> function handles:</p>
+  <ul>
+    <li>Model data initialization: <span style="font-family: Courier New,Courier,monospace">model_data_create()</span> (see <a href="#model">Model</a>).</li> 
+    <li>User interface creation: <span style="font-family: Courier New,Courier,monospace">view_base_gui_create()</span> (see <a href="#view">View</a>).</li>
+	<li>Data sink creation and initialization: <span style="font-family: Courier New,Courier,monospace">controller_data_sink_create()</span> (see <a href="#controller-data-sink">Data Sink Controller</a>).</li>
+  </ul>
+<p>If any of the above functions fail, the <span style="font-family: Courier New,Courier,monospace">controller_initialization()</span> function returns a failure status which closes the application.</p>
+<pre class="prettyprint">
+bool
+controller_initialization(viewdata_s *vd, modeldata_s *md)
+{
+&nbsp;&nbsp;&nbsp;return (model_data_create(md) &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_base_gui_create(vd) &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_data_sink_create());
+}
+</pre>
+<p>When the application is terminated, the <span style="font-family: Courier New,Courier,monospace">controller_terminate()</span> function is called. It is responsible for freeing all the allocated  memory, deleting the user interface, and releasing the related resources. For more information about the used functions, see <a href="#controller-data-sink">Data Sink Controller</a>, <a href="#view">View</a>, and <a href="#model">Model</a>.</p>
+
+<pre class="prettyprint">
+void
+controller_terminate(viewdata_s *vd, modeldata_s *md)
+{
+&nbsp;&nbsp;&nbsp;controller_data_sink_destroy();
+&nbsp;&nbsp;&nbsp;view_base_gui_destroy(vd);
+&nbsp;&nbsp;&nbsp;model_data_destroy(md);
+}
+</pre>
+
+<h4 id="controller-data-source">Data Source Controller</h4>
+
+<p>The data source controller module is responsible for data bundling and sending using a message port. The function triggering the entire process (<span style="font-family: Courier New,Courier,monospace">controller_data_source_message_send()</span>) is referenced in <a href="#bundling-data">Bundling and Sending the Data List</a>.</p>
+
+<ol><li>All user input data stored in a list is obtained simply by referencing the <span style="font-family: Courier New,Courier,monospace">Eina_List</span> object, declared in the <a href="#model">Model</a> module, in the <span style="font-family: Courier New,Courier,monospace">model_data_list_get()</span> function.</li>
+<li>The empty bundle object is created with the <span style="font-family: Courier New,Courier,monospace">model_bundle_create()</span> function (for reference, see <a href="#model-bundle">Bundle Model</a>).</li>
+<li>The data addition to the bundle object starts with the <span style="font-family: Courier New,Courier,monospace">controller_data_source_bundle_header_create()</span> function call. 
+<p>The function adds the <span style="font-family: Courier New,Courier,monospace">HEADER</span> key with 0 or 1 value to the <span style="font-family: Courier New,Courier,monospace">bundle_msg</span> bundle object. The 0 or 1 value is assigned depending on the <span style="font-family: Courier New,Courier,monospace">include_header</span> variable value. If the <span style="font-family: Courier New,Courier,monospace">include_header == 1</span>, the additional <span style="font-family: Courier New,Courier,monospace">HEADER_DATA</span> key is added to the <span style="font-family: Courier New,Courier,monospace">bundle_msg</span> bundle object. The value type of the <span style="font-family: Courier New,Courier,monospace">HEADER_DATA</span> key is an array of strings, where all the cells of the array are filled with key names defined by the user during the data input procedure (for reference, see <a href="#data-input">Inputting Data and Adding to the List</a>).</p></li>
+<li>To finalize the data addition process, all the user-defined key-value pairs are appended to the bundle object with the <span style="font-family: Courier New,Courier,monospace">controller_data_source_bundle_data_add()</span> function.</li>
+<li>Once the bundle object is successfully created and populated with the data, it is sent through the message port using the <span style="font-family: Courier New,Courier,monospace">model_message_port_message_send()</span> function (for reference, see <a href="#model-message-port">Message Port Model</a>).</li>
+<li>After the <span style="font-family: Courier New,Courier,monospace">bundle_msg</span> is sent, it is not needed anymore, so it can be deleted with the <span style="font-family: Courier New,Courier,monospace">model_bundle_destroy()</span> function (for reference, see <a href="#model-bundle">Bundle Model</a>).</li>
+</ol>
+
+
+<pre class="prettyprint">
+bool
+controller_data_source_message_send(bool include_header)
+{
+&nbsp;&nbsp;&nbsp;Eina_List *bundle_data_list = NULL;
+&nbsp;&nbsp;&nbsp;bundle *bundle_msg = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!model_data_list_get(&amp;bundle_data_list)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (!model_bundle_create(&amp;bundle_msg)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (!controller_data_source_bundle_header_create(&amp;bundle_msg, include_header)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model_bundle_destroy(bundle_msg);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (!controller_data_source_bundle_data_add(bundle_msg, bundle_data_list)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model_bundle_destroy(bundle_msg);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;bool ret = model_message_port_message_send(bundle_msg);
+
+&nbsp;&nbsp;&nbsp;model_bundle_destroy(bundle_msg);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+
+
+<p>The following table shows a bundle object structure preview example. Assume that the bundle contains 3 user-defined keys with the following values:</p>
+  <ul>
+    <li>Key name: &quot;EX-STR-1&quot;, value: &quot;exemplary-string-1&quot;, type: string</li>
+	<li>Key name: &quot;EX-INT-2&quot;, value: 1, type: byte</li>
+    <li>Key name: &quot;EX-STR-3&quot;, value: &quot;exemplary-string-2&quot;, type: string</li>
+  </ul>
+<table>
+	<caption>Table: Bundle object data</caption>
+    <tr>
+         <th><strong><span style="font-family: Courier New,Courier,monospace">include_header == 0</span></strong></th>
+         <th><strong><span style="font-family: Courier New,Courier,monospace">include_header == 1</span></strong></th>
+       </tr>
+       <tr>
+         <td>
+<pre class="prettyprint">
+HEADER   : 0
+EX-STR-1 : &quot;exemplary-string-1&quot;
+EX-INT-2 : 1
+EX-STR-3 : &quot;exemplary-string-2&quot;
+
+
+
+</pre>
+         </td>
+         <td>
+<pre class="prettyprint">
+HEADER          : 1
+HEADER_DATA [0] : &quot;EX-STR-1&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[1] : "EX-INT-2"
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[2] : "EX-STR-3"
+EX-STR-1        : &quot;exemplary-string-1&quot;
+EX-INT-2        : 1
+EX-STR-3        : &quot;exemplary-string-2&quot;
+</pre>
+        </td>
+       </tr>
+</table>
+
+<p>The call-stack order of the function listing is preserved.</p>
+
+<pre class="prettyprint">
+static bool
+controller_data_source_bundle_header_create(bundle **bundle_obj, bool include_header)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Add the BUNDLE_HEADER_KEY with assigned value of &quot;include_header&quot; to the bundle object
+&nbsp;&nbsp;&nbsp;if (!model_bundle_byte_add(bundle_obj, BUNDLE_HEADER_KEY, (int)include_header)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// If the user did not include the bundle header, the function returns
+&nbsp;&nbsp;&nbsp;// Otherwise, the header data is appended
+&nbsp;&nbsp;&nbsp;if (!include_header) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Get all the user-defined key-value pairs in the form of a list containing bundledata_s structures
+&nbsp;&nbsp;&nbsp;if (!model_data_list_get(&amp;bundle_data_list)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;items_count = eina_list_count(bundle_data_list);
+&nbsp;&nbsp;&nbsp;if (items_count == 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Create the array and fill it with the key names defined by the user
+&nbsp;&nbsp;&nbsp;key_array = (char**)malloc(sizeof(char*) * items_count);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH(bundle_data_list, tmp, bundledata) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key_array[i] = strdup(bundledata-&gt;key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i++;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Add the created array of user-defined key names to the bundle object
+&nbsp;&nbsp;&nbsp;bool ret = model_bundle_string_array_add(bundle_obj, BUNDLE_HEADER_DATA_KEY, key_array, items_count);
+
+&nbsp;&nbsp;&nbsp;// Free the key_array&#39;s content and the array
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+
+static bool
+controller_data_source_bundle_data_add(bundle *bundle_obj, Eina_List *bundle_data_list)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Append each list&#39;s item of type bundledata_s to the bundle object
+&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH(bundle_data_list, tmp, bundledata) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_data_source_bundle_data_append(bundle_obj, bundledata);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+static bool
+controller_data_source_bundle_data_append(bundle *bundle_obj, bundledata_s *bundledata)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Call the appropriate function depending on the key&#39;s value type (byte/string) to
+&nbsp;&nbsp;&nbsp;// add the key-value pair to the bundle object
+&nbsp;&nbsp;&nbsp;switch (bundledata-&gt;type) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case BUNDLE_VALUE_TYPE_BYTE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!model_bundle_byte_add(&amp;bundle_obj, bundledata-&gt;key, *((int*)bundledata-&gt;value))) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case BUNDLE_VALUE_TYPE_STRING:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!model_bundle_string_add(&amp;bundle_obj, bundledata-&gt;key, (char*)bundledata-&gt;value)) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+
+<h4 id="controller-data-sink">Data Sink Controller</h4>
+ 
+<p>The data sink controller module is responsible for the initialization and finalization of the communication channel using a message port and receiving messages. The data sink initialization function (<span style="font-family: Courier New,Courier,monospace">controller_data_sink_create()</span>) is invoked from the <span style="font-family: Courier New,Courier,monospace">controller_initialization()</span> function contained in the general <a href="#controller">Controller</a> module. Similarly, the finalization function (<span style="font-family: Courier New,Courier,monospace">controller_data_sink_destroy()</span>) is called from the <span style="font-family: Courier New,Courier,monospace">controller_terminate()</span> function contained in the same general Controller module.</p>
+<p>In the message port initialization procedure, a new communication channel is created with the <span style="font-family: Courier New,Courier,monospace">controller_data_sink_message_received_cb()</span> callback function attached. When a new message arrives, the callback function is invoked and the received data passed in the callback.</p>
+
+<p>To create the data sink:</p>
+<pre class="prettyprint">
+bool
+controller_data_sink_create(void)
+{
+&nbsp;&nbsp;&nbsp;// Check whether the message port already exists
+&nbsp;&nbsp;&nbsp;if (model_message_port_exists_check()) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Create a new message port if it does not exist yet
+&nbsp;&nbsp;&nbsp;return model_message_port_create(controller_data_sink_message_received_cb);
+}
+</pre>
+
+<p>To destroy the data sink and release the resources:</p>
+<pre class="prettyprint">
+bool
+controller_data_sink_destroy(void)
+{
+&nbsp;&nbsp;&nbsp;// If the message port was never created, there is nothing to do
+&nbsp;&nbsp;&nbsp;if (!model_message_port_exists_check()) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Close the communication channel and the message port
+&nbsp;&nbsp;&nbsp;return model_message_port_destroy();
+}
+</pre>
+
+<p>When a new message arrives through the created message port, the <span style="font-family: Courier New,Courier,monospace">controller_data_sink_message_received_cb()</span> callback function is invoked. The general approach of data extraction from the received bundle object is based on the knowledge about its structure (see the bundle object structure depicted in the <a href="#workflow">Bundle application workflow</a> figure). The workflow can be described with the following steps:</p>
+  <ol>
+    <li>Get the number of bundled items.</li>
+    <li>Get the value of <span style="font-family: Courier New,Courier,monospace">BUNDLE_HEADER_KEY</span>:
+         <ul>
+           <li>If the value of <span style="font-family: Courier New,Courier,monospace">BUNDLE_HEADER_KEY</span> equals 1, the data header is included and must be extracted using the <span style="font-family: Courier New,Courier,monospace">model_bundle_string_array_get()</span> function. As a result, the string array is returned.</li>
+           <li>If the value of <span style="font-family: Courier New,Courier,monospace">BUNDLE_HEADER_KEY</span> equals 0, the data header is not included.</li>
+        </ul>
+	</li>
+	<li>If the bundle data header exists, it is printed to the data sink view.</li>
+	<li>Bundle data enumeration is performed using the <span style="font-family: Courier New,Courier,monospace">model_bundle_foreach()</span> function with the <span style="font-family: Courier New,Courier,monospace">controller_data_sink_bundle_foreach_cb()</span> callback function attached.</li>
+  </ol>
+
+<p>For the description of all model-related functions, see <a href="#model-bundle">Bundle Model</a>.</p>
+
+<pre class="prettyprint">
+static void
+controller_data_sink_message_received_cb(int local_port_id, const char *remote_app_id, const char *remote_port, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool trusted_remote_port, bundle *message, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;// Print the initial message to the data sink view
+
+&nbsp;&nbsp;&nbsp;// Obtain the number of items contained in received bundle object
+&nbsp;&nbsp;&nbsp;if (model_bundle_count_get(message, &amp;items_count)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Format the text message
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Print the number of bundle items to the data sink view
+
+&nbsp;&nbsp;&nbsp;// Get the value of BUNDLE_HEADER_KEY to verify the existence of the data header
+&nbsp;&nbsp;&nbsp;if (!model_bundle_byte_get(message, BUNDLE_HEADER_KEY, &amp;header_value)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Print the message to the data sink view
+
+&nbsp;&nbsp;&nbsp;if ((bool)header_value) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If the data header exists, the strings array value attached to the BUNDLE_HEADER_DATA_KEY is obtained
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!model_bundle_string_array_get(message, BUNDLE_HEADER_DATA_KEY, &amp;header_data, &amp;header_size)) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// All strings contained in the header_data and attached to the BUNDLE_HEADER_DATA_KEY 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// are enumerated and printed to the data sink view
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Print the message to the data sink view
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Print the message to the data sink view
+
+&nbsp;&nbsp;&nbsp;// Bundled data item enumeration
+&nbsp;&nbsp;&nbsp;if (!model_bundle_foreach(message, controller_data_sink_bundle_foreach_cb)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Print the message to the data sink view
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>Once the data header is decoded and extracted, the enumeration of data items starts (<span style="font-family: Courier New,Courier,monospace">model_bundle_foreach()</span>). For each bundled item, the <span style="font-family: Courier New,Courier,monospace">controller_data_sink_bundle_foreach_cb()</span> callback function is invoked.</p>
+
+<pre class="prettyprint">
+static void
+controller_data_sink_bundle_foreach_cb(const char *key, const int type, const bundle_keyval_t *kv, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables and initialize
+
+&nbsp;&nbsp;&nbsp;// If this callback function is invoked for any of the data header related keys 
+&nbsp;&nbsp;&nbsp;// (BUNDLE_HEADER_KEY, BUNDLE_HEADER_DATA_KEY), the function returns
+&nbsp;&nbsp;&nbsp;if (controller_same_string_check(key, BUNDLE_HEADER_KEY) || controller_same_string_check(key, BUNDLE_HEADER_DATA_KEY)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Get the value&#39;s type of the enumerated bundle&#39;s item
+&nbsp;&nbsp;&nbsp;if (model_bundle_keyval_type_get(kv, &amp;value_type)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// The numeric type code is converted into the string name
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Get the value of the enumerated bundle&#39;s item
+&nbsp;&nbsp;&nbsp;if (model_bundle_keyval_basic_val_get(kv, &amp;value)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Format the text message
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Print the message to the data sink view
+}
+</pre>
+
+<p>The following table shows the text printed to the data sink view in the case shown in <a href="#controller-data-source">Data Source Controller</a>.</p>
+<table>
+	<caption>Table: Text printed in the data sink view</caption>
+	<tr>
+		<th align="center"><strong><span style="font-family: Courier New,Courier,monospace">include_header == 0</span></strong></th>
+		<th align="center"><strong><span style="font-family: Courier New,Courier,monospace">include_header == 1</span></strong></th>
+	</tr>
+    <tr>
+		<td>
+<pre class="prettyprint">
+---=== MSG RECEIVED ===---
+Bundle items count: 4
+Header data:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- N/A
+Data:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- EX-STR-1 = exemplary-string-1 (string)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- EX-INT-2 = 1 (byte)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- EX-STR-3 = exemplary-string-2 (string)
+
+
+</pre>
+		</td>
+		<td>
+<pre class="prettyprint">
+---=== MSG RECEIVED ===---
+Bundle items count: 5
+Header data:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Key: EX-STR-1 (string)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Key: EX-INT-2 (byte)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Key: EX-STR-3 (string)
+Data:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- EX-STR-1 = exemplary-string-1 (string)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- EX-INT-2 = 1 (byte)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- EX-STR-3 = exemplary-string-2 (string)
+</pre>
+        </td>
+	</tr>
+</table>
+
+
+<h3 id="model">Model</h3>
+ 
+<p>The general Model module deals directly with the application data. It is responsible for:</p>
+<ul>
+	<li>Model initialization and finalization</li>
+	<li>User data list handling</li>
+</ul>
+<p>In the initialization step, the <span style="font-family: Courier New,Courier,monospace">model_data_create()</span> function is invoked from the <span style="font-family: Courier New,Courier,monospace">controller_initialization()</span> function. The <span style="font-family: Courier New,Courier,monospace">model_data_destroy()</span> function is called in the application termination phase by the <span style="font-family: Courier New,Courier,monospace">controller_terminate()</span> function. For the call stack reference, see <a href="#controller">Controller</a>.</p>
+<p>To create the model:</p>
+<pre class="prettyprint">
+bool
+model_data_create(modeldata_s *md)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// The pointer to the modeldata_s structure is locally stored
+&nbsp;&nbsp;&nbsp;modeldata = md;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+<p>To destroy the model and free the resources:</p>
+<pre class="prettyprint">
+void
+model_data_destroy(modeldata_s *md)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Free the content of the input data list
+&nbsp;&nbsp;&nbsp;if (md-&gt;items_list) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;md-&gt;items_list = eina_list_free(md-&gt;items_list);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The user input data are added to the list with the <span style="font-family: Courier New,Courier,monospace">model_bundledata_create()</span> function referenced from the <span style="font-family: Courier New,Courier,monospace">view_input_data_to_bundledata()</span> function, which is called by the <span style="font-family: Courier New,Courier,monospace">view_button_add_clicked_cb()</span> callback function on the <strong>Add</strong> button press. For reference, see <a href="#data-input">Inputting Data and Adding to the List</a>.</p>
+
+<pre class="prettyprint">
+bundledata_s*
+model_bundledata_create(char *key, void *ptr_value, int val_size, bundle_value_type_t value_type)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;bundledata_s *bundledata = (bundledata_s*)malloc(sizeof(bundledata_s));
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;bundledata-&gt;key = strdup(key);
+&nbsp;&nbsp;&nbsp;bundledata-&gt;value = (void*)malloc(val_size);
+&nbsp;&nbsp;&nbsp;memcpy(bundledata-&gt;value, ptr_value, val_size);
+&nbsp;&nbsp;&nbsp;bundledata-&gt;type = value_type;
+
+&nbsp;&nbsp;&nbsp;return bundledata;
+}
+</pre>
+
+<p>Once the user input data structure (<span style="font-family: Courier New,Courier,monospace">bundledata_s</span> described in <a href="#type-defs">Type Definitions</a>) is created, it can be added to the list with the <span style="font-family: Courier New,Courier,monospace">model_list_item_add()</span> function and accessed with the <span style="font-family: Courier New,Courier,monospace">model_data_list_get()</span> function. The first function is invoked from the <span style="font-family: Courier New,Courier,monospace">view_button_add_clicked_cb()</span> callback function (see <a href="#data-input">Inputting Data and Adding to the List</a>) and the second one is called during the data bundling and sending procedure (<span style="font-family: Courier New,Courier,monospace">controller_data_source_message_send()</span> referenced in <a href="#controller-data-source">Data Source Controller</a>). The implementation of both functions is very simple and limited to proper <span style="font-family: Courier New,Courier,monospace">Eina_List</span> function invocations. For this reason, they are not listed here.</p>
+
+<h4 id="model-bundle">Bundle Model</h4>
+
+<p>The Bundle model module provides a set of wrapper functions for the Bundle API used by the <a href="#controller">Controller</a> module for the bundle management:</p>
+  <ul>
+    <li>Creating and removing the bundle object:
+	<pre class="prettyprint">
+bool
+model_bundle_create(bundle **bundle_obj)
+{
+&nbsp;&nbsp;&nbsp;// Create the bundle object
+&nbsp;&nbsp;&nbsp;*bundle_obj = bundle_create();
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+bool
+model_bundle_destroy(bundle *bundle_obj)
+{
+&nbsp;&nbsp;&nbsp;// Free the bundle object
+&nbsp;&nbsp;&nbsp;int ret = bundle_free(bundle_obj);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+	</li>
+    <li>Extracting the information on bundled data:
+         <ul>
+           <li>Number of bundled items:
+		   <pre class="prettyprint">
+bool
+model_bundle_count_get(bundle *bundle_obj, int *count)
+{
+&nbsp;&nbsp;&nbsp;// The number of bundled items is acquired if the value returned is non-negative
+&nbsp;&nbsp;&nbsp;// Otherwise, the error code is returned
+&nbsp;&nbsp;&nbsp;*count = bundle_get_count(bundle_obj);
+&nbsp;&nbsp;&nbsp;int ret = get_last_result();
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+           <li>Value type:
+		   <pre class="prettyprint">
+bool
+model_bundle_type_get(bundle *bundle_obj, const char *key, int *type)
+{
+&nbsp;&nbsp;&nbsp;// The type of the bundled item&#39;s value, assigned to the given key, is acquired if the value returned is non-negative
+&nbsp;&nbsp;&nbsp;// Otherwise, the error code is returned
+&nbsp;&nbsp;&nbsp;*type = bundle_get_type(bundle_obj, key);
+&nbsp;&nbsp;&nbsp;int ret = get_last_result();
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+         </ul>
+	</li>
+    <li>Adding the data to the bundle with respect to its type:
+	<ul><li>
+	<p>String value:</p>
+<pre class="prettyprint">
+bool
+model_bundle_string_add(bundle **bundle_obj, const char *key, const char *value)
+{
+&nbsp;&nbsp;&nbsp;// The string value assigned to the given key is added to the bundle
+&nbsp;&nbsp;&nbsp;int ret = bundle_add_str(*bundle_obj, key, value);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+<li>
+<p>Array of string values:</p>
+<pre class="prettyprint">
+bool
+model_bundle_string_array_add(bundle **bundle_obj, const char *key, char **value, int value_count)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// The array of string values assigned to the given key is added to the bundle
+&nbsp;&nbsp;&nbsp;int ret = bundle_add_str_array(*bundle_obj, key, (const char**)value, value_count);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+<li>
+<p>Numerical value:</p>
+<pre class="prettyprint">
+bool
+model_bundle_byte_add(bundle **bundle_obj, const char *key, int value)
+{
+&nbsp;&nbsp;&nbsp;// The numerical value assigned to the given key is added to the bundle
+&nbsp;&nbsp;&nbsp;int ret = bundle_add_byte(*bundle_obj, key, &amp;value, sizeof(value));
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li></ul>
+
+</li>
+    <li>Extracting the bundled data with respect to its type:
+	<ul><li>
+	<p>Retrieve a string value:</p>
+<pre class="prettyprint">
+bool
+model_bundle_string_get(bundle *bundle_obj, const char *key, char **value)
+{
+&nbsp;&nbsp;&nbsp;*value = NULL;
+
+&nbsp;&nbsp;&nbsp;// The string value assigned to the given key is acquired from the bundle
+&nbsp;&nbsp;&nbsp;int ret = bundle_get_str(bundle_obj, key, value);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+<li>
+<p>Retrieve string array values:</p>
+<pre class="prettyprint">
+bool
+model_bundle_string_array_get(bundle *bundle_obj, const char *key, const char ***value, int *value_len)
+{
+&nbsp;&nbsp;&nbsp;*value_len = 0;
+
+&nbsp;&nbsp;&nbsp;// The string array value assigned to the given key is acquired from the bundle
+&nbsp;&nbsp;&nbsp;*value = bundle_get_str_array(bundle_obj, key, value_len);
+&nbsp;&nbsp;&nbsp;int ret = get_last_result();
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+<li>
+
+<p>Retrieve a numerical value:</p>
+<pre class="prettyprint">
+bool
+model_bundle_byte_get(bundle *bundle_obj, const char *key, int *value)
+{
+&nbsp;&nbsp;&nbsp;*value = 0;
+
+&nbsp;&nbsp;&nbsp;void *byte_val = NULL;
+&nbsp;&nbsp;&nbsp;size_t size_val = 0;
+
+&nbsp;&nbsp;&nbsp;// The numerical value assigned to the given key is acquired from the bundle in a form of void pointer
+&nbsp;&nbsp;&nbsp;int ret = bundle_get_byte(bundle_obj, key, &amp;byte_val, &amp;size_val);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Returned value referenced by the void pointer is copied to the variable of integer type
+&nbsp;&nbsp;&nbsp;if (size_val &gt; 0 &amp;&amp; size_val &lt;= sizeof(int)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*value = *((int*)byte_val);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+<li>
+<p>Retrieve the value type:</p>
+<pre class="prettyprint">
+bool
+model_bundle_keyval_type_get(const bundle_keyval_t *kv, int *type)
+{
+&nbsp;&nbsp;&nbsp;// The type of the bundled item's value is acquired
+&nbsp;&nbsp;&nbsp;// This function is used within the callback function invoked by the bundle_foreach() function
+&nbsp;&nbsp;&nbsp;// If the returned value is non-negative, it points to the value type. Otherwise, the error code is returned
+&nbsp;&nbsp;&nbsp;*type = bundle_keyval_get_type((bundle_keyval_t*)kv);
+&nbsp;&nbsp;&nbsp;int ret = get_last_result() ;
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+<li>
+<p>Retrieve the bundled value:</p>
+<pre class="prettyprint">
+bool
+model_bundle_keyval_basic_val_get(const bundle_keyval_t *kv, void **value)
+{
+&nbsp;&nbsp;&nbsp;size_t value_size = 0;
+&nbsp;&nbsp;&nbsp;// The bundled value is acquired. This function is used within the callback function invoked by the bundle_foreach() function
+&nbsp;&nbsp;&nbsp;int ret = bundle_keyval_get_basic_val((bundle_keyval_t*)kv, value, &amp;value_size);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li></ul>
+
+</li>
+    <li>Bundled item enumeration:
+	<pre class="prettyprint">
+bool
+model_bundle_foreach(bundle *bundle_obj, bundle_iterator_t func_cb)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// Bundled items are enumerated and the func_cb callback function is called for each item contained in the bundle
+&nbsp;&nbsp;&nbsp;bundle_foreach(bundle_obj, func_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre></li>
+  </ul>
+
+
+<h4 id="model-message-port">Message Port Model</h4>
+ 
+<p>The message port model module provides a set of wrapper functions for the Message Port API used by the <a href="#controller-data-sink">Data Sink Controller</a> and <a href="#controller-data-source">Data Source Controller</a> modules:</p>
+  <ul>
+    <li>Create and remove the message port:
+<pre class="prettyprint">
+bool
+model_message_port_create(message_port_message_cb func_cb)
+{
+&nbsp;&nbsp;&nbsp;// The local message port is registered with a func_cb callback function assigned
+&nbsp;&nbsp;&nbsp;// The func_cb is called whenever a message is received
+&nbsp;&nbsp;&nbsp;// If the returned value is non-negative, the message port is created successfully
+&nbsp;&nbsp;&nbsp;// Otherwise, the ret value points to the error code
+&nbsp;&nbsp;&nbsp;int ret = message_port_register_local_port(MESSAGE_PORT_RCV_NAME, func_cb, NULL);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// The identifier of a message port is stored
+&nbsp;&nbsp;&nbsp;model_data_get()-&gt;msg_port_rcv_id = ret;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+bool
+model_message_port_destroy(void)
+{
+&nbsp;&nbsp;&nbsp;// The message port is unregistered based on its identifier
+&nbsp;&nbsp;&nbsp;int ret = message_port_unregister_local_port(model_data_get()-&gt;msg_port_rcv_id);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;// The identifier of a message port is cleared
+&nbsp;&nbsp;&nbsp;model_data_get()-&gt;msg_port_rcv_id = 0;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>	
+	</li>
+    <li>Check the message port existence:
+<pre class="prettyprint">
+bool
+model_message_port_exists_check(void)
+{
+&nbsp;&nbsp;&nbsp;// Check whether the message port identifier is non-negative
+&nbsp;&nbsp;&nbsp;// If so, the message port exists
+&nbsp;&nbsp;&nbsp;return (model_data_get()-&gt;msg_port_rcv_id &gt; 0);
+}
+</pre>	</li>
+    <li>Send the bundle object:
+<pre class="prettyprint">
+bool
+model_message_port_message_send(bundle *message)
+{
+&nbsp;&nbsp;&nbsp;// The bundled message is sent over the message port previously created
+&nbsp;&nbsp;&nbsp;int ret = message_port_send_message(PACKAGE, MESSAGE_PORT_RCV_NAME, message);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>	</li>
+  </ul>
+
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

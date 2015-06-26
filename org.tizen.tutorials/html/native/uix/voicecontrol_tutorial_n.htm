@@ -1,0 +1,652 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>Voice control: Recognizing Voice Commands</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+  <div id="profile">
+    <p><img alt="Mobile native" src="../../images/mn_icon.png"/> <img alt="Wearable native" src="../../images/wn_icon.png"/></p>
+  </div>
+  <div id="toc_border"><div id="toc">
+    <p class="toc-title">Content</p>
+    <ul class="toc">
+      <li><a href="#init">Initializing the Voice Control</a></li>
+	  <li><a href="#callback">Managing Callbacks</a></li>
+	  <li><a href="#info">Retrieving Voice Control Information</a></li>
+	  <li><a href="#commands">Managing Commands</a></li>
+    </ul>
+    <p class="toc-title">Related Info</p>
+    <ul class="toc">
+		<li><a href="../../../../org.tizen.guides/html/native/uix/voicecontrol_n.htm">Voice control Guide</a></li>
+		<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__VOICE__CONTROL__MODULE.html">Voice control API for Mobile Native</a></li>
+		<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__UIX__VOICE__CONTROL__MODULE.html">Voice control API for Wearable Native</a></li>
+    </ul>
+  </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Voice control: Recognizing Voice Commands</h1>
+  <p>This tutorial demonstrates how you can register voice commands, which trigger a callback when the user speaks them.</p>
+
+  <h2>Warm-up</h2>
+  <p>Become familiar with the Voice control API basics by learning about:</p>
+  <ul>
+  <li><a href="#init">Initializing the Voice Control</a>
+    <p>Initialize and prepare the voice control for use.</p></li>
+  <li><a href="#callback">Managing Callbacks</a>
+    <p>Set and unset callbacks to get notifications about recognition results, state changes, and errors.</p></li>
+  <li><a href="#info">Retrieving Voice Control Information</a>
+    <p>Get information about the current states, and current and supported languages.</p></li>
+  <li><a href="#commands">Managing Commands</a>
+    <p>Create a command list and commands.</p></li>
+  </ul>
+
+  
+      <h2 id="init" name="init">Initializing the Voice Control</h2>
+<p>To initialize and prepare the voice control for use:</p>
+<ol>
+<li>To use the functions and data types of the Voice control API, include the <span style="font-family: Courier New,Courier,monospace">&lt;voice_control.h&gt;</span> header file in your application:
+<pre class="prettyprint">#include &lt;voice_control.h&gt;</pre>
+</li>
+<li>Initialize the voice control with the <span style="font-family: Courier New,Courier,monospace">vc_initialize()</span> function:
+<pre class="prettyprint">
+void initialize_voice_control()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_initialize();
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != result)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+<p>If the function call is successful, the voice control state changes to <span style="font-family: Courier New,Courier,monospace">VC_STATE_INITIALIZED</span>.</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The voice control feature is not thread safe and depends on the ecore main loop. Implement voice control within the ecore main loop and do not use it in a thread.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+</li>
+<li>Prepare the Voice control service with the <span style="font-family: Courier New,Courier,monospace">vc_prepare()</span> function, which connects the background Voice control daemon. The daemon records and recognizes audio data and converts sound to text.
+<p>The <span style="font-family: Courier New,Courier,monospace">vc_prepare()</span> function is asynchronous, and when the preparation succeeds, the voice control state changes from <span style="font-family: Courier New,Courier,monospace">VC_STATE_INITIALIZED</span> to <span style="font-family: Courier New,Courier,monospace">VC_STATE_READY</span>. If the <span style="font-family: Courier New,Courier,monospace">vc_prepare()</span> function fails, the error callback is triggered.</p> 
+
+<pre class="prettyprint">
+void prepare_vc()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_prepare();
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>When voice control is no longer needed, unprepare and deinitialize it:
+<pre class="prettyprint">
+void unprepared_vc()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_unprepare();
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void deinitialize_voice_control()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_deinitialize(); 
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != result)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>When the <span style="font-family: Courier New,Courier,monospace">vc_unprepare()</span> function succeeds, the voice control state changes from <span style="font-family: Courier New,Courier,monospace">VC_STATE_READY</span> to <span style="font-family: Courier New,Courier,monospace">VC_STATE_INITIALIZED</span>.</p>  
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Do not call the <span style="font-family: Courier New,Courier,monospace">vc_deinitialize()</span> function in a callback function. Within a callback function, the <span style="font-family: Courier New,Courier,monospace">vc_deinitialize()</span> function fails and returns <span style="font-family: Courier New,Courier,monospace">VC_ERROR_OPERATION_FAILED</span>.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+  </li>
+</ol>
+
+      <h2 id="callback" name="callback">Managing Callbacks</h2>
+<p>The callback functions are defined in the <span style="font-family: Courier New,Courier,monospace">voice_control_common.h</span> header file, where you can find more information about them.</p>
+	
+<p>To set and unset callbacks to get notifications about recognition results, state changes, and errors:</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Set and unset all callbacks when the voice control state is <span style="font-family: Courier New,Courier,monospace">VC_STATE_INITIALIZED</span>.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+
+<ul>
+<li>Set the state change callback to be invoked when the voice control state changes:
+<pre class="prettyprint">
+void state_changed_cb(vc_state_e previous, vc_state_e current, void* user_data)
+{ 
+&nbsp;&nbsp;&nbsp;// Your code
+}
+void set_state_changed_cb()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_set_state_changed_cb(state_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+void unset_state_changed_cb()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_unset_state_changed_cb();
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>Set the service state change callback to be invoked when the Voice control service state changes:
+<pre class="prettyprint">
+void __service_state_changed_cb(vc_service_state_e previous, vc_service_state_e current, void* user_data)
+{ 
+&nbsp;&nbsp;&nbsp;// Your code
+}
+void set_service_state_changed_cb()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_set_service_state_changed_cb(__service_state_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+void unset_service_state_changed_cb()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_unset_service_state_changed_cb();
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Set the current language change callback to be invoked when the system or application language changes:
+<pre class="prettyprint">
+void __current_language_changed_cb(const char* previous, const char* current, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Your code
+}
+void set_current_language_changed_cb()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_set_current_language_changed_cb(__current_language_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+void unset_current_language_changed_cb()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_unset_current_language_changed_cb();
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+<li>Set the recognition result callback to be invoked when a voice command is recognized.
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">If the recognition result produces a reject event, the Voice control service has rejected the recognized command. Make sure that the command does not conflict with other commands and there are not duplicated commands.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+  
+<p>To get the command, use the Voice control APIs with the <span style="font-family: Courier New,Courier,monospace">vc_cmd_list</span> parameter, which is a list of recognized commands. The <span style="font-family: Courier New,Courier,monospace">result</span> parameter contains the recognized text.</p>  
+
+<pre class="prettyprint">
+void __result_cb(vc_result_event_e event, vc_cmd_list_h vc_cmd_list, const char* result, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;int ret = -1;
+&nbsp;&nbsp;&nbsp;int count = 0;
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_get_count(vc_cmd_list, &amp;count);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// No result
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+	
+&nbsp;&nbsp;&nbsp;vc_cmd_list_first(vc_cmd_list);
+
+&nbsp;&nbsp;&nbsp;int i = 0;
+&nbsp;&nbsp;&nbsp;int type = 0;
+&nbsp;&nbsp;&nbsp;char* cmd = NULL;
+&nbsp;&nbsp;&nbsp;vc_cmd_h result_command = NULL;
+&nbsp;&nbsp;&nbsp;for (i = 0;i &lt; count;i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result_command = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_get_current(vc_cmd_list, &amp;result_command);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 == ret &amp;&amp; NULL != result_command) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cmd = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vc_cmd_get_command(result_command, &amp;cmd);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vc_cmd_get_type(result_command, &amp;type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Check command and type
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return;
+}
+
+void set_result_cb()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_set_result_cb(__result_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void unset_result_cb()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_unset_result_cb();
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+<li>Set the error callback to be invoked when an error occurs in the voice control process:
+<pre class="prettyprint">
+void __error_cb(vc_error_e reason, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Your code
+}
+
+void set_error_cb(vc_h vc)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_set_error_cb(__error_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void unset_error_cb(vc_h vc)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_unset_error_cb();
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li></ul>
+   
+   
+    <h2 id="info" name="info">Retrieving Voice Control Information</h2>
+	
+<p>To get information about the current states, and current and supported languages:</p>
+
+<ul>
+<li>
+<p>Get the current voice control state using the <span style="font-family: Courier New,Courier,monospace">vc_get_state()</span> function.</p>
+<p>The voice control state changes according to function calls when the voice control is, for example, initialized and prepared.</p>
+<pre class="prettyprint">
+void get_state()
+{
+&nbsp;&nbsp;&nbsp;vc_state_e current_state;
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_get_state(&amp;current_state);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+<li>
+<p>Get the current voice control service state using the <span style="font-family: Courier New,Courier,monospace">vc_get_service_state()</span> function.</p>
+<p>The user controls the voice control service state. In a general scenario:</p>
+<ol><li>The user starts recording for recognition by using a voice application, button, or voice trigger. If the start is successful, the voice control service state changes to <span style="font-family: Courier New,Courier,monospace">VC_SERVICE_STATE_RECORDING</span>.</li>
+<li>After recording, the service state changes to <span style="font-family: Courier New,Courier,monospace">VC_SERVICE_STATE_PROCESSING</span> for recognition processing.</li>
+<li>After recognition is completed, the service state returns to <span style="font-family: Courier New,Courier,monospace">VC_SERVICE_STATE_READY</span>.</li></ol>
+<p>If the application uses continuous recognition, the voice control service state can be changed from <span style="font-family: Courier New,Courier,monospace">VC_SERVICE_STATE_PROCESSING</span> directly to <span style="font-family: Courier New,Courier,monospace">VC_SERVICE_STATE_RECORDING</span>.</p>
+
+<pre class="prettyprint">
+void get_state(vc_h vc)
+{
+&nbsp;&nbsp;&nbsp;vc_service_state_e service_state;
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_get_service_state(&amp;service_state);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+<li>Get the supported languages with a callback function that runs for each language separately.
+<p>The callback cannot be unset: as long as it returns <span style="font-family: Courier New,Courier,monospace">true</span>, it continues to loop over the supported languages.</p>
+<pre class="prettyprint">
+bool supported_language_cb(const char* language, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;return true; // To continue to get the next language
+&nbsp;&nbsp;&nbsp;return false; // To stop
+}
+
+void get_supported_language()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_foreach_supported_languages(supported_language_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+<li>Get the current language with the <span style="font-family: Courier New,Courier,monospace">vc_get_current_language()</span> function. The voice control recognition works for the current (default) language. Use the language change callback to be notified of language changes. 
+
+<pre class="prettyprint">
+void get_current_language()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;char* current_lang = NULL;
+&nbsp;&nbsp;&nbsp;ret = vc_get_current_language(&amp;current_lang);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+</ul>
+ 
+      <h2 id="commands" name="commands">Managing Commands</h2>
+	  
+<p>To create a command list and commands:</p>
+
+<ol>
+<li>Create a command list with a command list handle.
+<p>The command list can include many commands, which have a command text and type. The list can have both the <span style="font-family: Courier New,Courier,monospace">VC_COMMAND_TYPE_FOREGROUND</span> and <span style="font-family: Courier New,Courier,monospace">VC_COMMAND_TYPE_BACKGROUND</span> type commands. The foreground commands are valid when the application is in a visible state and the background commands are valid when the application is in a visible or invisible state.</p>
+<p>You can access the command list after you set it to the voice control and when you get the recognition result. </p>
+
+<pre class="prettyprint">
+void create_command_list()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;vc_cmd_list_h vc_cmd_list;
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_create(&amp;vc_cmd_list);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>Create a command.
+<p>First create a command handle, and then define the command and type.</p>
+<pre class="prettyprint">
+void create_command()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;vc_cmd_h vc_cmd = NULL;
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_create(&amp;vc_cmd);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_set_command(vc_cmd, &quot;open&quot;);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_set_type(vc_cmd, VC_COMMAND_TYPE_FOREGROUND);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>Add the command to the command list. 
+<p>If necessary, you can also remove commands from the command list. After you remove the command, if you no longer use it, destroy the command handle with the <span style="font-family: Courier New,Courier,monospace">vc_cmd_destroy()</span> function.</p>
+<pre class="prettyprint">
+void add_command(vc_cmd_list_h vc_cmd_list, vc_cmd_h vc_cmd)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_add(vc_cmd_list, vc_cmd);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void remove_command(vc_cmd_list_h vc_cmd_list, vc_cmd_h vc_cmd)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_remove(vc_cmd_list, vc_cmd);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Destroy the command if no longer needed
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_destroy(vc_cmd);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>To get the commands you have added to the command list, use the <span style="font-family: Courier New,Courier,monospace">vc_cmd_list_foreach_commands()</span> function to get all commands with a callback function at once, or the <span style="font-family: Courier New,Courier,monospace">vc_cmd_list_get_current()</span> function to retrieve the commands without a callback function.</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">When you get the command handle with the <span style="font-family: Courier New,Courier,monospace">vc_cmd_list_get_current()</span> function, do not release the command handle. To release the command handle, call the <span style="font-family: Courier New,Courier,monospace">vc_cmd_list_remove()</span> function before the <span style="font-family: Courier New,Courier,monospace">vc_cmd_destroy()</span> function.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+<pre class="prettyprint">
+bool __vc_get_command_cb(vc_cmd_h vc_command, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;// Your code
+	
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+void foreach_command(vc_cmd_list_h vc_cmd_list)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;vc_cmd_h vc_cmd;
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_foreach_commands(vc_cmd_list, __vc_get_command_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void get_commands(vc_cmd_list_h vc_cmd_list)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;int count;
+&nbsp;&nbsp;&nbsp;vc_cmd_h vc_cmd;
+&nbsp;&nbsp;&nbsp;char* command = NULL;
+&nbsp;&nbsp;&nbsp;int type = 0;
+
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_get_count(vc_cmd_list, &amp;count);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (0 &gt;= count) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+		
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_first(vc_cmd_list);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+	
+&nbsp;&nbsp;&nbsp;do 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_get_current(vc_cmd_list, &amp;vc_cmd);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE == ret) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = vc_cmd_get_command(vc_cmd, &amp;command);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (NULL != command) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Command must be released
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = vc_cmd_get_type(vc_cmd, &amp;type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Do not release the command handle
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_next(vc_cmd_list);
+&nbsp;&nbsp;&nbsp;} while (VC_ERROR_ITERATION_END != ret);
+}
+</pre>
+  
+</li>
+<li>Register the commands for recognition by setting the command list to the voice control.
+<p>If you want to update registered commands, set the command list again with the updated commands.</p>
+<pre class="prettyprint">
+void set_command(vc_cmd_list_h vc_cmd_list, int type)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_set_command_list(vc_cmd_list, type); 
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>When no longer needed, unset the command list, and destroy the command and command list handles.
+<p>When you destroy the command list, all the commands in the command list are not automatically released. If you no longer need the commands, set the second parameter of the <span style="font-family: Courier New,Courier,monospace">vc_cmd_list_destroy()</span> function to <span style="font-family: Courier New,Courier,monospace">true</span>.</p>
+<pre class="prettyprint">
+void unset_command(int type)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_unset_command_list(type); 
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void destroy_command(vc_cmd_h vc_cmd)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_destroy(vc_cmd);
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void destroy_command_list(vc_cmd_list_h vc_cmd_list)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;ret = vc_cmd_list_destroy(vc_cmd_list, true); // true destroys all commands
+&nbsp;&nbsp;&nbsp;if (VC_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ol>
+ 
+  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>	
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

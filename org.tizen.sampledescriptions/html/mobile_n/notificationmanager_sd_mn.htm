@@ -1,0 +1,522 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>NotificationManager Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>NotificationManager Sample Overview</h1> 
+
+<p>The NotificationManager sample demonstrates how you can present a notification to the user.</p>
+<p>The following figure illustrates the main view of the NotificationManager.</p>
+<p class="figure">Figure: NotificationManager main view</p> 
+<p align="center"><img alt="NotificationManager main view" src="../images/notification_manager.png" /></p>
+   
+
+<p>The application opens with the <strong>Notification</strong> tab, which provides access to various notification features. Click the list items to view the features.</p>
+<p>The <strong>Ongoing notification</strong> tab provides access to on-going notifications.</p>
+<p>To move between tabs, click the tabs in the header.</p>
+
+<p>This overview consists of the following parts:</p>
+<ul>
+	<li><a href="#noti">Managing Notifications</a>
+	<p>Manage notifications and use the application ID and application control with normal notifications.</p></li>
+	<li><a href="#ongoing">Managing On-going Notifications</a>
+	<p>Manage on-going notifications and use the application ID and application control with on-going notifications.</p></li>
+	<li><a href="#disp">Displaying Results</a>
+	<p>Display a notification result on the screen.</p></li>
+	</ul>
+
+<h2 id="noti" name="noti">Managing Notifications</h2>
+<p>The notification management is implemented in the <span style="font-family: Courier New,Courier,monospace">&lt;notifications.c&gt;</span> file.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">create_notification()</span> function sets the default image, sound, and text.</p>
+<p>When the user clicks the list item related to the creation of a normal notification, the <span style="font-family: Courier New,Courier,monospace">_tab_view_layout_fill_cb()</span> function calls the appropriate notification to create the result layout function.</p>
+<p>The function to create notifications sets the request message information, such as the alert text, title text, and launch arguments, which are used in the result layout function.</p>
+<p>Manage notifications in the following ways:</p>
+<ul>
+<li>Manage normal notifications.
+<p>If the user clicks the list item related to the creation of the notification, the <span style="font-family: Courier New,Courier,monospace">notify_cb()</span> or <span style="font-family: Courier New,Courier,monospace">notify_normal_cb()</span> function is called to create the notification.</p>
+<p>If the user clicks the list item related to the removal of a notification, the <span style="font-family: Courier New,Courier,monospace">remove_notification_cb()</span> function is called to remove the normal and simple notification.</p>
+<pre class="prettyprint">
+static void create_notification(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;// Remove all notifications before creating a new one
+
+&nbsp;&nbsp;&nbsp;notify_data-&gt;notification = create_notification(MAIN_MENU_PATH, title_text, 
+&nbsp;&nbsp;&nbsp;alert_text, NULL);
+&nbsp;&nbsp;&nbsp;if (notify_data-&gt;notification)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notification_status_message_post(app_message_text);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notification_post(notify_data-&gt;notification);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;&nbsp;// Set the information result message
+}
+
+static void remove_notification_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+&nbsp;&nbsp;&nbsp;bool is_success = delete_notification_items();
+&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;&nbsp;// Set the information result message
+
+&nbsp;&nbsp;&nbsp;badge_remove(PACKAGE);
+}
+</pre>
+</li>
+
+<li>Manage notifications using the application control.
+<p>If the user clicks the list item related to the creation of the notification by the application control, the <span style="font-family: Courier New,Courier,monospace">notify_by_app_control_cb()</span> function is called to create the notification by the  application control. The function sets extra data to the appcontrol, so the data can be used after passing the control to the application.</p>
+<p>If the user clicks the list item related to the removal of a notification by the application control, the <span style="font-family: Courier New,Courier,monospace">remove_notification_cb()</span> function is called to remove the appcontrol notification.</p>
+<pre class="prettyprint">
+static void notify_by_app_control_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;// Remove all notifications before creating a new one
+
+&nbsp;&nbsp;&nbsp;notify_data-&gt;notification = create_notification(ICON2_PATH, notification_app, 
+&nbsp;&nbsp;&nbsp;app_control, NULL);
+&nbsp;&nbsp;&nbsp;if (notify_data-&gt;notification)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notification_status_message_post(app_message_text);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *array_result[] = { result_1_text, result_2_text, NULL };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *array_key[] = { SERVICE_DATA_TEXT, SERVICE_DATA_TO, NULL };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Set extra data to app control 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notification_post(notify_data-&gt;notification);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;&nbsp;// Set the information result message
+}
+
+static void remove_notification_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+&nbsp;&nbsp;&nbsp;bool is_success = delete_notification_items();
+&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;&nbsp;// Set the information result message
+
+&nbsp;&nbsp;&nbsp;badge_remove(PACKAGE);
+}
+
+void launch_arguments_set(notification_h notification, const char *argument,...)
+{
+&nbsp;&nbsp;&nbsp;app_control_h service = NULL;
+&nbsp;&nbsp;&nbsp;int err = app_control_create(&amp;service);
+&nbsp;&nbsp;&nbsp;RETM_IF(err != SERVICE_ERROR_NONE, &quot;service_create failure &quot;);
+
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;if (argument)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_add_extra_data(service, MESSAGE_POST, argument);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;...
+}
+</pre>
+</li>
+
+<li>Manage notifications using the application ID.
+<p>If the user clicks the list item related to the creation of the notification by the application ID, the <span style="font-family: Courier New,Courier,monospace">set_badge_number_by_app_id_cb()</span> function is called to create the notification by the application ID.</p>
+<p>If the user clicks the list item related to the removal of a notification by the application ID, the <span style="font-family: Courier New,Courier,monospace">remove_badge_number_by_app_id_cb()</span> function is called to remove the notification by the application ID.</p>
+<pre class="prettyprint">
+static void notify_by_app_id_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;// Remove all notifications before creating a new one
+
+&nbsp;&nbsp;&nbsp;notify_data-&gt;notification = create_notification(ICON2_PATH, title_text,  
+&nbsp;&nbsp;&nbsp;notify_with_request, NULL);
+&nbsp;&nbsp;&nbsp;if (notify_data-&gt;notification)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notification_status_message_post(app_message_text);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Set App package to app control 
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notification_post(notify_data-&gt;notification);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;&nbsp;// Set the information result message
+}
+static void remove_notification_by_app_id_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+&nbsp;&nbsp;&nbsp;bool is_success = delete_notification_by_app_id();
+
+&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;&nbsp;// Set the information result message
+}
+
+void launch_arguments_set(notification_h notification, const char * pkgname
+,...)
+{
+&nbsp;&nbsp;&nbsp;app_control_h service = NULL;
+&nbsp;&nbsp;&nbsp;int err = app_control_create(&amp;service);
+&nbsp;&nbsp;&nbsp;RETM_IF(err != SERVICE_ERROR_NONE, &quot;service_create failure &quot;);
+
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;if (pkgname)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_set_app_id(service, pkgname);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;...
+}
+</pre>
+</li>
+
+<li>Manage badge numbers using the application ID.
+<p>If the user clicks the list item related to increases in the badge number, the <span style="font-family: Courier New,Courier,monospace">set_badge_number_by_app_id_cb()</span> function is called to increase the badge number.</p>
+<p>To remove the badge number using the application ID, decrease the badge number or remove it if the badge count equals to 0.</p>
+<pre class="prettyprint">
+static void set_badge_number_by_app_id_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;unsigned int count = 0;
+&nbsp;&nbsp;&nbsp;bool is_success = increase_badge(&amp;count);
+
+&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;&nbsp;// Set the information result message
+}
+static void remove_badge_number_by_app_id_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;unsigned int count = 0;
+&nbsp;&nbsp;&nbsp;int err = BADGE_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;err = badge_get_count(PACKAGE, &amp;count);
+&nbsp;&nbsp;&nbsp;if (count == 0)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;err = badge_remove(PACKAGE);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;err = badge_set_count(PACKAGE, --count);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp; ...
+&nbsp;&nbsp;&nbsp;// Set the information result message
+}
+</pre>
+</li>
+</ul>
+
+<h2 id="ongoing" name="ongoing">Managing On-going Notifications</h2>
+<p>The on-going notification management is implemented in the <span style="font-family: Courier New,Courier,monospace">&lt;ongoing-notifications.c&gt;</span> file.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">create_ongoing_notification()</span> function creates an on-going notification. This function sets the notification property and image and title text.</p>
+<pre class="prettyprint">
+static notification_h create_ongoing_notification( const char *image_path, const char 
+&nbsp;&nbsp;&nbsp;*title_text)
+{
+&nbsp;&nbsp;&nbsp;notification_h ongoing_notification = notification_create(NOTIFICATION_TYPE_ONGOING);
+&nbsp;&nbsp;&nbsp;RETVM_IF(!ongoing_notification, NULL, &quot;notify is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;notification_set_property(ongoing_notification, NOTIFICATION_PROP_DISABLE_TICKERNOTI);
+&nbsp;&nbsp;&nbsp;notification_set_image(ongoing_notification, NOTIFICATION_IMAGE_TYPE_ICON, image_path);
+&nbsp;&nbsp;&nbsp;notification_set_text(ongoing_notification, NOTIFICATION_TEXT_TYPE_TITLE, title_text, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, NOTIFICATION_VARIABLE_TYPE_NONE);
+
+&nbsp;&nbsp;&nbsp;return ongoing_notification;
+}
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">delete_ongoing_notification()</span> function removes the on-going notification, resets the press count and progress value of this notification.</p>
+<pre class="prettyprint">
+static int delete_ongoing_notification(notification_data *data)
+{
+&nbsp;&nbsp;&nbsp;int err = NOTIFICATION_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;if (data)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (data-&gt;notification)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;err = notification_delete(data-&gt;notification);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data-&gt;notification = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data-&gt;press_count = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data-&gt;progress_value = 0;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return err;
+}
+</pre>
+<p>When the user clicks the list item related to the creation of an on-going notification, the <span style="font-family: Courier New,Courier,monospace">_tab_view_layout_fill_cb()</span> smart callback is invoked. This smart callback calls an on-going notification function and creates the result layout with request message information. The on-going notification function sets the result information which is used in the result layout.</p>
+<p>You can:</p>
+<ul>
+<li>Manage different types of on-going notifications.
+<p>If the user clicks the list item related to the creation of an on-going notification, the proper function is called according to the on-going activity type, such as percentage, byte, or text.</p>
+<p>If the user clicks the list item related to the removing of an on-going notification, the <span style="font-family: Courier New,Courier,monospace">remove_ongoing_notification_cb()</span> function is called to remove the percentage, byte, and text of on-going notifications.</p>
+<pre class="prettyprint">
+static void ongoing_notification_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+&nbsp;&nbsp;&nbsp;...
+
+&nbsp;&nbsp;&nbsp;notify_data-&gt;press_count++;
+&nbsp;&nbsp;&nbsp;if (!notify_data-&gt;notification)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;notification = create_ongoing_notification(ICON2_PATH,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;name);
+
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data-&gt;notification, &quot;ongoing_notification is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;// Set progress to notification
+&nbsp;&nbsp;&nbsp;notify_data-&gt;progress_value += percentage_increment;
+&nbsp;&nbsp;&nbsp;if (notify_data-&gt;progress_value &gt; percentage_max)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;progress_value = 0;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;notification_set_progress(notify_data-&gt;notification, notify_data-&gt;progress_value);
+
+&nbsp;&nbsp;&nbsp;notification_content_text_set(notify_data-&gt;notification, percentage_content_text, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;press_count);
+
+&nbsp;&nbsp;&nbsp;// Set the information result
+
+&nbsp;&nbsp;&nbsp;// If a notification of such type is already created then just update it, if not, post it
+&nbsp;&nbsp;&nbsp;...
+}
+
+// The ongoing_notification_byte_cb and ongoing_notification_text_cb functions are 
+// similar to the above ongoing_notification_cb function
+
+static void remove_ongoing_notification_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;notification_data *data = ongoing_notification_data_get(ONGOING_NOTIFICATION_PERCENT);
+&nbsp;&nbsp;&nbsp;int err = delete_ongoing_notification(data);
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;data = ongoing_notification_data_get(ONGOING_NOTIFICATION_BYTE);
+&nbsp;&nbsp;&nbsp;err = delete_ongoing_notification(data);
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;data = ongoing_notification_data_get(ONGOING_NOTIFICATION_TEXT);
+&nbsp;&nbsp;&nbsp;err = delete_ongoing_notification(data);
+&nbsp;&nbsp;&nbsp;...
+
+&nbsp;&nbsp;&nbsp;// Set information result
+&nbsp;&nbsp;&nbsp;...
+}
+</pre>
+</li>
+
+<li>Manage on-going notifications using the application control.
+<p>To manage on-going notifications that use implicit appcontrol resolution, use the <span style="font-family: Courier New,Courier,monospace">ongoing_notification_by_app_control_cb()</span> function. It sets the extra data to appcontrol, so the data can be used after passing the control to the application.</p>
+<p>To remove on-going notifications that use implicit appcontrol resolution, use the <span style="font-family: Courier New,Courier,monospace">remove_notification_by_app_control_cb()</span> function.</p>
+<pre class="prettyprint">
+static void ongoing_notification_by_app_control_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+&nbsp;&nbsp;&nbsp;...
+
+&nbsp;&nbsp;&nbsp;notify_data-&gt;press_count++;
+&nbsp;&nbsp;&nbsp;if (!notify_data-&gt;notification)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;notification = create_ongoing_notification(ICON1_PATH,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;name);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data-&gt;notification, &quot;ongoing_notification is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;// Set progress to notification
+&nbsp;&nbsp;&nbsp;...
+
+&nbsp;&nbsp;&nbsp;notification_content_text_set(notify_data-&gt;notification, percentage_content_text,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;press_count);
+
+&nbsp;&nbsp;&nbsp;// Increase badge
+&nbsp;&nbsp;&nbsp;...
+
+&nbsp;&nbsp;&nbsp;// Set the information result
+&nbsp;&nbsp;&nbsp;...
+
+&nbsp;&nbsp;&nbsp;// Set extra data to appcontrol
+&nbsp;&nbsp;&nbsp;...
+
+&nbsp;&nbsp;&nbsp;// If a notification of such type is already created then just update it, if not, post it
+&nbsp;&nbsp;&nbsp;...
+}
+
+void launch_arguments_set(
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;const char *argument,
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;)
+{
+&nbsp;&nbsp;&nbsp;app_control_h service = NULL;
+&nbsp;&nbsp;&nbsp;int err = app_control_create(&amp;service);
+&nbsp;&nbsp;&nbsp;RETM_IF(err != SERVICE_ERROR_NONE, &quot;service_create failure &quot;);
+
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;// Set extra data to appcontrol
+&nbsp;&nbsp;&nbsp;if (argument)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_add_extra_data(service, MESSAGE_POST, argument);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;...
+}
+
+static void remove_notification_by_app_control_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;notification_data *data = ongoing_notification_data_get(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ONGOING_NOTIFICATION_BY_APP_CONTROL);
+&nbsp;&nbsp;&nbsp;int err = delete_ongoing_notification(data);
+&nbsp;&nbsp;&nbsp;// Remove badge
+&nbsp;&nbsp;&nbsp;...
+
+&nbsp;&nbsp;&nbsp;// Set the information result
+&nbsp;&nbsp;&nbsp;...
+}
+</pre>
+</li>
+
+<li>Manage on-going notifications using the application ID.
+<p>To notify a specified user using the application ID of the on-going activity, the <span style="font-family: Courier New,Courier,monospace">ongoing_notification_by_app_id_cb()</span> function is called. It sets the application ID to the appcontrol, so the proper application is called.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">remove_ongoing_notification_by_app_id_cb()</span> function is used to remove the notification for the specified application ID.</p>
+<pre class="prettyprint">
+static void ongoing_notification_by_app_id_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+&nbsp;&nbsp;&nbsp;// ...
+
+&nbsp;&nbsp;&nbsp;notify_data-&gt;press_count++;
+&nbsp;&nbsp;&nbsp;if (!notify_data-&gt;notification)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// ...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;notification = create_ongoing_notification(ICON1_PATH,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;name);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data-&gt;notification, &quot;ongoing_notification_byte is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;// Sets the initial size for the ongoing type
+&nbsp;&nbsp;&nbsp;// ...
+  
+&nbsp;&nbsp;&nbsp;notification_content_text_set(notify_data-&gt;notification, byte_content_text,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;notify_data-&gt;press_count);
+
+&nbsp;&nbsp;&nbsp;// Sets information result
+&nbsp;&nbsp;&nbsp;// ...
+
+&nbsp;&nbsp;&nbsp;// Sets application id to appcontrol
+&nbsp;&nbsp;&nbsp;// ...
+
+&nbsp;&nbsp;&nbsp;// If a notification of such type is already created then just update it, if not - post it
+&nbsp;&nbsp;&nbsp;// ...
+}
+
+void launch_arguments_set(
+&nbsp;&nbsp;&nbsp;// ...
+&nbsp;&nbsp;&nbsp;const char *argument,
+&nbsp;&nbsp;&nbsp;// ...
+&nbsp;&nbsp;&nbsp;)
+{
+&nbsp;&nbsp;&nbsp;app_control_h service = NULL;
+&nbsp;&nbsp;&nbsp;int err = app_control_create(&amp;service);
+&nbsp;&nbsp;&nbsp;RETM_IF(err != SERVICE_ERROR_NONE, &quot;service_create failure &quot;);
+
+&nbsp;&nbsp;&nbsp;// ... 
+&nbsp;&nbsp;&nbsp;// Sets application id to appcontrol
+&nbsp;&nbsp;&nbsp;if (pkgname)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_set_app_id(service, pkgname);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// ...
+}
+
+static void remove_ongoing_notification_by_app_id_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!notify_data, &quot;notify_data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;notification_data *data = ongoing_notification_data_get(ONGOING_NOTIFICATION_BY_APP_ID);
+&nbsp;&nbsp;&nbsp;int err = delete_ongoing_notification(data);
+
+&nbsp;&nbsp;&nbsp;// Sets information result
+&nbsp;&nbsp;&nbsp;// ...
+}
+</pre>
+</li>
+</ul>
+
+<h2 id="disp" name="disp">Displaying Results</h2>
+<p>The <span style="font-family: Courier New,Courier,monospace">_tab_view_layout_fill_cb()</span> function calls the appropriate notification function where the result information is set. Then the <span style="font-family: Courier New,Courier,monospace">layout_view_add()</span> function is invoked.</p>
+<p>In the <span style="font-family: Courier New,Courier,monospace">layout_view_add()</span> function, the result information is used to create the result layout.</p>
+<pre class="prettyprint">
+static void _tab_view_layout_fill_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;...
+   
+&nbsp;&nbsp;&nbsp;notification_data *notification_info = (notification_data *)data;
+&nbsp;&nbsp;&nbsp;notification_info-&gt;callback(notification_info);
+&nbsp;&nbsp;&nbsp;layout_view_add(navi, notification_info);
+}
+
+static void notify_cb(notification_data *notify_data)
+{
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;// Set the result information  
+&nbsp;&nbsp;&nbsp;snprintf(notify_data-&gt;result_text, TEXT_MAX_LEN, &quot;%s%s&lt;br&gt;&lt;br&gt;%s&lt;br&gt;%s&lt;br&gt;&lt;br&gt;%s&lt;br&gt;%s&lt;br&gt;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result_message, (notify_data-&gt;notification) ? result_message_success_text :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result_message_failure_text, notify_message_text, _text,launch_argument_text,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_message_text);
+}
+
+Evas_Object *layout_view_add(Evas_Object *parent, notification_data *notify_info)
+{
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;// create result layout
+&nbsp;&nbsp;&nbsp;_layout_view_fill(data-&gt;layout, notify_info);
+&nbsp;&nbsp;&nbsp;data-&gt;navi_item = elm_naviframe_item_push(data-&gt;navi, data-&gt;name, NULL, NULL, data-&gt;layout,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;return data-&gt;layout;
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

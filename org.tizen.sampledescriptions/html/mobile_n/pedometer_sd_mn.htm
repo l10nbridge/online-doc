@@ -1,0 +1,407 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Pedometer Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+<h1>Pedometer Sample Overview</h1>
+
+<p>The Pedometer sample demonstrates how to implement a simple pedometer (step counting) application using the <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">Sensor</a> and <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__LOCATION__FRAMEWORK.html">Location</a> APIs. The data from the acceleration sensor is used
+to detect when the user takes a step, whereas the  location position data is used to track the user movement and measure the walked distance as well as the average step length. If the feature is supported by the device, the application also uses the <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__CONTEXT__ACTIVITY__MODULE.html">Activity Recognition</a> API to detect when the user walks or runs and displays the activity type.</p>
+
+<p>The following figure illustrates the application view.</p>
+	<p class="figure">Figure: Pedometer view</p>
+	<p align="center"><img alt="Pedometer view" src="../images/pedometer.png" /></p>
+
+<p>The main window consists of the following areas:</p>
+	<ul>
+		<li>GPS status area
+<p>A label in the top left corner of the screen where the current GPS status is displayed.</p></li>
+		<li>Activity type area
+		<p>Displays the name of detected activity, which can be:</p>
+			<ul>
+				<li>STATIONARY: when the user is not moving</li>
+				<li>WALK: when the user is walking</li>
+				<li>RUN: when the user is running</li>
+				<li>N/A: when such information is not available</li></ul></li>
+		<li>Steps count area
+<p>Displays the number of steps detected in the current session.</p></li>
+		<li>Steps length area
+<p>Displays the average step length calculated based on the total walked distance and step count, in meters.</p></li>
+		<li>Total distance area
+<p>Displays the total walked distance acquired from the GPS data, in meters.</p></li>
+		<li>Buttons area
+<p>Consists of 2 buttons used to start and stop (pause) the application features.</p></li>
+	</ul>
+
+
+<p>If GPS is not enabled, the total distance and average step length are not calculated.</p>
+
+<h2>Prerequisites</h2>
+<p>To ensure proper application execution, the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/location</span> privilege
+must be set, and the following features must be enabled:</p>
+ <ul>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location</span>;</li>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/location.gps</span>;</li>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.accelerometer</span>;</li>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/sensor.activity_recognition</span>.</li>
+ </ul>
+
+
+<h2>Implementation</h2>
+<h3>Activity Recognition Module</h3>
+
+<p>To check whether the activity recognition feature is supported on the current device, the <span style="font-family: Courier New,Courier,monospace">activity_is_supported()</span> function is invoked. If support is available, an <span style="font-family: Courier New,Courier,monospace">activity_h</span> handle is initialized and a callback function is registered by calling the <span style="font-family: Courier New,Courier,monospace">activity_start_recognition()</span> function. The function takes the <span style="font-family: Courier New,Courier,monospace">activity_type_e</span> enumerator as an argument (the <span style="font-family: Courier New,Courier,monospace">STATIONARY</span>,
+<span style="font-family: Courier New,Courier,monospace">WALK</span> and <span style="font-family: Courier New,Courier,monospace">RUN</span> values are supported). A new handle has to be created for each of them.</p>
+
+<p>The registered callback function is invoked when a given activity type is detected.</p>
+<pre class="prettyprint">
+activity_h *handle = NULL;
+bool supported = false;
+
+if (activity_is_supported(type, &amp;supported) != ACTIVITY_ERROR_NONE || !supported) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+
+if (activity_create(handle) != ACTIVITY_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+
+if (activity_start_recognition(*handle, type, activity_cb, NULL) != ACTIVITY_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+</pre>
+
+<p>The same function is registered as a callback for each activity. It sets the activity type label based on the given type.</p>
+<pre class="prettyprint">
+static void
+activity_cb(activity_type_e type, const activity_data_h data, double timestamp, activity_error_e error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;s_pedometer_info.activity_type = type;
+
+&nbsp;&nbsp;&nbsp;if (type == ACTIVITY_WALK) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_activity_type_set(WALK_STR);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (type == ACTIVITY_RUN) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_activity_type_set(RUN_STR);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (type == ACTIVITY_STATIONARY) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_activity_type_set(STATIONARY_STR);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>When the activity handles are no longer needed, they have to be stopped using the <span style="font-family: Courier New,Courier,monospace">activity_stop_recognition()</span> function and released using the <span style="font-family: Courier New,Courier,monospace">activity_release()</span> function.</p>
+<pre class="prettyprint">
+if (s_pedometer_info.stationary_handle) 
+{
+&nbsp;&nbsp;&nbsp;activity_stop_recognition(*s_pedometer_info.stationary_handle);
+&nbsp;&nbsp;&nbsp;activity_release(*s_pedometer_info.stationary_handle);
+}
+
+if (s_pedometer_info.walk_handle) 
+{
+&nbsp;&nbsp;&nbsp;activity_stop_recognition(*s_pedometer_info.walk_handle);
+&nbsp;&nbsp;&nbsp;activity_release(*s_pedometer_info.walk_handle);
+}
+
+if (s_pedometer_info.run_handle) 
+{
+&nbsp;&nbsp;&nbsp;activity_stop_recognition(*s_pedometer_info.run_handle);
+&nbsp;&nbsp;&nbsp;activity_release(*s_pedometer_info.run_handle);
+}
+</pre>
+
+<h3>Step Detection Module</h3>
+<p>The acceleration data from the accelerometer sensor is used in the step detection method. The method uses the average value of the accelerations on all 3 axes so that it does not matter how the device is oriented during the measurement.</p>
+
+<p>When the application is launched, the acceleration sensor and listener are initialized:</p>
+<ol><li>The <span style="font-family: Courier New,Courier,monospace">sensor_is_supported()</span> function is called to check whether the specified sensor is available on the currently used device.</li>
+<li>The default specific sensor handle is acquired using the <span style="font-family: Courier New,Courier,monospace">sensor_get_default_sensor()</span> function with <span style="font-family: Courier New,Courier,monospace">SENSOR_ACCELEROMETER</span>
+as the sensor type.</li>
+<li>A sensor listener is created with the acquired handle. Using the listener, a callback function is registered to be invoked when an acceleration sensor event occurs. The callback function is invoked every 200 milliseconds.</li>
+<li>To ensure that steps are detected and counted even if the screen is off or the power save mode is on, the <span style="font-family: Courier New,Courier,monospace">sensor_listener_set_option()</span> function is called to set the <span style="font-family: Courier New,Courier,monospace">SENSOR_OPTION_ALWAYS_ON</span> option for the created sensor listener.</li></ol>
+<pre class="prettyprint">
+bool
+acceleration_sensor_handle_init(void)
+{
+&nbsp;&nbsp;&nbsp;sensor_h sensor;
+&nbsp;&nbsp;&nbsp;bool supported = false;
+
+&nbsp;&nbsp;&nbsp;if (sensor_is_supported(SENSOR_ACCELEROMETER, &amp;supported) != SENSOR_ERROR_NONE || !supported) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (sensor_get_default_sensor(SENSOR_ACCELEROMETER, &amp;sensor) != SENSOR_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (sensor_create_listener(sensor, &amp;s_acc_data.acceleration_listener) != SENSOR_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (sensor_listener_set_event_cb(s_acc_data.acceleration_listener, 200, accel_cb, NULL) != SENSOR_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (sensor_listener_set_option(s_acc_data.acceleration_listener, SENSOR_OPTION_ALWAYS_ON) != SENSOR_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+
+<p>The acceleration sensor listener starts receiving acceleration events after the application start button is clicked and the <span style="font-family: Courier New,Courier,monospace">sensor_listener_start()</span> function is invoked.</p>
+<p>When the stop button is clicked, step detection must be paused with the <span style="font-family: Courier New,Courier,monospace">sensor_listener_stop()</span> function. It stops the sensor server for the acceleration listener so that acceleration sensor events no longer occur. To restart the service, the <span style="font-family: Courier New,Courier,monospace">sensor_listener_start()</span> function must be called again.</p>
+<pre class="prettyprint">
+if (s_acc_data.acceleration_listener) 
+{
+&nbsp;&nbsp;&nbsp;if (sensor_listener_start(s_acc_data.acceleration_listener) != SENSOR_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+if (s_acc_data.acceleration_listener) 
+{
+&nbsp;&nbsp;&nbsp;if (sensor_listener_stop(s_acc_data.acceleration_listener) != SENSOR_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The actual step detection takes place in the <span style="font-family: Courier New,Courier,monospace">accel_cb()</span> callback function. To simplify the step detection regardless of the device orientation, the average acceleration value of the accelerations in all 3 dimensions is used.</p>
+
+<p>When the service is started, the application registers the initial average acceleration value, which is used as a baseline for later measurements. This method is based on the assumption that the user is relatively stationary when starting the pedometer.</p>
+
+<p>A step is registered when a significant change in the average acceleration value is detected, including sign inversion. The following figure shows a sample of average acceleration data together with the initial average acceleration value for reference. This data was acquired during a 10-step walk.</p>
+<p class="figure">Figure: Average acceleration values during a 10-step walk</p>
+	<p align="center"><img alt="Average acceleration values during a 10-step walk" src="../images/pedometer_accel_data.png" /></p>
+
+<p>A step is registered when the average acceleration value &quot;drop&quot; occurs. In order to detect these drops, the initial average acceleration value is preserved together with the average acceleration value registered when the function was previously called. The initial value is reset every time the service is stopped.</p>
+<p>A drop occurs when the previous value was greater than the initial value and the current value is smaller than the initial value by at least <span style="font-family: Courier New,Courier,monospace">THRESHOLD m/s&#178;</span>. When a step is detected, the step count is incremented and the GUI is updated.</p>
+
+<pre class="prettyprint">
+static void
+accel_cb(sensor_h sensor, sensor_event_s *event, void *data)
+{
+&nbsp;&nbsp;&nbsp;// Get current average value of acceleration on 3 axes
+&nbsp;&nbsp;&nbsp;double current_acc_av = (event-&gt;values[1] + event-&gt;values[2] + event-&gt;values[3])/3;
+
+&nbsp;&nbsp;&nbsp;// If initial average acceleration value is not set, do it now
+&nbsp;&nbsp;&nbsp;if (s_acc_data.init_acc_av == MAX_ACCEL_INIT_VALUE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_acc_data.init_acc_av = s_acc_data.prev_acc_av = current_acc_av;
+		
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Register a drop of acceleration average value
+&nbsp;&nbsp;&nbsp;if ((s_acc_data.prev_acc_av &gt; s_acc_data.init_acc_av &amp;&amp; s_acc_data.init_acc_av - current_acc_av &gt; THRESHOLD))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_steps_count_set(++s_acc_data.steps_count);
+
+&nbsp;&nbsp;&nbsp;s_acc_data.prev_acc_av = current_acc_av;
+}
+</pre>
+
+<p>When the acceleration sensor listener is no longer needed, the <span style="font-family: Courier New,Courier,monospace">sensor_destroy_listener()</span> function is called to
+destroy the sensor handle and release all its resources.</p>
+
+<pre class="prettyprint">
+if (s_acc_data.acceleration_listener) 
+{
+&nbsp;&nbsp;&nbsp;if (sensor_destroy_listener(s_acc_data.acceleration_listener) != SENSOR_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+</pre>
+
+<h3>Distance Tracker Module</h3>
+
+<p>The distance tracker is initialized when the application is launched. It uses the location manager to receive position updates. In order to do so, a location manager is created
+using the <span style="font-family: Courier New,Courier,monospace">location_manager_create()</span> function with <span style="font-family: Courier New,Courier,monospace">LOCATION_METHOD_GPS</span> specified. The newly created location manager handle is then used to set a callback function for position updates. The <span style="font-family: Courier New,Courier,monospace">pos_updated_cb()</span> callback is invoked every 4 seconds.</p>
+
+<pre class="prettyprint">
+// Create location manager and set callback for position updates
+if (location_manager_create(LOCATIONS_METHOD_GPS, &amp;s_tracker_data.location_manager) != LOCATIONS_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+
+if (location_manager_set_position_updated_cb(s_tracker_data.location_manager, pos_updated_cb, 4, NULL) != LOCATIONS_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+</pre>
+
+<p>To start the location manager, the <span style="font-family: Courier New,Courier,monospace">location_manager_start()</span> function is used. It takes the location manager handle as an argument.</p>
+<p>Similarly, to stop the location manager, the <span style="font-family: Courier New,Courier,monospace">location_manager_stop()</span> function is called.</p>
+
+<pre class="prettyprint">
+void
+distance_tracker_start(void)
+{
+&nbsp;&nbsp;&nbsp;if (!s_tracker_data.location_manager &amp;&amp; !distance_tracker_init()) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (location_manager_start(s_tracker_data.location_manager) != LOCATIONS_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+
+void
+distance_tracker_stop(void)
+{
+&nbsp;&nbsp;&nbsp;if (s_tracker_data.location_manager) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (location_manager_stop(s_tracker_data.location_manager) != LOCATIONS_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>Before the location manager handle is initialized, the GPS status must be checked using the <span style="font-family: Courier New,Courier,monospace">location_manager_is_enabled_method()</span> function with <span style="font-family: Courier New,Courier,monospace">LOCATION_METHOD_GPS</span> as the first argument. A callback function is also set for GPS status changes so that the distance tracker can react properly and stop or start the service when necessary.</p>
+
+<pre class="prettyprint">
+bool
+distance_tracker_gps_check(void)
+{
+&nbsp;&nbsp;&nbsp;bool gps_enabled = false;
+
+&nbsp;&nbsp;&nbsp;// Check whether GPS is enabled and set callback for GPS status updates
+&nbsp;&nbsp;&nbsp;if (location_manager_is_enabled_method(LOCATIONS_METHOD_GPS, &amp;gps_enabled) != LOCATIONS_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (location_manager_set_setting_changed_cb(LOCATIONS_METHOD_GPS, gps_status_changed_cb, NULL) != LOCATIONS_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (!gps_enabled) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;view_gps_ok_text_set(gps_enabled);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>The total distance is calculated by comparing the newly received coordinates with the previously received ones. When the <span style="font-family: Courier New,Courier,monospace">pos_updated_cb()</span> function is called for the first time, the initial latitude and longitude are preserved so that the next time it is invoked, the distance can be calculated based on former and current location coordinates.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">location_manager_get_distance()</span> function is used to calculate the distance between 2 sets of coordinates. The total distance is then incremented by the obtained value. After that, the current coordinates are saved as the previous values so the next time the callback function is invoked, only the distance between previous and currently registered position is added to the total distance. Also, the average step length is calculated based on the total distance value and steps count - a simple division to get the average value.</p>
+
+<pre class="prettyprint">
+static void
+pos_updated_cb(double latitude, double longitude, double altitude, time_t timestamp, void *data)
+{
+&nbsp;&nbsp;&nbsp;int steps_count;
+&nbsp;&nbsp;&nbsp;double distance = 0;
+
+&nbsp;&nbsp;&nbsp;// If callback is called for the first time, set prev values
+&nbsp;&nbsp;&nbsp;if (s_tracker_data.prev_latitude == LAT_UNINITIATED &amp;&amp; s_tracker_data.prev_longitude == LONG_UNINITIATED) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_tracker_data.prev_latitude = latitude;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_tracker_data.prev_longitude = longitude;
+		
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Calculate distance between previous and current location data and update view
+&nbsp;&nbsp;&nbsp;if (location_manager_get_distance(latitude, longitude, s_tracker_data.prev_latitude,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_tracker_data.prev_longitude, &amp;distance) != LOCATIONS_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;s_tracker_data.total_distance += distance;
+&nbsp;&nbsp;&nbsp;view_total_distance_set(s_tracker_data.total_distance);
+
+&nbsp;&nbsp;&nbsp;// Set new prev values
+&nbsp;&nbsp;&nbsp;s_tracker_data.prev_latitude = latitude;
+&nbsp;&nbsp;&nbsp;s_tracker_data.prev_longitude = longitude;
+
+&nbsp;&nbsp;&nbsp;// Calculate and set step length if number of steps is greater than 0
+&nbsp;&nbsp;&nbsp;steps_count = acceleration_sensor_steps_count_get();
+
+&nbsp;&nbsp;&nbsp;if (steps_count)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_step_length_set(s_tracker_data.total_distance/steps_count);
+}
+</pre>
+
+<p>When the location manager is no longer needed, it has to be released using the <span style="font-family: Courier New,Courier,monospace">location_manager_destroy()</span> function.</p>
+
+<pre class="prettyprint">
+if (s_tracker_data.location_manager) 
+{
+&nbsp;&nbsp;&nbsp;if (location_manager_destroy(s_tracker_data.location_manager) != LOCATIONS_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>[UI Sample] Evas Map Rotation Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+<h1>[UI Sample] Evas Map Rotation Sample Overview</h1> 
+<p>The Evas Map Rotation sample demonstrates how to rotate a button in 3D using EFL map functions. A map consists of a set of points (currently only 4 are supported). Each of these points contains a set of canvas x and y coordinates that can be used to alter the geometry of the mapped object.</p>
+<p>The following figure illustrates the Evas Map Rotation screen.</p> 
+
+<p class="figure">Figure: Evas Map Rotation screen</p> 
+<p align="center"><img alt="Evas Map Rotation screen" src="../images/evas_map_rotation.png" /></p> 
+
+<h2 id="Implementation" name="Implementation">Implementation</h2>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">create_base_gui()</span> function draws the button in 3D by creating a button and animating it with the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_add()</span> function. </p>
+
+
+<pre class="prettyprint">
+#include &quot;evasmaprotation.h&quot;
+
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;win, EEXT_CALLBACK_BACK, win_back_cb, ad);
+&nbsp;&nbsp;&nbsp;Evas_Object *btn;
+
+&nbsp;&nbsp;&nbsp;// Create a button
+&nbsp;&nbsp;&nbsp;btn = elm_button_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(btn, &quot;Evas&lt;br&gt;Map&lt;br&gt; Rotation&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_move(btn, 100, 100);
+&nbsp;&nbsp;&nbsp;evas_object_resize(btn, 300, 300);
+&nbsp;&nbsp;&nbsp;evas_object_show(btn);
+
+&nbsp;&nbsp;&nbsp;ecore_animator_add(evas_map_rotation_exam_animator_cb, btn);
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">evas_object_geometry_get()</span> function obtains the position of the button. The <span style="font-family: Courier New,Courier,monospace;">evas_map_new()</span> function creates an Evas map and the <span style="font-family: Courier New,Courier,monospace;">evas_map_util_points_populate_from_object_full()</span> function populates the source and destination map points to match the button. The button is rotated and a perspective transform is applied with the <span style="font-family: Courier New,Courier,monospace;">evas_map_util_3d_rotate()</span> and <span style="font-family: Courier New,Courier,monospace;">evas_map_util_3d_perspective()</span> functions. The <span style="font-family: Courier New,Courier,monospace;">evas_object_map_set()</span> function applies the map to the button object.</p>
+
+<pre class="prettyprint">
+Eina_Bool
+evas_map_rotation_exam_animator_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;static int i = 0;
+&nbsp;&nbsp;&nbsp;Evas_Map *map;
+&nbsp;&nbsp;&nbsp;Evas_Object *btn = data;
+&nbsp;&nbsp;&nbsp;Evas_Coord x, y, w, h;
+
+&nbsp;&nbsp;&nbsp;i++;
+&nbsp;&nbsp;&nbsp;if (i &gt; 360) i = 0;
+
+&nbsp;&nbsp;&nbsp;evas_object_geometry_get(btn, &amp;x, &amp;y, &amp;w, &amp;h);
+&nbsp;&nbsp;&nbsp;// Create an Evas map
+&nbsp;&nbsp;&nbsp;map = evas_map_new(4);
+&nbsp;&nbsp;&nbsp;evas_map_util_points_populate_from_object_full(map, btn, 0);
+&nbsp;&nbsp;&nbsp;evas_map_util_3d_rotate(map, i, 0, 0, x + (w / 2), y + (h / 2), 0);
+&nbsp;&nbsp;&nbsp;evas_map_util_3d_perspective(map,  x + (w / 2), y + (h / 2), 0, 300);
+
+&nbsp;&nbsp;&nbsp;// Apply map to button object
+&nbsp;&nbsp;&nbsp;evas_object_map_set(btn, map);
+
+&nbsp;&nbsp;&nbsp;// Free map resource
+&nbsp;&nbsp;&nbsp;evas_map_free(map);
+
+&nbsp;&nbsp;&nbsp;// Enable map feature
+&nbsp;&nbsp;&nbsp;evas_object_map_enable_set(btn, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

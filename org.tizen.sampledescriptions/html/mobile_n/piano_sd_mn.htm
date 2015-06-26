@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Piano Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+<h1>Piano Sample Overview</h1> 
+<p>The Piano sample demonstrates how to implement a complex view using EFL UI components with different EDC styles.</p>
+
+<p>The purpose of this sample application is to demonstrate how to make a complex view by recursive composition of standard EFL UI components and provide possibility to support gestures and multitouch functionality. Additionally, this application provides source code to play sounds using Tizen built-in player.</p>
+
+<p>The sample uses UI components, such as <span style="font-family: Courier New,Courier,monospace;">elm_conformant</span> and <span style="font-family: Courier New,Courier,monospace;">elm_layout</span> for the view management and <span style="font-family: Courier New,Courier,monospace;">elm_button</span> components for the content inside view.</p>
+<p>The following figure illustrates the main view of the Piano application and the UI component tree.</p>
+
+<p class="figure">Figure: Piano main view</p> 
+<p align="center"><img alt="Piano main view" src="../images/piano_main.png" /></p> 
+
+<h2>Implementation</h2>
+<p>The <span style="font-family: Courier New,Courier,monospace;">piano_createview()</span> function creates the window which consists of a layout with a series of <span style="font-family: Courier New,Courier,monospace;">elm_button</span> components that represent real piano notes.</p>
+
+<pre class="prettyprint">
+void piano_createview(void *data)
+{
+&nbsp;&nbsp;&nbsp;_applyTheme(data);
+&nbsp;&nbsp;&nbsp;_createlayout(data);
+&nbsp;&nbsp;&nbsp;_createnotes(data);
+&nbsp;&nbsp;&nbsp;_registerKeyDown(data);
+&nbsp;&nbsp;&nbsp;_createNoteTimer(data);
+}
+…
+static void _createnotes(void *data)
+{
+&nbsp;&nbsp;&nbsp;_createWhiteNotes(data);
+&nbsp;&nbsp;&nbsp;_createBlackNotes(data);
+
+&nbsp;&nbsp;&nbsp;_noteButton_fill_rect(data);
+}
+…
+static void _createBlackNotes(void *data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!data, &quot;data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;app_data *ad = (app_data *)data;
+
+&nbsp;&nbsp;&nbsp;note_struct *prev_note = NULL;
+
+&nbsp;&nbsp;&nbsp;const int black_buttons_count = 6;
+
+&nbsp;&nbsp;&nbsp;for (int i = 0 ; i &lt; black_buttons_count ; i++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;note_struct *note = (note_struct*) calloc(1, sizeof(note_struct));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RETM_IF(!note, &quot;note is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;note-&gt;button = elm_button_add(ad-&gt;win-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;note-&gt;type = PIANO_NOTE_BLACK;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;note-&gt;ad = ad;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;note-&gt;prev = prev_note;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ( prev_note)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;prev_note-&gt;next = note;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_noteButton_fill( note, i );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;prev_note = note;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>For each newly created button, the application registers different callbacks to provide multitouch and gesture support:</p> 
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_CALLBACK_MULTI_DOWN</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_CALLBACK_MULTI_UP</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_CALLBACK_MOUSE_DOWN</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_CALLBACK_MOUSE_UP</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">EVAS_CALLBACK_MOUSE_OUT</span></li>
+</ul>
+<p>To optimize the application performance, each player must be initialized and prepared before playing a sound corresponding to the linked note.</p>
+
+<pre class="prettyprint">
+static void _noteButton_fill(void* data, int index)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!data, &quot;data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;note_struct *note = (note_struct *)data;
+
+&nbsp;&nbsp;&nbsp;if (note-&gt;type == PIANO_NOTE_BLACK)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(note-&gt;sound_name, MAXNAMLEN, &quot;black_%d.wav&quot;, index + 1 );
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char part_name[MAXNAMLEN] = { 0 };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf( part_name, MAXNAMLEN, &quot;note_black_%d&quot;, index + 1 );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(note-&gt;ad-&gt;win-&gt;layout, part_name, note-&gt;button);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_theme_set(note-&gt;button, note-&gt;ad-&gt;win-&gt;theme);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_style_set(note-&gt;button, &quot;circle/button_black&quot;);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;if (note-&gt;type == PIANO_NOTE_WHITE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(note-&gt;sound_name, MAXNAMLEN, &quot;white_%d.wav&quot;, index + 1 );
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char part_name[MAXNAMLEN] = { 0 };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf( part_name, MAXNAMLEN, &quot;note_white_%d&quot;, index + 1 );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(note-&gt;ad-&gt;win-&gt;layout, part_name, note-&gt;button);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_theme_set(note-&gt;button, note-&gt;ad-&gt;win-&gt;theme);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_style_set(note-&gt;button, &quot;circle/button_white&quot;);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_show(note-&gt;button);
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(note-&gt;button, EVAS_CALLBACK_MULTI_DOWN, piano_note_touch_down_cb, note);
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(note-&gt;button, EVAS_CALLBACK_MULTI_UP, piano_note_touch_up_cb, note);
+
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(note-&gt;button, EVAS_CALLBACK_MOUSE_DOWN, piano_note_mouse_down_cb, note);
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(note-&gt;button, EVAS_CALLBACK_MOUSE_UP, piano_note_mouse_up_cb, note);
+
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(note-&gt;button, EVAS_CALLBACK_MOUSE_OUT, piano_note_mouse_out_cb, note);
+
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(note-&gt;button, EVAS_CALLBACK_MOUSE_MOVE, piano_note_mouse_move_cb, note);
+
+&nbsp;&nbsp;&nbsp;piano_note_player_init(note);
+
+&nbsp;&nbsp;&nbsp;piano_note_player_prepare(note);
+
+&nbsp;&nbsp;&nbsp;evas_object_data_set(note-&gt;button, NOTE_BUTTON_DATA_KEY_NAME, note);
+
+&nbsp;&nbsp;&nbsp;note-&gt;ad-&gt;buttonList = eina_list_append(note-&gt;ad-&gt;buttonList, note);
+}
+</pre>
+
+<p>Responding to different types of mouse events, the application extracts the target note, changes its style to indicate the pressed or unpressed note view, and plays the associated sound file.</p>
+
+<pre class="prettyprint">
+void piano_note_touch_down(void *data, Evas_Point coord_on_main_win, Eina_Bool check_collision)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!data, &quot;data is NULL&quot;);
+&nbsp;&nbsp;&nbsp;note_struct *note = (note_struct*) data;
+
+&nbsp;&nbsp;&nbsp;Evas_Coord button_left = 0, button_top = 0, button_width = 0, button_height = 0;
+&nbsp;&nbsp;&nbsp;evas_object_geometry_get(note-&gt;button, &amp;button_left, &amp;button_top, &amp;button_width, &amp;button_height );
+
+&nbsp;&nbsp;&nbsp;if ( PIANO_NOTE_WHITE == note-&gt;type )
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ( check_collision &amp;&amp; (coord_on_main_win.y - button_top) &lt; PIANO_NOTE_BORDER_OFFSET )
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;piano_note_touch_down(note-&gt;prev, coord_on_main_win, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if ( check_collision &amp;&amp; button_height - (coord_on_main_win.y - button_top) &lt; PIANO_NOTE_BORDER_OFFSET )
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;piano_note_touch_down(note-&gt;next, coord_on_main_win, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;switch (note-&gt;type)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case PIANO_NOTE_WHITE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_style_set((Evas_Object*)note-&gt;button, &quot;circle/button_white_pressed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case PIANO_NOTE_BLACK:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_style_set((Evas_Object*)note-&gt;button, &quot;circle/button_black_pressed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;piano_player_play(note);
+} 
+</pre>
+
+<p>Finally, to play sounds, the application checks the current status of the selected note and starts playing the associated sound file:</p>
+
+<pre class="prettyprint">
+void piano_player_play(void *data)
+{
+&nbsp;&nbsp;&nbsp;RETM_IF(!data, &quot;data is NULL&quot;);
+&nbsp;&nbsp;&nbsp;note_struct *note = (note_struct*) data;
+
+&nbsp;&nbsp;&nbsp;piano_player_stop(note);
+
+&nbsp;&nbsp;&nbsp;int ret = player_start(note-&gt;player);
+&nbsp;&nbsp;&nbsp;_print_player_state(note-&gt;player);
+&nbsp;&nbsp;&nbsp;RETM_IF( ret != PLAYER_ERROR_NONE, &quot;ret=%d, note-&gt;player=%p&quot;, ret, note-&gt;player);
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

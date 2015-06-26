@@ -1,0 +1,199 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>(Rectangle) Email Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Wearable native" src="../images/wn_icon.png"/></p>
+	</div>
+
+  <h1>(Rectangle) Email Sample Overview</h1> 
+  
+  <p>The (Rectangle) Email sample demonstrates how to implement a complex view using recursive composition of the standard EFL UI components and containers in a UI component hierarchy.</p>
+<p>The sample uses UI components (such as <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> and <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span>) for the view management, and the <span style="font-family: Courier New,Courier,monospace">elm_genlist</span> UI component for the content inside the main view.</p>
+
+<p>The following figure illustrates the main view of the (Rectangle) Email, its wireframe structure, and the UI component tree. </p>
+
+    <p class="figure">Figure: (Rectangle) Email screen</p> 
+  <p align="center"><img alt="(Rectangle) Email screen" src="../images/rectemail_sd.png" /></p>
+  <p align="center"><img alt="(Rectangle) Email screen" src="../images/rectemail_tree.png" /></p>
+
+<h2>Implementation</h2>
+<p>The <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function is responsible for creating the application layout. It starts by creating a window, and adds the <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> to it to decorate the window with an indicator. The <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> component is added to act as the window view manager and provide the window title functionality. The main view is created using the <span style="font-family: Courier New,Courier,monospace">create_genlist()</span> function and added to the naviframe.</p>
+
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *btn;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it;
+
+&nbsp;&nbsp;&nbsp;// Window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_conformant_set(ad-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad-&gt;win)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = {0, 90, 180, 270};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Conformant
+&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(ad-&gt;win, ELM_WIN_INDICATOR_SHOW);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_opacity_set(ad-&gt;win, ELM_WIN_INDICATOR_OPAQUE);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;// Naviframe
+&nbsp;&nbsp;&nbsp;ad-&gt;nf = elm_naviframe_add(ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(ad-&gt;conform, ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;nf, EEXT_CALLBACK_BACK, eext_naviframe_back_cb, NULL);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;nf, EEXT_CALLBACK_MORE, eext_naviframe_more_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;nf);
+
+&nbsp;&nbsp;&nbsp;// Genlist
+&nbsp;&nbsp;&nbsp;ad-&gt;genlist = create_genlist(ad);
+
+&nbsp;&nbsp;&nbsp;btn = create_title_btn(ad);
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(ad-&gt;nf, &quot;Email&quot;, NULL, btn, ad-&gt;genlist, NULL);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(nf_it, naviframe_pop_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">create_genlist()</span> function creates a genlist, which has 2 item classes: group item and item.</p>
+
+<pre class="prettyprint">
+static Evas_Object*
+create_genlist(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *genlist;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *item;
+&nbsp;&nbsp;&nbsp;int index = 0;
+
+&nbsp;&nbsp;&nbsp;// Create item class
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *gtc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *itc = elm_genlist_item_class_new();
+
+&nbsp;&nbsp;&nbsp;gtc-&gt;item_style = &quot;title&quot;;
+&nbsp;&nbsp;&nbsp;gtc-&gt;func.text_get = gl_text_get;
+&nbsp;&nbsp;&nbsp;gtc-&gt;func.content_get = gl_icon_get;
+&nbsp;&nbsp;&nbsp;gtc-&gt;func.del = gl_del_cb;
+
+&nbsp;&nbsp;&nbsp;itc-&gt;item_style = &quot;2text&quot;;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.text_get = gl_text_get;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.content_get = gl_icon_get;
+&nbsp;&nbsp;&nbsp;itc-&gt;func.del = gl_del_cb;
+
+&nbsp;&nbsp;&nbsp;// Genlist
+&nbsp;&nbsp;&nbsp;genlist = elm_genlist_add(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;// COMPRESS MODE
+&nbsp;&nbsp;&nbsp;// For the mobile view, because it has a full window, compress mode must be used
+&nbsp;&nbsp;&nbsp;elm_genlist_mode_set(genlist, ELM_LIST_COMPRESS);
+&nbsp;&nbsp;&nbsp;// HOMOGENEOUS MODE
+&nbsp;&nbsp;&nbsp;// If item height is same when each style name is same, use homogeneous mode
+&nbsp;&nbsp;&nbsp;elm_genlist_homogeneous_set(genlist, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;for (index = 0; index &lt; 20; index++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_data_s *id = calloc(sizeof(item_data_s), 1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id-&gt;index = index;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (index == 0)	
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item = elm_genlist_item_append(genlist, // Genlist object
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gtc, // Item class
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id, // Item class user data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_GROUP, // Item type
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gl_selected_cb, // Select smart callback
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad); // Smart callback user data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_select_mode_set(item, ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item = elm_genlist_item_append(genlist, // Genlist object
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc, // Item class
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id, // Item class user data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, // Item type
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gl_selected_cb, // Select smart callback
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad); // Smart callback user data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id-&gt;item = item;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_class_free(gtc);
+&nbsp;&nbsp;&nbsp;elm_genlist_item_class_free(itc);
+&nbsp;&nbsp;&nbsp;evas_object_show(genlist);
+
+&nbsp;&nbsp;&nbsp;return genlist;
+}
+</pre>
+
+<p>When the genlist is clicked, the main view changes to the second view.</p>
+
+    <p class="figure">Figure: Second view screen</p> 
+  <p align="center"><img alt="Second view screen" src="../images/rectemail2_sd.png" /></p>
+
+<pre class="prettyprint">
+static void
+gl_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *label;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = event_info;
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;elm_genlist_item_selected_set(it, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;label = create_label(ad, elm_object_item_part_text_get(it, &quot;elm.text&quot;));
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_push(ad-&gt;nf, elm_object_item_part_text_get(it, &quot;elm.text.1&quot;), NULL, NULL, label, NULL);
+
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

@@ -122,12 +122,75 @@
 <p>The <span style="font-family: Courier New,Courier,monospace">&lt;Elementary.h&gt;</span> header file is needed for setting the display.</p></li>
 
 <li>
+<p>You must get the default path for this tutorial. For the following example code, you must include the <span style="font-family: Courier New,Courier,monospace;">&lt;storage.h&gt;</span> header file.</p>
+<pre class="prettyprint">
+#define MP3_SAMPLE &quot;SampleAudio.mp3&quot;;
+#define MP4_SAMPLE &quot;SampleVideo.mp4&quot;;
+
+int internal_storage_id;
+char *audio_storage_path = NULL;
+char *video_storage_path = NULL;
+char *audio_path = NULL;
+char *video_path = NULL;
+
+static bool storage_cb(int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (type == STORAGE_TYPE_INTERNAL)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_storage_id = storage_id;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+void _get_storage_path()
+{
+&nbsp;&nbsp;&nbsp;int error_code = 0;
+&nbsp;&nbsp;&nbsp;char *path = NULL;
+
+&nbsp;&nbsp;&nbsp;error_code = storage_foreach_device_supported(storage_cb, NULL);
+&nbsp;&nbsp;&nbsp;error_code = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_MUSIC, &amp;path);
+&nbsp;&nbsp;&nbsp;if (error_code != STORAGE_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;audio_storage_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;error_code = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_VIDEOS, &amp;path);
+&nbsp;&nbsp;&nbsp;if (error_code != STORAGE_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_storage_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;}
+}
+
+void _set_test_path()
+{
+&nbsp;&nbsp;&nbsp;int path_len = 0;
+
+&nbsp;&nbsp;&nbsp;path_len = strlen(audio_storage_path) + strlen(MP3_SAMPLE) + 1;
+&nbsp;&nbsp;&nbsp;audio_path = malloc(path_len);
+&nbsp;&nbsp;&nbsp;memset(audio_path, 0x0, path_len);
+
+&nbsp;&nbsp;&nbsp;strncat(audio_path, audio_storage_path, strlen(audio_storage_path));
+&nbsp;&nbsp;&nbsp;strncat(audio_path, MP3_SAMPLE, strlen(MP3_SAMPLE));
+
+&nbsp;&nbsp;&nbsp;path_len = strlen(video_storage_path) + strlen(MP4_SAMPLE) + 1;
+&nbsp;&nbsp;&nbsp;video_path = malloc(path_len);
+&nbsp;&nbsp;&nbsp;memset(video_path, 0x0, path_len);
+
+&nbsp;&nbsp;&nbsp;strncat(video_path, video_storage_path, strlen(video_storage_path));
+&nbsp;&nbsp;&nbsp;strncat(video_path, MP4_SAMPLE, strlen(MP4_SAMPLE));
+}
+</pre>
+</li>
+
+<li>
 <p>Create a player handle and pass it to the <span style="font-family: Courier New,Courier,monospace;">player_create()</span> function. You need the player handle for defining which file to play and with what playback settings.</p>
 
 <pre class="prettyprint">
-#define MP3_SAMPLE = &quot;/opt/usr/media/SampleAudio.mp3&quot;;
-#define MP4_SAMPLE = &quot;/opt/usr/media/SampleVideo.mp4&quot;;
-
 typedef struct appdata 
 {
 &nbsp;&nbsp;&nbsp;player_h player;
@@ -256,7 +319,7 @@ to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY<
 
 <p>To specify the source file to play, use the <span style="font-family: Courier New,Courier,monospace;">player_set_uri()</span> function:</p>
 
-<pre class="prettyprint">error_code = player_set_uri(ad-&gt;player, MP3_SAMPLE);</pre>
+<pre class="prettyprint">error_code = player_set_uri(ad-&gt;player, audio_path);</pre>
 </li>
 
 <li>
@@ -290,7 +353,7 @@ to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY<
 
 <p>To specify the source file to play, use the <span style="font-family: Courier New,Courier,monospace;">player_set_uri()</span> function:</p>
 
-<pre class="prettyprint">error_code = player_set_uri(ad-&gt;player, MP4_SAMPLE);</pre>
+<pre class="prettyprint">error_code = player_set_uri(ad-&gt;player, video_path);</pre>
 
 </li>
 
@@ -329,7 +392,7 @@ to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY<
 
 </li>
 
-<li>
+<li id="play_video_2">
 
 <p>Play the video file:</p>
 
@@ -418,9 +481,17 @@ dlog_print(DLOG_ERROR, LOG_TAG, &quot;player_destroy = %d&quot;, error_code);
 static player_h player_1, player_2, player_3;
 static player_state_e state_1, state_2, state_3;
 static int ret =0;
-static char *path_1 = &quot;tmp/sample.3gp&quot;;
-static char *path_2 = &quot;tmp/test.wav&quot;;
-static char *path_3 = &quot;tmp/test2.wav&quot;;
+static char *path_1 = NULL;
+static char *path_2 = NULL;
+static char *path_3 = NULL;
+char *resource_path = NULL;
+
+resource_path = app_get_resource_path();
+snprintf(path_1, sizeof(path_1)-1, &quot;%s/sample.3gp&quot;, resource_path);
+snprintf(path_2, sizeof(path_2)-1, &quot;%s/test.wav&quot;, resource_path);
+snprintf(path_3, sizeof(path_3)-1, &quot;%s/test2.wav&quot;, resource_path);
+free(resource_path);
+
 static const int PLAYBACK_TIME=6;</pre>
 
 <p>To ensure that a function has been properly executed, always check its return value. If the return value differs from <span style="font-family: Courier New,Courier,monospace">PLAYER_ERROR_NONE</span>, an error has occurred.</p></li></ol>
@@ -705,7 +776,7 @@ dlog_print(DLOG_INFO, LOG_TAG, &quot;player_set_display_mode = %d&quot;, error_c
  <h2 id="insert" name="insert">Inserting Subtitles</h2>
 
 <p>To insert subtitles to a video file:</p>
-<ol><li><a href="#init">Create the player handle</a> and <a href="#play_video">prepare the player</a>.</li>
+<ol><li><a href="#init">Create the player handle</a>.</li>
 <li><p>To set the subtitle path, use the <span style="font-family: Courier New,Courier,monospace;">player_set_subtitle_path()</span> function:</p>
 <pre class="prettyprint">#define SUBTITLE &quot;subtitles_test_file.srt&quot;
 
@@ -731,7 +802,7 @@ free(path);
 </tbody>
 </table> 
 
-<p>After setting the subtitle path, you can <a href="#play_video">play the video file</a> as usual, by setting the video display and starting the player.</p></li></ol>
+<p>After setting the subtitle path, <a href="#play_video">set video display and prepare the player</a>. You can <a href="#play_video_2">play the video file</a> as usual, by starting the player.</p></li></ol>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>

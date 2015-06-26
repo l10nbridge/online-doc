@@ -1,0 +1,426 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>Input Method: Managing Keyboards</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+  <div id="profile">
+    <p><img alt="Mobile native" src="../../images/mn_icon.png"/> <img alt="Wearable native" src="../../images/wn_icon.png"/></p>
+  </div>
+  <div id="toc_border"><div id="toc">
+    <p class="toc-title">Content</p>
+    <ul class="toc">
+      <li><a href="#start">Starting the IME Life-cycle</a></li>
+	  <li><a href="#callback">Adding Event Callbacks</a></li>
+	  <li><a href="#menu">Making a Keyboard Option Menu</a></li>
+	  <li>Input method manager
+		    <ul class="toc">
+				<li><a href="#list">Showing the IME List</a></li>
+				<li><a href="#selector">Showing the IME Selector</a></li>
+				<li><a href="#enable">Checking the IME State</a></li>
+			</ul>	
+	  </li>
+    </ul>
+    <p class="toc-title">Related Info</p>
+    <ul class="toc">
+		<li><a href="../../../../org.tizen.guides/html/native/uix/ime_n.htm">Input Method Guide</a></li>
+		<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__INPUTMETHOD__MODULE.html">Input Method API for Mobile Native</a></li>
+		<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__UIX__INPUTMETHOD__MODULE.html">Input Method API for Wearable Native</a></li>
+    </ul>
+  </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Input Method: Managing Keyboards</h1>
+  <p>This tutorial demonstrates how you create an IME application and use the input method manager to help the user enable and select the new IME as the default keyboard.</p>
+
+  <h2>Warm-up</h2>
+  <p>Become familiar with the Input Method API basics by learning about:</p>
+  <ul>
+  <li><a href="#start">Starting the IME Life-cycle</a>
+    <p>Start the IME application life-cycle.</p></li>
+  <li><a href="#callback">Adding Event Callbacks</a>
+    <p>Register and define mandatory and optional event callbacks.</p></li>
+  <li><a href="#menu">Making a Keyboard Option Menu</a>
+    <p>Create an option menu for the keyboard to handle the keyboard settings.</p></li>
+  <li>Input method manager
+	<ul>
+	  <li><a href="#list">Showing the IME List</a>
+		<p>Open the IME list menu to show the installed IMEs to allow the user to enable them.</p></li>
+	  <li><a href="#selector">Showing the IME Selector</a>
+		<p>Open the IME selector menu to show the enabled IMEs to allow the user to select the default keyboard.</p></li>
+	  <li><a href="#enable">Checking the IME State</a>
+		<p>Check whether a specific IME is enabled, and which IME is currently selected as the default keyboard.</p></li>
+	  </ul>	
+	</li>  
+  </ul>
+
+  
+      <h2 id="start" name="start">Starting the IME Life-cycle</h2>
+<p>To start the IME application life-cycle:</p>
+<ol>
+<li>Implement the <span style="font-family: Courier New,Courier,monospace">ime_app_main()</span> function as the main entry point of IME application:
+<pre class="prettyprint">void ime_app_main(int argc, char **argv);</pre>
+<p>The function is called when the user selects the IME as default from the Keyboard selection menu in the Settings application.</p>
+</li>
+<li>Inside the <span style="font-family: Courier New,Courier,monospace">ime_app_main()</span> function, add the required callbacks and call the <span style="font-family: Courier New,Courier,monospace">ime_run()</span> function to start the application:
+<pre class="prettyprint">int ime_run(ime_callback_s *basic_cb, void *user_data);</pre></li>
+</ol>
+
+      <h2 id="callback" name="callback">Adding Event Callbacks</h2>
+<p>To register and define event callbacks for the IME application:</p>
+<ol>
+<li>Implement the mandatory callbacks:
+
+<ol type="a">
+<li>
+<p>You must register and implement the <span style="font-family: Courier New,Courier,monospace">create()</span>, <span style="font-family: Courier New,Courier,monospace">terminate()</span>, <span style="font-family: Courier New,Courier,monospace">show()</span>, and <span style="font-family: Courier New,Courier,monospace">hide()</span> callback functions. Register them as the parameter of the <span style="font-family: Courier New,Courier,monospace">ime_run()</span> function:</p> 
+
+<pre class="prettyprint">
+#include &lt;Elementary.h&gt;
+#include &lt;inputmethod.h&gt;
+
+static void create(void *user_data);
+static void terminate(void *user_data);
+static void show(int context_id, ime_context_h context, void *user_data);
+static void hide(int context_id, void *user_data);
+
+void 
+ime_app_main(int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;ime_callback_s basic_callback = 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create, // When the input panel is created
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;terminate, // When the input panel is terminated
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;show, // When the input panel is shown
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hide, // When the input panel is hidden
+&nbsp;&nbsp;&nbsp;};
+
+&nbsp;&nbsp;&nbsp;ime_run(&amp;basic_callback, NULL);
+}
+</pre>
+</li>
+<li>Define the callback functions:
+<pre class="prettyprint">
+static void 
+create(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int portrait_w, portrait_h, landscape_w, landscape_h;
+&nbsp;&nbsp;&nbsp;Evas_Object *ime_win = ime_get_main_window();
+
+&nbsp;&nbsp;&nbsp;// Update IME size information 
+&nbsp;&nbsp;&nbsp;ime_set_size(portrait_w, portrait_h, landscape_w, landscape_h);
+
+&nbsp;&nbsp;&nbsp;// Create or initialize the resources
+}
+
+static void 
+terminate(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Release the resources
+}
+
+static void 
+show(int context_id, ime_context_h context, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;Ecore_IMF_Input_Panel_Layout layout;
+&nbsp;&nbsp;&nbsp;ime_layout_variation_e layout_variation;
+&nbsp;&nbsp;&nbsp;int cursor_pos;
+&nbsp;&nbsp;&nbsp;Ecore_IMF_Autocapital_Type autocapital_type;
+&nbsp;&nbsp;&nbsp;Ecore_IMF_Input_Panel_Return_Key_Type return_key_type;
+&nbsp;&nbsp;&nbsp;bool return_key_state, prediction_mode, password_mode;
+&nbsp;&nbsp;&nbsp;Ecore_IMF_Input_Hints input_hint;
+&nbsp;&nbsp;&nbsp;Ecore_IMF_BiDi_Direction bidi;
+&nbsp;&nbsp;&nbsp;Ecore_IMF_Input_Panel_Lang language;
+
+&nbsp;&nbsp;&nbsp;Evas_Object *ime_win = ime_get_main_window();
+
+&nbsp;&nbsp;&nbsp;ime_context_get_layout(context, &amp;layout);
+&nbsp;&nbsp;&nbsp;ime_context_get_layout_variation(context, &amp;layout_variation);
+&nbsp;&nbsp;&nbsp;// Draw the proper layout 
+
+&nbsp;&nbsp;&nbsp;ime_context_get_autocapital_type(context, &amp;autocapital_type);
+&nbsp;&nbsp;&nbsp;ime_context_get_cursor_position(context, &amp;cursor_pos);
+&nbsp;&nbsp;&nbsp;// Draw the capital or small characters accordingly
+
+&nbsp;&nbsp;&nbsp;ime_context_get_return_key_type(context, &amp;return_key_type);
+&nbsp;&nbsp;&nbsp;ime_context_get_return_key_state(context, &amp;return_key_state);
+&nbsp;&nbsp;&nbsp;// Draw the proper Return key
+
+&nbsp;&nbsp;&nbsp;// Show IME window
+&nbsp;&nbsp;&nbsp;evas_object_show(ime_win);
+}
+
+static void 
+hide(int context_id, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *ime_win = ime_get_main_window();
+
+&nbsp;&nbsp;&nbsp;// Hide IME window
+&nbsp;&nbsp;&nbsp;evas_object_hide(ime_win);
+}
+</pre>
+<p>In the <span style="font-family: Courier New,Courier,monospace">show()</span> callback, the IME application can get the contextual information from an associated text input UI control to configure the keyboard state and look accordingly. The contextual information of each input UI control is provided through the <span style="font-family: Courier New,Courier,monospace">ime_context_get_***()</span> functions in the <span style="font-family: Courier New,Courier,monospace">inputmethod.h</span> header file.</p>
+</li>
+</ol>
+</li>
+<li>Implementing the optional callbacks, as needed:
+
+<ol type="a">
+<li>
+<p>You can register optional callbacks with the <span style="font-family: Courier New,Courier,monospace">ime_event_set_***_cb()</span> functions provided in the <span style="font-family: Courier New,Courier,monospace">inputmethod.h</span> header file:</p> 
+
+<pre class="prettyprint">
+static int focus_in(int context_id, void *user_data);
+static int focus_out(int context_id, void *user_data);
+static int cursor_position_updated(int cursor_pos, void *user_data);
+
+void 
+ime_app_main(int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;ime_callback_s basic_callback = 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Add the mandatory callbacks
+&nbsp;&nbsp;&nbsp;};	
+	
+&nbsp;&nbsp;&nbsp;ime_event_set_focus_in_cb(focus_in, NULL);
+&nbsp;&nbsp;&nbsp;ime_event_set_focus_out_cb(focus_out, NULL);
+&nbsp;&nbsp;&nbsp;ime_event_set_cursor_position_updated_cb(cursor_position_updated, NULL);
+
+&nbsp;&nbsp;&nbsp;ime_run(&amp;basic_callback, NULL);
+}
+</pre>
+</li>
+<li>Define the optional callback functions:
+<ul>
+<li>The <span style="font-family: Courier New,Courier,monospace">focus_in()</span> callback is triggered when an associated text input UI control in any application gets the focus. Usually, the <span style="font-family: Courier New,Courier,monospace">focus_in()</span> event is followed by the <span style="font-family: Courier New,Courier,monospace">show()</span> event.
+
+<pre class="prettyprint">
+static int 
+focus_in(int context_id, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Take action
+}
+</pre></li>
+<li>The <span style="font-family: Courier New,Courier,monospace">focus_out()</span> callback is triggered when an associated text input UI control in any application loses the focus. Usually, the <span style="font-family: Courier New,Courier,monospace">focus_out()</span> event is followed by the <span style="font-family: Courier New,Courier,monospace">hide()</span> event.
+
+<pre class="prettyprint">
+static int 
+focus_out(int context_id, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Take action
+}
+</pre></li>
+<li>The <span style="font-family: Courier New,Courier,monospace">cursor_position_updated()</span> callback is triggered when the position of the cursor in an associated text input UI control changes. You can use this callback to provide, for example, auto-capitalization or predictive text features.
+
+<pre class="prettyprint">
+static int 
+cursor_position_updated(int cursor_pos, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Take action
+}
+</pre></li>
+</ul>
+</li>
+</ol>
+</li>
+
+</ol>
+
+      <h2 id="menu" name="menu">Making a Keyboard Option Menu</h2>
+<p>To make the option menu for the keyboard:</p>
+<ol>
+<li>Add the necessary callback functions for reacting to the keyboard option menu opening and closing before calling the <span style="font-family: Courier New,Courier,monospace">ime_run()</span> function:
+<pre class="prettyprint">
+static void 
+option_window_created(Evas_Object *window, ime_option_window_type_e type, void *user_data);
+static void 
+option_window_destroyed(Evas_Object *window, void *user_data);
+
+void ime_app_main(int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;ime_callback_s basic_callback = 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Add the mandatory callbacks
+&nbsp;&nbsp;&nbsp;};
+
+&nbsp;&nbsp;&nbsp;ime_event_set_option_window_created_cb(option_window_created, NULL);
+&nbsp;&nbsp;&nbsp;ime_event_set_option_window_destroyed_cb(option_window_destroyed, NULL);
+
+&nbsp;&nbsp;&nbsp;ime_run(&amp;basic_callback, NULL);
+}
+</pre>
+</li>
+<li>The option menu can be opened in 2 different ways:
+<ul>
+<li>The device Settings application can open the keyboard option menu from <strong>Settings &gt; Language and input &gt; Keyboard &gt; Keyboard settings</strong>.
+<p>If the user selects the keyboard settings, the <span style="font-family: Courier New,Courier,monospace">option_window_created()</span> callback is executed:</p>
+<pre class="prettyprint">
+static void 
+option_window_created(Evas_Object *window, ime_option_window_type_e type, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Create the option window.
+&nbsp;&nbsp;&nbsp;// Draw the content to the given window object
+
+&nbsp;&nbsp;&nbsp;evas_object_show(window);
+}
+</pre>
+</li>
+
+<li>The keyboard can have a specific key button for its option menu, allowing the user to open the option menu directly from the keyboard.
+
+<p>If the user clicks the key button, you can use the <span style="font-family: Courier New,Courier,monospace">ime_create_option_window()</span> function in the button click callback to open the option menu:</p>
+<pre class="prettyprint">
+static void 
+_clicked(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;// Open the IME option menu window
+&nbsp;&nbsp;&nbsp;ime_create_option_window();
+}
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">ime_create_option_window()</span> function call triggers the <span style="font-family: Courier New,Courier,monospace">option_window_created()</span> callback, in which you can draw the option menu content on the given window.</p>
+</li></ul>
+</li>
+<li>To close the option menu, call the <span style="font-family: Courier New,Courier,monospace">ime_destroy_option_window()</span> function.  The function call triggers the  <span style="font-family: Courier New,Courier,monospace">option_window_destroyed()</span> callback:
+<pre class="prettyprint">
+static void 
+option_window_destroyed(Evas_Object *window, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Destroy the option window
+&nbsp;&nbsp;&nbsp;// Release the resources
+}
+</pre>
+</li>
+</ol>
+ 
+      <h2 id="list" name="list">Showing the IME List</h2>
+	  
+<p>To launch the IME list menu to show the installed IMEs:</p>
+
+<ol>
+<li>To use the functions and data types of the Input Method Manager API, include the <span style="font-family: Courier New,Courier,monospace">&lt;inputmethod_manager.h&gt;</span> header file in your application:
+<pre class="prettyprint">#include &lt;inputmethod_manager.h&gt;</pre>
+</li>
+<li>Add the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/imemanager</span> privilege to the application manifest file.</li>
+<li>Open the IME list menu with the <span style="font-family: Courier New,Courier,monospace">ime_manager_show_ime_list()</span> function:
+
+<pre class="prettyprint">
+void show_ime_list() 
+{
+&nbsp;&nbsp;&nbsp;int ret = ime_manager_show_ime_list();
+&nbsp;&nbsp;&nbsp;if (IME_MANAGER_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>If the menu opens successfully, the function returns 0.</p>
+</li></ol>
+
+      <h2 id="selector" name="selector">Showing the IME Selector</h2>
+	  
+<p>To launch the IME selector menu to allow the user to select the default keyboard:</p>
+
+<ol>
+<li>To use the functions and data types of the Input Method Manager API, include the <span style="font-family: Courier New,Courier,monospace">&lt;inputmethod_manager.h&gt;</span> header file in your application:
+<pre class="prettyprint">#include &lt;inputmethod_manager.h&gt;</pre>
+</li>
+<li>Add the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/imemanager</span> privilege to the application manifest file.</li>
+<li>Open the IME selector menu with the <span style="font-family: Courier New,Courier,monospace">ime_manager_show_ime_selector()</span> function:
+
+<pre class="prettyprint">
+void show_ime_selector() 
+{
+&nbsp;&nbsp;&nbsp;int ret = ime_manager_show_ime_selector();
+&nbsp;&nbsp;&nbsp;if (IME_MANAGER_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>If the menu opens successfully, the function returns 0.</p>
+</li></ol>
+
+      <h2 id="enable" name="enable">Checking the IME State</h2>
+	  
+<p>To check the current default keyboard or whether a specific IME is enabled:</p>
+
+<ol>
+<li>Add the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/imemanager</span> privilege to the application manifest file.</li>
+<li>To check whether a specific IME is enabled, call the <span style="font-family: Courier New,Courier,monospace">ime_manager_is_ime_enabled()</span> function. The first parameter is the application ID of the IME whose status you want to check.
+
+<pre class="prettyprint">
+boolean is_ime_enabled(const char *app_id) 
+{
+&nbsp;&nbsp;&nbsp;boolean enabled = false;
+&nbsp;&nbsp;&nbsp;int ret = ime_manager_is_ime_enabled(app_id, &amp;enabled);
+&nbsp;&nbsp;&nbsp;if (IME_MANAGER_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return enabled;
+}
+</pre>
+
+<p>If the function is successful, it returns 0.</p>
+</li>
+<li>To check which IME is current selected as the default keyboard, call the <span style="font-family: Courier New,Courier,monospace">ime_manager_get_active_ime()</span> function:
+
+<pre class="prettyprint">
+void get_active_ime()
+{
+&nbsp;&nbsp;&nbsp;char *app_id = NULL;
+&nbsp;&nbsp;&nbsp;int ret = ime_manager_get_active_ime(&amp;app_id);
+&nbsp;&nbsp;&nbsp;if (IME_MANAGER_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Take action
+
+&nbsp;&nbsp;&nbsp;free(app_id);
+}
+</pre>
+
+<p>If the function is successful, it returns 0.</p>
+</li></ol>
+  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>	
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

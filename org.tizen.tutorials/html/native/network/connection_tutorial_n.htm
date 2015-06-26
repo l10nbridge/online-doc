@@ -333,21 +333,17 @@ if (error_code != CONNECTION_ERROR_NONE)
 
 <h2 id="socket_init" name="socket_init">Initializing a Socket</h2>
 
-  <table class="note"> 
-   <tbody> 
-    <tr> 
-     <th class="note">Note</th> 
-    </tr> 
-    <tr> 
-     <td class="note">Before executing an application that uses socket connections, add a smack policy. For example:
-	 <p><span style="font-family: Courier New,Courier,monospace;">chsmack -e connman &lt;Application executable path&gt;</span></p>
-</td> 
-    </tr> 
-   </tbody> 
-  </table>
-
 <p>To initialize a socket for use:</p>
 <ol>
+<li>To use the functions and data types of the Socket API, include the following header files:
+<pre class="prettyprint">
+#include &lt;sys/stat.h&gt;
+#include &lt;arpa/inet.h&gt;
+#include &lt;netdb.h&gt;
+#include &lt;net/if.h&gt;
+</pre>
+</li>
+
 <li>Declare the necessary variables:
 <pre class="prettyprint">
 int main(int argc, char **argv)
@@ -376,7 +372,7 @@ int main(int argc, char **argv)
 &nbsp;&nbsp;&nbsp;rv = connection_get_type(connection, &amp;net_state);
 &nbsp;&nbsp;&nbsp;if (rv != CONNECTION_ERROR_NONE || net_state == CONNECTION_TYPE_DISCONNECTED) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Not connected %d\n&quot;, rv);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Not connected %d\n&quot;, rv);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connection_destroy(connection);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
@@ -394,7 +390,7 @@ int main(int argc, char **argv)
 &nbsp;&nbsp;&nbsp;rv = connection_get_current_profile(connection, &amp;profile_h);
 &nbsp;&nbsp;&nbsp;if (rv != CONNECTION_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Fail to get profile handle %d\n&quot;, rv);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Fail to get profile handle %d\n&quot;, rv);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connection_destroy(connection);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
@@ -404,7 +400,7 @@ int main(int argc, char **argv)
 &nbsp;&nbsp;&nbsp;if (rv == CONNECTION_ERROR_NONE &amp;&amp; g_strcmp0(local_ipv6, &quot;::&quot;) != 0) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ip_type = CONNECTION_ADDRESS_FAMILY_IPV6;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPv6 address : %s\n&quot;, local_ipv6);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IPv6 address : %s\n&quot;, local_ipv6);
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;// If both IPv4 and IPv6 types are set, the IPv4 type is used as default here
@@ -412,17 +408,17 @@ int main(int argc, char **argv)
 &nbsp;&nbsp;&nbsp;if (rv == CONNECTION_ERROR_NONE &amp;&amp; g_strcmp0(local_ipv4, &amp;0.0.0.0&amp;) != 0) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ip_type = CONNECTION_ADDRESS_FAMILY_IPV4;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPv4 address : %s\n&quot;, local_ipv4);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IPv4 address : %s\n&quot;, local_ipv4);
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;if (ip_type != CONNECTION_ADDRESS_FAMILY_IPV6 &amp;&amp; ip_type != CONNECTION_ADDRESS_FAMILY_IPV4) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;No IP address!\n&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;No IP address!\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;connection_profile_get_network_interface_name(profile_h, &amp;interface_name);
-&nbsp;&nbsp;&nbsp;printf(&quot;Interface Name:%s\n&quot;, interface_name);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Interface Name:%s\n&quot;, interface_name);
 }
 </pre>
 </li>
@@ -432,33 +428,7 @@ int main(int argc, char **argv)
 
 <p>To get the IP addresses for the hostname to connect:</p>
 <ol>
-<li>Define the user URL and the message to be sent:
-<pre class="prettyprint">
-int main(int argc, char **argv)
-{
-&nbsp;&nbsp;&nbsp;// Initialize the socket
-
-&nbsp;&nbsp;&nbsp;printf(&quot;Enter the URL and Port: &quot;);
-&nbsp;&nbsp;&nbsp;rv = scanf(&quot;%s %s&quot;, user_url, user_port);
-
-&nbsp;&nbsp;&nbsp;if (rv &lt;= 0) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;scanf() fail %d\n&quot;, rv);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;printf(&quot;Enter the message to send : &quot;);
-&nbsp;&nbsp;&nbsp;rv = scanf(&quot;%s&quot;, user_msg);
-
-&nbsp;&nbsp;&nbsp;if (rv &lt;= 0) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;scanf() fail %d\n&quot;, rv);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
-&nbsp;&nbsp;&nbsp;}
-</pre>
-</li>
+<li>Define the user URL and message to be sent.</li>
 <li>Retrieve the IP addresses:
 <pre class="prettyprint">
 &nbsp;&nbsp;&nbsp;struct sockaddr_in6 *addr6;
@@ -475,8 +445,8 @@ int main(int argc, char **argv)
 
 &nbsp;&nbsp;&nbsp;if (getaddrinfo(user_url, user_port, &amp;hints, &amp;result) != 0) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;getaddrinfo() error\n&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;getaddrinfo() error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
@@ -500,22 +470,20 @@ for (rp = result; rp != NULL; rp = rp-&gt;ai_next)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) &gt; 0) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;socket error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;socket error\n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto done;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPv4\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IPv4\n&quot;);
 
 &nbsp;&nbsp;&nbsp;} 
 &nbsp;&nbsp;&nbsp;else if (rp-&gt;ai_family == AF_INET6 &amp;&amp; ip_type == CONNECTION_ADDRESS_FAMILY_IPV6) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) &lt; 0) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;socket error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;socket error\n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto done;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf("IPv6\n");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IPv6\n&quot;);
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
@@ -526,10 +494,9 @@ for (rp = result; rp != NULL; rp = rp-&gt;ai_next)
 <pre class="prettyprint">
 if (connect(sockfd, rp-&gt;ai_addr, rp-&gt;ai_addrlen) &lt; 0) 
 {
-&nbsp;&nbsp;&nbsp;printf(&quot;connect() error: %s\n&quot;, strerror(errno));
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;connect() error: %s\n&quot;, strerror(errno));
 &nbsp;&nbsp;&nbsp;freeaddrinfo(result);
 &nbsp;&nbsp;&nbsp;close(sockfd);
-&nbsp;&nbsp;&nbsp;goto done;
 }
 </pre>
 </li>
@@ -539,17 +506,16 @@ if (connect(sockfd, rp-&gt;ai_addr, rp-&gt;ai_addrlen) &lt; 0)
 char *interface_name = NULL;
 
 connection_profile_get_network_interface_name(profile_h, &amp;interface_name);
-printf(&quot;Interface Name:%s\n&quot;, interface_name);
+dlog_print(DLOG_INFO, LOG_TAG, &quot;Interface Name:%s\n&quot;, interface_name);
 
 addr6 = (struct sockaddr_in6 *)rp-&gt;ai_addr;
 addr6-&gt;sin6_scope_id = if_nametoindex(interface_name);
 
 if ((sockfd = connect(sockfd, (struct sockaddr *)addr6, rp-&gt;ai_addrlen)) &lt; 0) 
 {
-&nbsp;&nbsp;&nbsp;printf(&quot;connect() error: %s\n&quot;, strerror(errno));
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;connect() error: %s\n&quot;, strerror(errno));
 &nbsp;&nbsp;&nbsp;freeaddrinfo(result);
 &nbsp;&nbsp;&nbsp;close(sockfd);
-&nbsp;&nbsp;&nbsp;goto done;
 }
 </pre>
 </li>
@@ -560,14 +526,12 @@ if ((sockfd = connect(sockfd, (struct sockaddr *)addr6, rp-&gt;ai_addrlen)) &lt;
 <pre class="prettyprint">
 if ((count = write(sockfd, user_msg, 200)) &lt; 0) 
 {
-&nbsp;&nbsp;&nbsp;printf(&quot;write() error: %s\n&quot;, strerror(errno));
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;write() error: %s\n&quot;, strerror(errno));
 
 &nbsp;&nbsp;&nbsp;freeaddrinfo(result);
 &nbsp;&nbsp;&nbsp;close(sockfd);
-
-&nbsp;&nbsp;&nbsp;goto done;
 }
-printf(&quot;Sent count: %d, msg: %s\n&quot;, count, user_msg);
+dlog_print(DLOG_INFO, LOG_TAG, &quot;Sent count: %d, msg: %s\n&quot;, count, user_msg);
 </pre>
 </li>
 <li>Read a message from the remote host:
@@ -577,15 +541,13 @@ memset(buf, 0x00, 257);
 
 if ((count = read(sockfd, buf, 256)) &lt; 0) 
 {
-&nbsp;&nbsp;&nbsp;printf(&quot;read() error: %s\n&quot;, strerror(errno));
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;read() error: %s\n&quot;, strerror(errno));
 
 &nbsp;&nbsp;&nbsp;freeaddrinfo(result);
 &nbsp;&nbsp;&nbsp;close(sockfd);
-
-&nbsp;&nbsp;&nbsp;goto done;
 }
 buf[count] = &#39;\0&#39;;
-printf(&quot;\nRead: %s\n&quot;, buf);
+dlog_print(DLOG_INFO, LOG_TAG, &quot;\nRead: %s\n&quot;, buf);
 </pre>
 </li></ul></li>
 <li>Close the socket and release the resources: 
@@ -597,9 +559,9 @@ done:
 &nbsp;&nbsp;&nbsp;connection_profile_destroy(profile_h);
 &nbsp;&nbsp;&nbsp;connection_destroy(connection);
 
-&nbsp;&nbsp;&nbsp;g_free(local_ipv6);
-&nbsp;&nbsp;&nbsp;g_free(local_ipv4);
-&nbsp;&nbsp;&nbsp;g_free(interface_name);
+&nbsp;&nbsp;&nbsp;free(local_ipv6);
+&nbsp;&nbsp;&nbsp;free(local_ipv4);
+&nbsp;&nbsp;&nbsp;free(interface_name);
 
 &nbsp;&nbsp;&nbsp;return 0;
 </pre>
