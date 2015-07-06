@@ -1,0 +1,451 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Ecore Animations</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mn_icon.png"/> <img alt="Wearable native" src="../../images/wn_icon.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+	<p class="toc-title">Content</p>
+		<ul class="toc">
+				<li><a href="#finite">Creating an Animation with a Finite Duration</a></li>
+				<li><a href="#position">Position Mappings</a></li>
+				<li><a href="#infinite">Creating an Infinite Animation</a></li>
+				<li><a href="#chain">Chaining Animations</a></li>
+				<li><a href="#pause">Pausing and Resuming Animations</a></li>
+				<li><a href="#free">Freeing Up Memory</a></li>
+				<li><a href="#frame">Frametime</a></li>
+				<li><a href="#custom">Custom Timer</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Ecore.html">Ecore API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Ecore.html">Ecore API for Wearable Native</a></li>
+			</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+
+  <h1>Ecore Animations</h1> 
+
+<p>Ecore provides a facility for animations called <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator</span>. Ecore animators use the Ecore main loop for creating animations, running a specific action on each tick of a timer in the main loop.</p>
+
+<p>To create an Ecore animation:</p>
+<ol>
+    <li>Determine the duration of the animation.</li>
+    <li>Define a callback function that performs the animation with that duration.</li>
+</ol>
+
+<p>To use Ecore animators in your application, you must include the <span style="font-family: Courier New,Courier,monospace;">&lt;Ecore.h&gt;</span> file. This file is included by default if you are already using the <span style="font-family: Courier New,Courier,monospace;">&lt;Elementary.h&gt;</span> file in your application. You then declare an <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator*</span> variable and use the variable in the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_*</span> functions.</p>
+
+<p>The following example shows how to create a simple animation with a finite duration:</p>
+
+<pre class="prettyprint">
+static Eina_Bool
+_do_animation(void *data, double pos)
+{
+&nbsp;&nbsp;&nbsp;evas_object_move(data, 100 * pos, 100 * pos);
+&nbsp;&nbsp;&nbsp;// Do some more animating...
+}
+ecore_animator_timeline_add(2, _do_animation, my_evas_object);
+</pre>
+
+<p>In the above example, we create a linear transition to move <span style="font-family: Courier New,Courier,monospace;">my_evas_object</span> from position (0,0) to position (100,100) in 2 seconds.</p>
+
+<h2 id="finite" name="finite">Creating an Animation with a Finite Duration</h2>
+
+<p>Most of the time, you will want to create animations that last for a predefined time.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">ecore_animator_timeline_add()</span> function allows you to define an animator that is automatically deleted after the animation is finished:</p>
+
+<pre class="prettyprint">ecore_animator_timeline_add(double runtime, Ecore_Timeline_Cb func, const void *data)</pre>
+
+<ul>
+<li>The first argument is the duration of the animation in seconds. The duration is not affected by frame rate.</li>
+<li>The second argument is the callback function that performs the animation.</li>
+<li>The third argument is the parameter passed to the callback function. This is usually the Evas object to animate.</li>
+</ul>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">The callback function can return <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span> to keep the animator running or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> to stop the animator and have it be deleted automatically at any time. The callback function is also passed a timeline position parameter with a value between 0.0 (start) to 1.0 (end) to indicate where along the timeline the animator is running.</td>
+</tr>
+</tbody>
+</table>
+
+<p>The following example performs a linear horizontal translation of 500 pixels in 8 seconds:</p>
+<pre class="prettyprint">
+static Eina_Bool
+_my_animation(void *data, double pos)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *obj = data; // Get the target object
+&nbsp;&nbsp;&nbsp;int x, y, w, h; // Target object geometry
+&nbsp;&nbsp;&nbsp;evas_object_geometry_get(obj, &amp;x, &amp;y, &amp;w, &amp;h); // Get current object position and size attributes
+&nbsp;&nbsp;&nbsp;evas_object_move(obj, 500 * pos, y); // Linear translation of the Evas object
+}
+ecore_animator_timeline_add(8, _my_animation, my_evas_object);
+</pre>
+
+<h2 id="position" name="position">Position Mappings</h2>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">Ecore_Pos_Map</span> position mappings are used to define the evolution of a given position in accordance with the desired effects. The value ranges from 0.0 to 1.0 on a given timeline. This position variation allows you to apply dynamic changes to any attribute of your Evas object, such as position, width, height, scale, angle, and color.</p>
+
+<p>Ecore supports the following position mappings (with the listed v1 and v2 parameters):</p>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_LINEAR</span>: linear 0.0 - 1.0
+    <ul>
+        <li>v1: not used</li>
+        <li>v2: not used</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_ACCELERATE</span>: start slow, then speed up
+    <ul>
+        <li>v1: not used</li>
+        <li>v2: not used</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DECELERATE</span>: start fast, then slow down
+    <ul>
+        <li>v1: not used</li>
+        <li>v2: not used</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SINUSOIDAL</span>: start slow, speed up, then slow down at the end
+    <ul>
+        <li>v1: not used</li>
+        <li>v2: not used</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_ACCELERATE_FACTOR</span>: start slow, then speed up
+    <ul>
+        <li>v1: power factor: 0.0 is linear, 1.0 is standard acceleration, 2.0 is a much more pronounced acceleration (squared), 4.0 is cubed, and so on</li>
+        <li>v2: not used</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DECELERATE_FACTOR</span>: start fast, then slow down
+    <ul>
+        <li>v1: power factor: 0.0 is linear, 1.0 is standard deceleration, 2.0 is a much more pronounced deceleration (squared), 3.0 is cubed, and so on</li>
+        <li>v2: not used</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SINUSOIDAL_FACTOR</span>: start slow, speed up, then slow down at the end
+    <ul>
+        <li>v1: power factor: 0.0 is linear, 1.0 is a standard sinusoidal, 2.1 is a much more pronounced sinusoidal (squared), 3.0 is cubed, and so on</li>
+        <li>v2: not used</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_DIVISOR_INTERP</span>: start at gradient * v1, interpolated via power of v2 curve
+    <ul>
+        <li>v1: multiplication factor for gradient</li>
+        <li>v2: curve value</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_BOUNCE</span>: start at 0.0, then &quot;drop&quot; like a ball bouncing to the ground at 1.0, and bounce v2 times, with a decay factor of v1
+    <ul>
+        <li>v1: bounce decay factor</li>
+        <li>v2: number of bounces</li>
+    </ul>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_SPRING</span>: start at 0.0, then &quot;wobble&quot; like a spring until rest position at 1.0, and wobble v2 times, with a decay factor of v1
+    <ul>
+        <li>v1: wobble decay factor</li>
+        <li>v2: number of wobbles</li>
+    </ul>
+</li>
+</ul>
+
+<p class="figure">Figure: Position mappings</p>
+<p align="center"><img alt="Position mappings" src="../../images/pos_map_all.png" /></p>
+
+<h3>Using Position Mappings</h3>
+<p>When using the animation callback function, the animator passes a timeline position parameter with a value between 0.0 (start) and 1.0 (end) to indicate where along the timeline the animator is running.</p>
+
+<p>If you want to create a non-linear animation, map the position value to one of several curves and mappings:</p>
+<pre class="prettyprint">ecore_animator_pos_map(double pos, Ecore_Pos_Map map, double v1, double v2)</pre>
+<ul>
+<li>The first argument is the current position value, which ranges from 0.0 to 1.0.</li>
+<li>The second argument is the position mapping you want to apply.</li>
+<li>The third argument is the first parameter (v1) to pass to the position mapping.</li>
+<li>The fourth argument is the second parameter (v2) to pass to the position mapping.</li>
+</ul>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">The v1 and v2 arguments are specific to the chosen position mapping. For example, if you are using <span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_BOUNCE</span>, v1 represents the bouncing level and v2 the number of bounces.</td>
+</tr>
+</tbody>
+</table>
+
+<p>The following example performs a transition that bounces 7 times, diminishing by a factor of 1.8 over 5 seconds:</p>
+
+<pre class="prettyprint">static Eina_Bool
+_my_animation_callback(void *data, double pos)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *obj = data; // Get the target object
+&nbsp;&nbsp;&nbsp;int x, y, w, h; // Target object geometry
+&nbsp;&nbsp;&nbsp;double frame = pos; // Actual position variation
+&nbsp;&nbsp;&nbsp;// Get frame relative position depending on desired effect
+&nbsp;&nbsp;&nbsp;frame = ecore_animator_pos_map(pos, ECORE_POS_MAP_BOUNCE, 1.8, 7);
+&nbsp;&nbsp;&nbsp;evas_object_geometry_get(obj, &amp;x, &amp;y, &amp;w, &amp;h); // Get current object position and size attributes
+&nbsp;&nbsp;&nbsp;evas_object_move(obj, x, 600 * frame); // Move the Evas object according to desired effect
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+ecore_animator_timeline_add(5, _my_animation_callback, my_evas_object);</pre>
+
+<h2 id="infinite" name="infinite">Creating an Infinite Animation</h2>
+
+<p>If you want the animation to run for an unspecified amount of time, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_add()</span> function. This function works the same way as the <span style="font-family: Courier New,Courier,monospace;">ecore_animation_timeline_add()</span> function, except its interval is based on frame rate. Using frame rate as the basis benefits performance, especially if you define multiple animations, since you may want to have a different timer for each callback function.</p>
+
+<pre class="prettyprint">
+ecore_animator_add(Ecore_Task_Cb func, const void *data)
+</pre>
+
+<ul>
+<li>The first argument is the callback function that performs the animation.</li>
+<li>The second argument is the parameter passed to the callback function. This is usually the Evas object to animate.</li>
+</ul>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">The function returns a pointer to an <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator</span> object, which you can use to adjust the animation.</td>
+</tr>
+</tbody>
+</table>
+
+<p>The following example creates a rectangle sliding from left to right and back again. When the rectangle hits one edge of the screen, it changes direction.</p>
+
+<pre class="prettyprint">static Eina_Bool
+_slide_back_and_forth(void *data)
+{
+&nbsp;&nbsp;&nbsp;typedef enum {LEFT, RIGHT} direction_t; // Direction datatype
+&nbsp;&nbsp;&nbsp;static int x = 0; // Initial position
+&nbsp;&nbsp;&nbsp;static direction_t direction = RIGHT; // Initial direction
+&nbsp;&nbsp;&nbsp;if (x &gt;= 250)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;direction = LEFT; // Change direction
+&nbsp;&nbsp;&nbsp;else if (x &lt;= 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;direction = RIGHT; // Change direction
+&nbsp;&nbsp;&nbsp;if (direction == RIGHT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(data, ++x, 350); // Slide to right
+&nbsp;&nbsp;&nbsp;else if (direction == LEFT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(data, --x, 350); // Slide to left
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;// Declarations
+
+&nbsp;&nbsp;&nbsp;// Ecore Evas init
+
+&nbsp;&nbsp;&nbsp;// Draw Evas objects
+
+&nbsp;&nbsp;&nbsp;// Animations go here
+&nbsp;&nbsp;&nbsp;anim = ecore_animator_add(_slide_back_and_forth, rectangle);
+&nbsp;&nbsp;&nbsp;// Ecore main loop
+
+&nbsp;&nbsp;&nbsp;// Free memory
+}</pre>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">To use this code, you have to merge it with the Ecore transition example above.</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="chain" name="chain">Chaining Animations</h2>
+
+<p>You may sometimes want to delay animating an object. This can be useful if, for example, you want to start an animation only after another one has finished.</p>
+
+<p>You can simply set a delay to the second animation equal to the duration of the first animation:</p>
+
+<pre class="prettyprint">
+static int runtime = 5;
+static int delay = runtime;
+static Eina_Bool
+_start_fold_animation(void *data)
+{
+&nbsp;&nbsp;&nbsp;ecore_animator_timeline_add(runtime, _fold_animation, data);
+
+&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+}
+static Eina_Bool
+_start_unfold_animation(void *data)
+{
+&nbsp;&nbsp;&nbsp;ecore_animator_timeline_add(runtime, _unfold_animation, data);
+
+&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+}
+_start_fold_animation(my_evas_object);
+ecore_timer_add(delay, _start_unfold_animation, my_evas_object);
+</pre>
+
+<h2 id="pause" name="pause">Pausing and Resuming Animations</h2>
+
+<p>You can pause and resume Ecore animations. To pause a running animation, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_freeze()</span> function:</p>
+
+<pre class="prettyprint">ecore_animator_freeze(Ecore_Animator *animator)</pre>
+
+<p>The parameter is the <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator</span> to pause.</p>
+
+<p>To resume the paused animation, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_thaw()</span> function:</p>
+
+<pre class="prettyprint">ecore_animation_thaw(Ecore_Animator *animator)</pre>
+
+<p>The parameter is the <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator</span> to resume.</p>
+
+<p>The following example pauses a transition after 5 seconds and resumes it after 5 more seconds:</p>
+
+<pre class="prettyprint">
+static Eina_Bool
+_freeze_animation(void *data)
+{
+&nbsp;&nbsp;&nbsp;ecore_animator_freeze(data);
+
+&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+}
+static Eina_Bool
+_thaw_animation(void *data)
+{
+&nbsp;&nbsp;&nbsp;ecore_animator_thaw(data);
+
+&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+}
+ecore_timer_add(5, _freeze_animation, animator);
+ecore_timer_add(10, _thaw_animation, animator);
+</pre>
+
+<h2 id="free" name="free">Freeing Up Memory</h2>
+
+<p>When you create an animation that does not have a timeout, you will have to manually free up the memory allocated to the <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator</span> object. By comparison, if the animation has a timeout, Ecore implements the mechanisms to automatically delete the animator from the list of pointers: When your animation callback returns 0 or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span>, the animator manager takes care of freeing up the allocated memory.</p>
+
+<p>To manually free up the memory, delete the pointer by using the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_del()</span> function:</p>
+
+<pre class="prettyprint">ecore_animator_del(Ecore_Animator *animator)</pre>
+
+<p>The argument is the <span style="font-family: Courier New,Courier,monospace;">Ecore_Animator</span> whose memory allocation to free up.</p>
+
+<p>Regardless of the type of animation, it is good practice to always ensure that the allocated memory is freed up before the program exits:</p>
+
+<pre class="prettyprint">if (animator != NULL)
+&nbsp;&nbsp;&nbsp;ecore_animator_del(animator);</pre>
+
+<h2 id="frame" name="frame">Frametime</h2>
+<p>In most cases, you will want to use the default timer <span style="font-family: Courier New,Courier,monospace;">ECORE_ANIMATOR_SOURCE_TIMER</span>. This timer ticks every &quot;frametime&quot; seconds and allows you to perform transitions within a predefined timeline. The timer uses the system clock to tick over every Nth second, with the default being 1/30th of a second.</p>
+
+<p>To tweak performance, you can change the frametime value:</p>
+
+<pre class="prettyprint">ecore_animator_frametime_set(double frametime)</pre>
+
+<p>The argument is the new frametime value.</p>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">Too small a value can cause performance issues, whereas too high a value can cause your animation to seem jerky.</td>
+</tr>
+</tbody>
+</table>
+
+<p>If you want to get the current frametime value, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_frametime_get()</span> function.</p>
+
+<h2 id="custom" name="custom">Custom Timer</h2>
+
+<p>You may want to specify a custom timer to match your animation to third-party events. For example, the filling speed of a progress bar will mainly depend on the time it takes for a task to complete and the velocity at which the remaining time estimation evolves. This kind of animation requires you to use a custom timer.</p>
+
+<p>To use a custom timer, first set <span style="font-family: Courier New,Courier,monospace;">ECORE_ANIMATOR_SOURCE_CUSTOM</span> as the timer source, and then drive the timer based on an input tick source (such as another application via IPC or a vertical blanking interrupt):</p>
+
+<pre class="prettyprint">ecore_animator_custom_source_tick_begin_callback_set(Ecore_Cb func, const void *data)</pre>
+
+<p>The first argument is the callback function to call on the tick start. The second argument is the data to pass to the callback function.</p>
+
+<pre class="prettyprint">ecore_animator_custom_source_tick_end_callback_set(Ecore_Cb func, const void *data)</pre>
+
+<p>The first argument is the callback function to call on the tick end. The second argument is the data to pass to the callback function to set the functions that will be called to start and stop the ticking source.</p>
+
+<p>Next, trigger a tick over one frame:</p>
+
+<pre class="prettyprint">ecore_animator_custom_tick(void)</pre>
+
+<p>The following example supposes a progress bar that will be refreshed every time some progress occurs:</p>
+
+<pre class="prettyprint">ecore_animator_source_set(ECORE_ANIMATOR_SOURCE_CUSTOM);
+void _on_progress_update()
+{
+&nbsp;&nbsp;&nbsp;// Called when some progress occurs
+&nbsp;&nbsp;&nbsp;ecore_animator_custom_tick(); // Tick (next frame in progress bar animation)
+}</pre>
+
+<p>Finally, to get the current animator source, use the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_source_get()</span> function.</p>
+  
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.</td>
+        </tr>
+    </tbody>
+</table>  
+  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

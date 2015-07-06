@@ -1,0 +1,183 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Cairo Basic Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>Cairo Basic Sample Overview</h1> 
+
+<p>The Cairo Basic sample application demonstrates how to use a Cairo image backend with the Tizen SDK.</p> 
+  <table class="note"> 
+<tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The application presented in this overview is not a full Tizen application, since it does not use the Application Framework. The application simply starts and runs.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+
+<p>The following figure illustrates the main screen of the Cairo Basic.</p>
+<p class="figure">Figure: Cairo Basic screen</p>
+<p align="center"><img alt="Cairo Basic rectangular screen" src="../images/cairo_basic.png" /></p>
+  
+ <h2>Implementation</h2>
+ 
+<p>First create a basic application. This provides a basic UI application skeleton which already makes available the window object that can contain the Cairo drawing.</p>
+<ol>
+<li>Include the <span style="font-family: Courier New,Courier,monospace;">&lt;cairo.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace;">&lt;math.h&gt;</span> header files, which are needed for this sample application.
+<pre class="prettyprint">
+#include &lt;cairo.h&gt;
+#include &lt;math.h&gt;
+</pre>
+
+</li>
+<li>You can define the <span style="font-family: Courier New,Courier,monospace;">appdata</span> structure that contains all the pointers to objects to be manipulated.
+<pre class="prettyprint">
+typedef struct appdata 
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win;	
+&nbsp;&nbsp;&nbsp;Evas_Object *img;
+&nbsp;&nbsp;&nbsp;cairo_surface_t *surface;
+&nbsp;&nbsp;&nbsp;cairo_t *cairo;
+&nbsp;&nbsp;&nbsp;unsigned char *pixels;
+} appdata_s;
+</pre>
+</li>
+<li>To display the Cairo drawing on the screen, create the <span style="font-family: Courier New,Courier,monospace;">Elm_window</span> and the <span style="font-family: Courier New,Courier,monospace;">Evas_object</span> image.
+<p>When creating the <span style="font-family: Courier New,Courier,monospace;">Elm_window</span>, you can set the name as your PACKAGE name. It is created when you create this project in the Tizen SDK.</p>
+<pre class="prettyprint">
+// Window
+ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+if (elm_win_wm_rotation_supported_get(ad-&gt;win))
+{
+&nbsp;&nbsp;&nbsp;int rots[4] = { 0, 90, 180, 270 };
+&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
+}
+evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+eext_object_event_callback_add(ad-&gt;win, EEXT_CALLBACK_BACK, win_back_cb, ad);
+evas_object_show(ad-&gt;win);
+
+// Image
+ad-&gt;img = evas_object_image_filled_add(evas_object_evas_get(ad-&gt;win));
+evas_object_show(ad-&gt;img);
+</pre>
+
+</li>
+</ol>
+
+<h3>Drawing a Polygon and Rectangle with Cairo</h3>
+<p>To create the Cairo drawing, you need the window size to set the Cairo surface. You can get the window size with the <span style="font-family: Courier New,Courier,monospace;">evas_object_geometry_get()</span> function after the <span style="font-family: Courier New,Courier,monospace;">evas_object_show(ad-&gt;win)</span> function is called.</p>
+<p>To draw Cairo with some specific vector positions, you can use the window size as before.</p>
+<pre class="prettyprint">
+evas_object_geometry_get(ad-&gt;win, NULL, NULL, &amp;ad-&gt;width, &amp;ad-&gt;height);
+ad-&gt;surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, ad-&gt;width, ad-&gt;height);
+ad-&gt;cairo = cairo_create(ad-&gt;surface);
+</pre>
+<p>In this example, a Cairo image is drawn on a square screen. You can compare the windows width and height and get the smaller length to set the square side.</p>
+<pre class="prettyprint">
+void 
+cairo_drawing(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;int d = 0;
+&nbsp;&nbsp;&nbsp;if(ad-&gt;width &lt; ad-&gt;height)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d = ad-&gt;width;
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d = ad-&gt;height;
+</pre>
+<p>To set the background as white color, set the color as white and paint the Cairo.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;// Clear background as white
+&nbsp;&nbsp;&nbsp;cairo_set_source_rgba(ad-&gt;cairo, 1, 1, 1, 1);
+&nbsp;&nbsp;&nbsp;cairo_paint(ad-&gt;cairo);
+</pre>
+
+<p>In the following example, you can draw the polygon and rectangle. You must use the <span style="font-family: Courier New,Courier,monospace;">cairo_surface_flush()</span> function. This function call implements any pending drawings for the surface.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;cairo_translate(ad-&gt;cairo, 0.1 * d, 0.1 * d);
+&nbsp;&nbsp;&nbsp;cairo_set_line_width(ad-&gt;cairo,2);
+&nbsp;&nbsp;&nbsp;cairo_set_source_rgba(ad-&gt;cairo, 0.0, 0.0, 1.0, 1.0);
+
+&nbsp;&nbsp;&nbsp;cairo_move_to(ad-&gt;cairo, 0.2 * d , 0.2 * d);
+&nbsp;&nbsp;&nbsp;cairo_line_to(ad-&gt;cairo, 0.4 * d, 0.3 * d);
+&nbsp;&nbsp;&nbsp;cairo_rel_line_to(ad-&gt;cairo, 0.2 * d, -0.1 * d);
+&nbsp;&nbsp;&nbsp;cairo_arc(ad-&gt;cairo, 0.4 * d, 0.4 * d, 0.2* d * sqrt(2), -0.25 * M_PI, 0.25 * M_PI);
+&nbsp;&nbsp;&nbsp;cairo_rel_curve_to(ad-&gt;cairo, -0.2* d, -0.1 * d, -0.2* d, 0.1 * d, -0.4 * d, 0);
+&nbsp;&nbsp;&nbsp;cairo_close_path(ad-&gt;cairo);
+&nbsp;&nbsp;&nbsp;cairo_fill(ad-&gt;cairo);
+
+&nbsp;&nbsp;&nbsp;cairo_rectangle(ad-&gt;cairo, 0, 0, 0.8 * d, 0.8 * d);
+&nbsp;&nbsp;&nbsp;cairo_stroke(ad-&gt;cairo);
+&nbsp;&nbsp;&nbsp;cairo_surface_flush(ad-&gt;surface);
+</pre>
+
+<p>To update the Evas object image on the screen:</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;// Display the Cairo drawing on screen
+&nbsp;&nbsp;&nbsp;unsigned char * imageData = cairo_image_surface_get_data(cairo_get_target(ad-&gt;cairo));
+&nbsp;&nbsp;&nbsp;evas_object_image_data_set(ad-&gt;img, imageData);
+&nbsp;&nbsp;&nbsp;evas_object_image_data_update_add(ad-&gt;img, 0, 0, ad-&gt;width, ad-&gt;height);
+}
+</pre>
+
+<h3>Deleting Cairo</h3>
+
+<p>The delete callback is triggered when the Window is destroyed from the main loop.</p>
+<pre class="prettyprint">
+static void win_delete_request_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;cairo_surface_destroy(ad-&gt;surface);
+&nbsp;&nbsp;&nbsp;cairo_destroy(ad-&gt;cairo);
+&nbsp;&nbsp;&nbsp;ui_app_exit();
+}
+</pre>
+
+ 
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

@@ -28,6 +28,18 @@
             <li><a href="#Creating_Bond">Creating a Bonding with a Bluetooth Device</a></li>
             <li><a href="#Connecting_BT_device">Connecting to and Exchanging Data with a Bluetooth Device</a></li>
             <li><a href="#Communicating_Health">Communicating with a Health Source Device</a></li>
+			<li>Bluetooth Low Energy
+			    <ul class="toc">
+					<li><a href="#Discovering_BT_LE_Devices">Discovering Bluetooth Low Energy Devices</a></li>
+					<li><a href="#Managing_Advertising">Managing the Advertising Options</a></li>
+					<li><a href="#Connecting">Connecting to a Bluetooth Low Energy Device</a></li>
+					<li><a href="#Connection_Notification">Receiving Notifications on Connection State Changes</a></li>
+					<li><a href="#Retrieving_Services">Retrieving Bluetooth GATT Services</a></li>
+					<li><a href="#Characteristic_Value">Accessing the Bluetooth GATT Characteristic Value</a></li>
+				   <li><a href="#Characterictic_Notification">Receiving Notifications on Characteristic Value Changes</a></li>
+					<li><a href="#Descriptor_Value">Accessing the Bluetooth GATT Descriptor Value</a></li>
+				</ul>
+			</li>
         </ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
@@ -65,6 +77,18 @@
        <li><a href="#Creating_Bond">Creating a Bonding with a Bluetooth Device</a> <p>Create and end a bonding with a Bluetooth device.</p></li>
        <li><a href="#Connecting_BT_device">Connecting to and Exchanging Data with a Bluetooth Device</a> <p>Register a service as a server, connect as a client to the service provided by the server device, and exchange data with the device.</p></li>
        <li><a href="#Communicating_Health">Communicating with a Health Source Device</a> <p>Act as a sink and communicate with a health source device.</p></li>
+	   <li>Bluetooth Low Energy
+		  <ul>
+		   <li><a href="#Discovering_BT_LE_Devices">Discovering Bluetooth Low Energy Devices</a> <p>Search for remote devices.</p></li>
+		   <li><a href="#Managing_Advertising">Managing the Advertising Options</a> <p>Manage what information is advertised to any Bluetooth Low Energy device in the proximity.</p></li>
+		   <li><a href="#Connecting">Connecting to a Bluetooth Low Energy Device</a> <p>Connect to a detected Bluetooth Low Energy device.</p></li>
+		   <li><a href="#Connection_Notification">Receiving Notifications on Connection State Changes</a> <p>Monitor the connection state to a remote Bluetooth Low Energy device.</p></li>
+		   <li><a href="#Retrieving_Services">Retrieving Bluetooth GATT Services</a> <p>Check information about the Bluetooth GATT services provided by a remote device.</p></li>
+		   <li><a href="#Characteristic_Value">Accessing the Bluetooth GATT Characteristic Value</a> <p>Read and write a value of the Bluetooth GATT characteristic of a remote device.</p></li>
+		   <li><a href="#Characterictic_Notification">Receiving Notifications on Characteristic Value Changes</a> <p>Monitor changes in a Bluetooth GATT characteristic value.</p></li>
+		   <li><a href="#Descriptor_Value">Accessing the Bluetooth GATT Descriptor Value</a> <p>Read and write a value of the Bluetooth GATT characteristic descriptor of a remote device.</p></li>
+		  </ul>	   
+	   </li>
       </ul>
        <h2 id="task" name="task">Task</h2>
       <p>In the <a href="task_bluetoothchat_w.htm">Bluetooth Chat</a> task, we will walk through how to use the device as a Bluetooth server or client in a chat application.</p>
@@ -320,6 +344,378 @@ healthChannel.close();
 <p>When the channel is disconnected, the <span style="font-family: Courier New,Courier,monospace">onclose</span> event handler in the <span style="font-family: Courier New,Courier,monospace">BluetoothHealthChannelChangeCallback</span> interface is called.</p></li>   
   </ol> 
     
+<h2 id="Discovering_BT_LE_Devices" name="Discovering_BT_LE_Devices">Discovering Bluetooth Low Energy Devices</h2>
+
+  <p>Learning how to search for remote devices is a basic Bluetooth management skill:</p>
+  <ol>
+   <li>Define a scan event handler by implementing the <span style="font-family: Courier New,Courier,monospace">BluetoothLEScanCallback</span> callback (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEScanCallback">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEScanCallback">wearable</a> applications).
+    <p>The callback is invoked when a remote device has been detected.</p>
+<pre class="prettyprint">
+var callbacks = 
+{
+&nbsp;&nbsp;&nbsp;onsuccess: function(device)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Found device: &quot;  device.name  &quot; [&quot;  device.address  &quot;]&quot;);
+&nbsp;&nbsp;&nbsp;}
+};
+</pre>
+    <table class="note">
+     <tbody>
+      <tr>
+       <th class="note">Note</th>
+      </tr>
+      <tr>
+       <td class="note">To allow other Bluetooth devices to find your device, you must set the device to be visible through the system settings.</td>
+      </tr>
+     </tbody>
+    </table> </li>
+
+   <li><p>Retrieve a <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> object (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEAdapter">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEAdapter">wearable</a> applications) with the <span style="font-family: Courier New,Courier,monospace">getLEAdapter()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothManager</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothManager">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothManager">wearable</a> applications):</p>
+<pre class="prettyprint">var adapter = tizen.bluetooth.getLEAdapter();</pre>
+   </li>
+
+   <li><p>To search for remote devices, use the <span style="font-family: Courier New,Courier,monospace">startScan()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> interface:</p>
+<pre class="prettyprint">adapter.startScan(callbacks);</pre>
+   </li>
+   <li><p>When you find the right remote device or the user cancels the scanning, disable the scan using the <span style="font-family: Courier New,Courier,monospace">stopScan()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> interface:</p>
+<pre class="prettyprint">adapter.stopScan();</pre>
+   </li>
+
+  </ol>
+
+  <h2 id="Managing_Advertising" name="Managing_Advertising">Managing the Advertising Options</h2>
+  <p>The Bluetooth Low Energy technology allows a device to broadcast some information without a connection between devices. The Bluetooth Low Energy API provides methods to control this advertising (broadcasting).</p>
+  <p>Learning how to control what information is advertised by the device is a useful Bluetooth Low Energy skill:</p>
+
+  <ol>
+   <li><p>Retrieve a <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> object (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEAdapter">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEAdapter">wearable</a> applications) with the <span style="font-family: Courier New,Courier,monospace">getLEAdapter()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothManager</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothManager">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothManager">wearable</a> applications):</p>
+<pre class="prettyprint">var adapter = tizen.bluetooth.getLEAdapter();</pre>
+   </li>
+
+   <li><p>Set up options and start advertising with the <span style="font-family: Courier New,Courier,monospace">startAdvertise()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> interface:</p>
+<pre class="prettyprint">
+var advertiseData = new tizen.BluetoothLEAdvertiseData(
+{
+&nbsp;&nbsp;&nbsp;includeName: true,
+&nbsp;&nbsp;&nbsp;serviceuuids: [&quot;180f&quot;]  /* 180F is 16bit Battery Service UUID */
+});
+var connectable = true;
+
+adapter.startAdvertise(advertiseData, &quot;ADVERTISE&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;function onstate(state)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Advertising configured: &quot; + state);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;function(error)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;startAdvertise() failed: &quot; + error.message);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;LOW_LATENCY&quot;, connectable);
+</pre>
+    <table class="note">
+     <tbody>
+      <tr>
+       <th class="note">Note</th>
+      </tr>
+      <tr>
+       <td class="note">To learn how to make your mobile device visible to other Bluetooth devices, see <a href="#Managing_BT_Adapter">Managing the Local Bluetooth Adapter</a>.</td>
+      </tr>
+     </tbody>
+    </table>
+   </li>
+   <li><p>To disable the advertising, use the <span style="font-family: Courier New,Courier,monospace">stopAdvertise()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> interface:</p>
+<pre class="prettyprint">adapter.stopAdvertise();</pre>
+   </li>
+  </ol>
+
+  <h2 id="Connecting" name="Connecting">Connecting to a Bluetooth Low Energy Device</h2>
+
+  <p>Learning how to connect to other devices is a basic Bluetooth Low Energy management skill:</p>
+  <ol>
+   <li><p>Retrieve a <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> object (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEAdapter">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEAdapter">wearable</a> applications) with the <span style="font-family: Courier New,Courier,monospace">getLEAdapter()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothManager</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothManager">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothManager">wearable</a> applications):</p>
+<pre class="prettyprint">var adapter = tizen.bluetooth.getLEAdapter();</pre>
+   </li>
+   <li><p>Define success and error callbacks for the connect operation:</p>
+<pre class="prettyprint">
+function connectFail(error) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Failed to connect to device: &quot; + e.message);
+}
+
+function connectSuccess() 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Connected to device&quot;);
+}
+</pre>
+   </li>
+
+   <li><p>Define a callback for the scan operation that connects to a found device and stops the scan.</p>
+     <p>Within the callback request, establish a connection with the found device using the <span style="font-family: Courier New,Courier,monospace">connect()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEDevice">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEDevice">wearable</a> applications):</p>
+<pre class="prettyprint">
+var remoteDevice = null;
+
+function onDeviceFound(device)
+{
+&nbsp;&nbsp;&nbsp;if (remoteDevice === null) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;remoteDevice = device;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Found device &quot; + device.name + &quot;. Connecting...&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device.connect(connectSuccess, connectFail);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;adapter.stopScan();
+}
+</pre>
+   </li>
+
+   <li><p>When the callbacks are completed, initiate the Bluetooth Low Energy scan using the <span style="font-family: Courier New,Courier,monospace">startScan()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> adapter:</p>
+<pre class="prettyprint">adapter.startScan({onsuccess: onDeviceFound});</pre></li>
+
+   <li><p>When the connection to the remote device is no longer required, disconnect from the device by calling the <span style="font-family: Courier New,Courier,monospace">disconnect()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface:</p>
+<pre class="prettyprint">remoteDevice.disconnect();</pre></li>
+
+  </ol>
+
+  <h2 id="Connection_Notification" name="Connection_Notification">Receiving Notifications on Connection State Changes</h2>
+
+  <p>Learning how to receive notifications whenever the device connection is established or lost is a useful Bluetooth management skill:</p>
+  <ol>
+
+   <li><p>Retrieve a <span style="font-family: Courier New,Courier,monospace">BluetoothLEAdapter</span> object (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEAdapter">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEAdapter">wearable</a> applications) with the <span style="font-family: Courier New,Courier,monospace">getLEAdapter()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothManager</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothManager">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothManager">wearable</a> applications):</p>
+<pre class="prettyprint">var adapter = tizen.bluetooth.getLEAdapter();</pre>
+   </li>
+   <li><p>Define a connection state change listener by implementing the <span style="font-family: Courier New,Courier,monospace">BluetoothLEConnectChangeCallback</span> callback (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEConnectChangeCallback">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEConnectChangeCallback">wearable</a> applications):</p>
+<pre class="prettyprint">
+var connectionListener = 
+{
+&nbsp;&nbsp;&nbsp;onconnected: function(device) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Connected to the device: &quot; + device.name + &quot; [&quot; + device.address + &quot;]&quot;);
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;ondisconnected: function(device) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Disconnected from the device &quot; + device.name + &quot; [&quot; + device.address + &quot;]&quot;);
+&nbsp;&nbsp;&nbsp;}
+};
+</pre>
+   </li>
+
+   <li><p>Define a callback for the scan operation that connects to a found device and stops the scan.</p>
+     <p>Within the callback, register a connection state change listener using the <span style="font-family: Courier New,Courier,monospace">addConnectStateChangeListener()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEDevice">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEDevice">wearable</a> applications):</p>
+<pre class="prettyprint">
+var remoteDevice = null;
+var watchId;
+
+function onDeviceFound(device)
+{
+&nbsp;&nbsp;&nbsp;if (remoteDevice === null) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;remoteDevice = device;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Found device &quot; + device.name + &quot;. Connecting...&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;watchId = remoteDevice.addConnectStateChangeListener(connectionListener);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;remoteDevice.connect();
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;adapter.stopScan();
+}
+</pre>
+   </li>
+
+   <li><p>When the callbacks are completed, initiate the Bluetooth Low Energy scan:</p>
+<pre class="prettyprint">adapter.startScan({onsuccess: onDeviceFound});</pre></li>
+
+   <li><p>When the notifications about the connection are no longer required, unregister the listener from the device by calling the <span style="font-family: Courier New,Courier,monospace">removeConnectStateChangeListener()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface:</p>
+<pre class="prettyprint">remoteDevice.removeConnectStateChangeListener(watchId);</pre></li>
+  </ol>
+
+  <h2 id="Retrieving_Services" name="Retrieving_Services">Retrieving Bluetooth GATT Services</h2>
+
+  <p>Learning how to retrieve a list of GATT services (Generic Attribute) provided by a remote device is basic Bluetooth Low Energy management skill:</p>
+  <ol>
+
+   <li><a href="#Connecting">Connect to a Bluetooth Low Energy device</a>.</li>
+   <li><p>Define a connection state change listener by implementing the <span style="font-family: Courier New,Courier,monospace">BluetoothLEConnectChangeCallback</span> (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEConnectChangeCallback">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEConnectChangeCallback">wearable</a> applications):</p>
+<pre class="prettyprint">
+function showGATTService(service, indent)
+{
+&nbsp;&nbsp;&nbsp;if (indent === undefined) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;indent = &quot;&quot;;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;console.log(indent + &quot;Service &quot; + service.uuid + &quot;. Has &quot; + service.characteristics.length 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ &quot; characteristics and &quot; + service.services.length + &quot; sub-services.&quot;);
+
+&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; service.services.length; i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;showGATTService(service.services[i], indent + &quot;   &quot;);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+   </li>
+   <li><p>Retrieve a list of GATT service UUIDs from the <span style="font-family: Courier New,Courier,monospace">uuids</span> attribute of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEDevice">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEDevice">wearable</a> applications):</p>
+<pre class="prettyprint">var serviceUUIDs = remoteDevice.uuids;</pre>
+   </li>
+   <li><p>Retrieve GATT service information using the <span style="font-family: Courier New,Courier,monospace">getService()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface for every service UUID:</p>
+<pre class="prettyprint">
+var i = 0, service = null;
+
+for (i; i &lt; serviceUUIDs.length; i++) 
+{
+
+&nbsp;&nbsp;&nbsp;service = remoteDevice.getService(serviceUUIDs[i]);
+
+&nbsp;&nbsp;&nbsp;showGATTService(service);
+}</pre>
+   </li>
+
+  </ol>
+
+       <h2 id="Characteristic_Value" name="Characteristic_Value">Accessing the Bluetooth GATT Characteristic Value</h2>
+
+  <p>Learning how to read and write a value of the Bluetooth characteristic is a useful Bluetooth Low Energy management skill:</p>
+  <ol>
+
+    <li><a href="#Connecting">Connect to a Bluetooth Low Energy device</a>.</li>
+   <li><p>Retrieve a list of GATT service UUIDs from the <span style="font-family: Courier New,Courier,monospace">uuids</span> attribute of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEDevice">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEDevice">wearable</a> applications):</p>
+<pre class="prettyprint">var serviceUUIDs = remoteDevice.uuids;</pre>
+   </li>
+   <li><p>Select a GATT service and use the <span style="font-family: Courier New,Courier,monospace">getService()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface to retrieve an object representing the service. In this example, the first service is used:</p>
+<pre class="prettyprint">var gattService = remoteDevice.getService(serviceUUIDs[0]);</pre>
+   </li>
+   <li><p>Select an interesting characteristic from the <span style="font-family: Courier New,Courier,monospace">characteristics</span> attribute of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTService</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothGATTService">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothGATTService">wearable</a> applications). In this example, the first characteristic is used:</p>
+<pre class="prettyprint">var property = gattService.characteristics[0];</pre>
+   </li>
+   <li><p>Define a callback implementing the <span style="font-family: Courier New,Courier,monospace">ReadValueSuccessCallback</span> callback (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#ReadValueSuccessCallback">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#ReadValueSuccessCallback">wearable</a> applications), which receives the value of the characteristic:</p>
+<pre class="prettyprint">
+function readSuccess(value)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Characteristic value: &quot; + value);
+}
+
+function readFail(error)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;readValue() failed: &quot; + error);
+}
+</pre>
+   </li>
+   <li><p>To retrieve the GATT characteristic value, use the <span style="font-family: Courier New,Courier,monospace">readValue()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTCharacteristic</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothGATTCharacteristic">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothGATTCharacteristic">wearable</a> applications):</p>
+<pre class="prettyprint">
+if (!property.isReadable) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Property seems not to be readable. Attempting to read...&quot;);
+}
+property.readValue(readSuccess, readFail);</pre>
+   </li>
+   <li><p>To change the characteristic value, define callbacks and use the <span style="font-family: Courier New,Courier,monospace">writeValue()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTCharacteristic</span> interface:</p>
+<pre class="prettyprint">
+function writeSuccess(value)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Written&quot;);
+}
+
+function writeFail(error)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;writeValue() failed: &quot; + error);
+}
+
+if (!property.isWritable) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Property seems not to be writable. Attempting to write...&quot;);
+}
+var newValue = [82];
+
+property.writeValue(newValue, writeSuccess, writeFail);
+</pre>
+   </li>
+  </ol>
+
+  <h2 id="Characterictic_Notification" name="Characterictic_Notification">Receiving Notifications on Characteristic Value Changes</h2>
+
+  <p>Learning how to monitor a changes in a Bluetooth characteristic is a useful Bluetooth Low Energy management skill:</p>
+  <ol>
+
+    <li><a href="#Connecting">Connect to a Bluetooth Low Energy device</a>.</li>
+   <li><p>Retrieve a list of GATT service UUIDs from the <span style="font-family: Courier New,Courier,monospace">uuids</span> attribute of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEDevice">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEDevice">wearable</a> applications):</p>
+<pre class="prettyprint">var serviceUUIDs = remoteDevice.uuids;</pre>
+   </li>
+   <li><p>Select a GATT service and use the <span style="font-family: Courier New,Courier,monospace">getService()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface to retrieve an object representing the service. In this example, the first service is used:</p>
+<pre class="prettyprint">var gattService = remoteDevice.getService(serviceUUIDs[0]);</pre>
+   </li>
+   <li><p>Select an interesting characteristic from the <span style="font-family: Courier New,Courier,monospace">characteristics</span> attribute of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTService</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothGATTService">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothGATTService">wearable</a> applications). In this example, the first characteristic is used:</p>
+<pre class="prettyprint">var property = gattService.characteristics[0];</pre>
+   </li>
+   <li><p>Define a callback implementing the <span style="font-family: Courier New,Courier,monospace">ReadValueSuccessCallback</span> callback (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#ReadValueSuccessCallback">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#ReadValueSuccessCallback">wearable</a> applications), which receives the value of the characteristic every time the value changes:</p>
+<pre class="prettyprint">
+function onValueChange(value)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Characteristic value is now: &quot; + value);
+}
+</pre>
+   </li>
+
+   <li><p>Register a value change listener using the <span style="font-family: Courier New,Courier,monospace">addValueChangeListener()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTCharacteristic</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothGATTCharacteristic">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothGATTCharacteristic">wearable</a> applications):</p>
+<pre class="prettyprint">var watchId = property.addValueChangeListener(onValueChange);</pre></li>
+
+   <li><p>When the notifications about the connection are no longer required, unregister the listener from the device by calling the <span style="font-family: Courier New,Courier,monospace">removeValueChangeListener()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTCharacteristic</span> interface:</p>
+<pre class="prettyprint">property.removeValueChangeListener(watchId);</pre></li>
+  </ol>
+
+  <h2 id="Descriptor_Value" name="Descriptor_Value">Accessing the Bluetooth GATT Descriptor Value</h2>
+
+  <p>Learning how to read and write a value of the Bluetooth descriptor is a useful Bluetooth Low Energy management skill:</p>
+  <ol>
+
+   <li><a href="#Connecting">Connect to a Bluetooth Low Energy device</a>.</li>
+   <li><p>Retrieve a list of GATT service UUIDs from the <span style="font-family: Courier New,Courier,monospace">uuids</span> attribute of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothLEDevice">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothLEDevice">wearable</a> applications):</p>
+<pre class="prettyprint">var serviceUUIDs = remoteDevice.uuids;</pre>
+   </li>
+   <li><p>Select a GATT service and use the <span style="font-family: Courier New,Courier,monospace">getService()</span> method  of the <span style="font-family: Courier New,Courier,monospace">BluetoothLEDevice</span> interface to retrieve an object representing the service. In this example, the first service is used:</p>
+<pre class="prettyprint">var gattService = remoteDevice.getService(serviceUUIDs[0]);</pre>
+   </li>
+   <li><p>Select an interesting characteristic from the <span style="font-family: Courier New,Courier,monospace">characteristics</span> attribute of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTService</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothGATTService">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothGATTService">wearable</a> applications). In this example, the first characteristic is used:</p>
+<pre class="prettyprint">var characteristic = gattService.characteristics[0];</pre></li>
+   <li><p>Select an interesting descriptor from the <span style="font-family: Courier New,Courier,monospace">descriptors</span> attribute of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTCharacteristic</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothGATTCharacteristic">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothGATTCharacteristic">wearable</a> applications). In this example, the first descriptor is used:</p>
+<pre class="prettyprint">var descriptor = characteristic.descriptors[0];</pre>
+   </li>
+   <li><p>Define a callback implementing the <span style="font-family: Courier New,Courier,monospace">ReadValueSuccessCallback</span> callback (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#ReadValueSuccessCallback">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#ReadValueSuccessCallback">wearable</a> applications), which receives the value of the descriptor:</p>
+<pre class="prettyprint">
+function readSuccess(value)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Descriptor value: &quot; + value);
+}
+
+function readFail(error)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;readValue() failed: &quot; + error);
+}
+</pre>
+   </li>
+   <li><p>To retrieve the GATT descriptor value, use the <span style="font-family: Courier New,Courier,monospace">readValue()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTDescriptor</span> interface (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/bluetooth.html#BluetoothGATTDescriptor">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/bluetooth.html#BluetoothGATTDescriptor">wearable</a> applications):</p>
+<pre class="prettyprint">
+descriptor.readValue(readSuccess, readFail);</pre>
+   </li>
+   <li><p>To change the descriptor value, define callbacks and use the <span style="font-family: Courier New,Courier,monospace">writeValue()</span> method of the <span style="font-family: Courier New,Courier,monospace">BluetoothGATTDescriptor</span> interface:</p>
+<pre class="prettyprint">
+function writeSuccess(value)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Written&quot;);
+}
+
+function writeFail(error)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;writeValue() failed: &quot; + error);
+}
+
+var newValue = [3];
+
+descriptor.writeValue(newValue, writeSuccess, writeFail);
+</pre>
+   </li>
+  </ol>	
 	  
 <script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../../scripts/showhide.js"></script>
