@@ -187,12 +187,24 @@ int ret = CKMC_ERROR_NONE;
 
 const char* alias= &quot;mykey&quot;;
 
-ret = ckmc_remove_key(alias);
+ret = ckmc_remove_alias(alias);
 if (CKMC_ERROR_NONE != ret) 
 {
 &nbsp;&nbsp;&nbsp;// Error handling
 }
-</pre></li></ol>
+</pre>
+<table class="note">
+ <tbody>
+  <tr>
+  <th class="note">Note</th>
+  </tr>
+  <tr>
+   <td class="note">Note that a few Key manager APIs have been <strong>deprecated since Tizen 2.4</strong>. 
+ For example, several ckmc_remove_* () have been replaced by ckmc_remove_alias(). Although the deprecated APIs continue to be available, it is strongly recommended to use new APIs. For more information on the deprecated information, please refer to the <a href="../../../../org.tizen.native.mobile.apireference/group_CAPIKEYMANAGER_MODULE.html">Key-manager API References</a>.</td>
+  </tr>
+ </tbody>
+</table>
+</li></ol>
 
 <h2 id="savingcert" name="savingcert">Saving, Getting, or Removing a Certificate</h2>
 
@@ -302,12 +314,13 @@ int ret = CKMC_ERROR_NONE;
 
 const char* alias= &quot;myCert&quot;;
 
-ret = ckmc_remove_cert(alias);
+ret = ckmc_remove_alias(alias);
 if (CKMC_ERROR_NONE != ret)
 {
 &nbsp;&nbsp;&nbsp;// Error handling
 }
-</pre></li></ol>
+</pre>
+</li></ol>
 
 <h2 id="savingdata" name="savingdata">Saving, Getting, or Removing Data</h2>
 
@@ -389,12 +402,13 @@ int ret = CKMC_ERROR_NONE;
 
 const char* alias= &quot;myData&quot;;
 
-ret = ckmc_remove_data(alias);
+ret = ckmc_remove_alias(alias);
 if (CKMC_ERROR_NONE != ret)
 {
 &nbsp;&nbsp;&nbsp;// Error handling
 }
-</pre></li></ol>
+</pre>
+</li></ol>
 
 <h2 id="creatingkey" name="creatingkey">Creating Key Pairs</h2>
 
@@ -900,32 +914,30 @@ ckmc_cert_free(pcert); // Called when the certificate is no longer needed
 <pre class="prettyprint">
 int ret = CKMC_ERROR_NONE;
 
-ckmc_key_s *private_key = NULL;
-ckmc_cert_s *cert = NULL;
-ckmc_cert_list_s *ca_cert_list = NULL;
+ckmc_pkcs12_s *ppkcs12 = NULL;
 // defined_media_storage_directory can be obtained with the storage_get_directory() function
 const char *p12file = &quot;&lt;defined_media_storage_directory&gt;/ckmc_p12_test.p12&quot;; 
 const char *password = &quot;password&quot;;  // PKCS#12 file can be protected by a password
 
-ret = ckmc_load_from_pkcs12_file(p12file, password, &amp;private_key, &amp;cert, &amp;ca_cert_list);
-if (CKMC_ERROR_NONE != ret)
+ret = ckmc_pkcs12_load(p12file, password, &amp;ppkcs12);
+if (CKMC_ERROR_NONE != ret || ppkcs12 == NULL)
 {
 &nbsp;&nbsp;&nbsp;// Error handling
 }
 
-if (private_key != NULL)
+if (ppkcs12->priv_key != NULL)
 {
 &nbsp;&nbsp;&nbsp;// Check a private key
 }
 
-if (cert != NULL)
+if (ppkcs12->cert != NULL)
 {
 &nbsp;&nbsp;&nbsp;// Check a certificate
 
 }
 
 int cnt = 0;
-ckmc_cert_list_s *tmp_list = ca_cert_list;
+ckmc_cert_list_s *tmp_list = ppkcs12->ca_chain;
 while(tmp_list!= NULL)
 {
 &nbsp;&nbsp;&nbsp;// Check a certificate list
@@ -933,10 +945,9 @@ while(tmp_list!= NULL)
 &nbsp;&nbsp;&nbsp;tmp_list = tmp_list -&gt;next;
 }
 
-ckmc_key_free(private_key); // Called when the key is no longer needed
-ckmc_cert_free(cert); // Called when the certificate is no longer needed
-ckmc_cert_list_all_free(ca_cert_list); // Called when the list is no longer needed
-</pre></li></ul>
+ckmc_pkcs12_free(ppkcs12);; // Called when the pkcs12 data is no longer needed
+</pre>
+</li></ul>
 
 <h2 id="access" name="access">Implementing Access Control</h2>
 
@@ -974,18 +985,19 @@ const char *target1 = &quot;accessor-allow-1&quot;;
 const char *target2 = &quot;accessor-allow-2&quot;;
 const char *alias = &quot;targetData&quot;;
 
-ret = ckmc_allow_access(alias, target1, CKMC_AR_READ); // Only allow reading data
+ret = ckmc_set_permission(alias, target1, CKMC_PERMISSION_READ); // Only allow reading data
 if (CKMC_ERROR_NONE != ret)
 {
 &nbsp;&nbsp;&nbsp;// Error handling
 }
 
-ret = ckmc_allow_access(alias, target2, CKMC_AR_READ_REMOVE); // Allow reading and deleting data
+ret = ckmc_set_permission(alias, target2, CKMC_PERMISSION_READ | CKMC_PERMISSION_REMOVE); // Allow reading and deleting data
 if (CKMC_ERROR_NONE != ret)
 {
 &nbsp;&nbsp;&nbsp;// Error handling
 }
-</pre></li>
+</pre>
+</li>
 
 <li><p>Set a rule to deny access:</p>
 <pre class="prettyprint">
@@ -994,19 +1006,20 @@ int ret = CKMC_ERROR_NONE;
 const char *target = &quot;denied-accessor&quot;;
 const char *alias = &quot;targetData&quot;;
 
-ret = ckmc_allow_access(alias, target, CKMC_AR_READ); // Allow the target user to a read (alias)
+ret = ckmc_set_permission(alias, target, CKMC_PERMISSION_READ); // Allow the target user to a read (alias)
 if (CKMC_ERROR_NONE != ret)
 {
 &nbsp;&nbsp;&nbsp;// Error handling
 }
 
-ret = ckmc_deny_access(alias, target); // Deny the target user access to data (alias)
+ret = ckmc_set_permission(alias, target, CKMC_PERMISSION_NONE); // Deny the target user access to data (alias)
 if (CKMC_ERROR_NONE != ret)
 
 {
 &nbsp;&nbsp;&nbsp;// Error handling
 }
-</pre></li>
+</pre>
+</li>
 </ol>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
