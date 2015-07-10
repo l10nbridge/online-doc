@@ -163,8 +163,9 @@ void get_notification_level (Evas_Object *eo)
 
 <p>The EFL UTIL INPUT API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__EFL__UTIL__INPUT__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__EFL__UTIL__INPUT__MODULE.html">wearable</a> applications) allows you to generate input events (such as key and touch events).</p>
 
-<p>First you initialize the input generator and select a device type with the <span style="font-family: Courier New,Courier,monospace;">efl_util_input_initialize_generator()</span> function. To generate actual key or touch events, use the <span style="font-family: Courier New,Courier,monospace;">efl_util_input_generate_key()</span> or <span style="font-family: Courier New,Courier,monospace;">efl_util_input_generate_touch()</span> function.</p>
-<p>When no longer needed, remember to free the input generator with the <span style="font-family: Courier New,Courier,monospace;">efl_util_input_deinitialize_generator()</span> function.</p>
+<p>First you must create the <span style="font-family: Courier New,Courier,monospace;">efl_util_inputgen_h</span> structure and initialize the structure members with the <span style="font-family: Courier New,Courier,monospace;">efl_util_input_initialize_generator()</span> function. To generate actual key or touch events, use the <span style="font-family: Courier New,Courier,monospace;">efl_util_input_generate_key()</span> or <span style="font-family: Courier New,Courier,monospace;">efl_util_input_generate_touch()</span> function.</p>
+<p>When no longer needed, remember to free the <span style="font-family: Courier New,Courier,monospace;">efl_util_inputgen_h</span> structure with the <span style="font-family: Courier New,Courier,monospace;">efl_util_input_deinitialize_generator()</span> function.</p>
+
 
 
 
@@ -268,45 +269,62 @@ void capture()
 
  <h2 id="input_gen_key" name="input_gen_key">Generating a Key Input Event</h2>
 
- <p>To generate key input events:</p>
+<p>To generate key input events:</p>
  
- <ol><li>Execute the <span style="font-family: Courier New,Courier,monospace">efl_util_input_initialize_generator()</span> function:
-  <pre class="prettyprint">
+<ol><li>Execute the <span style="font-family: Courier New,Courier,monospace">efl_util_input_initialize_generator()</span> function:
+<pre class="prettyprint">
 void key_event_generator()
 {
 &nbsp;&nbsp;&nbsp;int ret = EFL_UTIL_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;efl_util_inputgen_h inputgen = NULL;
 
-&nbsp;&nbsp;&nbsp;ret = efl_util_input_initialize_generator(EFL_UTIL_INPUT_DEVTYPE_KEYBOARD);
-</pre></li>
- <li>After setting input device type, execute the <span style="font-family: Courier New,Courier,monospace">efl_util_input_generate_key()</span> function to generate key input events:
-  <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;inputgen = efl_util_input_initialize_generator(EFL_UTIL_INPUT_DEVTYPE_KEYBOARD);
+&nbsp;&nbsp;&nbsp;if (!inputgen)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to initialize input generator
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to initialize the input generator system
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_key(&quot;XF86Menu&quot;, 1);
+</pre>
+</li>
+
+<li>After setting input device type, execute the <span style="font-family: Courier New,Courier,monospace">efl_util_input_generate_key()</span> function to generate key input events:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_key(inputgen, &quot;XF86Menu&quot;, 1);
 &nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to generate a &quot;XF86Menu&quot; key press event
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;efl_util_input_deinitialize_generator();
-
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = efl_util_input_deinitialize_generator(inputgen);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to deinitialize the input generator system
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_key(&quot;XF86Menu&quot;, 0);
+
+&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_key(inputgen, &quot;XF86Menu&quot;, 0);
 &nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to generate a &quot;XF86Menu&quot; key release event
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;efl_util_input_deinitialize_generator();
-
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = efl_util_input_deinitialize_generator(inputgen);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to deinitialize the input generator system
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 </pre></li>
- <li>Free the resources with the <span style="font-family: Courier New,Courier,monospace">efl_util_input_deinitialize_generator()</span> function:
-  <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;efl_util_input_deinitialize_generator();
-}</pre></li></ol>
+
+<li>Free the resources with the <span style="font-family: Courier New,Courier,monospace">efl_util_input_deinitialize_generator()</span> function:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;ret = efl_util_input_deinitialize_generator(inputgen);
+&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to deinitialize the input generator system
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li></ol>
+
 
 
  <h2 id="input_gen_touch" name="input_gen_touch">Generating a Touch Input Event</h2>
@@ -318,46 +336,64 @@ void key_event_generator()
 void touch_event_generator()
 {
 &nbsp;&nbsp;&nbsp;int ret = EFL_UTIL_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;efl_util_inputgen_h inputgen = NULL;
 
-&nbsp;&nbsp;&nbsp;ret = efl_util_input_initialize_generator(EFL_UTIL_INPUT_DEVTYPE_TOUCHSCREEN);
-</pre></li>
- <li>After setting input device type, execute the <span style="font-family: Courier New,Courier,monospace">efl_util_input_generate_touch()</span> function to generate touch input events:
-  <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;inputgen = efl_util_input_initialize_generator(EFL_UTIL_INPUT_DEVTYPE_TOUCHSCREEN);
+&nbsp;&nbsp;&nbsp;if (!inputgen)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to initialize input generator
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to initialize the input generator system
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_touch(0, EFL_UTIL_INPUT_TOUCH_BEGIN, 100, 100);
+</pre></li>
+ <li>After setting input device type, execute the <span style="font-family: Courier New,Courier,monospace">efl_util_input_generate_touch()</span> function to generate touch input events:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_touch(inputgen, 0, EFL_UTIL_INPUT_TOUCH_BEGIN, 100, 100);
 &nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to generate a first finger touch press event on (100, 100)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;efl_util_input_deinitialize_generator();
-
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = efl_util_input_deinitialize_generator(inputgen);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to deinitialize the input generator system
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_touch(0, EFL_UTIL_INPUT_TOUCH_UPDATE, 110, 110);
+&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_touch(inputgen, 0, EFL_UTIL_INPUT_TOUCH_UPDATE, 110, 110);
 &nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to generate a first finger touch move event to (110, 110)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;efl_util_input_deinitialize_generator();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = efl_util_input_deinitialize_generator(inputgen);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to deinitialize the input generator system
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_touch(0, EFL_UTIL_INPUT_TOUCH_END, 110, 110);
+&nbsp;&nbsp;&nbsp;ret = efl_util_input_generate_touch(inputgen, 0, EFL_UTIL_INPUT_TOUCH_END, 110, 110);
 &nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to generate a first finger touch release event to (110, 110)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;efl_util_input_deinitialize_generator();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = efl_util_input_deinitialize_generator(inputgen);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to deinitialize the input generator system
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 </pre></li>
  <li>Free the resources with the <span style="font-family: Courier New,Courier,monospace">efl_util_input_deinitialize_generator()</span> function:
-  <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;efl_util_input_deinitialize_generator();
-}</pre></li></ol>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;ret = efl_util_input_deinitialize_generator(inputgen);
+&nbsp;&nbsp;&nbsp;if (ret != EFL_UTIL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Failed to deinitialize the input generator system
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li></ol>
+
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>

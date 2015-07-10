@@ -1,0 +1,612 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Quickpanel Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+  <h1>Quickpanel Sample Overview</h1>
+<p>The Quickpanel sample application demonstrates how to create a custom quickpanel window and use volume, LED, and Wi-Fi APIs to acquire and set related device settings.</p>
+<p>The following figure illustrates the application screens.</p>
+
+<p class="figure">Figure: Quickpanel screens</p>
+<p align="center">
+ <img alt="Quickpanel screens" src="../images/quickpanel_1.png"/> <img alt="Quickpanel screens" src="../images/quickpanel_2.png"/> <img alt="Quickpanel screens" src="../images/quickpanel_3.png"/> <img alt="Quickpanel screens" src="../images/quickpanel_4.png"/>
+</p>
+
+<p>To make a quickpanel window visible, the user has to drag it from the upper section of the device's screen to the bottom. Three buttons appear at the top of the screen. With the buttons, the user can control the following device functionalities:</p>
+<ul>
+ <li>Light: allows to control device's LED settings,</li>
+ <li>Wi-Fi: allows to activate and deactivate Wi-Fi internal circuit,</li>
+ <li>Sound: allows to switch the device into silent mode.</li>
+</ul>
+<p>Tap the icon to switch the setting on or off.</p>
+<p>In the middle of the screen there is a list of currently pending notifications. Tap any of them to dismiss the notification and launch the application to see its details.</p>
+
+<p>The following figure illustrates the quickpanel layout structure.</p>
+
+<p class="figure">Figure: Quickpanel layout structure</p>
+<p align="center">
+ <img alt="Quickpanel layout structure" src="../images/quickpanel_0.png"/>
+</p>
+
+<h2>Prerequisites</h2>
+<p>This application requires the following privileges to be set:</p>
+<ul>
+ <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/network.get</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/volume.set</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/network.set</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/bluetooth</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/led</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/notification</span></li>
+</ul>
+<p>You are able to run the application only on devices supporting the following features:</p>
+
+<ul>
+ <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/feature/network.wifi</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/feature/led</span></li>
+</ul>
+
+<h2>Implementation</h2>
+
+<p>The Quickpanel application follows the MVC pattern. Aside from standard native application module with the <span style="font-family: Courier New,Courier,monospace">main()</span> function, it consists of:</p>
+<ul>
+ <li><span style="font-family: Courier New,Courier,monospace;">controler.c</span> module</li>
+ <li><span style="font-family: Courier New,Courier,monospace;">light.c</span>, <span style="font-family: Courier New,Courier,monospace;">notifications.c</span>, <span style="font-family: Courier New,Courier,monospace;">sound.c</span>, and <span style="font-family: Courier New,Courier,monospace;">wifi.c</span> modules serving as the model</li>
+ <li><span style="font-family: Courier New,Courier,monospace;">main_view.c</span>, <span style="font-family: Courier New,Courier,monospace;">control_panel.c</span>, and <span style="font-family: Courier New,Courier,monospace;">noti_list.c</span> modules serving as the view</li>
+</ul>
+
+
+<h3>Controller</h3>
+
+<p>The application is initialized with the <span style="font-family: Courier New,Courier,monospace">controler_init()</span> function. This function creates the main view and initializes the rest of the modules. It also adds callbacks to the main view for control panel item click and notification list item click. This is how information about user interactions is delivered to the controller module.</p>
+<pre class="prettyprint">
+Eina_Bool
+controler_init(void)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_DEVICE_NAME, &amp;device_name);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_WALLPAPER_LOCK_SCREEN, &amp;wallpaper);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;result = main_view_create_base_gui(device_name);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;main_view_add_callbacks(__ui_state_changed_cb, __noti_clicked_cb);
+
+&nbsp;&nbsp;&nbsp;__init_modules();
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">__init_modules()</span> function initializes Wi-Fi, light, sound and notification modules. It also checks states of the modules and updates the main view to reflect them.</p>
+<p>Each module initialization procedure takes one or more callbacks as parameters. These callbacks are used to inform the controller module about the changes in respective modules. This is essential because these settings can also be changed from outside of the Quickpanel application and the view has to be updated accordingly.</p>
+<pre class="prettyprint">
+static void
+__init_modules(void)
+{
+&nbsp;&nbsp;&nbsp;bool result = false;
+
+&nbsp;&nbsp;&nbsp;result = wifi_init(__wifi_activated_cb, __wifi_deactivated_cb, __wifi_device_state_changed_cb);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (wifi_is_active())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;main_view_update(ICON_TYPE_WIFI, ICON_ACTION_ACTIVATION);
+
+&nbsp;&nbsp;&nbsp;result = light_init(__light_state_change_cb);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (light_is_active())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;main_view_update(ICON_TYPE_LIGHT, ICON_ACTION_ACTIVATION);
+
+&nbsp;&nbsp;&nbsp;result = sound_init(__sound_state_change_cb);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (sound_is_active())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;main_view_update(ICON_TYPE_SOUND, ICON_ACTION_ACTIVATION);
+
+&nbsp;&nbsp;&nbsp;result = notifications_init(__noti_list_update_cb);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+</pre>
+
+<h3>Model</h3>
+
+<ul>
+<li>Light:
+<p>Currently the LED API does not deliver any interface to receive information about the light state change, so the light module is implemented using a polling timer callback to deliver this information to the controller module.</p>
+<pre class="prettyprint">
+bool
+light_init(light_state_change_cb state_change_cb)
+
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;light_data.change_cb = state_change_cb;
+
+&nbsp;&nbsp;&nbsp;if(light_data.change_cb) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;light_data.poll_timer = ecore_timer_add(LIGHT_POLL_INTERVAL_SEC, __light_poll_timeout_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(!light_data.poll_timer) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;light_data.change_cb = false;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+static Eina_Bool
+__light_poll_timeout_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;if (light_is_active()) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;light_data.change_cb(true);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;light_data.change_cb(false);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+</pre>
+</li>
+<li>Sound:
+<p>In case of the Volume API, use the <span style="font-family: Courier New,Courier,monospace">sound_manager_set_volume_changed_cb()</span> function. The sound module uses this interface to communicate changes to the controller.</p>
+<p>The Quickpanel sample application takes into account changes in three sound types (as it serves as mute/unmute application):</p>
+<ul>
+ <li>System: volume level of system sounds such as key taps</li>
+ <li>Notification: volume level of notification sounds (such as incoming SMS or email)</li>
+ <li>Ringtone: volume level of an incoming call</li>
+</ul>
+<p>When the user wants to mute the phone, the application stores the initial volumes of these types and sets the current values to 0. The preserved volume values are restored when the user unmutes the phone.</p>
+
+<pre class="prettyprint">
+bool
+sound_init(sound_state_change_cb change_cb)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;result = sound_manager_set_volume_changed_cb(__volume_changed_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;sound_data.change_cb = change_cb;
+
+&nbsp;&nbsp;&nbsp;sound_data.system_sound_level = __get_sound_level(SOUND_TYPE_SYSTEM);
+&nbsp;&nbsp;&nbsp;sound_data.notification_sound_level = __get_sound_level(SOUND_TYPE_NOTIFICATION);
+&nbsp;&nbsp;&nbsp;sound_data.ringtone_sound_level = __get_sound_level(SOUND_TYPE_RINGTONE);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+static void
+__volume_changed_cb(sound_type_e type, unsigned int volume, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;if (sound_data.muting_progress &gt; MUTING_PROGRESS_NONE &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.muting_progress &lt; MUTING_PROGRESS_MUTING_COMPLETE &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;volume == 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.muting_progress++;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (sound_data.muting_progress >= MUTING_PROGRESS_MUTING_COMPLETE) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.muting_progress = MUTING_PROGRESS_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (sound_data.change_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.change_cb(sound_is_active());
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;switch (type) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SOUND_TYPE_SYSTEM:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.system_sound_level = (int)volume;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SOUND_TYPE_NOTIFICATION:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.notification_sound_level = (int)volume;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SOUND_TYPE_RINGTONE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.ringtone_sound_level = (int)volume;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (sound_data.change_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.change_cb(sound_is_active());
+}
+</pre>
+</li>
+
+<li>Wi-Fi:
+<p>To use the Wi-Fi API functions, call the <span style="font-family: Courier New,Courier,monospace">wifi_initialize()</span> function first. A callback is registered for Wi-Fi state changes using the <span style="font-family: Courier New,Courier,monospace">wifi_set_device_state_changed_cb()</span> function. The registered callback function informs the controller module about Wi-Fi circuit state changes.</p>
+<pre class="prettyprint">
+bool
+wifi_init(wifi_activated_cb act_cb, wifi_deactivated_cb deact_cb, wifi_device_state_changed_cb dev_state_change)
+{
+&nbsp;&nbsp;&nbsp;int ret = WIFI_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;ret = wifi_initialize();
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;ret = wifi_set_device_state_changed_cb(dev_state_change, NULL);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if(act_cb &amp;&amp; !wifi_data.act_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wifi_data.act_cb = act_cb;
+
+&nbsp;&nbsp;&nbsp;if(deact_cb &amp;&amp; !wifi_data.deact_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wifi_data.deact_cb = deact_cb;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>Switching the Wi-Fi circuit on or off is an asynchronous operation, so the <span style="font-family: Courier New,Courier,monospace">act_cb()</span> and <span style="font-family: Courier New,Courier,monospace">deact_cb()</span> functions have to be used to inform the controller module if the operation was successful.</p>
+<pre class="prettyprint">
+void
+wifi_set_on(void)
+{
+&nbsp;&nbsp;&nbsp;int res = WIFI_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;if (!wifi_is_active()) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = wifi_activate(wifi_data.act_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (wifi_data.act_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wifi_data.act_cb(WIFI_ERROR_NONE, NULL);
+&nbsp;&nbsp;&nbsp;}
+}
+
+void
+wifi_set_off(void)
+{
+&nbsp;&nbsp;&nbsp;int res = WIFI_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;if (wifi_is_active()) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res = wifi_deactivate(wifi_data.deact_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (wifi_data.deact_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wifi_data.deact_cb(WIFI_ERROR_NONE, NULL);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Notifications:
+<p>Notifications module implementation is timer based. The code periodically checks whether any system notifications exist, and if so, puts them into the notifications list.</p>
+<p>Notifications initialization code takes a single parameter, the controller callback function, to communicate when the notifications list needs to be updated.</p>
+<pre class="prettyprint">
+bool
+notifications_init(noti_list_update_cb update_cb)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+&nbsp;&nbsp;&nbsp;noti_data.notifications = eina_inarray_new(sizeof(notification_item_t), NOTI_ARRAY_STEP);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;noti_data.change_cb = update_cb;
+
+&nbsp;&nbsp;&nbsp;if (noti_data.change_cb) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noti_data.poll_timer = ecore_timer_add(NOTI_POLL_INTERVAL_SEC, __noti_poll_timeout_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The polling uses the <span style="font-family: Courier New,Courier,monospace">notification_get_list()</span> function to retrieve all notifications. It then saves this information in an array of <span style="font-family: Courier New,Courier,monospace">notification_item_t</span> objects.</p>
+<p>There are two notificaton types, <span style="font-family: Courier New,Courier,monospace">NOTIFICATION_TYPE_NOTI</span> and <span style="font-family: Courier New,Courier,monospace">NOTIFICATION_TYPE_ONGOING</span>. Each time new lists are retrieved, the old ones are freed and all notification handles are invalidated. The controller module is informed about a new notification using the <span style="font-family: Courier New,Courier,monospace">noti_data.change_cb()</span>function.</p>
+
+<pre class="prettyprint">
+static Eina_Bool
+__noti_poll_timeout_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;__free_array_elements();
+&nbsp;&nbsp;&nbsp;__free_temporary_lists();
+
+&nbsp;&nbsp;&nbsp;ret = notification_get_list(NOTIFICATION_TYPE_NOTI, -1, &amp;list);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;noti_data.noti_list_h = list;
+&nbsp;&nbsp;&nbsp;__process_list(list);
+
+&nbsp;&nbsp;&nbsp;ret = notification_get_list(NOTIFICATION_TYPE_ONGOING, -1, &amp;list);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;noti_data.ongoing_list_h = list;
+&nbsp;&nbsp;&nbsp;__process_list(list);
+
+&nbsp;&nbsp;&nbsp;if (noti_data.change_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noti_data.change_cb(noti_data.notifications);
+
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+</pre>
+</li>
+</ul>
+
+<h3>View</h3>
+
+<p>Main view initialization part takes place with the <span style="font-family: Courier New,Courier,monospace">main_view_create_base_gui()</span> function. It creates the three view elements: a quickpanel window, the notifications list, and the control panel.</p>
+<pre class="prettyprint">
+Eina_Bool
+main_view_create_base_gui(char *device_name)
+{
+&nbsp;&nbsp;&nbsp;vds.win = create_win();
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if(!__quickpanel_setup())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+
+&nbsp;&nbsp;&nbsp;vds.layout = create_layout(device_name);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vds.noti_list = noti_list_create(vds.layout);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_layout_content_set(vds.layout, PART_CONTENT, vds.noti_list);
+
+&nbsp;&nbsp;&nbsp;vds.toolbar = control_panel_create(vds.layout, __light_click_cb, __wifi_click_cb, __sound_click_cb);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p>The quickpanel window type is at first created as a standard window.</p>
+<pre class="prettyprint">
+static Evas_Object *
+create_win(void)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *bg = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;bg = elm_bg_add(win);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, bg);
+&nbsp;&nbsp;&nbsp;evas_object_color_set(bg, QP_BG_COLOR_R, QP_BG_COLOR_G, QP_BG_COLOR_B, 255);
+&nbsp;&nbsp;&nbsp;evas_object_show(bg);
+
+&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(win, ELM_WIN_INDICATOR_HIDE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_win_alpha_set(win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;// Window rotation support code
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(win, EEXT_CALLBACK_BACK, win_back_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;rotation,changed&quot;, __ui_rotation_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;evas_object_show(win);
+
+&nbsp;&nbsp;&nbsp;return win;
+}
+</pre>
+
+<p>Next, the window is given special properties and class with the <span style="font-family: Courier New,Courier,monospace">__quickpanel_setup()</span> function.</p>
+
+<pre class="prettyprint">
+static Eina_Bool
+__quickpanel_setup(void)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;Ecore_X_Window xwin = 0;
+&nbsp;&nbsp;&nbsp;elm_win_quickpanel_set(vds.win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_win_quickpanel_priority_major_set(vds.win, 300);
+
+&nbsp;&nbsp;&nbsp;xwin = elm_win_xwindow_get(vds.win);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;ecore_x_icccm_name_class_set(xwin, &quot;QUICKPANEL&quot;, &quot;QUICKPANEL&quot;);
+
+&nbsp;&nbsp;&nbsp;elm_win_screen_size_get(vds.win, NULL, NULL, &amp;w, &amp;h);
+
+&nbsp;&nbsp;&nbsp;vds.win_height = h;
+&nbsp;&nbsp;&nbsp;vds.win_width = w;
+
+&nbsp;&nbsp;&nbsp;set_ui_geometry_info();
+&nbsp;&nbsp;&nbsp;set_ui_handler_info();
+&nbsp;&nbsp;&nbsp;ecore_idler_add(ui_refresh_idler_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p>Window geometry is constantly monitored with the <span style="font-family: Courier New,Courier,monospace">ui_refresh_idler_cb()</span> and <span style="font-family: Courier New,Courier,monospace">__ui_rotation_cb()</span> callback functions. This information is acquired and passed to the underlying X Window System using the <span style="font-family: Courier New,Courier,monospace">set_ui_geometry_info()</span> and <span style="font-family: Courier New,Courier,monospace">set_ui_handler_info()</span> helper functions.</p>
+<pre class="prettyprint">
+static void
+set_ui_geometry_info(void)
+{
+&nbsp;&nbsp;&nbsp;int max_height_window = 0;
+&nbsp;&nbsp;&nbsp;Evas_Coord win_y = 0;
+
+&nbsp;&nbsp;&nbsp;if (vds.angle == 90 || vds.angle == 270) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_height_window = vds.win_width;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_height_window = vds.win_height;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_geometry_get(vds.win, NULL, &amp;win_y, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;vds.gl_distance_from_top = win_y - ELM_SCALE_SIZE(QP_HANDLE_H);
+&nbsp;&nbsp;&nbsp;vds.gl_distance_to_bottom = ELM_SCALE_SIZE(QP_HANDLE_H);
+&nbsp;&nbsp;&nbsp;vds.gl_limit_height = max_height_window - vds.gl_distance_from_top - vds.gl_distance_to_bottom;
+}
+ 
+static void
+set_ui_handler_info(void)
+{
+&nbsp;&nbsp;&nbsp;int contents_height = 0;
+
+&nbsp;&nbsp;&nbsp;contents_height = vds.gl_distance_from_top + vds.gl_limit_height;
+
+&nbsp;&nbsp;&nbsp;set_ui_handler_input_region(contents_height);
+&nbsp;&nbsp;&nbsp;set_ui_handler_content_region(contents_height);
+}
+ 
+static void
+set_ui_handler_input_region(int contents_height)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;xwin = elm_win_xwindow_get(vds.win);
+
+&nbsp;&nbsp;&nbsp;switch (vds.angle) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 0:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window_input_region = set_window_region(0, contents_height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vds.win_width, ELM_SCALE_SIZE(QP_HANDLE_H));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 90:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window_input_region = set_window_region(contents_height, 0,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_SCALE_SIZE(QP_HANDLE_H), vds.win_height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 180:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window_input_region = set_window_region(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0, vds.win_height - contents_height - ELM_SCALE_SIZE(QP_HANDLE_H),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vds.win_width, ELM_SCALE_SIZE(QP_HANDLE_H));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 270:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window_input_region = set_window_region(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vds.win_width - contents_height - ELM_SCALE_SIZE(QP_HANDLE_H),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0, ELM_SCALE_SIZE(QP_HANDLE_H), vds.win_height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;atom_window_input_region = ecore_x_atom_get(STR_ATOM_WINDOW_INPUT_REGION);
+&nbsp;&nbsp;&nbsp;ecore_x_window_prop_card32_set(xwin, atom_window_input_region, window_input_region, 4);
+
+&nbsp;&nbsp;&nbsp;free(window_input_region);
+}
+ 
+static void
+set_ui_handler_content_region(int contents_height)
+{
+&nbsp;&nbsp;&nbsp;// Declare the variables
+
+&nbsp;&nbsp;&nbsp;xwin = elm_win_xwindow_get(vds.win);
+
+&nbsp;&nbsp;&nbsp;switch (vds.angle) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 0:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window_contents_region = set_window_region(0, 0,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vds.win_width, contents_height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 90:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window_contents_region = set_window_region(0, 0,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;contents_height, vds.win_height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 180:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window_contents_region = set_window_region(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0, vds.win_height - contents_height, vds.win_width, contents_height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 270:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window_contents_region = set_window_region(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vds.win_width - contents_height, 0,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;contents_height, vds.win_height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;atom_window_contents_region = ecore_x_atom_get(STR_ATOM_WINDOW_CONTENTS_REGION);
+&nbsp;&nbsp;&nbsp;ecore_x_window_prop_card32_set(xwin, atom_window_contents_region, window_contents_region, 4);
+
+&nbsp;&nbsp;&nbsp;free(window_contents_region);
+}
+</pre>
+
+  
+  
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

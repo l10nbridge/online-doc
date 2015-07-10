@@ -153,6 +153,7 @@ error_code = audio_in_get_channel(input, &amp;channel);
 <p>Retrieve the audio sample type information using the <span style="font-family: Courier New,Courier,monospace">audio_in_get_sample_type()</span> function:</p>
 
 <pre class="prettyprint">
+audio_sample_type_e sample_type;
 error_code = audio_in_get_sample_type(input, &amp;sample_type);
 </pre>
 </li>
@@ -192,7 +193,9 @@ ecore_thread_run(synchronous_playback, NULL, NULL, NULL);
 <ol><li>
 <p>To start capturing the audio from the H/W device, prepare the audio input device. After using the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function, the device starts buffering (storing in an internal buffer) the captured audio.</p>
 
-<pre class="prettyprint">error_code = audio_in_prepare(input);
+<pre class="prettyprint">
+// Audio input prepare (starts the hardware recording process)
+error_code = audio_in_prepare(input);
 </pre></li>
 
 <li><p>To obtain the captured audio data from the internal buffer, use the <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> function:</p>
@@ -215,6 +218,7 @@ int bytes_number = audio_in_read(input, buffer, buffer_size);
 <li><p>To stop the hardware recording process (buffering) after reading the data, use the <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> function:</p>
 
 <pre class="prettyprint">
+// Stop the hardware recording process
 error_code = audio_in_unprepare(input);
 </pre></li>
 
@@ -222,6 +226,7 @@ error_code = audio_in_unprepare(input);
 <p>To play the recorded audio sample from the buffer, prepare the audio output device. After using the <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> function, the device prepares its internal output buffer for the playback.</p>
 
 <pre class="prettyprint">
+// Audio output prepare (starts the hardware playback process)
 error_code = audio_out_prepare(output);
 </pre>
 </li>
@@ -238,6 +243,7 @@ int bytes_number = audio_out_write(output, buffer, buffer_size);
 <li><p>To stop the hardware playback process (buffering) after writing the data to the output buffer, use the <span style="font-family: Courier New,Courier,monospace">audio_out_unprepare()</span> function:</p>
 
 <pre class="prettyprint">
+// Stop the hardware playback process
 error_code = audio_out_unprepare(output);
 </pre></li></ol>
 
@@ -336,6 +342,7 @@ if (!fp_w)
 <p>The file is ready and the callback function is set. Proceed with the asynchronous recording by calling the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function to initiate the hardware recording process:</p>
 
 <pre class="prettyprint">
+// Audio input prepare (starts the hardware recording process)
 error_code = audio_in_prepare(input);
 </pre>
 
@@ -344,6 +351,7 @@ error_code = audio_in_prepare(input);
 <p>Inside the callback function, you retrieve a handle to the input device and the number of captured audio sample bytes using the <span style="font-family: Courier New,Courier,monospace">audio_in_peek()</span> function. This information can be used to extract the data from the input internal buffer and store it in the file. The audio data stored in the obtained buffer is written to the recording file (the one that was prepared earlier) with the <span style="font-family: Courier New,Courier,monospace">fwrite()</span> function, and after storing the received audio sample pack in the file, it can be removed from the internal buffer using the <span style="font-family: Courier New,Courier,monospace">audio_in_drop()</span> function.</p>
 
 <pre class="prettyprint">
+// Callback invoked for every captured part of the recording
 void _audio_io_stream_read_cb(audio_in_h handle, size_t nbytes, void *userdata)
 {
 &nbsp;&nbsp;&nbsp;const void * buffer = NULL;
@@ -380,17 +388,20 @@ void _audio_io_stream_read_cb(audio_in_h handle, size_t nbytes, void *userdata)
 <ol><li>The <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> function stops the hardware recording process, so the callback for asynchronous recording is no longer called:
 
 <pre class="prettyprint">
+// Stop the hardware recording process
 error_code = audio_in_unprepare(input);
 </pre>
 </li>
 <li><p>If the asynchronous recording is no longer used, or if the <span style="font-family: Courier New,Courier,monospace">audio_in_set_stream_cb()</span> function is called each time before starting the asynchronous recording, you can unset the callback function with the <span style="font-family: Courier New,Courier,monospace">audio_in_unset_stream_cb()</span> function:</p>
 <pre class="prettyprint">
+// Unset the callback function used for asynchronous recording process
 error_code = audio_in_unset_stream_cb(input);
 </pre>
 </li>
 <li><p>The file used for recording is still opened, so if the recording was stopped, the file can be closed:</p>
 
 <pre class="prettyprint">
+// Close the file used for recording
 error_code = fclose(fp_w);
 </pre>
 </li></ol>
@@ -408,6 +419,7 @@ error_code = audio_out_set_stream_cb(output, _audio_io_stream_write_cb, NULL);
 <p>After this step, you can call the <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> function and start playing the audio. However, in this case, to play the recording from a file instead of using local buffer, you must prepare (open for reading) a file the recording is stored in:</p>
 
 <pre class="prettyprint">
+// Prepare a file to be used for playback
 #include &lt;storage.h&gt;
 
 char io_stream_r_path[200];
@@ -425,6 +437,7 @@ FILE* fp_r = fopen(io_stream_r_path, &quot;r&quot;);
 <p>The file is ready and the callback function is set. Proceed with the asynchronous playback by calling the <span style="font-family: Courier New,Courier,monospace">audio_out_prepare()</span> function to initiate the hardware playback process:</p>
 
 <pre class="prettyprint">
+// Audio output prepare (starts the hardware playback process)
 error_code = audio_out_prepare(output);
 </pre>
 
@@ -435,6 +448,7 @@ error_code = audio_out_prepare(output);
 <p>Inside the callback, you retrieve a handle to the output internal buffer and the number of audio sample bytes that can be written to the output buffer using the <span style="font-family: Courier New,Courier,monospace">malloc()</span> and <span style="font-family: Courier New,Courier,monospace">memset()</span> functions. Read the pack of the audio sample from the file and store it in the local buffer using the <span style="font-family: Courier New,Courier,monospace">fread()</span> function, and copy the audio sample data from the local buffer to the output internal buffer to start the playback with the <span style="font-family: Courier New,Courier,monospace">audio_out_write()</span> function.</p>
 
 <pre class="prettyprint">
+// Callback invoked for every stored part of the audio
 void _audio_io_stream_write_cb(audio_out_h handle, size_t nbytes, void *userdata)
 {
 &nbsp;&nbsp;&nbsp;char * buffer = NULL;
@@ -473,6 +487,7 @@ error_code = audio_out_unprepare(output);
 <p>If the asynchronous playback is no longer used, or if the <span style="font-family: Courier New,Courier,monospace">audio_out_set_stream_cb()</span> function is called each time before starting the asynchronous playback, you can unset the callback function with the <span style="font-family: Courier New,Courier,monospace">audio_out_unset_stream_cb()</span> function when the playback is stopped:</p>
 
 <pre class="prettyprint">
+// Unset the callback function used for asynchronous playback process
 error_code = audio_out_unset_stream_cb(output);
 </pre>
 </li>
@@ -480,6 +495,7 @@ error_code = audio_out_unset_stream_cb(output);
 <p>The file used for playback is still opened, so if the playback was stopped, the file can be closed:</p>
 
 <pre class="prettyprint">
+// Close the file used for playback
 error_code = fclose(fp_r);
 </pre>
 </li></ol>
@@ -491,7 +507,9 @@ error_code = fclose(fp_r);
 
 <ol><li><p>Release the memory allocated to the local buffer using the <span style="font-family: Courier New,Courier,monospace">free()</span> function:</p>
 
-<pre class="prettyprint">free(buffer);</pre></li>
+<pre class="prettyprint">
+// Release the memory allocated for the local buffer used for recording/playing
+free(buffer);</pre></li>
 
 <li><p>Unprepare the audio input and output devices using the <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_unprepare()</span> functions:</p>
 
