@@ -77,64 +77,95 @@ DALi.</p>
 
 <p>To create a &#39;Hello World&#39; application with Dali:</p>
 <ol>
+<li><a href="#create">Create a DALi project</a></li>
 <li><a href="#initial">Initialize the DALi application</a></li>
-<li><a href="#actor">Create an actor and add to a stage</a></li>
+<li><a href="#actor">Create an actor and add it to a stage</a></li>
+<li><a href="#build">Build your DALi application</a></li>
+<li><a href="#run">Run your DALi application</a></li>
 </ol>
 
-<pre class="prettyprint">#include &lt; dali-toolkit/dali-toolkit.h&gt;
+<h3 id="create" name="create">Create a DALi project</h3>
+
+<ol>
+<li>Launch the <strong>Tizen IDE</strong>.</li>
+<li>Choose File &gt; New &gt; Tizen Native Project.
+<p>Press Finish button, then your project is created at the default location. If you want to change the location, uncheck 'Use default location' and set the new location.
+Please see <a href="../../../../org.tizen.gettingstarted/html/native/process/app_dev_process_n.htm#creating">Creating the Application Project</a> for more information.</p>
+</li>
+
+<p class="figure">Figure: Create a DALi project</p>
+<p align="center"><img alt="Create a DALi project" src="../../images/tizen_project_dali.png" width="600"/></p>
+
+<li>The new project is shown in the Project Explorer view of the IDE. If you open src/basicdaliapplication.cpp, you can see the source code of basic DALi application as follows:
+<pre class="prettyprint">
+#include &lt;dali-toolkit/dali-toolkit.h&gt;
 
 using namespace Dali;
 using Dali::Toolkit::TextLabel;
 
-// This example shows how to create and display Hello World! using a simple TextActor
-
+// This example shows how to create and display Hello World using a simple TextLabel
+//
 class HelloWorldController : public ConnectionTracker
 {
 public:
 
-&nbsp;&nbsp;&nbsp;HelloWorldController(Application&amp; application) : mApplication(application)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Connect to the Application&#39;s Init signal
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mApplication.InitSignal().Connect(this, &amp;HelloWorldController::Create);
-&nbsp;&nbsp;&nbsp;}
+  HelloWorldController( Application& application )
+  : mApplication( application )
+  {
+    // Connect to the Application's Init signal
+    mApplication.InitSignal().Connect( this, &HelloWorldController::Create );
+  }
 
-&nbsp;&nbsp;&nbsp;~HelloWorldController()
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Remove Hello World actor from stage
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Stage::GetCurrent().Remove(mTextLabel);
-&nbsp;&nbsp;&nbsp;}
+  ~HelloWorldController()
+  {
+    // Nothing to do here
+  }
 
-&nbsp;&nbsp;&nbsp;// The Init signal is received once (only) during the Application lifetime
-&nbsp;&nbsp;&nbsp;void Create(Application&amp; application)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Get a handle to the stage
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Stage stage = Stage::GetCurrent();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mTextLabel = TextLabel::New(&quot;Hello World&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stage.Add(mTextLabel);
-&nbsp;&nbsp;&nbsp;}
+  // The Init signal is received once (only) during the Application lifetime
+  void Create( Application& application )
+  {
+    // Get a handle to the stage
+    Stage stage = Stage::GetCurrent();
+    stage.SetBackgroundColor( Color::WHITE );
+
+    TextLabel textLabel = TextLabel::New( "Hello World" );
+    textLabel.SetAnchorPoint( AnchorPoint::TOP_LEFT );
+    textLabel.SetName( "hello-world-label" );
+    stage.Add( textLabel );
+
+    // Respond to a click anywhere on the stage
+    stage.GetRootLayer().TouchedSignal().Connect( this, &HelloWorldController::OnTouch );
+  }
+
+  bool OnTouch( Actor actor, const TouchEvent& touch )
+  {
+    // quit the application
+    mApplication.Quit();
+    return true;
+  }
 
 private:
-&nbsp;&nbsp;&nbsp;Application&amp; mApplication;
-&nbsp;&nbsp;&nbsp;TextLabel mTextLabel;
-};&nbsp;&nbsp;&nbsp;
+  Application&  mApplication;
+};
 
-// Entry point for Linux &amp; Tizen applications
-int main(int argc, char **argv)
+// Entry point for Tizen applications
+//
+int main( int argc, char **argv )
 {
-
-&nbsp;&nbsp;&nbsp;Application application = Application::New(&amp;argc, &amp;argv);&nbsp;&nbsp;&nbsp; 
-&nbsp;&nbsp;&nbsp;HelloWorldController test(application); 
-&nbsp;&nbsp;&nbsp;application.MainLoop();
-
-&nbsp;&nbsp;&nbsp;return 0;
+  Application application = Application::New( &argc, &argv );
+  HelloWorldController test( application );
+  application.MainLoop();
+  return 0;
 }
 </pre>
+</li>
+</ol>
 
-<h3 id="initial" name="initial">Initializing the DALi Application</h3>
+<h3 id="initial" name="initial">Initialize the DALi Application</h3>
 
 <p>To use DALi APIs, include the <span style="font-family: Courier New,Courier,monospace;">dali-toolkit.h</span> header file. It includes the <span style="font-family: Courier New,Courier,monospace;">dali-core</span> and <span style="font-family: Courier New,Courier,monospace;">dali-adaptor</span> modules.</p>
 
-<pre class="prettyprint">#include &lt; dali-toolkit/dali-toolkit.h&gt;</pre>
+<pre class="prettyprint">#include &lt;dali-toolkit/dali-toolkit.h&gt;</pre>
 
 <p>The <span style="font-family: Courier New,Courier,monospace;">Dali::Application</span> class (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Application.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Application.html">wearable</a> applications) initializes and sets up DALi.</p>
 <p>Several signals can be connected to keep you informed when certain platform related activities occur and ensure that, upon system events, DALi is called in a thread-safe manner.</p>
@@ -153,18 +184,36 @@ mApplication.InitSignal().Connect(this, &amp;HelloWorldController::Create);</pre
 <pre class="prettyprint">
 application.MainLoop();</pre>
   
-<h3 id="actor" name="actor">Creating an Actor and Adding It to a Stage</h3>
+<h3 id="actor" name="actor">Create an Actor and Add It to a Stage</h3>
 
 <p>The <span style="font-family: Courier New,Courier,monospace;">TextLabel</span> UI component renders a short text string. To display the <span style="font-family: Courier New,Courier,monospace;">TextLabel</span> component, add it to a stage. The <span style="font-family: Courier New,Courier,monospace;">stage</span> instance is a singleton object (the only instance of its class during the lifetime of the program), so you can get it using a static function:</p>
 
-<pre class="prettyprint">mTextLabel = TextLabel::New(&quot;Hello World&quot;);
-
+<pre class="prettyprint">
 Stage stage = Stage::GetCurrent();
-stage.Add(mTextLabel);</pre>
+stage.SetBackgroundColor( Color::WHITE );
 
-<p>The application stores actor and resource handles. DALi objects are reference-counted, which makes sure they exist only as long as they are needed. Therefore, store the actor handle. Even if the <span style="font-family: Courier New,Courier,monospace;">TextLabel</span> component is removed from the stage, it remains alive through the reference.</p>
+TextLabel textLabel = TextLabel::New( "Hello World" );
+textLabel.SetAnchorPoint( AnchorPoint::TOP_LEFT );
+textLabel.SetName( "hello-world-label" );
+stage.Add( textLabel );
+</pre>
+
+<p>This code additionally sets the background color of the <span style="font-family: Courier New,Courier,monospace;">stage</span> and the anchor point, a point defining a position of a child actor from its parent, of the <span style="font-family: Courier New,Courier,monospace;">textLabel</span>. The application stores actor and resource handles. DALi objects are reference-counted, which makes sure they exist only as long as they are needed. Even if the <span style="font-family: Courier New,Courier,monospace;">TextLabel</span> component is removed from the stage, it remains alive through the reference.</p>
 
 
+<h3 id="build" name="build">Build your DALi application</h3>
+
+<p>To build your application, choose Project &gt; Build Project or press F10.</p>
+<p>The Tizen IDE automatically packages the project after building. Please note that you need to register your certificate at the first time to build. Please see <a href="../../../../org.tizen.devtools/html/common_tools/certificate_registration.htm">Certificate Registration</a> and <a href="../../../../org.tizen.gettingstarted/html/native/process/building_app_n.htm">Building Applications</a> for more information.</p>
+
+
+<h3 id="run" name="run">Run your DALi application</h3>
+
+<p>To run your application, choose Run &gt; Run or press Ctrl+F11.</p>
+<p>Please see <a href="../../../../org.tizen.gettingstarted/html/native/process/running_app_n.htm">Running Applications</a> for more information.</p>
+
+<p class="figure">Figure: The first DALi application running on Tizen emulator</p>
+<p align="center"><img alt="The first DALi application" src="../../images/hello_world_dali.png" /></p>
     
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
