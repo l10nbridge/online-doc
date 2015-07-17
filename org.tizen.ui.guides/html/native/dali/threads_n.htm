@@ -11,7 +11,7 @@
 	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
 	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
 
-	<title>Properties: Accessing to Properties of DALi Objects</title>  
+	<title>Thread Architecture: High-Performance Multi-Threaded Architecture of DALi</title>  
 </head>
 
 <body onload="prettyPrint()" style="overflow: auto;">
@@ -35,125 +35,21 @@
 </div>	
 
 <div id="container"><div id="contents"><div class="content">
-<h1>Properties: Accessing to Properties of DALi Objects</h1>
+<h1>Thread Architecture: High-Performance Multi-Threaded Architecture of DALi</h1>
 
-<h1>GetCurrentPosition()</h1>
+<p>DALi uses a multithreaded architecture in order to provide the best performance and scalability.</p>
+<ul>
+	<li><strong>Event Thread:</strong> The main thread in which application code and event handling runs.</li>
+	<li><strong>Update Thread:</strong> Updates the nodes on the scene as well as running animations and constraints.</li>
+	<li><strong>Render Thread:</strong> OpenGL drawing, texture and geometry uploading etc.</li>
+	<li><strong>Resource Thread:</strong> Loads images and decodes into bitmaps etc.</li>
+</ul>
 
-<p>A property is a value used by an object that can be modified or read via <span style="font-family: Courier New,Courier,monospace;">Dali::Handle::GetProperty()</span> / <span style="font-family: Courier New,Courier,monospace;">SetProperty()</span> API.</p>
-
-<p>The difference between properties and ordinary C++ member variables is that a property can be dynamically added to or removed from an existing object in runtime, which enables more flexible, script-like programming with DALi.</p>
-
-<p><span style="font-family: Courier New,Courier,monospace;">Dali::Handle</span> (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Layer.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Layer.html">wearable</a>) provides methods to manage properties, thus the DALi classes that inherit from <span style="font-family: Courier New,Courier,monospace;">Dali::Handle</span> (most of classes that users would use) have a number of predefined properties and can have any number of user-defined custom properties.
-</p>
-
-<h2 id="access" name="access">Accessing to Properties</h2>
-
-	<p>Properties of an object usually can be accessed via two ways: by its class member functions or by property getters/setters (<span style="font-family: Courier New,Courier,monospace;">Dali::Handle::GetProperty()</span> / <span style="font-family: Courier New,Courier,monospace;">SetProperty()</span>).</p>
-	<p>For example, <span style="font-family: Courier New,Courier,monospace;">Dali::Actor</span> has following predefined properties:</p>
-
-	<table>
-		<caption>
-			Table: Properties of Dali::Actor
-		</caption>
-		<tbody>
-		<tr>
-			<th>Property Index (enumeration)</th>
-			<th>Member Functions</th>
-		</tr>
-		<tr>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::POSITION</span></td>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::GetCurrentPosition()</span> / <span style="font-family: Courier New,Courier,monospace;">SetPosition()</span></td>
-		</tr>
-		<tr>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::ORIENTATION</span></td>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::GetCurrentOrientation()</span> / <span style="font-family: Courier New,Courier,monospace;">SetOrientation()</span></td>
-		</tr>
-		<tr>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::SIZE</span></td>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::GetCurrentSize()</span> / <span style="font-family: Courier New,Courier,monospace;">SetSize()</span></td>
-		</tr>
-		<tr>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::COLOR</span></td>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::GetCurrentColor()</span> / <span style="font-family: Courier New,Courier,monospace;">SetColor()</span></td>
-		</tr>
-		<tr>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::NAME</span></td>
-			<td><span style="font-family: Courier New,Courier,monospace;">Dali::Actor::GetName()</span> / <span style="font-family: Courier New,Courier,monospace;">SetName()</span></td>
-		</tr>
-		<tr>
-			<td>...</td>
-			<td>...</td>
-		</tr>
-		</tbody>
-	</table>
-
-	You can access them in both ways:
-
-	<pre class="prettyprint">
-Actor actor = Actor::New();
-actor.SetName("test actor");
-std::cout &lt;&lt; actor.GetName() &lt;&lt; std::endl;  // "test actor"
-</pre>
-
-	<pre class="prettyprint">
-Actor actor = Actor::New();
-actor.SetProperty( Actor::Property::NAME, "test actor" );
-std::cout &lt;&lt; actor.GetProperty( Actor::Property::NAME ) &lt;&lt; std::endl;  // "test actor"
-std::cout &lt;&lt; actor.GetProperty&lt;std::string&gt;( Actor::Property::NAME ) &lt;&lt; std::endl;  // "test actor"
-std::cout &lt;&lt; actor.GetProperty( Actor::Property::NAME ).Get&lt;std::string&gt;() &lt;&lt; std::endl;  // "test actor"
-</pre>
-
-<h2 id="usage" name="usage">Usages of Properties</h2>
-
-<h3>Registering User-Defined Custom Properties to an Object</h3>
-
-<p>Properties can be registered / unregistered in runtime, which enables script-like programming of DALi application, for example, adding custom member data to an instance of a DALi class without subclassing the class or maintaining another pool of custom data.</p>
-<p>For example, you can set your own custom data to PushButton objects and use them later when the buttons are clicked like:</p>
-<pre class="prettyprint">
-  void Create( Application&amp; application )
-  {
-    for( int i=0; i&lt;5; ++i )
-    {
-      Toolkit::PushButton button = Toolkit::PushButton::New();
-      button.SetSize( 100, 100 );
-      button.SetPosition( 100*i+50, 50 );
-      button.ClickedSignal().Connect( this, OnButtonClicked );
-
-      // Register a custom property having button index.
-      // Store the property index so you can look it up later.
-      // Note: This is much faster than looking the property up by property name and should always be used if possible.
-      // As all control types are the same (PushButtons) the indices to the unique custom property are all same.
-      Property::Value data( i );
-      mCustomDataIndex = button.RegisterProperty( "custom-data", data );
-
-      Stage::GetCurrent().Add(button);
-    }
-  }
-
-  bool OnButtonClicked(Toolkit::Button button)
-  {
-    // Look up the custom property by the stored property index.
-    // Note: If the property belongs to a control in another library, or we do not know the index, we can look the index up first with:
-    // Property::Index index = button.GetPropertyIndex( "custom-data" );
-    cout &lt;&lt; button.GetProperty( mCustomDataIndex ) &lt;&lt; endl;
-    return true;
-  }
-</pre>
-
-<h3>Animation</h3>
-
-<h3>Constraint</h3>
+<p class="figure">Figure: DALi Thread Architecture</p>  
+	<p align="center"><img alt="Thread Architecture" src="../../images/dali_threads.png"/></p> 
 
 
-
-types
-
-set/get add/remove
-
-constraint animation
-
-
-
+	<!-- dali todo GetCurrentPosition() -->
 
     
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
