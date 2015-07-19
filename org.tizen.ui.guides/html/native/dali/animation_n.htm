@@ -11,7 +11,7 @@
 	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
 	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
 
-	<title>Animation: Making Your Actors Alive</title>  
+	<title>Animations: Making Your Actors Alive</title>  
 </head>
 
 <body onload="prettyPrint()" style="overflow: auto;">
@@ -21,16 +21,29 @@
 		<p><img alt="Mobile native" src="../../images/mn_icon.png"/> <img alt="Wearable native" src="../../images/wn_icon.png"/></p>
 	</div>
 		<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#basic">Creating a Basic Animation</a></li>
+			<li><a href="#properties">Animating Properties</a></li>
+			<li><a href="#playback">Playback Control</a></li>
+			<li><a href="#notifications">Notifications</a></li>
+			<li><a href="#alpha">Alpha Functions</a></li>
+			<li><a href="#other">Other Actions</a></li>
+		</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
-			<li><a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Animation.html">DALi::Animation API for Mobile Native</a></li>
-			<li><a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Animation.html">DALi::Animation API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Animation.html">Dali::Animation API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/structDali_1_1TimePeriod.html">Dali::TimePeriod API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/###.html">Dali::AlphaFunction API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Animation.html">Dali::Animation API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/###.html">Dali::AlphaFunction API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/structDali_1_1TimePeriod.html">Dali::TimePeriod API for Wearable Native</a></li>			
 		</ul>
 	</div></div>
 </div>
 
 <div id="container"><div id="contents"><div class="content">
-<h1>Animation: Making Your Actors Alive</h1>
+<h1>Animations: Making Your Actors Alive</h1>
 
 <p>Animation is an effect that shows sequential frames in quick succession to give the illusion of movement.</p>
 
@@ -40,6 +53,103 @@
 	<p align="center"><img alt="DALi animation components" src="../../images/animation_components.png"/></p> 
 
 <p>DALi animations occur in a dedicated thread. This allows animations to run smoothly, regardless of the time taken to process inputs events and other factors in the application code.</p>
+
+<h2 id="basic" name="basic">Creating a Basic Animation</h2>
+
+<p>Create an animation object that takes place over 3 seconds:</p>
+<pre class="prettyprint">
+Dali::Animation animation = Animation::New(3.0f);
+</pre>
+
+<h2 id="properties" name="properties">Animating Properties</h2>
+
+<p>There are two distinct methods to animate the properties within DALi:</p>
+<ul>
+	<li><span style="font-family: Courier New,Courier,monospace;">AnimateTo()</span>: The property animates TO the value in the given time.</li>
+	<li><span style="font-family: Courier New,Courier,monospace;">AnimateBy()</span>: The property animates BY the value in the given time.</li>
+</ul>
+
+<p>In the following example, it is assumed that <span style="font-family: Courier New,Courier,monospace;">actor1</span> and <span style="font-family: Courier New,Courier,monospace;">actor2</span> are at position 10.0f, 10.0f, 0.0f at the start of the animation.</p>
+<pre class="prettyprint">
+// Animate the position of actor1 TO 10.0f, 50.0f, 0.0f
+animation.AnimateTo(Property(actor1, Dali::Actor::Property::POSITION), Vector3(10.0f, 50.0f, 0.0f)); 
+// End Position: 10.0f, 50.0f, 0.0f
+
+// Animate the position of actor2 BY 10.0f, 50.0f, 0.0f
+animation.AnimateBy(Property(actor2, Dali::Actor::Property::POSITION), Vector3(10.0f, 50.0f, 0.0f)); 
+// End Position: 20.0f, 60.0f, 0.0f
+</pre>
+
+<h2 id="playback" name="playback">Playback Control</h2>
+
+<p>When an animation is created, it can be played using the <span style="font-family: Courier New,Courier,monospace;">Play()</span> method.</p>
+<pre class="prettyprint">
+animation.Play();
+</pre>
+<p>This is not a synchronous method. The <span style="font-family: Courier New,Courier,monospace;">Play()</span> method returns after sending a message. After the message is processed in a separate thread, the animation starts. Blocking the application thread does not stop the animation from playing.</p>
+<p><span style="font-family: Courier New,Courier,monospace;">Stop()</span> and <span style="font-family: Courier New,Courier,monospace;">Pause()</span> methods are also supported.</p>
+<pre class="prettyprint">
+animation.Stop();
+animation.Pause();
+</pre> 
+
+<h2 id="notifications" name="notifications">Notifications</h2>
+<p>Using DALi&#39;s signal framework applications can be notified when the animation finishes. The Dali::Animation API supports &quot;fire and forget&quot; behavior, which means that an animation continues to play if the handle is discarded. Note that in the following example, the &quot;Finish&quot; signal is emitted.</p>
+<pre class="prettyprint">
+void ExampleCallback(Animation&amp; source)
+{
+&nbsp;&nbsp;&nbsp;std::cout &lt;&lt; &quot;Animation has finished&quot; &lt;&lt; std::endl;
+}
+
+void ExampleAnimation(Actor actor)
+{
+&nbsp;&nbsp;&nbsp;Animation animation = Animation::New(2.0f); // Duration 2 seconds
+&nbsp;&nbsp;&nbsp;animation.AnimateTo(Property(actor, Actor::Property::POSITION), 10.0f, 50.0f, 0.0f);
+&nbsp;&nbsp;&nbsp;animation.FinishedSignal().Connect(ExampleCallback);
+&nbsp;&nbsp;&nbsp;animation.Play();
+} // At this point the animation handle has gone out of scope
+
+Actor actor = Actor::New();
+Stage::GetCurrent().Add(actor);
+
+// Fire the animation and forget about it
+ExampleAnimation(actor);
+
+// The animation continues, and &quot;Animation has finished&quot; is printed after 2 seconds
+</pre>
+
+<h2 id="alpha" name="alpha">Alpha Functions</h2>
+
+<p>Alpha functions are used in animations to specify the rate of change of the animation parameter over time. This allows the animation to be, for example, accelerated, decelerated, repeated, or bounced. The built-in supported functions can be viewed in the <span style="font-family: Courier New,Courier,monospace;">Dali::AlphaFunction::BuiltinFunction</span> class (in <a href="../../../../org.tizen.native.mobile.apireference/###.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/###.html">wearable</a> applications).</p>
+<pre class="prettyprint">
+animation.SetDefaultAlphaFunction(Dali::AlphaFunction::EASE_IN);
+</pre>
+<p>You can also create your own alpha function:</p>
+<pre class="prettyprint">
+float MyAlphaFunction(float progress)
+{
+&nbsp;&nbsp;&nbsp;return progress;
+}
+
+AlphaFunction alphaFunction(&amp;MyAlphaFunction);
+animation.SetDefaultAlphaFunction(alphaFunction);
+</pre>
+<p>It is possible to specify a different alpha function for each animator in an Animation object.</p>
+<pre class="prettyprint">
+animation.AnimateTo(Property(actor1, Dali::Actor::Property::POSITION), Vector3(10.0f, 50.0f, 0.0f), Dali::AlphaFunction::EASE_IN);
+</pre>
+
+<h2 id="other" name="other">Other Actions</h2>
+
+<p>An animation can be looped:</p>
+<pre class="prettyprint">
+animation.SetLooping(true);
+</pre>
+<p>By default, when an animation ends, the properties that it was animating are baked (saved). Using the following function, the property changes can be discarded when the animation ends or is stopped:</p>
+<pre class="prettyprint">
+animation.SetEndAction(Animation::Discard);
+</pre>
+
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
