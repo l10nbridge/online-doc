@@ -85,40 +85,41 @@
 <p class="figure">Figure: Push button</p>  
 	<p align="center"><img alt="Push button" src="../../images/push_button.png"/></p> 
 
-<p>By default, a push button emits a <span style="font-family: Courier New,Courier,monospace;">Button::PressedSignal()</span> signal when the button is pressed, a <span style="font-family: Courier New,Courier,monospace;">Button::ClickedSignal()</span> signal when clicked, and a <span style="font-family: Courier New,Courier,monospace;">Button::ReleasedSignal()</span> signal when released, or of the touch point leaves the boundary of the button. The following is a basic example of implementing a push button:</p>
+<p>A push button emits a <span style="font-family: Courier New,Courier,monospace;">Button::PressedSignal()</span> signal when the button is pressed, a <span style="font-family: Courier New,Courier,monospace;">Button::ClickedSignal()</span> signal when clicked, and a <span style="font-family: Courier New,Courier,monospace;">Button::ReleasedSignal()</span> signal when released, or of the touch point leaves the boundary of the button. A basic push button example is as follows:</p>
 
-<pre class="prettyprint">class ButtonsController: public ConnectionTracker
+<pre class="prettyprint">
+class ButtonController : public ConnectionTracker
 {
-&nbsp;&nbsp;&nbsp;ButtonsController(Application&amp; application)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: mApplication(application)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mApplication.InitSignal().Connect(this, &amp;ButtonsController::Create);
-&nbsp;&nbsp;&nbsp;}
+public:
+  ButtonController( Application& application ): mApplication( application )
+  {
+    mApplication.InitSignal().Connect( this, &ButtonController::Create );
+  }
+  void Create( Application& application )
+  {
+    PushButton button = PushButton::New();
+    button.SetLabel( "Select" );
+    button.SetParentOrigin( ParentOrigin::CENTER );
+    button.ClickedSignal().Connect( this, &ButtonController::OnButtonClicked );
+    Stage::GetCurrent().Add( button );
+  }
+  bool OnButtonClicked( Toolkit::Button button )
+  {
+    cout << "OnButtonClicked" << endl;
+    return true;
+  }
+private:
+  Application&  mApplication;
+};
 
-&nbsp;&nbsp;&nbsp;void Create(Application&amp; application)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Stage stage = Stage::GetCurrent();
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PushButton button = PushButton::New();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetLabel(&quot;Select&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetResizePolicy(ResizePolicy::USE_NATURAL_SIZE, Dimension:;ALL_DIMENSIONS);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetSelectedImage(Dali::ResourceImage::New(&quot;pressedImage.png&quot;));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetDisabledImage(Dali::ResourceImage::New(&quot;disabledImage.png&quot;));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetButtonImage(Dali::ResourceImage::New(&quot;buttonImage.png&quot;));
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.ClickedSignal().Connect(this, &amp;ButtonsController::OnButtonClicked);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stage.Add(button);
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;bool OnButtonClicked(Toolkit::Button button)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Application developer code
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;Application&amp; mApplication;
-}</pre>
+int main( int argc, char **argv )
+{
+  Application application = Application::New( &argc, &argv );
+  ButtonController test( application );
+  application.MainLoop();
+  return 0;
+}
+</pre>
 
 <h2 id="CheckBoxButton" name="CheckBoxButton">CheckBox Button</h2>
  
@@ -127,84 +128,27 @@
 <p class="figure">Figure: Checkbox button</p>  
 	<p align="center"><img alt="Checkbox button" src="../../images/checkbox_button.png"/></p> 
 
-<p>By default, a checkbox button emits a <span style="font-family: Courier New,Courier,monospace;">Button::ClickedSignal()</span> signal when the button changes its state to selected or unselected. The following is a basic example of implementing a checkbox button:</p>
+<p>A checkbox button emits all of four button input sinals, but usually you can just use <span style="font-family: Courier New,Courier,monospace;">Button::StateChangedSignal()</span> signal to check the button changes its state to selected or unselected. A basic checkbox button example is as follows:</p>
 
-<pre class="prettyprint">class ButtonsController: public ConnectionTracker
-{
-&nbsp;&nbsp;&nbsp;ButtonsController(Application&amp; application)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: mApplication(application)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mApplication.InitSignal().Connect(this, &amp;ButtonsController::Create);
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;void Create(Application&amp; application)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Stage stage = Stage::GetCurrent();
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actor checkBoxBackground = Actor::New();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stage.Add(checkBoxBackground);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBoxBackground.SetParentOrigin(ParentOrigin::TOP_LEFT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBoxBackground.SetAnchorPoint(ParentOrigin::TOP_LEFT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBoxBackground.SetPosition(0.0f, 0.0f);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBoxBackground.SetSize(400.0f, 400.0);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dali::Image unselected = Dali::ResourceImage::New(&quot;UnSelectedImage.png&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dali::Image selected = Dali::ResourceImage::New(&quot;SelectedImage.png&quot;);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Toolkit::CheckBoxButton checkBox = Toolkit::CheckBoxButton::New();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; checkBox.SetName(&quot;checkbox1&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  checkBox.SetBackgroundImage(unselected);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  checkBox.SetSelectedImage(selected);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  checkBox.SetLabel(&quot;CheckBox1 is unselected&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  checkBox.StateChangedSignal().Connect(this, &amp;ButtonsController::OnCheckBoxesSelected);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  checkBoxBackground.Add(checkBox);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  Toolkit::CheckBoxButton checkBox = Toolkit::CheckBoxButton::New();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBox.SetName(&quot;checkbox2&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBox.SetBackgroundImage(unselected);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBox.SetSelectedImage(selected);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBox.SetLabel(&quot;CheckBox2 is selected&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBox.SetSelected(true);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBox.StateChangedSignal().Connect(this, &amp;ButtonsController::OnCheckBoxesSelected);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;checkBoxBackground.Add(checkBox);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;bool OnCheckBoxesSelected(Toolkit::Button button)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(button.GetName() == &quot;checkbox1&quot;)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(button.IsSelected())
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetLabel(&quot;CheckBox1 is selected&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetLabel(&quot;CheckBox1 is unselected&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(button.GetName() == &quot;checkbox2&quot;)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(button.IsSelected())
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetLabel(&quot;CheckBox2 is selected&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;button.SetLabel(&quot;CheckBox2 is unselected&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;Application&amp; mApplication;
-}</pre>
+<pre class="prettyprint">
+// ... same to the push button example
+  void Create( Application& application )
+  {
+    CheckBoxButton button = CheckBoxButton::New();
+    button.SetLabel( "Select" );
+    button.SetSize( 100,40 );
+    button.SetBackgroundColor( Vector4( 1,0,0,1 ) );
+    button.SetParentOrigin( ParentOrigin::CENTER );
+    button.StateChangedSignal().Connect( this, &ButtonController::OnButtonStateChanged );
+    Stage::GetCurrent().Add( button );
+  }
+  bool OnButtonStateChanged( Toolkit::Button button )
+  {
+    cout << "OnButtonStateChanged " << button.IsSelected() << endl;
+    return true;
+  }
+// ... same to the push button example
+</pre>
 
 <h2 id="RadioButton" name="RadioButton">Radio Button</h2>
  
@@ -213,44 +157,38 @@
 <p class="figure">Figure: Radio button</p>  
 	<p align="center"><img alt="Radio button" src="../../images/radio_button.png"/></p> 
 
-<p>Radio buttons can be grouped. 2 or more radio buttons are in the same group when they have the same parent. In each group, only 1 radio button can be selected at a given time. The following is a basic example of implementing a radio button:</p>
+<p>Usually, radio buttons are grouped. Two or more radio buttons are in the same group when they have the same parent. In each group, only 1 radio button can be selected at a given time. You can use <span style="font-family: Courier New,Courier,monospace;">Button::StateChangedSignal()</span> signal to check which radio button is selected. A basic checkbox button example is as follows:</p>
 
-<pre class="prettyprint">class ButtonsController: public ConnectionTracker
-{
-&nbsp;&nbsp;&nbsp;ButtonsController(Application&amp; application)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: mApplication(application)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mApplication.InitSignal().Connect(this, &amp;ButtonsController::Create);
-&nbsp;&nbsp;&nbsp;}
+<pre class="prettyprint">
+// ... same to the push button example
+  void Create( Application& application )
+  {
+    Actor radioGroup = Actor::New();
+    radioGroup.SetParentOrigin( ParentOrigin::CENTER );
+    Stage::GetCurrent().Add(radioGroup);
 
-&nbsp;&nbsp;&nbsp;void Create(Application&amp; application)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Stage stage = Stage::GetCurrent();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Actor radioGroup = Actor::New();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stage.Add(redioGroup);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioGroup.SetParentOrigin(ParentOrigin::TOP_LEFT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioGroup.SetAnchorPoint(ParentOrigin::TOP_LEFT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioGroup.SetPosition(0.0f, 0.0f);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioGroup.SetSize(400.0f, 400.0);
+    RadioButton button1 = RadioButton::New();
+    button1.SetLabel( "button1" );
+    button1.SetBackgroundColor( Vector4(1,0,0,1) );
+    button1.SetPosition( 0, -40 );
+    radioGroup.Add( button1 );
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RadioButton radioButton1 = RadioButton::New(&quot;label&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioButton1.SetParentOrigin(ParentOrigin::TOP_LEFT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioButton1.SetAnchorPoint(ParentOrigin::TOP_LEFT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioButton1.SetPosition(0.0f, 0.0f);
+    RadioButton button2 = RadioButton::New();
+    button2.SetLabel( "button2" );
+    button2.SetBackgroundColor( Vector4(0,0,1,1) );
+    button2.SetPosition( 0, 40 );
+    radioGroup.Add( button2 );
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;RadioButton radioButton2 = RadioButton::New(&quot;label&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioButton2.SetParentOrigin(ParentOrigin::TOP_LEFT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioButton2.SetAnchorPoint(ParentOrigin::TOP_LEFT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioButton2.SetPosition(0.0f, 40.0f);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioButton1.StateChangedSignal().Connect(this, &amp;ButtonsController::EnableSelectButton);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioGroup.Add(radioButton1);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radioGroup.Add(radioButton2);
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;Application&amp; mApplication;
-}</pre>
+    button1.StateChangedSignal().Connect( this, &ButtonController::OnButtonStateChanged );
+    button2.StateChangedSignal().Connect( this, &ButtonController::OnButtonStateChanged );
+  }
+  bool OnButtonStateChanged( Toolkit::Button button )
+  {
+    cout << "OnButtonStateChanged " << button.GetLabel() << " " << button.IsSelected() << endl;
+    return true;
+  }
+// ... same to the push button example
+</pre>
 
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
