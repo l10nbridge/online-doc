@@ -23,9 +23,10 @@
 		<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#touch">Using Signals and Slots with Touch Events</a></li>
+			<li><a href="#touch">Example: Using Signals and Slots with Touch Events</a></li>
 			<li><a href="#input">Input Signals</a></li>
 			<li><a href="#gesture">Gestures</a></li>
+			<li><a href="#automatic">Automatic Connection Management</a></li>
 		</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
@@ -59,9 +60,9 @@
 
 <ul>
 <li>Signal
-<p>Notifications containing event information emitted by GUI components. Similar to events or notifications.</p></li>
+<p>Notifications containing event information emitted by GUI components. Also known as events or notifications.</p></li>
 <li>Slot
-<p>Special functions receiving signals. Similar to event handlers, observer, listener, or callbacks.</p></li>
+<p>Special functions receiving signals. Also known as event handlers, observer, listener, or callbacks.</p></li>
 </ul>
 <p>DALi emits various types of signals to an application to inform it of user actions and the application can handle them through slots.</p>
 
@@ -72,15 +73,15 @@
  
 <p>The signal and slot system has following advantages:</p>
 <ul>
-<li>Object-oriented: must support callbacks for C++ member functions</li>
-<li>Type safe: compiler must be able to check for type safety</li>
-<li>Non-coupling: no dependency between caller and callee</li>
-<li>Non-type-intrusive: no modification to caller or callee types</li>
-<li>Generic: must work for all types of call-backs</li>
-<li>Many-to-many relationship: for example, 1 slot can connect to many signals and 1 signal can be connected to many slots</li>
+<li>Object-oriented: Support callbacks for C++ member functions</li>
+<li>Type safe: Compiler is able to check for type safety</li>
+<li>Non-coupling: No dependency between caller and callee</li>
+<li>Non-type-intrusive: No modification to caller or callee types</li>
+<li>Generic: Work for all types of callbacks</li>
+<li>Many-to-many relationship: For example, 1 slot can connect to many signals and 1 signal can be connected to many slots</li>
 </ul>
 
-<h2 id="touch" name="touch">Using Signals and Slots with Touch Events</h2>
+<h2 id="touch" name="touch">Example: Using Signals and Slots with Touch Events</h2>
 <p>The <span style="font-family: Courier New,Courier,monospace;">Dali::Actor</span> class provides the <span style="font-family: Courier New,Courier,monospace;">TouchedSignal()</span> function to inform the application that a user touches the actor. It is defined as follows:</p>
 
 <pre class="prettyprint">typedef Signal&lt; bool (Actor, const TouchEvent&amp;)&gt; TouchSignalType;
@@ -90,7 +91,7 @@ TouchSignalType&amp;TouchedSignal();</pre>
 
 <pre class="prettyprint">bool YourCallbackName(Actor actor, const TouchEvent&amp;event);</pre>
 
-<p>The return value <span style="font-family: Courier New,Courier,monospace;">true</span> indicates that the touch event can be consumed. Otherwise, the signal is emitted on the next sensitive parent of the actor. The return value is valid only for the <span style="font-family: Courier New,Courier,monospace;">TouchedSignal()</span> function and other types of signals may not have a return values.</p>
+<p>The return value <span style="font-family: Courier New,Courier,monospace;">true</span> indicates that the touch event should be consumed. Otherwise, the signal is emitted on the next sensitive parent of the actor. This meaning is valid for the <span style="font-family: Courier New,Courier,monospace;">TouchedSignal()</span>, and other types of signals may not have a return value.</p>
 
 <p>Each point on the screen being or having been touched is represented by the <span style="font-family: Courier New,Courier,monospace;">Dali::TouchPoint</span> object. This object stores information about the state of the touch point (such as down, up, or motion.) and the coordinates of the touch.</p>
 
@@ -98,50 +99,54 @@ TouchSignalType&amp;TouchedSignal();</pre>
 
 <p>The following example shows how a connection to a touch event signal can be established:</p>
 
-<pre class="prettyprint">bool OnTouch(Actor actor, const TouchEvent&amp;touch)
-{
-&nbsp;&nbsp;&nbsp;bool handled = false;
+<pre class="prettyprint">
+  // ... Assuming this code is in the HelloWorldController class
+  void Create( Application& application )
+  {
+    Control actor = Control::New(); // Control is one of the simplest types of Actor that has visible form
+    actor.SetParentOrigin( ParentOrigin::CENTER );
+    actor.SetSize( 100.0f, 100.0f );
+    actor.SetBackgroundColor( Vector4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+    actor.TouchedSignal().Connect( this, &HelloWorldController::OnTouch );
+    Stage::GetCurrent().Add( actor );
+  }
 
-&nbsp;&nbsp;&nbsp;switch(touch.GetPointCount())
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 1: // Single touch
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (touch.GetPoint(0).GetState == TouchPoint::Down)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Do action when first touch on screen
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handled = true;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 2: // Multi-touch event
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;return handled;&nbsp;&nbsp;&nbsp;// true if we have handled the touch, false otherwise
-}
-
-// Elsewhere
-Actor actor = Actor::New();
-actor.TouchedSignal().Connect(&amp;OnTouch);</pre>
+  bool OnTouch( Actor actor, const TouchEvent&touch )
+  {
+    bool handled = false;
+    unsigned int pointCount = touch.GetPointCount();
+    if( pointCount == 1)
+    {
+      // Do action when first touch on screen
+      handled = true;
+    }
+    else if( pointCount > 1)
+    {
+      // Do action when multi-touch on screen
+      handled = true;
+    }
+    return handled;   // true if we have handled the touch, false otherwise
+  }
+  // ...
+</pre>
 
 <p>The touch event is first emitted to the hit actor by the primary touch point, which is the first point that the user touches. If this hit actor does not handle the event, then the event is offered to the hit actor&#39;s parent. Again, if the parent does not handle this event, it is then offered to its parent and so on until the stage is reached or the event is consumed.</p>
 
-<p>If a parent and child both connect to the touch signal, the touch event is first offered to the child. If it is consumed by the child, the is not informed.</p>
+<p>If a parent and child actor both connect to the touch signal, the touch event is first offered to the child. If it is consumed by the child, then is not informed to the parent.</p>
 
 <h2 id="input" name="input">Input Signals</h2>
 
-<p>Many DALi classes provide various signals to notify events to the application. The basic DALi input signals are as follows:</p>
+<p>Many DALi classes provide various signals to notify events to the application. Among them, the most basic type of signals would be input signals. This section briefly introduces these input signals in DALi.</p>
+
+<p>The basic DALi input signals are as follows:</p>
 
 <ul>
-<li>Touched signal: notify screen touch or mouse click</li>
-<li>Hovered signal: notify mouse hovering</li>
-<li>Wheel event signal: notify mouse wheel rolling</li>
-<li>Key event signal: notify keyboard input</li>
-<li>Key input focus signals: notify that a control is ready to receive key event signals</li>
-<li>Keyboard focus signals: notify moved focus by navigation keys (such as left or right)</li>
+<li><strong>Touched signal</strong> notifies screen touch or mouse click</li>
+<li><strong>Hovered signal</strong> notifies mouse hovering</li>
+<li><strong>Wheel event signal</strong> notifies mouse wheel rolling</li>
+<li><strong>Key event signal</strong> notifies keyboard input</li>
+<li><strong>Key input focus signals</strong> notifies that a control is ready to receive key event signals</li>
+<li><strong>Keyboard focus signals</strong> notifies moved focus by navigation keys (such as left or right)</li>
 </ul>
 <p>These signals are provided by the following classes:</p>
 
@@ -159,18 +164,18 @@ actor.TouchedSignal().Connect(&amp;OnTouch);</pre>
     </tr>
     <tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">TouchedSignal()</span></td>
-		<td>Emitted when touch input is received by the actor.
-		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Actor actor, const TouchEvent&amp;event);</span></p></td>
+		<td>Emitted when touch input is received.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Actor actor, const TouchEvent&amp; event);</span></p></td>
 	</tr>
 	<tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">HoveredSignal()</span></td>
-		<td>Emitted when hover input is received by the actor.
-		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Actor actor, const HoverEvent&amp;event);</span></p></td>
+		<td>Emitted when hover input is received.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Actor actor, const HoverEvent&amp; event);</span></p></td>
 	</tr>
 	<tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">WheelEventSignal()</span></td>
-		<td>Emitted when wheel event is received by the actor.
-		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Actor actor, const WheelEvent&amp;event);</span></p></td>
+		<td>Emitted when wheel event is received.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Actor actor, const WheelEvent&amp; event);</span></p></td>
 	</tr>
    </tbody>
   </table>
@@ -192,18 +197,18 @@ actor.TouchedSignal().Connect(&amp;OnTouch);</pre>
     </tr>
     <tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">TouchedSignal()</span></td>
-		<td>Emitted when touch input is received by the actor.
-		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(const TouchEvent&amp;event)</span></p></td>
+		<td>Emitted when touch input is received.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(const TouchEvent&amp; event)</span></p></td>
 	</tr>
 	<tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">HoveredSignal()</span></td>
-		<td>Emitted when hover input is received by the actor.
-		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(const TouchEvent&amp;event);</span></p></td>
+		<td>Emitted when hover input is received.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(const TouchEvent&amp; event);</span></p></td>
 	</tr>
 	<tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">KeyEventSignal()</span></td>
-		<td>Emitted when a key event is received by the actor.
-		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(const KeyEvent&amp;event);</span></p></td>
+		<td>Emitted when a key event is received.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(const KeyEvent&amp; event);</span></p></td>
 	</tr>
    </tbody>
   </table>
@@ -225,24 +230,29 @@ actor.TouchedSignal().Connect(&amp;OnTouch);</pre>
     </tr>
     <tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">KeyEventSignal()</span></td>
-		<td>Emitted when touch input is received by the actor.
-		</td>
+		<td>Emitted when a key event is received.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Control control, const KeyEvent& event);</span></p></td>
 	</tr>
 	<tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">KeyInputFocusGainedSignal()</span></td>
-		<td>Emitted when hover input is received by the actor.
-		</td>
+		<td>Emitted when the control gets key input focus.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Control control);</span></p></td>
 	</tr>
 	<tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">KeyInputFocusLostSignal()</span></td>
-		<td>Emitted when a key event is received by the actor.
+		<td>Emitted when the control loses key input focus which could be due to it being gained by another Control or Actor or just cleared from this control as no longer required.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">bool YourCallbackName(Control control);</span></p></td>
+	</tr>
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace;">TouchedSignal(), HoveredSignal(), KeyEventSignal()</span></td>
+		<td>Same as the ones supported by <span style="font-family: Courier New,Courier,monospace;">Actor</span>
 		</td>
 	</tr>
    </tbody>
   </table>
 
 <p>The key event signal is provided by the <span style="font-family: Courier New,Courier,monospace;">Dali::Stage</span> and <span style="font-family: Courier New,Courier,monospace;">Dali::Toolkit::Control</span> classes, not by the <span style="font-family: Courier New,Courier,monospace;">Dali::Actor</span>  class. The <span style="font-family: Courier New,Courier,monospace;">Dali::Actor</span>  class is not designed to get key events. To receive key events, an actor must be an instance of the <span style="font-family: Courier New,Courier,monospace;">Dali::Toolkit::Control </span> class or one of its subclasses.</p>
-<p>The <span style="font-family: Courier New,Courier,monospace;">Dali::Toolkit::Control </span> class can receive touch, hover, and wheel events as it inherits from the <span style="font-family: Courier New,Courier,monospace;">Dali::Actor</span>  class.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace;">Dali::Toolkit::Control </span> class also can receive touch, hover, and wheel events as it inherits from the <span style="font-family: Courier New,Courier,monospace;">Dali::Actor</span>  class.</p>
 </li>
 
 <li>
@@ -259,28 +269,33 @@ actor.TouchedSignal().Connect(&amp;OnTouch);</pre>
     </tr>
     <tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">PreFocusChangeSignal()</span></td>
-		<td>Emitted when touch input is received by the actor.
-		</td>
+		<td>Emitted before the focus is going to be changed.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">Actor YourCallbackName(Actor currentFocusedActor, Actor proposedActorToFocus, Control::KeyboardFocus::Direction direction);</span></p></td>
 	</tr>
 	<tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">FocusChangedSignal()</span></td>
-		<td>Emitted when hover input is received by the actor.
-		</td>
+		<td>Emitted after the current focused actor has been changed.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(Actor originalFocusedActor, Actor currentFocusedActor);</span></p></td>
 	</tr>
 	<tr>
 		<td><span style="font-family: Courier New,Courier,monospace;">FocusGroupChangedSignal()</span></td>
-		<td>Emitted when a wheel event is received by the actor.
-		</td>
+		<td>Emitted when the focus group has been changed.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(Actor currentFocusedActor, bool forward);</span></p></td>
 	</tr>
 	<tr>
-		<td><span style="font-family: Courier New,Courier,monospace;">FocusedActorActivatedSignal()</span></td>
-		<td>Emitted when a wheel event is received by the actor.
+		<td><span style="font-family: Courier New,Courier,monospace;">FocusedActorEnterKeySignal()</span></td>
+		<td>Emitted when the current focused actor has the enter key pressed on it.
+		<p>Callback: <span style="font-family: Courier New,Courier,monospace;">void YourCallbackName(Actor enterPressedActor);</span></p></td>
 		</td>
 	</tr>
    </tbody>
   </table>
+
+<p><span style="font-family: Courier New,Courier,monospace;">Dali::Toolkit::KeyboardFocusManager</span> provides the functionality of handling keyboard navigation and maintaining the two dimensional keyboard focus chain. Disimilar to the key input focus, the keyboard focus is about the focus moving between actors, and that's why this signal is provided by the specific focus managing class.</p>
+
 </li>
 </ul>
+
 
 The following DALi classes provide signals:
 <ul>
@@ -319,27 +334,45 @@ The following DALi classes provide signals:
 <p>DALi currently supports following gesture detectors:</p>
 
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace;">Dali::LongPressGestureDetector</span>: detects when the user does a long-press action.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">Dali::TapGestureDetector</span>: detects when the user does a tap action.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">Dali::PinchGestureDetector</span>: detects when the user moves two fingers towards or away from each other.</li>
-<li><span style="font-family: Courier New,Courier,monospace;">Dali::PanGestureDetector</span>: detects when the user moves one or more fingers in the same direction.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">Dali::LongPressGestureDetector</span> detects when the user does a long-press action.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">Dali::TapGestureDetector</span> detects when the user does a tap action.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">Dali::PinchGestureDetector</span> detects when the user moves two fingers towards or away from each other.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">Dali::PanGestureDetector</span> detects when the user moves one or more fingers in the same direction.</li>
 </ul>
 
 <p>The example below shows how an application can be notified of a pinch gesture:</p>
 
-<pre class="prettyprint">void OnPinch(Actor actor, PinchGesture pinch)
-{
-&nbsp;&nbsp;&nbsp;// Scale your actor according to the pinch scale
-&nbsp;&nbsp;&nbsp;Vector3 newSize = actor.GetCurrentSize() * pinch.GetScale();
-&nbsp;&nbsp;&nbsp;actor.SetSize(newSize);
-}
+<pre class="prettyprint">
+  // ... Assuming this code is in the HelloWorldController class
+  void Create( Application& application )
+  {
+    PushButton actor = PushButton::New();  // Another type of Actor
+    actor.SetParentOrigin( ParentOrigin::CENTER );
+    actor.SetSize( 100.0f, 100.0f );
+    Stage::GetCurrent().Add( actor );
 
-// Elsewhere
-PinchDetector detector = PinchDetector::New();
-detector.Attach(myActor);
-detector.DetectedSignal().Connect(&amp;OnPinch);</pre>
+    PinchGestureDetector detector = PinchGestureDetector::New();
+    detector.Attach( actor );
+    detector.DetectedSignal().Connect( this, &HelloWorldController::OnPinch );
+  }
 
+  void OnPinch( Actor actor, const PinchGesture& pinch )
+  {
+     // Scale your actor according to the pinch scale
+     Vector3 newSize = actor.GetCurrentSize() * pinch.scale;
+     actor.SetSize( newSize );
+  }
+  // ...
+</pre>
 
+<h2 id="automatic" name="automatic">Automatic Connection Management</h2>
+
+<p>Let's say we have a pair of connected signal (for example, a button clicked signal) and slot (for example, a toolbar object having the callback for the signal).
+If one of them (the button or the toolbar) is deleted without any notification, then the application will crash when the signal is emitted or the slot tries to disconnect the signal.</p>
+
+<p>DALi provides the automatic connection management mechanism to prevent this kind of situation. The key is <span style="font-family: Courier New,Courier,monospace;">Dali::ConnectionTracker</span> class. It tracks connections between signals and slots, performs automatic disconnection when either the singal or slot is deleted.</p>
+
+<p>That's why all the DALi sample codes start with a controller class derived from <span style="font-family: Courier New,Courier,monospace;">Dali::ConnectionTracker</span>. This is a safe and typical way of DALi application. Of course you can think of another structure using <span style="font-family: Courier New,Courier,monospace;">Dali::ConnectionTracker</span>.
     
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
