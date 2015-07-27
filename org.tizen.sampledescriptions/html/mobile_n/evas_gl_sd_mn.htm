@@ -25,7 +25,7 @@
 	</div>
 
   <h1>EvasGLCube Sample Overview</h1>
-  <p>The EvasGLCube sample application demonstrates how to implement a rotatable cube on the screen using Evas_GL with the Tizen SDK. The sample shows how to handle polygon geometry, and how to write a simple vertex and fragment shader for the cube. Evas_GL is similar to the EGL&#8482; layer and is related to ElmGLView.</p>
+  <p>The EvasGLCube sample application demonstrates how to implement a rotatable cube on the screen using EvasGL with the Tizen SDK. The sample shows how to handle polygon geometry, and how to write a simple vertex and fragment shader for the cube. EvasGL is similar to the EGL&#8482; layer and is related to GLView.</p>
   
   
   	  <table class="note"> 
@@ -34,7 +34,7 @@
 		 <th class="note">Note</th> 
 		</tr> 
 		<tr> 
-		 <td class="note">The application presented in this overview is not a full Tizen application, since it does not use the Application Framework. The application simply starts and runs.<p>A 3D application using the OpenGL&reg; ES must use the ElmGLView. Evas GL can be used in special cases, such as a multi-thread.</p></td> 
+		 <td class="note">The application presented in this overview is not a full Tizen application, since it does not use the Application Framework. The application simply starts and runs.<p>A 3D application using the OpenGL ES must use the GLView. EvasGL can be used in special cases, such as a multi-thread.</p></td>
 		</tr> 
 	   </tbody> 
 	  </table> 
@@ -42,11 +42,11 @@
   <p>The following figure illustrates the main screen of the EvasGLCube.</p>
 
     <p class="figure">Figure: EvasGLCube screen</p>
-  <p align="center"><img alt="Evas_GL screen" src="../images/evas_gl_sd.png" /></p>   
- 
-<h2>Setting up the OpenGL&reg; Surface</h2>
-<p>The Evas_GL interface is similar to the EGL interface. It can be connected to Evas so that OpenGL&reg; ES code works with Evas 2D objects.</p>
-<p>This sample shows how to implement with Evas_GL to use OpenGL&reg; ES:</p>
+  <p align="center"><img alt="EvasGLCube screen" src="../images/evas_gl_sd.png" /></p>
+
+<h2>Setting up the OpenGL ES Surface</h2>
+<p>The EvasGL interface is similar to the EGL interface. It can be connected to Evas so that OpenGL ES code works with Evas 2D objects.</p>
+<p>This sample shows how to implement with EvasGL to use OpenGL ES:</p>
 
 <p>Create the application:</p>
 <pre class="prettyprint">
@@ -58,7 +58,7 @@
 
 <pre class="prettyprint">EVAS_GL_GLOBAL_GLES2_DEFINE();</pre>
 
-<p>The Evas_GL or ElmGLView program uses the wrapper function by the supported Evas GL. The wrapper function&#39;s interface is the same as OpenGL&reg; ES&#39;s. This macro can provide a set of convenience wrapper function tables.</p>
+<p>The EvasGL or GLView program uses the wrapper functions by the supported Evas GL. The wrapper function&#39;s interface is the same as OpenGL ES&#39;s. This macro can provide a set of convenience wrapper function tables.</p>
 <pre class="prettyprint">
 Evas_Object *add_win(const char *name)
 {
@@ -74,33 +74,35 @@ Evas_Object *add_win(const char *name)
 &nbsp;&nbsp;&nbsp;return win;
 }
 </pre>
-<p>Before creating the Elm Window, set the GL Rendering Engine using the <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set(&quot;opengl&quot;)</span> function because Evas GL runs with Evas GL Render Engine.</p>
+<p>Before creating the Elm Window, we set the GL Rendering Engine using the <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set(&quot;opengl&quot;)</span> because EvasGL runs with EvasGL Render Engine.</p>
  
 <h2>Setting up Callbacks</h2>
 
 <p>To set up callbacks:</p>
 <ol>
-<li>Initialize the OpenGL&reg; ES.
+<li>Initialize the OpenGL ES.
 <p>The following example creates a shader:</p>
 <pre class="prettyprint">
 static void init_evasgl(appdata_s *ad)
 {
+&nbsp;&nbsp;&nbsp;Ecore_Animator *ani;
+
 &nbsp;&nbsp;&nbsp;// Set config of the surface for Evas GL
 &nbsp;&nbsp;&nbsp;ad-&gt;cfg = evas_gl_config_new();
-&nbsp;&nbsp;&nbsp;ad-&gt;cfg-&gt;color_format = EVAS_GL_RGBA_8888;
+&nbsp;&nbsp;&nbsp;ad-&gt;cfg-&gt;color_format = EVAS_GL_RGB_888;
 &nbsp;&nbsp;&nbsp;ad-&gt;cfg-&gt;depth_bits = EVAS_GL_DEPTH_BIT_24;
 &nbsp;&nbsp;&nbsp;ad-&gt;cfg-&gt;stencil_bits = EVAS_GL_STENCIL_NONE;
 &nbsp;&nbsp;&nbsp;ad-&gt;cfg-&gt;options_bits = EVAS_GL_OPTIONS_NONE;
 
 &nbsp;&nbsp;&nbsp;// Get the window size
 &nbsp;&nbsp;&nbsp;Evas_Coord w,h;
-&nbsp;&nbsp;&nbsp;evas_object_geometry_get(ad-&gt;win, NULL, NULL, &amp;w, &amp;h);
+&nbsp;&nbsp;&nbsp;evas_object_geometry_get(ad-&gt;win, NULL, NULL, &amp;ad-&gt;surface_w, &amp;ad-&gt;surface_h);
 
 &nbsp;&nbsp;&nbsp;// Get the Evas GL handle for doing GL things
 &nbsp;&nbsp;&nbsp;ad-&gt;evasgl = evas_gl_new(evas_object_evas_get(ad-&gt;win));
 
 &nbsp;&nbsp;&nbsp;// Create a surface and context
-&nbsp;&nbsp;&nbsp;ad-&gt;sfc = evas_gl_surface_create(ad-&gt;evasgl, ad-&gt;cfg, w, h);
+&nbsp;&nbsp;&nbsp;ad-&gt;sfc = evas_gl_surface_create(ad-&gt;evasgl, ad-&gt;cfg, ad-&gt;surface_w, ad-&gt;surface_h);
 &nbsp;&nbsp;&nbsp;ad-&gt;ctx = evas_gl_context_create(ad-&gt;evasgl, NULL);
 
 &nbsp;&nbsp;&nbsp;EVAS_GL_GLOBAL_GLES2_USE(ad-&gt;evasgl, ad-&gt;ctx);
@@ -111,8 +113,7 @@ static void init_evasgl(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;ad-&gt;mouse_down = EINA_FALSE;
 &nbsp;&nbsp;&nbsp;ad-&gt;initialized = EINA_FALSE;
 
-&nbsp;&nbsp;&nbsp;// Set up the image object. A filled one by default.
-&nbsp;&nbsp;&nbsp;ad-&gt;img = evas_object_image_filled_add(evas_object_evas_get(ad-&gt;win));
+&nbsp;&nbsp;&nbsp;ad-&gt;img = evas_object_image_filled_add(evas_object_evas_get(ad-&gt;conform));
 &nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_DEL, img_del_cb, ad);
 &nbsp;&nbsp;&nbsp;evas_object_image_pixels_get_callback_set(ad-&gt;img, img_pixel_cb, ad);
 
@@ -121,25 +122,16 @@ static void init_evasgl(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_MOUSE_UP, mouse_up_cb, ad);
 &nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_MOUSE_MOVE, mouse_move_cb, ad);
 
-&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;win, EVAS_CALLBACK_RESIZE, win_resize_cb, ad);
-&nbsp;&nbsp;&nbsp;ecore_animator_add(animate_cb, ad-&gt;img);
-}
-
-if (!ad-&gt;sfc) 
-{
-&nbsp;&nbsp;&nbsp;Evas_Native_Surface ns;
-
-&nbsp;&nbsp;&nbsp;ad-&gt;sfc = evas_gl_surface_create(ad-&gt;evasgl, ad-&gt;cfg, w, h);
-&nbsp;&nbsp;&nbsp;evas_gl_native_surface_get(ad-&gt;evasgl, ad-&gt;sfc, &amp;ns);
-&nbsp;&nbsp;&nbsp;evas_object_image_native_surface_set(ad-&gt;img, &amp;ns);
-&nbsp;&nbsp;&nbsp;evas_object_image_pixels_dirty_set(ad-&gt;img, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;ani = ecore_animator_add(animate_cb, ad-&gt;img);
+&nbsp;&nbsp;&nbsp;evas_object_data_set(ad->img, &quot;ani&quot;, ani);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(ad->conform,ad->img);
 }
 </pre>
-<p>To use Evas GL, create it, set its configuration, and create the Evas GL surface and context. For rendering, connect Evas GL with the Evas Object Image using the <span style="font-family: Courier New,Courier,monospace">evas_object_image_native_surface_set()</span> function.</p>
+<p>To use EvasGL, we first create it, then set its configuration, and create the Evas GL surface and context. For rendering, we connect EvasGL with the Evas Object Image using the <span style="font-family: Courier New,Courier,monospace">evas_object_image_native_surface_set()</span>.</p>
 </li>
 
 <li>Resize callbacks.
-<p>The Evas GL resize behavior is related to Evas Object Image or Elm Window. In the following example, the Elm Window resize callback is used. When resizing occurs, Evas GL Surface is recreated and reconnected to Evas Object Image.</p>
+<p>The EvasGL resize behavior is related to Evas Object Image or Elm Window. In the following example, the Elm Window resize callback is used. When resizing occurs, EvasGL Surface is recreated and reconnected to Evas Object Image.</p>
 <pre class="prettyprint">
 static void win_resize_cb(void *data, Evas *e , Evas_Object *obj , void *event_info)
 {
@@ -152,21 +144,21 @@ static void win_resize_cb(void *data, Evas *e , Evas_Object *obj , void *event_i
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;sfc = NULL;
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;Evas_Coord w,h;
-&nbsp;&nbsp;&nbsp;evas_object_geometry_get(obj, NULL, NULL, &amp;w, &amp;h);
-&nbsp;&nbsp;&nbsp;evas_object_image_size_set(ad-&gt;img, w, h);
-&nbsp;&nbsp;&nbsp;evas_object_resize(ad-&gt;img, w, h);
+&nbsp;&nbsp;&nbsp;evas_object_geometry_get(obj, NULL, NULL, &amp;ad->surface_w, &amp;ad->surface_h);
+&nbsp;&nbsp;&nbsp;evas_object_image_size_set(ad-&gt;img, ad->surface_w, ad->surface_h);
+&nbsp;&nbsp;&nbsp;evas_object_resize(ad-&gt;img, ad->surface_w, ad->surface_h);
 &nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;img);
 
 &nbsp;&nbsp;&nbsp;if (!ad-&gt;sfc) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Native_Surface ns;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;sfc = evas_gl_surface_create(ad-&gt;evasgl, ad-&gt;cfg, w, h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;sfc = evas_gl_surface_create(ad-&gt;evasgl, ad-&gt;cfg, ad->surface_w, ad->surface_h);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_gl_native_surface_get(ad-&gt;evasgl, ad-&gt;sfc, &amp;ns);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_native_surface_set(ad-&gt;img, &amp;ns);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_pixels_dirty_set(ad-&gt;img, EINA_TRUE);
 &nbsp;&nbsp;&nbsp;}
+}
 </pre>
 </li>
 
@@ -175,7 +167,7 @@ static void win_resize_cb(void *data, Evas *e , Evas_Object *obj , void *event_i
 <pre class="prettyprint">
  evas_object_image_pixels_get_callback_set(ad-&gt;img, img_pixel_cb, ad);
 </pre>
-<p>This callback function is provided for on-demand mode. Especially, if Evas GL uses <span style="font-family: Courier New,Courier,monospace">EVAS_GL_OPTIONS_DIRECT</span>, all OpenGL&reg; ES options are called in this callback function.</p>
+<p>This callback function is provided for on-demand mode. Especially, if Evas GL uses <span style="font-family: Courier New,Courier,monospace">EVAS_GL_OPTIONS_DIRECT</span>, all OpenGL ES options are called in this callback function.</p>
 <pre class="prettyprint">
 static void img_pixel_cb(void *data, Evas_Object *obj)
 {
@@ -199,19 +191,19 @@ static void img_pixel_cb(void *data, Evas_Object *obj)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vbo);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glBufferData(GL_ARRAY_BUFFER, 3 * 72 * 4, cube_vertices,GL_STATIC_DRAW);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;init_matrix(view);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (w &gt; h) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ad->surface_w &gt; ad->surface_h)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aspect = (float)w/h;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aspect = (float)ad->surface_w / ad->surface_h;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_set_ortho(view, -1.0 * aspect, 1.0 * aspect, -1.0, 1.0, -1.0, 1.0);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aspect = (float)h/w;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aspect = (float)ad->surface_h / ad->surface_w;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_set_ortho(view, -1.0, 1.0, -1.0 * aspect,  1.0 *aspect, -1.0, 1.0);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;initialized = EINA_TRUE;
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;glViewport(0, 0, w, h);
+&nbsp;&nbsp;&nbsp;glViewport(0, 0, ad->surface_w, ad->surface_h);
 &nbsp;&nbsp;&nbsp;glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 &nbsp;&nbsp;&nbsp;glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -237,7 +229,7 @@ static void img_pixel_cb(void *data, Evas_Object *obj)
 </li>
 
 <li>Add animators.
-<p>The application above is technically working but the scene does not get updated unless the object is marked as such. Games usually use an animator to have a regular update of the scene. The following is an example for a default update refresh rate:</p>
+<p>The scene does not get updated unless the object is marked as such. Games usually use an animator to have a regular update of the scene. The following is an example for a default update refresh rate:</p>
 <pre class="prettyprint">
 static Eina_Bool animate_cb(void *data)
 {
@@ -251,15 +243,17 @@ static Eina_Bool animate_cb(void *data)
 }
 </pre>
 
-<p>The <span style="font-family: Courier New,Courier,monospace">evas_object_image_pixels_dirty_set()</span> function is the Evas Object image which is connected Evas GL. After that, the <span style="font-family: Courier New,Courier,monospace">evas_object_image_pixels_get_callback_set()</span> callback function is called whenever Evas renders.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">evas_object_image_pixels_dirty_set()</span> function sets dirty bit of the Evas Object image which is connected Evas GL. After that, the <span style="font-family: Courier New,Courier,monospace">evas_object_image_pixels_get_callback_set()</span> callback function is called whenever Evas renders.</p>
 </li>
 
 <li>Delete callbacks.
-<p>The delete callback is triggered when the Evas GL is destroyed from the main loop. No other callback can be called on the same object afterwards.</p>
+<p>The delete callback is triggered when the EvasGL is destroyed from the main loop. No other callback can be called on the same object afterwards.</p>
 <pre class="prettyprint">
 static void img_del_cb(void *data, Evas *e , Evas_Object *obj , void *event_info)
 {
 &nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;Ecore_Animator *ani = evas_object_data_get(ad->img, &quot;ani&quot;);
+&nbsp;&nbsp;&nbsp;ecore_animator_del(ani);
 
 &nbsp;&nbsp;&nbsp;// Free the GL resources when image object is deleted
 &nbsp;&nbsp;&nbsp;evas_gl_make_current(ad-&gt;evasgl, ad-&gt;sfc, ad-&gt;ctx);
