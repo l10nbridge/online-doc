@@ -120,6 +120,92 @@ static void _update_scale(image_viewer_view *view)
 <p>This view allows the user to transform a source image into a new image with a different pixel format and size. Internally, when the <strong>Change pixel format</strong> button is clicked, the <span style="font-family: Courier New,Courier,monospace;">_change_format</span> callback is called and the <span style="font-family: Courier New,Courier,monospace;">_process</span> method executed:</p>
 
 <pre class="prettyprint">
+int image_sample_util_resize(const int src_w, const int src_h, const uchar *src, const int dest_w, const int dest_h,  uchar *dest)
+{
+&nbsp;&nbsp;&nbsp;if (src_w &lt;= 0 || src_h &lt;= 0 || !src || dest_w &lt;= 0 || dest_h &lt;= 0 || !dest)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return IMAGE_UTIL_ERROR_INVALID_PARAMETER;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;int h = 0, w = 0;
+&nbsp;&nbsp;&nbsp;float t, u, coef;
+&nbsp;&nbsp;&nbsp;t = u = coef = 0.0;
+&nbsp;&nbsp;&nbsp;float c1, c2, c3, c4;
+&nbsp;&nbsp;&nbsp;c1 = c2 = c3 = c4 = 0.0;
+&nbsp;&nbsp;&nbsp;u_int32_t pixel1, pixel2, pixel3, pixel4;
+&nbsp;&nbsp;&nbsp;pixel1 = pixel2 = pixel3 = pixel4 = 0;
+&nbsp;&nbsp;&nbsp;u_int32_t *pixel_res = NULL;
+&nbsp;&nbsp;&nbsp;u_int32_t red, green, blue, alpha;
+&nbsp;&nbsp;&nbsp;red = green = blue = alpha = 0;
+
+&nbsp;&nbsp;&nbsp;int i = 0, j = 0;
+&nbsp;&nbsp;&nbsp;for (j = 0; j &lt; dest_h; j++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;coef = (float) (j) / (float) (dest_h - 1) * (src_h - 1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h = (int) floor(coef);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (h &lt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (h &gt;= src_h - 1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h = src_h - 2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;u = coef - h;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; dest_w; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;coef = (float) (i) / (float) (dest_w - 1) * (src_w - 1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;w = (int) floor(coef);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (w &lt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;w = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (w &gt;= src_w - 1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;w = src_w - 2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t = coef - w;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c1 = (1 - t) * (1 - u);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c2 = t * (1 - u);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c3 = t * u;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c4 = (1 - t) * u;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pixel1 = *((u_int32_t*) (src + BRGA_BPP * (h * src_w + w)));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pixel2 = *((u_int32_t*) (src + BRGA_BPP * (h * src_w + w + 1)));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pixel3 = *((u_int32_t*) (src + BRGA_BPP * ((h + 1) * src_w + w + 1)));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pixel4 = *((u_int32_t*) (src + BRGA_BPP * ((h + 1) * src_w + w)));
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;blue = (uchar) pixel1 * c1 + (uchar) pixel2 * c2
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) pixel3 * c3 + (uchar) pixel4 * c4;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;green = (uchar) (pixel1 &gt;&gt; 8) * c1
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel2 &gt;&gt; 8) * c2
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel3 &gt;&gt; 8) * c3
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel4 &gt;&gt; 8) * c4;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;red = (uchar) (pixel1 &gt;&gt; 16) * c1
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel2 &gt;&gt; 16) * c2
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel3 &gt;&gt; 16) * c3
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel4 &gt;&gt; 16) * c4;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alpha = (uchar) (pixel1 &gt;&gt; 24) * c1
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel2 &gt;&gt; 24) * c2
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel3 &gt;&gt; 24) * c3
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (uchar) (pixel4 &gt;&gt; 24) * c4;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pixel_res = (u_int32_t*)(dest + BRGA_BPP * (i + j * dest_w));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*pixel_res = ((u_int32_t) alpha &lt;&lt; 24) | ((u_int32_t) red &lt;&lt; 16)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| ((u_int32_t) green &lt;&lt; 8) | (blue);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return IMAGE_UTIL_ERROR_NONE;
+}
+
 static bool _process(image_converter_view *view, double scale)
 {
 &nbsp;&nbsp;&nbsp;RETVM_IF(NULL == view, false, &quot;view is NULL&quot;);
@@ -148,7 +234,7 @@ static bool _process(image_converter_view *view, double scale)
 &nbsp;&nbsp;&nbsp;dest_buff = malloc(dest_size);
 &nbsp;&nbsp;&nbsp;RETVM_IF(NULL == dest_buff, false, &quot;malloc destination buffer error %d&quot;, dest_size);
 
-&nbsp;&nbsp;&nbsp;error = image_util_resize(dest_buff, &amp;dest_width , &amp;dest_height, src_buff, w, h, IMAGE_UTIL_COLORSPACE_BGRA8888);
+&nbsp;&nbsp;&nbsp;error = image_sample_util_resize(w, h, src_buff, dest_width , dest_height, dest_buff);
 &nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_ERROR_NONE == error)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object* im = evas_object_image_filled_add(evas_object_evas_get(view-&gt;layout));
@@ -176,7 +262,7 @@ static bool _process(image_converter_view *view, double scale)
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;else
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INF(&quot;Image buffer manipulation: image_util_resize error&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INF(&quot;Image buffer manipulation: image_sample_util_resize error&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = false;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;free(dest_buff);
@@ -319,6 +405,402 @@ static bool _process_colorspace_convert(color_converter_view *view)
 <p>This view allows the user to extract frames from the input video stream. Internally, when the frame slider is changed, the <span style="font-family: Courier New,Courier,monospace;">_sliderbar_changed_cb</span> callback is called and the <span style="font-family: Courier New,Courier,monospace;">frame_extractor_frame_get</span> method is executed:</p>
 
 <pre class="prettyprint">
+static inline rgb16 bgra_to_rgb(const bgra32 src)
+{
+&nbsp;&nbsp;&nbsp;rgb16 result = (rgb16)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( ((src.r &gt;&gt; (RGB32_CHANEL_BIT_SIZE - RGB16_R_SIZE)) &lt;&lt; RGB16_R_SHIFT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| ((src.g &gt;&gt; (RGB32_CHANEL_BIT_SIZE - RGB16_G_SIZE)) &lt;&lt; RGB16_G_SHIFT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| ((src.b &gt;&gt; (RGB32_CHANEL_BIT_SIZE - RGB16_B_SIZE)) &lt;&lt; RGB16_B_SHIFT));
+&nbsp;&nbsp;&nbsp;return result;
+}
+
+static inline bgra32 rgb_to_bgra(const rgb16 src)
+{
+&nbsp;&nbsp;&nbsp;bgra32 result = {};
+&nbsp;&nbsp;&nbsp;result.r = (uchar)( src &gt;&gt; RGB16_R_SHIFT) &lt;&lt; (RGB32_CHANEL_BIT_SIZE - RGB16_R_SIZE);
+&nbsp;&nbsp;&nbsp;result.g = (uchar)( src &gt;&gt; RGB16_G_SHIFT) &lt;&lt; (RGB32_CHANEL_BIT_SIZE - RGB16_G_SIZE);
+&nbsp;&nbsp;&nbsp;result.b = (uchar)( src &gt;&gt; RGB16_B_SHIFT) &lt;&lt; (RGB32_CHANEL_BIT_SIZE - RGB16_B_SIZE);
+&nbsp;&nbsp;&nbsp;result.a = RGB32_DEFAULT_ALPHA;
+&nbsp;&nbsp;&nbsp;return result;
+}
+
+static uchar clamp(int x)
+{
+&nbsp;&nbsp;&nbsp;if (x &gt; 255)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x = 255;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (x &lt; 0)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x = 0;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return x;
+}
+
+static inline uchar bgra_to_yuv_y(const bgra32 src)
+{
+&nbsp;&nbsp;&nbsp;return ((66*src.r + 129*src.g + 25*src.b) &gt;&gt; 8) + 16;
+}
+
+static inline uchar bgra_to_yuv_u(const bgra32 src)
+{
+&nbsp;&nbsp;&nbsp;return ((-38*src.r + -74*src.g + 112*src.b) &gt;&gt; 8) + 128;
+}
+
+static inline uchar bgra_to_yuv_v(const bgra32 src)
+{
+&nbsp;&nbsp;&nbsp;return ((112*src.r + -94*src.g + -18*src.b) &gt;&gt; 8) + 128;
+}
+
+static inline uchar yuv_to_r(const uchar yuv_y, const uchar yuv_u, const uchar yuv_v)
+{
+&nbsp;&nbsp;&nbsp;return clamp(yuv_y + 1.402 * (yuv_v - 128));
+}
+
+static inline uchar yuv_to_g(const uchar yuv_y, const uchar yuv_u, const uchar yuv_v)
+{
+&nbsp;&nbsp;&nbsp;return clamp(yuv_y - 0.344 * (yuv_u - 128) - 0.714 * (yuv_v - 128));
+}
+
+static inline uchar yuv_to_b(const uchar yuv_y, const uchar yuv_u, const uchar yuv_v)
+{
+&nbsp;&nbsp;&nbsp;return clamp(yuv_y + 1.772 * (yuv_u - 128));
+}
+
+static void _convert_bgra8888_to_yuv420( uchar *dest, const uchar *src,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int width, const int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int d_size, const int s_size)
+{
+&nbsp;&nbsp;&nbsp;unsigned int src_stride = (s_size / height);
+&nbsp;&nbsp;&nbsp;unsigned int pix_count = width * height;
+&nbsp;&nbsp;&nbsp;unsigned int upos = pix_count;
+&nbsp;&nbsp;&nbsp;unsigned int vpos = upos + upos / 4;
+
+&nbsp;&nbsp;&nbsp;unsigned int y;
+&nbsp;&nbsp;&nbsp;for (y = 0; y &lt; height; ++y )
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bgra32* src_pixel = (const bgra32*)&nbsp;&amp;(src[y * src_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int dest_line_pos = width * y;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if( !(y % 2) )
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; x += 2 )
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bgra32 pixel = src_pixel[x];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[dest_line_pos + x] = bgra_to_yuv_y(pixel);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[upos++] = bgra_to_yuv_u(pixel);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[vpos++] = bgra_to_yuv_v(pixel);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pixel = src_pixel[x + 1];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[dest_line_pos + x + 1] = bgra_to_yuv_y(pixel);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; ++x)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[dest_line_pos + x] = bgra_to_yuv_y( src_pixel[x] );
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void _convert_bgra8888_to_rgb565( uchar *dest, const uchar *src,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int width, const int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int d_size, const int s_size)
+{
+&nbsp;&nbsp;&nbsp;unsigned int src_stride = (s_size / height);
+&nbsp;&nbsp;&nbsp;unsigned int dest_stride = (d_size / height);
+
+&nbsp;&nbsp;&nbsp;unsigned int y;
+&nbsp;&nbsp;&nbsp;for (y = 0; y &lt; height; ++y)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const bgra32* src_pixel = (const bgra32*)&nbsp;&amp;(src[y * src_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rgb16* dest_pixel = (rgb16*) &amp;(dest[y * dest_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x&nbsp;&lt; width; ++x)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x] = bgra_to_rgb( src_pixel[x]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void _convert_rgb565_to_yuv420( uchar *dest, const uchar *src,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int width, const int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int d_size, const int s_size)
+{
+&nbsp;&nbsp;&nbsp;unsigned int src_stride = (s_size / height);
+&nbsp;&nbsp;&nbsp;unsigned int pix_count = width * height;
+&nbsp;&nbsp;&nbsp;unsigned int upos = pix_count;
+&nbsp;&nbsp;&nbsp;unsigned int vpos = upos + upos / 4;
+
+&nbsp;&nbsp;&nbsp;unsigned int y;
+&nbsp;&nbsp;&nbsp;for (y = 0; y &lt; height; ++y )
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const rgb16* src_pixel = (const rgb16*)&nbsp;&amp;(src[y * src_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int dest_line_pos = width * y;
+
+&nbsp;&nbsp;&nbsp;if ( !(y % 2) )
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; x += 2 )
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bgra32 pixel = rgb_to_bgra(src_pixel[x]);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[dest_line_pos + x] = bgra_to_yuv_y(pixel);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[upos++] = bgra_to_yuv_u(pixel);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[vpos++] = bgra_to_yuv_v(pixel);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pixel = rgb_to_bgra(src_pixel[x + 1]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[dest_line_pos + x + 1] = bgra_to_yuv_y(pixel);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; ++x)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bgra32 pixel = rgb_to_bgra(src_pixel[x]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest[dest_line_pos + x] = bgra_to_yuv_y(pixel);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void _convert_rgb565_to_bgra8888( uchar *dest, const uchar *src,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int width, const int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int d_size, const int s_size)
+{
+&nbsp;&nbsp;&nbsp;unsigned int src_stride = (s_size / height);
+&nbsp;&nbsp;&nbsp;unsigned int dest_stride = (d_size / height);
+
+&nbsp;&nbsp;&nbsp;unsigned int y;
+&nbsp;&nbsp;&nbsp;for (y = 0; y &lt; height; ++y)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const rgb16* src_pixel = (const rgb16*)&nbsp;&amp;(src[y * src_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bgra32* dest_pixel = (bgra32*)&nbsp;&amp;(dest[y * dest_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; ++x)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x] = rgb_to_bgra( src_pixel[x]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void _convert_yuv420_to_rgb565( uchar *dest, const uchar *src,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int width, const int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int d_size, const int s_size)
+{
+&nbsp;&nbsp;&nbsp;unsigned int pix_count = width * height;
+&nbsp;&nbsp;&nbsp;unsigned int dest_stride = (d_size / height);
+
+&nbsp;&nbsp;&nbsp;unsigned int y;
+&nbsp;&nbsp;&nbsp;for (y = 0; y &lt; height; y++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rgb16* dest_pixel = (rgb16*)&nbsp;&amp;(dest[y*dest_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; x++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uchar yuv_y = src[ y*width + x];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uchar yuv_u = src[ (int)(pix_count + (y/2)*(width/2)  + x/2)];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uchar yuv_v = src[ (int)(pix_count*1.25 + (y/2)*(width/2) + x/2)];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x] =
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;( ( yuv_to_r(yuv_y, yuv_u, yuv_v) &gt;&gt; (RGB32_CHANEL_BIT_SIZE - RGB16_R_SIZE)) &lt;&lt; RGB16_R_SHIFT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| ((yuv_to_g(yuv_y, yuv_u, yuv_v) &gt;&gt; (RGB32_CHANEL_BIT_SIZE - RGB16_G_SIZE)) &lt;&lt; RGB16_G_SHIFT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| ((yuv_to_b(yuv_y, yuv_u, yuv_v) &gt;&gt; (RGB32_CHANEL_BIT_SIZE - RGB16_B_SIZE)) &lt;&lt; RGB16_B_SHIFT);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void _convert_yuv420_to_bgra8888( uchar *dest, const uchar *src,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int width, const int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int d_size, const int s_size)
+{
+&nbsp;&nbsp;&nbsp;unsigned int pix_count = width * height;
+&nbsp;&nbsp;&nbsp;unsigned int dest_stride = (d_size / height);
+
+&nbsp;&nbsp;&nbsp;unsigned int y;
+&nbsp;&nbsp;&nbsp;for (y = 0; y &lt; height; y++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bgra32* dest_pixel = (bgra32*)&nbsp;&amp;(dest[dest_stride * y]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; x++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uchar yuv_y = src[ y*width + x];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uchar yuv_u = src[ (int)(pix_count + (y/2)*(width/2)  + x/2)];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uchar yuv_v = src[ (int)(pix_count*1.25 + (y/2)*(width/2) + x/2)];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].r = yuv_to_r(yuv_y, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].g = yuv_to_g(yuv_y, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].b = yuv_to_b(yuv_y, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].a = RGB32_DEFAULT_ALPHA;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void _convert_yuv422_to_bgra8888( uchar *dest, const uchar *src,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int width, const int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int d_size, const int s_size)
+{
+&nbsp;&nbsp;&nbsp;unsigned int dest_stride = (d_size / height);
+&nbsp;&nbsp;&nbsp;uchar yuv_u, yuv_v, yuv_y1, yuv_y2;
+&nbsp;&nbsp;&nbsp;yuv_u = yuv_v = yuv_y1 = yuv_y2 = 0;
+&nbsp;&nbsp;&nbsp;unsigned int y;
+&nbsp;&nbsp;&nbsp;for (y = 0; y &lt; height; y++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bgra32* dest_pixel = (bgra32*) &amp;(dest[dest_stride * y]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const uchar * src_line = &amp;(src[2 * y * width]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; x += 2)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yuv_y1 = src_line[2 * x + 1];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yuv_y2 = src_line[2 * x + 3];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yuv_u = src_line[2 * x];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yuv_v = src_line[2 * x + 2];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].r = yuv_to_r(yuv_y1, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].g = yuv_to_g(yuv_y1, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].b = yuv_to_b(yuv_y1, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].a = RGB32_DEFAULT_ALPHA;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x + 1].r = yuv_to_r(yuv_y2, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x + 1].g = yuv_to_g(yuv_y2, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x + 1].b = yuv_to_b(yuv_y2, yuv_u, yuv_v);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x + 1].a = RGB32_DEFAULT_ALPHA;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void _convert_rgb888_to_bgra8888( uchar *dest, const uchar *src,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int width, const int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int d_size, const int s_size)
+{
+&nbsp;&nbsp;&nbsp;unsigned int src_stride = (s_size / height);
+&nbsp;&nbsp;&nbsp;unsigned int dest_stride = (d_size / height);
+
+&nbsp;&nbsp;&nbsp;unsigned int y;
+&nbsp;&nbsp;&nbsp;for (y = 0; y &lt; height; ++y)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const uchar* src_pixel = &amp;(src[y * src_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bgra32* dest_pixel = (bgra32*) &amp;(dest[y * dest_stride]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned int x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; width; ++x)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].r = src_pixel[RGB24_BPP * x];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].g = src_pixel[RGB24_BPP * x + 1];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].b = src_pixel[RGB24_BPP * x + 2];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dest_pixel[x].a = RGB32_DEFAULT_ALPHA;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+int image_sample_util_convert_colorspace( uchar *dest , image_util_colorspace_e dest_colorspace,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const uchar *src , int width, int height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_util_colorspace_e src_colorspace)
+{
+&nbsp;&nbsp;&nbsp;RETVM_IF(NULL == src, IMAGE_UTIL_ERROR_INVALID_PARAMETER, "source buffer in NULL");
+&nbsp;&nbsp;&nbsp;RETVM_IF(NULL == dest, IMAGE_UTIL_ERROR_INVALID_PARAMETER, "destination buffer in NULL");
+&nbsp;&nbsp;&nbsp;RETVM_IF(width &lt;= 0 || height &lt;= 0, IMAGE_UTIL_ERROR_INVALID_PARAMETER, "width or heightis incorrect");
+&nbsp;&nbsp;&nbsp;int error = IMAGE_UTIL_ERROR_NONE;
+
+
+&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_COLORSPACE_BGRA8888 != src_colorspace
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; IMAGE_UTIL_COLORSPACE_RGB565 != src_colorspace
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; IMAGE_UTIL_COLORSPACE_I420 != src_colorspace
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; IMAGE_UTIL_COLORSPACE_UYVY != src_colorspace
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; IMAGE_UTIL_COLORSPACE_RGB888 != src_colorspace)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ERR("src_colorspace not supported yet");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return IMAGE_UTIL_ERROR_NOT_SUPPORTED_FORMAT;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_COLORSPACE_BGRA8888 != dest_colorspace
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; IMAGE_UTIL_COLORSPACE_RGB565 != dest_colorspace
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&amp; IMAGE_UTIL_COLORSPACE_I420 != dest_colorspace)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ERR("dest_colorspace not supported yet");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return IMAGE_UTIL_ERROR_NOT_SUPPORTED_FORMAT;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;unsigned int dest_size = 0;
+&nbsp;&nbsp;&nbsp;error = image_util_calculate_buffer_size(width, height, dest_colorspace, &dest_size);
+&nbsp;&nbsp;&nbsp;RETVM_IF(IMAGE_UTIL_ERROR_NONE != error, error, "image_util_calculate_buffer_size error");
+&nbsp;&nbsp;&nbsp;unsigned int src_size = 0;
+&nbsp;&nbsp;&nbsp;error = image_util_calculate_buffer_size(width, height, src_colorspace, &src_size);
+&nbsp;&nbsp;&nbsp;RETVM_IF(IMAGE_UTIL_ERROR_NONE != error, error, "image_util_calculate_buffer_size error");
+
+&nbsp;&nbsp;&nbsp;if (dest_colorspace == src_colorspace)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(dest, src, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return error;
+&nbsp;&nbsp;&nbsp;}
+
+
+&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_COLORSPACE_BGRA8888 == src_colorspace)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_COLORSPACE_I420 == dest_colorspace)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert_bgra8888_to_yuv420(dest, src, width, height, dest_size, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert_bgra8888_to_rgb565(dest, src, width, height, dest_size, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (IMAGE_UTIL_COLORSPACE_RGB565 == src_colorspace)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_COLORSPACE_I420 == dest_colorspace)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert_rgb565_to_yuv420(dest, src, width, height, dest_size, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert_rgb565_to_bgra8888(dest, src, width, height, dest_size, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (IMAGE_UTIL_COLORSPACE_I420 == src_colorspace)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_COLORSPACE_RGB565 == dest_colorspace)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert_yuv420_to_rgb565(dest, src, width, height, dest_size, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert_yuv420_to_bgra8888(dest, src, width, height, dest_size, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (IMAGE_UTIL_COLORSPACE_UYVY == src_colorspace)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_COLORSPACE_BGRA8888 == dest_colorspace)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert_yuv422_to_bgra8888(dest, src, width, height, dest_size, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ERR("dest_colorspace not supported yet");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return IMAGE_UTIL_ERROR_NOT_SUPPORTED_FORMAT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_COLORSPACE_BGRA8888 == dest_colorspace)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_convert_rgb888_to_bgra8888(dest, src, width, height, dest_size, src_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ERR("dest_colorspace not supported yet");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return IMAGE_UTIL_ERROR_NOT_SUPPORTED_FORMAT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return error;
+}
+
 bool frame_extractor_frame_get(const frame_extractor *extractor, unsigned char **frame, int pos)
 {
 &nbsp;&nbsp;&nbsp;bool result = false;
@@ -333,7 +815,7 @@ bool frame_extractor_frame_get(const frame_extractor *extractor, unsigned char *
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*frame = malloc(size + (extractor-&gt;width * extractor-&gt;height) * ARGB_PIXEL_SIZE);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (*frame)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = image_util_convert_colorspace(*frame , IMAGE_UTIL_COLORSPACE_BGRA8888, buf,  extractor-&gt;width, extractor-&gt;height, IMAGE_UTIL_COLORSPACE_RGB888);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = image_sample_util_convert_colorspace(*frame , IMAGE_UTIL_COLORSPACE_BGRA8888, buf,  extractor->width, extractor->height, IMAGE_UTIL_COLORSPACE_RGB888);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IMAGE_UTIL_ERROR_NONE == error)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = true;
