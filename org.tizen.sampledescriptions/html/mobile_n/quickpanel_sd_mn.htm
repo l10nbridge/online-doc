@@ -38,7 +38,6 @@
  <li>Sound: allows to switch the device into silent mode.</li>
 </ul>
 <p>Tap the icon to switch the setting on or off.</p>
-<p>In the middle of the screen there is a list of currently pending notifications. Tap any of them to dismiss the notification and launch the application to see its details.</p>
 
 <p>The following figure illustrates the quickpanel layout structure.</p>
 
@@ -55,7 +54,6 @@
  <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/network.set</span></li>
  <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/bluetooth</span></li>
  <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/led</span></li>
- <li><span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/notification</span></li>
 </ul>
 <p>You are able to run the application only on devices supporting the following features:</p>
 
@@ -69,14 +67,14 @@
 <p>The Quickpanel application follows the MVC pattern. Aside from standard native application module with the <span style="font-family: Courier New,Courier,monospace">main()</span> function, it consists of:</p>
 <ul>
  <li><span style="font-family: Courier New,Courier,monospace;">controler.c</span> module</li>
- <li><span style="font-family: Courier New,Courier,monospace;">light.c</span>, <span style="font-family: Courier New,Courier,monospace;">notifications.c</span>, <span style="font-family: Courier New,Courier,monospace;">sound.c</span>, and <span style="font-family: Courier New,Courier,monospace;">wifi.c</span> modules serving as the model</li>
- <li><span style="font-family: Courier New,Courier,monospace;">main_view.c</span>, <span style="font-family: Courier New,Courier,monospace;">control_panel.c</span>, and <span style="font-family: Courier New,Courier,monospace;">noti_list.c</span> modules serving as the view</li>
+ <li><span style="font-family: Courier New,Courier,monospace;">light.c</span>, <span style="font-family: Courier New,Courier,monospace;">sound.c</span>, and <span style="font-family: Courier New,Courier,monospace;">wifi.c</span> modules serving as the model</li>
+ <li><span style="font-family: Courier New,Courier,monospace;">main_view.c</span>, <span style="font-family: Courier New,Courier,monospace;">control_panel.c</span> modules serving as the view</li>
 </ul>
 
 
 <h3>Controller</h3>
 
-<p>The application is initialized with the <span style="font-family: Courier New,Courier,monospace">controler_init()</span> function. This function creates the main view and initializes the rest of the modules. It also adds callbacks to the main view for control panel item click and notification list item click. This is how information about user interactions is delivered to the controller module.</p>
+<p>The application is initialized with the <span style="font-family: Courier New,Courier,monospace">controler_init()</span> function. This function creates the main view and initializes the rest of the modules. It also adds callbacks to the main view for control panel item click. This is how information about user interactions is delivered to the controller module.</p>
 <pre class="prettyprint">
 Eina_Bool
 controler_init(void)
@@ -95,14 +93,12 @@ controler_init(void)
 
 &nbsp;&nbsp;&nbsp;// Error handling
 
-&nbsp;&nbsp;&nbsp;main_view_add_callbacks(__ui_state_changed_cb, __noti_clicked_cb);
-
 &nbsp;&nbsp;&nbsp;__init_modules();
 
 &nbsp;&nbsp;&nbsp;return EINA_TRUE;
 }
 </pre>
-<p>The <span style="font-family: Courier New,Courier,monospace">__init_modules()</span> function initializes Wi-Fi, light, sound and notification modules. It also checks states of the modules and updates the main view to reflect them.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">__init_modules()</span> function initializes Wi-Fi, light, sound modules. It also checks states of the modules and updates the main view to reflect them.</p>
 <p>Each module initialization procedure takes one or more callbacks as parameters. These callbacks are used to inform the controller module about the changes in respective modules. This is essential because these settings can also be changed from outside of the Quickpanel application and the view has to be updated accordingly.</p>
 <pre class="prettyprint">
 static void
@@ -131,9 +127,6 @@ __init_modules(void)
 &nbsp;&nbsp;&nbsp;if (sound_is_active())
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;main_view_update(ICON_TYPE_SOUND, ICON_ACTION_ACTIVATION);
 
-&nbsp;&nbsp;&nbsp;result = notifications_init(__noti_list_update_cb);
-
-&nbsp;&nbsp;&nbsp;// Error handling
 }
 </pre>
 
@@ -189,7 +182,6 @@ __light_poll_timeout_cb(void *data)
 <p>The Quickpanel sample application takes into account changes in three sound types (as it serves as mute/unmute application):</p>
 <ul>
  <li>System: volume level of system sounds such as key taps</li>
- <li>Notification: volume level of notification sounds (such as incoming SMS or email)</li>
  <li>Ringtone: volume level of an incoming call</li>
 </ul>
 <p>When the user wants to mute the phone, the application stores the initial volumes of these types and sets the current values to 0. The preserved volume values are restored when the user unmutes the phone.</p>
@@ -207,7 +199,6 @@ sound_init(sound_state_change_cb change_cb)
 &nbsp;&nbsp;&nbsp;sound_data.change_cb = change_cb;
 
 &nbsp;&nbsp;&nbsp;sound_data.system_sound_level = __get_sound_level(SOUND_TYPE_SYSTEM);
-&nbsp;&nbsp;&nbsp;sound_data.notification_sound_level = __get_sound_level(SOUND_TYPE_NOTIFICATION);
 &nbsp;&nbsp;&nbsp;sound_data.ringtone_sound_level = __get_sound_level(SOUND_TYPE_RINGTONE);
 
 &nbsp;&nbsp;&nbsp;return true;
@@ -238,9 +229,6 @@ __volume_changed_cb(sound_type_e type, unsigned int volume, void *user_data)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SOUND_TYPE_SYSTEM:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.system_sound_level = (int)volume;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SOUND_TYPE_NOTIFICATION:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.notification_sound_level = (int)volume;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SOUND_TYPE_RINGTONE:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sound_data.ringtone_sound_level = (int)volume;
@@ -318,70 +306,11 @@ wifi_set_off(void)
 }
 </pre>
 </li>
-
-<li>Notifications:
-<p>Notifications module implementation is timer based. The code periodically checks whether any system notifications exist, and if so, puts them into the notifications list.</p>
-<p>Notifications initialization code takes a single parameter, the controller callback function, to communicate when the notifications list needs to be updated.</p>
-<pre class="prettyprint">
-bool
-notifications_init(noti_list_update_cb update_cb)
-{
-&nbsp;&nbsp;&nbsp;// Declare the variables
-&nbsp;&nbsp;&nbsp;noti_data.notifications = eina_inarray_new(sizeof(notification_item_t), NOTI_ARRAY_STEP);
-
-&nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;noti_data.change_cb = update_cb;
-
-&nbsp;&nbsp;&nbsp;if (noti_data.change_cb) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noti_data.poll_timer = ecore_timer_add(NOTI_POLL_INTERVAL_SEC, __noti_poll_timeout_cb, NULL);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-
-<p>The polling uses the <span style="font-family: Courier New,Courier,monospace">notification_get_list()</span> function to retrieve all notifications. It then saves this information in an array of <span style="font-family: Courier New,Courier,monospace">notification_item_t</span> objects.</p>
-<p>There are two notificaton types, <span style="font-family: Courier New,Courier,monospace">NOTIFICATION_TYPE_NOTI</span> and <span style="font-family: Courier New,Courier,monospace">NOTIFICATION_TYPE_ONGOING</span>. Each time new lists are retrieved, the old ones are freed and all notification handles are invalidated. The controller module is informed about a new notification using the <span style="font-family: Courier New,Courier,monospace">noti_data.change_cb()</span>function.</p>
-
-<pre class="prettyprint">
-static Eina_Bool
-__noti_poll_timeout_cb(void *data)
-{
-&nbsp;&nbsp;&nbsp;// Declare the variables
-
-&nbsp;&nbsp;&nbsp;__free_array_elements();
-&nbsp;&nbsp;&nbsp;__free_temporary_lists();
-
-&nbsp;&nbsp;&nbsp;ret = notification_get_list(NOTIFICATION_TYPE_NOTI, -1, &amp;list);
-
-&nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;noti_data.noti_list_h = list;
-&nbsp;&nbsp;&nbsp;__process_list(list);
-
-&nbsp;&nbsp;&nbsp;ret = notification_get_list(NOTIFICATION_TYPE_ONGOING, -1, &amp;list);
-
-&nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;noti_data.ongoing_list_h = list;
-&nbsp;&nbsp;&nbsp;__process_list(list);
-
-&nbsp;&nbsp;&nbsp;if (noti_data.change_cb)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;noti_data.change_cb(noti_data.notifications);
-
-&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
-}
-</pre>
-</li>
 </ul>
 
 <h3>View</h3>
 
-<p>Main view initialization part takes place with the <span style="font-family: Courier New,Courier,monospace">main_view_create_base_gui()</span> function. It creates the three view elements: a quickpanel window, the notifications list, and the control panel.</p>
+<p>Main view initialization part takes place with the <span style="font-family: Courier New,Courier,monospace">main_view_create_base_gui()</span> function. It creates the three view elements: a quickpanel window and the control panel.</p>
 <pre class="prettyprint">
 Eina_Bool
 main_view_create_base_gui(char *device_name)
@@ -396,12 +325,6 @@ main_view_create_base_gui(char *device_name)
 &nbsp;&nbsp;&nbsp;vds.layout = create_layout(device_name);
 
 &nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;vds.noti_list = noti_list_create(vds.layout);
-
-&nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;elm_layout_content_set(vds.layout, PART_CONTENT, vds.noti_list);
 
 &nbsp;&nbsp;&nbsp;vds.toolbar = control_panel_create(vds.layout, __light_click_cb, __wifi_click_cb, __sound_click_cb);
 
