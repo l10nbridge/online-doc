@@ -61,7 +61,7 @@
 // Create the location manager handle
 if (location_manager_create(LOCATIONS_METHOD_GPS, &amp;s_geolocation_data.manager) != LOCATIONS_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to create location manager&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to create location manager&quot;);
 	
 &nbsp;&nbsp;&nbsp;return false;
 }
@@ -75,7 +75,7 @@ location_error_e sat_cb = gps_status_set_satellite_updated_cb(s_geolocation_data
 
 if (pos_cb != LOCATIONS_ERROR_NONE || sat_cb != LOCATIONS_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to register callbacks for location manager&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to register callbacks for location manager&quot;);
 &nbsp;&nbsp;&nbsp;geolocation_manager_service_destroy();
 
 &nbsp;&nbsp;&nbsp;return false;
@@ -106,7 +106,7 @@ location_manager_destroy(s_geolocation_data.manager);
 // Get last location information
 if (location_manager_get_last_position(s_geolocation_data.manager, &amp;altitude, &amp;init_coords-&gt;latitude, &amp;init_coords-&gt;longitude, &amp;timestamp) != LOCATIONS_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to get last location&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to get last location&quot;);
 	
 &nbsp;&nbsp;&nbsp;return false;
 }
@@ -119,7 +119,7 @@ if (location_manager_get_last_position(s_geolocation_data.manager, &amp;altitude
 location_error_e ret = gps_status_get_satellite(s_geolocation_data.manager, &amp;num_of_active, satellites_count, &amp;timestamp);
 if (ret != LOCATIONS_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to get satellite data [%d]&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to get satellite data [%d]&quot;, ret);
 &nbsp;&nbsp;&nbsp;// Satellite data is not supported on Tizen Emulator - satellite count remains at 0
 }
 </pre>
@@ -148,11 +148,11 @@ _geolocation_manager_position_updated_cb(double latitude, double longitude, doub
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Send position update through message port
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (_geolocation_manager_position_coords_send(coords))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGI(&quot;Position updated to %f, %f&quot;, latitude, longitude);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Position updated to %f, %f&quot;, latitude, longitude);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to send position update&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to send position update&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;}
 }
@@ -170,11 +170,11 @@ _geolocation_manager_satellite_updated_cb(int num_of_active, int num_of_inview, 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Send satellite count update through message port
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (_geolocation_manager_satellites_count_send(num_of_inview))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGI(&quot;Satellite count updated: inview %d&quot;, num_of_inview);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Satellite count updated: inview %d&quot;, num_of_inview);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to send satellite count update&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to send satellite count update&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;}
 }
@@ -187,7 +187,7 @@ _geolocation_manager_satellite_updated_cb(int num_of_active, int num_of_inview, 
 // Check remote port state from GPS consumer
 if (message_port_check_remote_port(REMOTE_APP_ID, REMOTE_PORT, &amp;exists) != MESSAGE_PORT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to check remote port&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to check remote port&quot;);
 &nbsp;&nbsp;&nbsp;geolocation_manager_service_destroy();
 	
 &nbsp;&nbsp;&nbsp;return false;
@@ -195,7 +195,7 @@ if (message_port_check_remote_port(REMOTE_APP_ID, REMOTE_PORT, &amp;exists) != M
 
 if (!exists)
 {
-&nbsp;&nbsp;&nbsp;LOGE(&quot;Remote port is not registered&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Remote port is not registered&quot;);
 }
 </pre>
 
@@ -204,7 +204,7 @@ if (!exists)
 // Send initial data to GPS consumer port
 if (!_geolocation_manager_init_data_send())
 {
-&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to send init data - create timer to periodically try to send data&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to send init data - create timer to periodically try to send data&quot;);
 &nbsp;&nbsp;&nbsp;ecore_timer_add(SEND_DATA_INTERVAL, _geolocation_manager_init_data_send_cb, NULL);
 }
 </pre>
@@ -219,7 +219,7 @@ _geolocation_manager_position_coords_send(location_coords_s coords)
 
 &nbsp;&nbsp;&nbsp;if (!b) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to create bundle, the coords will not be sent&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to create bundle, the coords will not be sent&quot;);
 		
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 &nbsp;&nbsp;&nbsp;}
@@ -249,7 +249,7 @@ _geolocation_manager_satellites_count_send(int s_count)
 
 &nbsp;&nbsp;&nbsp;if (!b) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to create bundle, the satellites will not be sent&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to create bundle, the satellites will not be sent&quot;);
 		
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 &nbsp;&nbsp;&nbsp;}
@@ -274,7 +274,7 @@ _send_message(bundle *b)
 {
 &nbsp;&nbsp;&nbsp;if (!b) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGE(&quot;Can not send message, the bundle is NULL&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Can not send message, the bundle is NULL&quot;);
 		
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 &nbsp;&nbsp;&nbsp;}
@@ -284,7 +284,7 @@ _send_message(bundle *b)
 
 &nbsp;&nbsp;&nbsp;if (ret != MESSAGE_PORT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LOGE(&quot;Failed to send message: error %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to send message: error %d&quot;, ret);
 		
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 &nbsp;&nbsp;&nbsp;}
