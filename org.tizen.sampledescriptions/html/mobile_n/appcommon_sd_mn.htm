@@ -310,10 +310,54 @@ static void __init_view_app(void)
 	</li>
   </ul>
   If any of the above functions (except <span style="font-family: Courier New,Courier,monospace">__init_view_app()</span>) fails, then application is terminated and the
-  <span style="font-family: Courier New,Courier,monospace">__terminate_app()</span> callback function is called. For details, see the <a href="#app-finit">Application termination<a> section.
+  <span style="font-family: Courier New,Courier,monospace">__terminate_app()</span> callback function is called. For details, see the <a href="#app-finit">Application termination</a> section.
   </p>
 
 <h3 id="app-finit">Application termination</h3>
+
+  <p>
+  When the application is terminated, then the <span style="font-family: Courier New,Courier,monospace">__terminate_app()</span> callback function is called (see the code snippet below).
+  </p>
+
+<pre class="prettyprint">
+static void __terminate_app(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+
+&nbsp;&nbsp;&nbsp;controller_finit(&ad->view);
+}
+</pre>
+
+  <p>
+  All the resources, allocated previously, are released with <span style="font-family: Courier New,Courier,monospace">controller_finit()</span> function, which is responsible for destroying the UI
+  and detaching events handlers.
+  </p>
+
+<pre class="prettyprint">
+void controller_finit(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;view_destroy_base_gui(vd);
+&nbsp;&nbsp;&nbsp;__remove_event_handlers();
+}
+</pre>
+
+  <p>
+  As the UI is not a subject for this documentation, the implementation of the <span style="font-family: Courier New,Courier,monospace">view_destroy_base_gui()</span> function is ommited.
+  Detaching events handlers relies on <span style="font-family: Courier New,Courier,monospace">model_remove_event_handler()</span> function for each attached event handler. For implementation
+  details see the <a href="#model">Model</a> section.
+  </p>
+
+<pre class="prettyprint">
+static void __remove_event_handlers(void)
+{
+&nbsp;&nbsp;&nbsp;model_remove_event_handler(APP_EVENT_LOW_BATTERY);
+&nbsp;&nbsp;&nbsp;model_remove_event_handler(APP_EVENT_LOW_MEMORY);
+&nbsp;&nbsp;&nbsp;model_remove_event_handler(APP_EVENT_DEVICE_ORIENTATION_CHANGED);
+&nbsp;&nbsp;&nbsp;model_remove_event_handler(APP_EVENT_LANGUAGE_CHANGED);
+&nbsp;&nbsp;&nbsp;model_remove_event_handler(APP_EVENT_REGION_FORMAT_CHANGED);
+&nbsp;&nbsp;&nbsp;model_remove_event_handler(APP_EVENT_SUSPENDED_STATE_CHANGED);
+}
+</pre>
 
 <h3 id="model">Model</h3>
 
