@@ -507,6 +507,117 @@ bool model_remove_event_handler(app_event_type_e event_type)
 
 <h3 id="model">Model</h3>
 
+  <p>
+  The responsibility of the application's "Model" module is to operate directly on the App Common API and related data. The additional benefit of this module is the simplification of the API function calling:
+  error checking and message logging is performed here.
+  <br>
+  All of the functions implemented within the "Model" module were briefly described in the following sections: <a href="#app-init">Application initialization</a>,
+  <a href="#app-finit">Application termination</a>, <a href="#app-res">Application's resources</a> and <a href="#app-events">Application's events</a>. Their implementation is repeated here just for
+  the document's consistency.
+  </p>
+
+  <p>
+  Adding an event handler by assigning a <span style="font-family: Courier New,Courier,monospace">callback</span> function to the
+  <span style="font-family: Courier New,Courier,monospace">event_type</span>.
+  </p>
+
+<pre class="prettyprint">
+bool model_add_event_handler(app_event_type_e event_type, app_event_cb callback)
+{
+&nbsp;&nbsp;&nbsp;int ret = ui_app_add_event_handler(&__modeldata->handlers[event_type], event_type, callback, NULL);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function ui_app_add_event_handler() failed with error = %d", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  Removing previously attached event handler assigned to the specific <span style="font-family: Courier New,Courier,monospace">event_type</span>.
+  </p>
+
+<pre class="prettyprint">
+bool model_remove_event_handler(app_event_type_e event_type)
+{
+&nbsp;&nbsp;&nbsp;int ret = ui_app_remove_event_handler(__modeldata->handlers[event_type]);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function event_remove_event_handler() failed with error = %d", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  Getting an application's resource and/or path to the application's directory.
+  <br>
+  <b>#res#</b> - <span style="font-family: Courier New,Courier,monospace">id</span> /
+  <span style="font-family: Courier New,Courier,monospace">name</span> / <span style="font-family: Courier New,Courier,monospace">version</span>;
+  <br>
+  <b>#dir_type#</b> - <span style="font-family: Courier New,Courier,monospace">data</span> / <span style="font-family: Courier New,Courier,monospace">cache</span> /
+  <span style="font-family: Courier New,Courier,monospace">resource</span> / <span style="font-family: Courier New,Courier,monospace">shared_data</span> /
+  <span style="font-family: Courier New,Courier,monospace">shared_resource</span> / <span style="font-family: Courier New,Courier,monospace">shared_trusted</span> /
+  <span style="font-family: Courier New,Courier,monospace">external_data</span> / <span style="font-family: Courier New,Courier,monospace">external_cache</span> /
+  <span style="font-family: Courier New,Courier,monospace">external_shared_data</span> / <span style="font-family: Courier New,Courier,monospace">tep_resource</span>.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_app_<b>#res#</b>(char **<b>#res#</b>)
+{
+&nbsp;&nbsp;&nbsp;*<b>#res#</b> = NULL;
+
+&nbsp;&nbsp;&nbsp;int ret = app_get_<b>#res#</b>(<b>#res#</b>);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function app_get_<b>#res#</b>() failed with error = %d", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+bool model_get_app_<b>#dir_type#</b>_path(char **path)
+{
+&nbsp;&nbsp;&nbsp;*path = NULL;
+
+&nbsp;&nbsp;&nbsp;char *path_tmp = app_get_<b>#dir_type#</b>_path();
+&nbsp;&nbsp;&nbsp;if (!path_tmp) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function app_get_<b>#dir_type#</b>_path() failed");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;*path = strdup(path_tmp);
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  Extraction of the event's details on time of its occurance is performed in the event's callback handler by the invocation of the
+  <span style="font-family: Courier New,Courier,monospace">app_event_get_<b>#event_type#</b>()</span> function wrapped by the
+  <span style="font-family: Courier New,Courier,monospace">model_get_app_event_<b>#event_type#</b>()</span> function.
+  <br>
+  <b>#event_type#</b> - <span style="font-family: Courier New,Courier,monospace">low_battery_status</span> / <span style="font-family: Courier New,Courier,monospace">low_memory_status</span> /
+  <span style="font-family: Courier New,Courier,monospace">language</span> / <span style="font-family: Courier New,Courier,monospace">region_format</span> /
+  <span style="font-family: Courier New,Courier,monospace">device_orientation</span> / <span style="font-family: Courier New,Courier,monospace">suspended_state</span>.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_app_event_<b>#event_type#</b>(app_event_info_h event_info, <b>#event_status_type#</b> *status)
+{
+&nbsp;&nbsp;&nbsp;int ret = app_event_get_<b>#event_type#</b>(event_info, status);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function app_event_get_<b>#event_type#</b>() failed with error = %d", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
 </div></div></div>
