@@ -81,7 +81,9 @@
 			<li>Tag
 				<ul class="toc">
 					<li><a href="#initialize_tag">Initializing Media Tags</a></li>
+					<li><a href="#tag_add">Adding Tags</a></li>
 					<li><a href="#tag_list">Getting the Tag List</a></li>
+					<li><a href="#tag_delete">Deleting Tags</a></li>
 				</ul>
 			</li>
             <li>Storage
@@ -209,8 +211,12 @@
 			<ul>
 				<li><a href="#initialize_tag">Initializing Media Tags</a>
 				<p>Initialize media tags for use.</p></li>
+				<li><a href="#tag_add">Adding Tags</a>
+				<p>Add tags to the database.</p></li>
 				<li><a href="#tag_list">Getting the Tag List</a>
 				<p>Get information about media tags.</p></li>
+				<li><a href="#tag_delete">Deleting Tags</a>
+				<p>Delete tags from the database.</p></li>
 			</ul>
 		</li>
         <li>Storage
@@ -1691,13 +1697,57 @@ media_content_disconnect();</pre></li></ol>
 #include &lt;media_content.h&gt;
 </pre>
 
-<p>Before retrieving tag information, open a connection to the Content Service by calling the <span style="font-family: Courier New,Courier,monospace">media_content_connect()</span> function:</p>
+<p>Before using tag-related functions, open a connection to the Content Service by calling the <span style="font-family: Courier New,Courier,monospace">media_content_connect()</span> function:</p>
 	
 <pre class="prettyprint">media_content_connect();</pre>
 
 <p>Close the connection when the service is no longer needed:</p>
 
 <pre class="prettyprint">media_content_disconnect();</pre>
+
+ <h2 id="tag_add" name="tag_add">Adding Tags</h2>
+<p>To add a tag to the database, and add a file to the tag:</p>
+<ol>
+<li>Add the tag.
+<p>Use <span style="font-family: Courier New,Courier,monospace;">media_tag_insert_to_db()</span> to add the tag. The result is a handle to the new tag.</p>
+<pre>
+media_tag_h tag = NULL;
+const char *tag_name = "Tag name";
+
+media_tag_insert_to_db(tag_name, &amp;tag);
+</pre>
+</li>
+
+<li>Insert a media item into the tag.
+<p>
+To insert an item into the tag, you need to know the id of the item.
+One of the ways of obtaining the id is to insert a media item into the database.
+In the example below, a media file is inserted and then added to the tag.</p>
+<pre>
+media_info_h image_info = NULL;
+char *image_id = NULL;
+
+media_info_insert_to_db("path/to/image_file", &amp;image_info);
+
+media_info_get_media_id(image_info, &amp;image_id);
+
+media_tag_add_media(tag, image_id);
+</pre>
+</li>
+
+<li>Update the tag.
+<p>After you make any changes to the tag, like change its name or add items, you need to update it.</p>
+<pre>
+media_tag_update_to_db(tag);
+</pre>
+</li>
+
+<li>Destroy the tag handle.</li>
+<p>After the tag has been inserted into the database and all updates to it have been made, you can destroy the handle. Note that this is not related to deleting the tag from the database.</p>
+<pre>
+media_tag_destroy(tag);
+</pre>
+</ol>
 
 
  <h2 id="tag_list" name="tag_list">Getting the Tag List</h2>
@@ -1792,7 +1842,6 @@ else
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_name [%d] : %s&quot;, tag_name, j, media_name);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_path [%d] : %s&quot;, tag_name, j, media_path);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_id);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_name);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_path);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_destroy(tag_media_handle);
@@ -1801,11 +1850,81 @@ else
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(tag_name);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_tag_destroy(tag_handle);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_list_free(media_list_in_tag);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_list_in_tag = NULL;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;g_list_free(tag_list);
 }
 </pre></li>
 </ol>
+
+ <h2 id="tag_delete" name="tag_delete">Deleting Tags</h2>
+<p>Deleting a tag requires its id. In the example below, the id is obtained by calling <span style="font-family: Courier New,Courier,monospace;">media_tag_foreach_tag_from_db()</span>.</p>
+<ol>
+<li>Define the callback.
+<p>Define the callback called for each found tag. The callback will add the handle of each tag to the tag list.</p>
+<pre>
+bool gallery_tag_item_cb(media_tag_h tag, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;media_tag_h new_tag = NULL;
+
+&nbsp;&nbsp;&nbsp;int ret = media_tag_clone(&amp;new_tag, tag);
+&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
+&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_tag);
+
+&nbsp;&nbsp;&nbsp;return true; // Continue with the next iteration
+}
+</pre>
+</li>
+<li>Find tags.
+<p>Call <span style="font-family: Courier New,Courier,monospace;">media_tag_foreach_tag_from_db()</span> to find tags in the database. The first parameter is a filter; if NULL, all tags are found. The second parameter is the callback, called for each found tag. The third parameter is data passed to the callback in each iteration. In this example it is a list of tag handles.</p>
+<pre>
+GList *tag_list = NULL;
+
+media_tag_foreach_tag_from_db(NULL, gallery_tag_item_cb, &amp;tag_list);
+</pre>
+
+<li>Iterate through the tag list.
+<p>After the list is completed, access each element:</p>
+
+<pre>
+media_tag_h tag_handle = NULL;
+int tag_id;
+char *tag_name = NULL;
+
+int len = g_list_length(tag_list);
+
+int i;
+for (i = 0; i &lt; len; i++)
+{
+&nbsp;&nbsp;&nbsp;tag_handle = (media_tag_h) g_list_nth_data(tag_list, i);
+</pre>
+</li>
+<li>Delete the tag.
+<p>Provided that you have the tag handle, get the tag id with <span style="font-family: Courier New,Courier,monospace;">media_tag_get_tag_id()</span> and delete the tag with <span style="font-family: Courier New,Courier,monospace;">media_tag_delete_from_db()</span>.</p>
+<pre>
+&nbsp;&nbsp;&nbsp;ret = media_tag_get_tag_id(tag_handle, &amp;tag_id);
+
+&nbsp;&nbsp;&nbsp;ret = media_tag_delete_from_db(tag_id);
+</pre>
+</li>
+
+<li>Destroy the tag handle.
+<p>Now that the handle is no longer needed, it can be destroyed:</p>
+<pre>
+&nbsp;&nbsp;&nbsp;ret = media_tag_destroy(tag_handle);
+}
+</pre>
+</li>
+<li>Free the tag list.
+<p>After all elements have been accessed, free the tag handle list:</p>
+<pre>
+g_list_free(tag_list);
+tag_list = NULL;
+</pre>
+</li>
+
+</ol>
+
 
 <h2 id="initialize_storage" name="initialize_storage">Initializing the Storage</h2>
 
@@ -1956,7 +2075,6 @@ bool media_cb(media_info_h media, void *user_data)
 &nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li></ol></li></ol>
-
 
  <h2 id="filter_groups" name="filter_groups">Finding Media Item Groups Using a Filter</h2>
 
