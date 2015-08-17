@@ -34,7 +34,13 @@
 					<li><a href="#disconnect">Disconnecting from the Connected Device Using SPP</a></li>
 				</ul>
 			</li>
-			<li><a href="#gatt">Performing GATT Operations</a></li>
+			<li>Bluetooth GATT Operations
+				<ul class="toc">
+					<li><a href="#gatt_client">Gatt Client Role Operation</a></li>
+					<li><a href="#gatt_getter">Gatt Client/Server Getter Operation</a></li>
+				</ul>
+			</li>
+
 			<li>Object Push Profile (OPP)
 				<ul class="toc">
 					<li><a href="#exc">Exchanging Data Using OPP</a></li>
@@ -86,8 +92,14 @@
 					<li><a href="#disconnect">Disconnecting from the Connected Device Using SPP</a>
 					<p>Disconnect from the connected devices.</p></li>
 				</ul></li>
-				<li><a href="#gatt">Performing GATT Operations</a>
-				<p>Create a client to connect to a remote service, get service details, and read and set service attributes.</p></li>
+				<li>Bluetooth GATT Operations
+				<ul>
+					<li><a href="#gatt_client">Gatt Client Role Operations</a>
+					<p>Create a client to connect to a remote service, get service details, read and set service attributes and set/unset characteristic value changed information callback.</p></li>
+					<li><a href="#gatt_getter">Gatt Client/Server Common Getter Operations</a>
+					<p>Getter APIs which are used commonly for GATT Client and Server related operations.
+					</p></li>
+				</ul></li>
 				<li>Object Push Profile (OPP)
 				<ul>
 					<li><a href="#exc">Exchanging Data Using OPP</a>
@@ -817,7 +829,7 @@ else
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] Succeeded. server_socket_fd = %d.&quot;, server_socket_fd);
 }</pre></li></ol>
 
-<h2 id="gatt" name="gatt">Performing GATT Operations</h2>
+<h2 id="gatt_client" name="gatt_client">Performing GATT Client Operations</h2>
 <p>To perform GATT operations:</p>
 <ol>
 <li>Register a callback for connection state changes:
@@ -848,6 +860,37 @@ break;
 </pre>
 
 </li>
+
+<li>Unregister the callback registered for connection state changes:
+<pre class="prettyprint">
+int ret = 0;
+// Unregister for GATT connection callback
+ret = bt_gatt_unset_connection_state_changed_cb();
+</pre></li>
+
+<li>Destroy the client created to connect to the remote service device:
+<pre class="prettyprint">
+int ret = 0;
+
+ret = bt_gatt_client_destroy(client);
+if (ret == BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+break;
+</pre>
+</li>
+
+<li>Gets the address of remote device:
+<pre class="prettyprint">
+int ret = 0;
+char *addr = NULL;
+
+ret = bt_gatt_client_get_remote_address(client, &amp;addr);
+if (ret == BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+break;
+</pre>
+</li>
+
 <li>Discover the service, characteristics, and descriptors of the remote service:
 <ol type="a"><li>Discover the service:
 <pre class="prettyprint">
@@ -934,6 +977,7 @@ bool __bt_gatt_client_foreach_desc_cb(int total, int index, bt_gatt_h desc_handl
 </li>
 </ol>
 </li>
+
 <li>Read the value of the given attribute handle:
 <pre class="prettyprint">
 {
@@ -1120,6 +1164,118 @@ void __bt_gatt_client_write_complete_cb(int result, bt_gatt_h gatt_handle, void 
 }
 </pre>
 </li>
+
+<li>Registers a callback function to be invoked when the characteristic value is changed on the remote device:
+
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
+
+&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
+&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_set_characteristic_value_changed_cb(chr,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_value_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_set_characteristic_value_changed_cb is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+<p>After registering callback operation, use the <span style="font-family: Courier New,Courier,monospace;">__bt_gatt_client_value_changed_cb()</span> callback to display the changed value:</p>
+<pre class="prettyprint">
+void __bt_gatt_client_value_changed_cb(bt_gatt_h chr, char *value, int len,
+&nbsp;&nbsp;void *user_data)
+{
+&nbsp;&nbsp;&nbsp;char *uuid = NULL;
+&nbsp;&nbsp;&nbsp;int i;
+
+&nbsp;&nbsp;&nbsp;bt_gatt_get_uuid(chr, &amp;uuid);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Value changed for [%s]&quot;, uuid);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;len [%d]&quot;, len);
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; len; i++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;value %u&quot;, value[i]);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;g_free(uuid);
+
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+</li>
+
+<li>Unregisters the registered characteristic value changed callback. After Unregistration, the value change will not be informed:
+
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
+
+&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
+&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_unset_characteristic_value_changed_cb(chr);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_unset_characteristic_value_changed_cb is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
 <li>When you no longer need the client, disconnect from the remote service and destroy the client:
 <pre class="prettyprint">
 int ret = 0;
@@ -1132,6 +1288,300 @@ break;
 </pre></li>
 </ol>
 
+<h2 id="gatt_getter" name="gatt_getter">Performing GATT Client/Server Common Getter Operations</h2>
+<p>To perform Getter operations for both GATT Client/Server related information:</p>
+<ol>
+<li>Gets the type of a service, characteristic or descriptor's GATT handle:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_type_e gatt_type;
+
+&nbsp;&nbsp;&nbsp;// Handle is already created either for Service/Characteristic/Descriptor using
+&nbsp;&nbsp;&nbsp;// bt_gatt_service_create()/bt_gatt_characteristic_create()/bt_gatt_descriptor_create() respectively.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_get_type(gatt_handle, &amp;gatt_type);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_type is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the UUID of a service, characteristic or descriptor's GATT handle:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
+&nbsp;&nbsp;&nbsp;char *uuid = NULL;
+
+&nbsp;&nbsp;&nbsp;// Handle is already created either for Service/Characteristic/Descriptor using
+&nbsp;&nbsp;&nbsp;// bt_gatt_service_create()/bt_gatt_characteristic_create()/bt_gatt_descriptor_create() respectively.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_get_uuid(gatt_handle, &amp;uuid);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_uuid is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the value of a characteristic or descriptor's GATT handle:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;int len = 0;
+&nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
+&nbsp;&nbsp;&nbsp;char *value = NULL;
+
+&nbsp;&nbsp;&nbsp;// Handle is already created either for Characteristic/Descriptor using
+&nbsp;&nbsp;&nbsp;// bt_gatt_characteristic_create()/bt_gatt_descriptor_create() respectively.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_get_value(gatt_handle, &amp;value, &amp;len);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the value of a characteristic or descriptor's GATT handle as an integer type:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;int offset = 0;
+&nbsp;&nbsp;&nbsp;bt_data_type_int_e type,;
+&nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
+&nbsp;&nbsp;&nbsp;int value;
+
+&nbsp;&nbsp;&nbsp;// Assuming All the input parameters[gatt_handle, type& offset] available.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_get_int_value(gatt_handle, type, offset, &amp;value);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_int_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the value of a characteristic or descriptor's GATT handle as a float type:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;int offset = 0;
+&nbsp;&nbsp;&nbsp;bt_data_type_float_e type,;
+&nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
+&nbsp;&nbsp;&nbsp;float value;
+
+&nbsp;&nbsp;&nbsp;// Assuming All the input parameters[gatt_handle, type& offset] available.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_get_float_value(gatt_handle, type, offset, &amp;value);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_float_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets a service's GATT handle which has specific UUID:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
+
+&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets a characteristic's GATT handle which has specific UUID:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
+
+&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
+&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets a descriptor's GATT handle which has specific UUID:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *desc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h desc = NULL;
+
+&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
+&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &gt; 2)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;desc_uuid = g_test_param.params[2];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the properties using characteristic's GATT handle:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
+&nbsp;&nbsp;&nbsp;int properties;
+
+&nbsp;&nbsp;&nbsp;//get the characteristic handle using bt_gatt_characteristic_create() or bt_gatt_service_get_characteristic()
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_properties(chr, &amp;properties);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_properties is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the service's GATT handle for which the specified characteristic belongs to:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
+&nbsp;&nbsp;&nbsp;//chr = Assuming characteristic's handle is already available
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_service(chr, &amp;svc);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the characteristic's GATT handle for which the specified descriptor belongs to:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h dsc = NULL;
+&nbsp;&nbsp;&nbsp;//dsc = Assuming descriptor's handle is already available.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_descriptor_get_characteristic(des, &amp;chr);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_descriptor_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the GATT client handle for which the specified service belongs to:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_client_h client = NULL;
+&nbsp;&nbsp;&nbsp;//svc = Assuming service's handle is already available.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_client(svc, &amp;client);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_client is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets the write type of the specified characteristic:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_write_type_e write_type = NULL;
+&nbsp;&nbsp;&nbsp;//svc = Assuming characteristic's handle is already available.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_write_type(chr, &amp;write_type);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_write_type is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Gets an included service's GATT handle which has specific UUID:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_h included_svc = NULL;
+&nbsp;&nbsp;&nbsp;char *uuid = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_write_type_e write_type = NULL;
+&nbsp;&nbsp;&nbsp;//svc = Assuming service's handle and UUID are already available.
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_included_service(svc, uuid, &amp;included_svc);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_included_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+</ol>
 
  <h2 id="exc" name="exc">Exchanging Data Using OPP</h2>
 
