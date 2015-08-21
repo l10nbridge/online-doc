@@ -361,6 +361,87 @@ bool __controller_register_custom_event(const char *event_name, custom_ev_info_s
 
 <h3 id="app-finit">Application termination</h3>
 
+  <p>
+  When the application is terminated, the <span style="font-family: Courier New,Courier,monospace">__terminate_app()</span> callback function is called (see the code snippet below).
+  </p>
+
+<pre class="prettyprint">
+static void __terminate_app(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+
+&nbsp;&nbsp;&nbsp;controller_finit(&ad->view);
+}
+</pre>
+
+  <p>
+  All the resources, allocated previously, are released with <span style="font-family: Courier New,Courier,monospace">controller_finit()</span> function, which is responsible for destroying the UI
+  and detaching system and custom events handlers.
+  </p>
+
+<pre class="prettyprint">
+void controller_finit(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;view_destroy_base_gui(vd);
+&nbsp;&nbsp;&nbsp;model_finit();
+}
+</pre>
+
+  <p>
+  As the UI is not a subject for this documentation, the implementation of the <span style="font-family: Courier New,Courier,monospace">view_destroy_base_gui()</span> function is ommited.
+  Detaching events handlers is performed in the Model module within the <span style="font-family: Courier New,Courier,monospace">model_finit()</span> function, which calls two internal functions:
+  <span style="font-family: Courier New,Courier,monospace">__model_release_system_events()</span> and <span style="font-family: Courier New,Courier,monospace">__model_release_custom_events()</span>.
+  </p>
+
+<pre class="prettyprint">
+void model_finit(void)
+{
+&nbsp;&nbsp;&nbsp;__model_release_system_events();
+&nbsp;&nbsp;&nbsp;__model_release_custom_events();
+}
+</pre>
+
+  <p>
+  The events handlers detaching procedure relies on <span style="font-family: Courier New,Courier,monospace">__model_remove_event_handler()</span> function (for reference see the
+  <a href="#model">Model</a> section) for each attached event handler regardless of its type (system or custom). The related resources are freed with the
+  <span style="font-family: Courier New,Courier,monospace">__model_free_system_event_info()</span> and
+  <span style="font-family: Courier New,Courier,monospace">__model_free_custom_event_info()</span> functions.
+  </p>
+
+<pre class="prettyprint">
+static void __model_release_system_events(void)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;for (i = 0; i < __SYSTEM_EVENT_COUNT_MAX; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;system_ev_info_s *ev_info = &__system_ev[i];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__model_remove_event_handler(ev_info->event_h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__model_free_system_event_info(ev_info);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<pre class="prettyprint">
+static void __model_release_custom_events(void)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;for (i = 0; i < __custom_ev_count; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info = &__custom_ev[i];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__model_remove_event_handler(ev_info->event_h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__model_free_custom_event_info(ev_info);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;__custom_ev_count = 0;
+}
+</pre>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">__model_free_system_event_info()</span> and
+  <span style="font-family: Courier New,Courier,monospace">__model_free_custom_event_info()</span> functions are not listed here, as their implementation is based only on
+  <span style="font-family: Courier New,Courier,monospace">free()</span> function used to free the previously allocated memory.
+  </p>
+
 <h3 id="ev-system">System events</h3>
 
 <h3 id="ev-custom">Custom events</h3>
