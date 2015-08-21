@@ -40,13 +40,14 @@
 					<li><a href="#exc">Exchanging Data Using OPP</a></li>
 				</ul>
 			</li>
-			<li>Bluetooth LE 
+			<li>Bluetooth LE Operations
 				<ul class="toc">
 					<li><a href="#le_scan">Managing Bluetooth LE Scans</a></li>
+					<li><a href="#le_discovery">Discoverying Bluetooth LE Devices</a></li>
 					<li><a href="#add_adv_data">Adding Advertising Data to the LE Advertisement</a></li>
 					<li><a href="#set_adv_conn">Setting the Advertising Connectable Mode</a></li>
 					<li><a href="#set_adv_mode">Setting the LE Advertising Mode</a></li>
-					<li><a href="#start_adv">Starting Advertising</a></li>
+					<li><a href="#start_adv">Start and Stop Advertising</a></li>
 				</ul>
 			</li>		
 			<li><a href="#release">Releasing All Resources</a></li>
@@ -93,19 +94,21 @@
 					<li><a href="#exc">Exchanging Data Using OPP</a>
 					<p>Exchange data between devices through OPP.</p></li>
 				</ul></li>
-				<li>Bluetooth LE 
+				<li>Bluetooth LE Operations
 				<ul>
 					
 					<li><a href="#le_scan">Managing Bluetooth LE Scans</a>
 					<p>Start the scan, handle the scanning results, and stop the scan.</p></li>
+					<li><a href="#le_discovery">Discovering Bluetooth LE Devices</a>
+					<p> Discovers nearby Bluetooth LE enabled devices</p></li>
 					<li><a href="#add_adv_data">Adding Advertising Data to the LE Advertisement</a>
-					<p>Add advertising data to an LE advertisement or a scan result.</p></li>
+					<p>Add advertising data to a LE advertisement or scan result.</p></li>
 					<li><a href="#set_adv_conn">Setting the Advertising Connectable Mode</a>
 					<p>Define whether the advertising type is connectable or non-connectable.</p></li>
 					<li><a href="#set_adv_mode">Setting the LE Advertising Mode</a>
 					<p>Control the advertising power and latency.</p></li>
-					<li><a href="#start_adv">Starting Advertising</a> 
-					<p>Start advertising with the advertising parameters.</p></li>
+					<li><a href="#start_adv">Start and Stop Advertising</a>
+					<p>Start advertising and Stop advertising with the advertising parameters.</p></li>
 				</ul></li>
 				
 				<li><a href="#release">Releasing All Resources</a>
@@ -1294,7 +1297,7 @@ if (ret != BLUETOOTH_ERROR_NONE)
 	
 	<h2 id="le_scan" name="le_scan">Managing Bluetooth LE Scans</h2>
 	
-	<p>To discover nearby LE devices, perform a scan:</p>
+	<p>To discover nearby LE devices, perform a LE scan operation:</p>
 	<ol>
 	<li>
 	<p>To start the BLE scan:</p>
@@ -1414,7 +1417,7 @@ void __bt_adapter_le_scan_result_cb(int result,
 </li>
 
 <li>
-	<p>To stop the BLE scan:</p>
+	<p>To stop the BLE scan operation:</p>
 <pre class="prettyprint">
 int main()
 {
@@ -1432,10 +1435,41 @@ int main()
 </li>
 </ol>
 
-	
-	<h2 id="add_adv_data" name="add_adv_data">Adding Advertising Data to the LE Advertisement</h2> 
+<h2 id="le_discovery" name="le_discovery">Discovering Bluetooth LE Devices</h2>
+
+	<p>Perform LE discovery operation to discover nearby Bluetooth LE Devices. Callbacks can be registered and unregistered for the LE discovery operation through the use of set and unset callback functions</p>
+	<p>The registered device discovery call back provides details of the discovered devices and state of discovery (started, finished, found):</p>
+	<p>To start the BLE discovery operation. Please note, the below described BLE discovery apis are deprecated since tizen_2.3.1</p>
+	<p>Please refer to the section "Managing Bluetooth LE Scans" for scanning nearby BLE devices.
+
+<pre class="prettyprint">
+int main()
+{
+&nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_device_discovery_state_changed_cb(bt_adapter_le_device_discovery_state_changed_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_start_device_discovery();
+
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_device_discovery] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;}
+
+/* To unset the le device discovery state change call back*/
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_unset_device_discovery_state_changed_cb
+&nbsp;&nbsp;&nbsp;
+
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+</ol>
+
+	<h2 id="add_adv_data" name="add_adv_data">Add Advertising Data to the LE Advertisement</h2>
 	
 	<p>LE advertising data can be added to the LE advertisement or the scan response data. You can add various information, such as the device name, service UUID, service solicitation UUID, advertising appearance, advertising transmission power level, device name, and manufacturer data.</p>
+	<ol>
+	<li>
 <p>To add the advertising data:</p>
 
 <pre class="prettyprint">
@@ -1599,7 +1633,24 @@ int le_add_advertising_data()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add manufacturer data [0x%04x]&quot;, ret);
 }
 </pre>
+<li>
 
+	<p>To destroy the LE advertiser:</p>
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_destroy_advertiser(advertiser);
+
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_destroy_advertiser] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+</li>
+</ol>
 	
 	<h2 id="set_adv_conn" name="set_adv_conn">Setting the Advertising Connectable Mode</h2>
 
@@ -1665,8 +1716,9 @@ if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add scan response data [0x%04x]&quot;, ret);
 </pre>
 	
-	<h2 id="start_adv" name="start_adv">Starting Advertising</h2>
-	
+	<h2 id="start_adv" name="start_adv">Start and Stop Advertising</h2>
+<ol>
+<li>
 <p>To start advertising with the given advertiser and advertising parameters information, use the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_start_advertising_new()</span> function:</p>
 
 <pre class="prettyprint">
@@ -1691,8 +1743,18 @@ ret = bt_adapter_le_start_advertising_new(advertiser, cb, NULL);
 if (ret &lt; BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;failed with [0x%04x]&quot;, ret);
 </pre>
-	
-	
+<li>
+<p>To stop advertising with the given advertiser, use the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_stop_advertising()</span> function:</p>
+
+<pre class="prettyprint">
+if (advertiser != NULL)
+{
+ret = bt_adapter_le_stop_advertising(advertiser);
+if (ret &lt; BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;failed with [0x%04x]&quot;, ret);
+}
+</pre>
+</ol>
 
  <h2 id="release" name="release">Releasing All Resources</h2>
 
