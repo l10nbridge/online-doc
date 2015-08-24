@@ -469,6 +469,59 @@ static void __model_release_custom_events(void)
 
 <h3 id="ev-system">System events</h3>
 
+  <p>
+  After all the system events are successfully hooked in the initialization phase, one can start to handle them once they occur. This is done with the
+  <span style="font-family: Courier New,Courier,monospace">__system_event_cb()</span> callback function registered within the
+  <span style="font-family: Courier New,Courier,monospace">__add_system_event_handlers()</span> function (see the <a href="#app-init">Application's initialization</a> for reference).
+  </p>
+
+<pre class="prettyprint">
+static void __system_event_cb(const char *event_name, bundle *event_data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;system_ev_info_s *ev_info = (system_ev_info_s *)user_data;
+&nbsp;&nbsp;&nbsp;char *status_1 = NULL;
+&nbsp;&nbsp;&nbsp;char *status_2 = NULL;
+&nbsp;&nbsp;&nbsp;char *status_3 = NULL;
+
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "System event '%s' occured.", event_name);
+
+&nbsp;&nbsp;&nbsp;switch (ev_info->type) {
+&nbsp;&nbsp;&nbsp;case ET_<b>#event_type#</b>:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!model_get_bundle_str(event_data, EVENT_KEY_<b>#name_1#</b>, &status_1) ||
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!model_get_bundle_str(event_data, EVENT_KEY_<b>#name_2#</b>, &status_2) ||
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!model_get_bundle_str(event_data, EVENT_KEY_<b>#name_3#</b>, &status_3))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The status_1 ... status_3 char buffers are copied to the ev_info->status_1 ... ev_info->status_3 */
+&nbsp;&nbsp;&nbsp;model_assign_event_status(&ev_info->status_1, status_1);
+&nbsp;&nbsp;&nbsp;model_assign_event_status(&ev_info->status_2, status_2);
+&nbsp;&nbsp;&nbsp;model_assign_event_status(&ev_info->status_3, status_3);
+
+&nbsp;&nbsp;&nbsp;view_update_system_events();
+}
+</pre>
+
+  <p>
+  All the information carried by the event is stored in a bundle object structure (<span style="font-family: Courier New,Courier,monospace">event_data</span>) followed by the event's name
+  (<span style="font-family: Courier New,Courier,monospace">event_name</span>). In order to avoid using inefficient strings comparison function for events distinguishing, the custom
+  event's type was introduced (see the <span style="font-family: Courier New,Courier,monospace">event_type_t</span> definition in the <a href="#type-defs">Type definitions</a> section).
+  These types are statically preassigned. Based on the value of the <span style="font-family: Courier New,Courier,monospace">type</span> member of the
+  <span style="font-family: Courier New,Courier,monospace">ev_info</span> structure of <span style="font-family: Courier New,Courier,monospace">system_ev_info_s</span> data type,
+  the events are distinguished and the event state is obtained from the bundle object.
+  <br>
+  Each event name and relevant bundle keys are defined by the Event API, which are used here to extract event's status. For this purpose, the
+  <span style="font-family: Courier New,Courier,monospace">model_get_bundle_str()</span> function is used. For the relation between
+  the <span style="font-family: Courier New,Courier,monospace">ET_<b>#event_type#</b></span> and <span style="font-family: Courier New,Courier,monospace">EVENT_KEY_<b>#name_1#</b></span>
+  ... <span style="font-family: Courier New,Courier,monospace">EVENT_KEY_<b>#name_3#</b></span>, see the Event API reference.
+  <br>
+  Once the valid event's status is obtained, the UI is updated to reflect the current events state using the <span style="font-family: Courier New,Courier,monospace">view_update_system_events()</span>
+  function.
+  </p>
+
 <h3 id="ev-custom">Custom events</h3>
 
 <h3 id="model">Model</h3>
