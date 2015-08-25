@@ -556,6 +556,177 @@ static void __system_event_cb(const char *event_name, bundle *event_data, void *
 
 <h3 id="ev-custom">Custom events</h3>
 
+  <p>
+  Once the user registers a new event using "Register event" button, the <span style="font-family: Courier New,Courier,monospace">__controller_register_custom_event()</span> function is invoked
+  in a <span style="font-family: Courier New,Courier,monospace">__controller_event_set_custom_info_cb()</span> callback function triggered by the
+  <span style="font-family: Courier New,Courier,monospace">__view_register_event_button_clicked_cb()</span> function attached to the "Register event" button. In order to clarify the entire
+  procedure, all the mentioned functions are listed below in the order of invocation.
+  </p>
+
+<pre class="prettyprint">
+/* This callback function is invoked on "Register event" button press. */
+static void __view_register_event_button_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;viewdata_s *vd = (viewdata_s *)data;
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info = NULL;
+&nbsp;&nbsp;&nbsp;char *event_name = NULL;
+
+&nbsp;&nbsp;&nbsp;/* The event's name input by the user is obtained. */
+&nbsp;&nbsp;&nbsp;if (!__view_get_custom_event_name(vd, &event_name)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_WARN, "The custom event has no name assigned.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* If the event's name is provided properly, the Controller's callback function is invoked
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in order to register a new event with the given name.*/
+&nbsp;&nbsp;&nbsp;bool ret = false;
+&nbsp;&nbsp;&nbsp;if (vd->callbacks.set_custom_info_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = vd->callbacks.set_custom_info_cb((const char *)event_name, (void *)&ev_info);
+
+&nbsp;&nbsp;&nbsp;free(event_name);
+
+&nbsp;&nbsp;&nbsp;if (!ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* Once the custom event is registered successfully, the UI is updated to reflect recent changes. */
+&nbsp;&nbsp;&nbsp;elm_genlist_item_append(__viewdata->custom_ev_list,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__viewdata->custom_ev_itc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)ev_info,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__view_custom_event_item_select_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)ev_info);
+}
+</pre>
+
+<pre class="prettyprint">
+/* The callback function invoked within the __view_register_event_button_clicked_cb(). */
+static bool __controller_event_set_custom_info_cb(const char *event_name, void **ev_info)
+{
+&nbsp;&nbsp;&nbsp;*ev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info_tmp = NULL;
+&nbsp;&nbsp;&nbsp;/* Custom event registration is performed here. */
+&nbsp;&nbsp;&nbsp;if (!__controller_register_custom_event(event_name, &ev_info_tmp))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;*ev_info = (custom_ev_info_s *)ev_info_tmp;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+bool __controller_register_custom_event(const char *event_name, custom_ev_info_s **ev_info)
+{
+&nbsp;&nbsp;&nbsp;*ev_info = NULL;
+&nbsp;&nbsp;&nbsp;bool name_exists = false;
+
+&nbsp;&nbsp;&nbsp;/* Before the custom event is registered, one have to verify if provided name does not exist yet.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;There is no dedicated Event's API function which performs this task. In such case
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the Model iterates over all registered custom events stored within internal data structure
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and compares the name being registered with those alredy registered.*/
+&nbsp;&nbsp;&nbsp;if (!model_check_event_exists(event_name, &name_exists))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (name_exists) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_WARN, "Custom event '%s' already registered.", event_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* If the custom name fails the extence verification, then the relevant data structure is created
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to store event's related information internally. */
+&nbsp;&nbsp;&nbsp;if (!model_create_custom_event_info(event_name, ev_info))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* Once the internal data structure is created, the custom event handler is registered
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and the callback function attached to the event's handler. */
+&nbsp;&nbsp;&nbsp;if (!model_add_custom_event_handler(*ev_info, __custom_event_cb, (void *)(*ev_info)))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Custom event registered: '%s'.", (*ev_info)->name);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  For Model-related functions implementation and description, see the <a href="#model">Model</a> section.
+  </p>
+
+  <p>
+  After the custom event is registered and appears on the list, it may be published by simple click on relevant list's item. The published item can be hooked only by those applications which are signed
+  with the publisher's ceriticate.
+  <br>
+  The entire publishing procedure is shown within the source code below.
+  </p>
+
+<pre class="prettyprint">
+/* This callback function is invoked when the user selects an event's related item on the list. */
+static void __view_custom_event_item_select_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info = (custom_ev_info_s *)data;
+
+&nbsp;&nbsp;&nbsp;if (!ev_info) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "ev_info == NULL !!!");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;} else if (!ev_info->name) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "ev_info->name == NULL !!!");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The Controller is requested to publish the event by its name. */
+&nbsp;&nbsp;&nbsp;if (__viewdata->callbacks.do_publish_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__viewdata->callbacks.do_publish_cb(ev_info->name);
+}
+</pre>
+
+<pre class="prettyprint">
+/* This callback function is invoked by the __view_custom_event_item_select_cb() function. */
+static void __controller_event_do_publish_cb(const char *event_name)
+{
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Event publishing: '%s'.", event_name);
+
+&nbsp;&nbsp;&nbsp;/* The event is published. */
+&nbsp;&nbsp;&nbsp;model_publish_event(event_name);
+}
+</pre>
+
+  <p>
+  For Model-related functions implementation and description, see the <a href="#model">Model</a> section.
+  </p>
+
+  <p>
+  Once the event is published, the callback function attached to its handler will be invoked within all those applications which are signed with the same certificate as the publisher.
+  In this case, only Event sample application will receive the event via previously attached <span style="font-family: Courier New,Courier,monospace">__custom_event_cb()</span> callback function.
+  The implementation of the <span style="font-family: Courier New,Courier,monospace">__custom_event_cb()</span> is shown below.
+  </p>
+
+<pre class="prettyprint">
+static void __custom_event_cb(const char *event_name, bundle *event_data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info = (custom_ev_info_s *)user_data;
+&nbsp;&nbsp;&nbsp;char *status = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Each custom event owns only one predefined key pointing to its status: CUSTOM_EVENT_KEY_STATUS.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The key is defined within this application: CUSTOM_EVENT_KEY_STATUS == "custom_event_status". */
+&nbsp;&nbsp;&nbsp;if (!model_get_bundle_str(event_data, CUSTOM_EVENT_KEY_STATUS, &status))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* If the status is successfully obtained from the event's bundle, it is stored within internal data structure. */
+&nbsp;&nbsp;&nbsp;model_assign_event_status(&ev_info->status_1, status);
+
+&nbsp;&nbsp;&nbsp;/* Finally, the event's status is displayed on toast message ... */
+&nbsp;&nbsp;&nbsp;view_display_custom_event(ev_info->name, ev_info->status_1);
+&nbsp;&nbsp;&nbsp;/* ... and on the relevant list's item. */
+&nbsp;&nbsp;&nbsp;view_update_custom_events();
+}
+</pre>
+
+  <p>
+  For Model-related functions implementation and description, see the <a href="#model">Model</a> section.
+  </p>
+
 <h3 id="model">Model</h3>
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
