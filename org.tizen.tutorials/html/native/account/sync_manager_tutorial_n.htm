@@ -25,6 +25,8 @@
 		<ul class="toc">
 			<li><a href="#on_demand_sync">Initializing the On-demand Sync</a></li>
 			<li><a href="#periodic_sync">Initializing the Periodic Sync</a></li>
+			<li><a href="#data_change_sync">Initializing the Data Change Sync</a></li>
+			<li><a href="#foreach_sync">Initializing the ForEach Sync</a></li>
 			<li>Sync adapter
 			<ul class="toc">
 				<li><a href="#set_callback">Setting the Callback Functions</a></li>
@@ -44,16 +46,17 @@
 
 	<p>This tutorial demonstrates how you can manage the data synchronizing schedule and control the sync operations manually or periodically.</p>
 
-	 <table class="note">
+ <table class="note">
    <tbody>
     <tr>
      <th class="note">Note</th>
     </tr>
     <tr>
-     <td class="note">These features are supported in mobile applications only. To use the features of the Sync Manager API, <a href="#set_callback">Setting the Callback Functions</a> should be carried out first by a service application. <br>An UI application should not initialize and set callbacks through using the Sync Adapter API. On the contrary, the Sync Manager API should be called to request sync operations by UI application.</td>
+     <td class="note">These features are supported in mobile applications only. To use the features of the Sync Manager API, <a href="#set_callback">Setting the Callback Functions</a> should be carried out first by a service application. <br>An UI application can not initialize and set callbacks through using the Sync Adapter API. On the contrary, the Sync Manager API should be called to request sync operations by UI application.</td>
     </tr>
    </tbody>
  </table>
+
 
   <h2>Warm-up</h2>
     <p>Become familiar with the Sync Manager API basics by learning about:</p>
@@ -62,6 +65,10 @@
 		<p>Add an on-demand sync job scheduling for a one-time operation.</p></li>
 		<li><a href="#periodic_sync">Initializing the Periodic Sync</a>
 		<p>Add a periodic sync job scheduling with a recurring cycle.</p></li>
+		<li><a href="#data_change_sync">Initializing the Data Change Sync</a>
+		<p>Add a data change sync job for receiving notification whenever a specific DB changed.</p></li>
+		<li><a href="#foreach_sync">Initializing the ForEach Sync</a>
+		<p>Iterate all of registered sync jobs for managing them more efficiently.</p></li>
 		<li>Sync adapter
 		<ul>
 			<li><a href="#set_callback">Setting the Callback Functions</a>
@@ -70,102 +77,276 @@
 		</li>
 	</ul>
 
+
 <h2 id="on_demand_sync" name="on_demand_sync">Initializing the On-demand Sync</h2>
 
-<p>To inform the service application of a one-time sync operation:</p>
+<p>To inform a service application of the time to operate one-time sync job:</p>
 
 <ol>
+<li><a href="#set_callback">Set the sync adapter callbacks</a> in your service application first:
+<pre class="prettyprint">
+#include &lt;sync_adapter.h&gt;
+
+int result;
+result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
+</pre>
+</li>
+
 <li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">Sync Manager</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in your UI application:
 <pre class="prettyprint">
 #include &lt;sync_manager.h&gt;
 </pre>
 </li>
 
-<li><a href="#set_callback">Set the sync adapter callbacks</a> in your service application:
-<pre class="prettyprint">
-#include &lt;sync_adapter.h&gt;
-
-const char* capability = &quot;http://tizen.org/account/capability/contact&quot;;
-int result;
-result = sync_adapter_init(capability);
-result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
-</pre>
-<p>If no capabilities are defined (you do not want to receive notifications about calendar or contact data changes on the device):</p>
-<pre class="prettyprint">
-result = sync_adapter_init(NULL);
-result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
-</pre>
-</li>
-
-<li>Connect to the sync manager service using the <span style="font-family: Courier New,Courier,monospace">sync_manager_connect()</span> function:
-<pre class="prettyprint">
-result = sync_manager_connect();
-</pre>
-</li>
-
-<li>If you want to use an account (track calendar or contact data changes on the device), create the account and the bundle to obtain the parameters for the <span style="font-family: Courier New,Courier,monospace">sync_manager_add_sync_job()</span> function you need later on.
-<p>The account handle is not a mandatory parameter, because it is meant for an application that uses the sync manager without an account. For more information, see <a href="../social/account_tutorial_n.htm">Creating and Managing an Account</a> and <a href="../app_framework/bundle_tutorial_n.htm">Managing and Using the Bundle Content</a>.</p>
+<li>If you want to use an account, create the account and obtain some parameters which are used to call <span style="font-family: Courier New,Courier,monospace">sync_manager_on_demand_sync_job()</span> like below: <p>For more information, see <a href="../social/account_tutorial_n.htm">Creating and Managing an Account</a> and <a href="../app_framework/bundle_tutorial_n.htm">Managing and Using the Bundle Content</a>.</p>
 
 <pre class="prettyprint">
 account_h account = NULL;
 int account_id = -1;
-bundle *extra = NULL;
-
-account_connect();
 account_create(&amp;account);
 account_set_user_name(account, &quot;test_name&quot;);
 account_set_email_address(account, &quot;test_email@samsung.com&quot;);
 account_set_package_name(account, &quot;data-sync-module&quot;);
 account_set_sync_support(account, ACCOUNT_SUPPORTS_SYNC);
 account_insert_to_db(account, &amp;account_id);
-account_disconnect();
 
-extra = bundle_create();
-bundle_add_str(extra, SYNC_OPTION_NO_RETRY, &quot;true&quot;);
-bundle_add_str(extra, SYNC_OPTION_EXPEDITED, &quot;false&quot;);
+const char *sync_job_name = "on_demand_sync_job";
+
+bundle *sync_job_user_data = NULL;
+sync_job_user_data = bundle_create();
+bundle_add_str(sync_job_user_data, "str", "String sync_job_user_data sample.");
+
+int sync_job_id = -1;
 </pre>
-<p>This example creates a bundle and adds options for sync-related information. Since the <span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_NO_RETRY</span> is set to <span style="font-family: Courier New,Courier,monospace">true</span>, the sync service does not retry the operation if the sync operation fails.</p>
 </li>
 
 <li>To add an on-demand sync job:
 <pre class="prettyprint">
-result = sync_manager_add_sync_job(account, capability, extra);
+result = sync_manager_on_demand_sync_job(account, sync_job_name, SYNC_OPTION_NONE, sync_job_user_data, &amp;sync_job_id);
 </pre>
-<p>If no account is used:</p>
+<p>This API can be used with different options each other. Below example shows the API is called with a variety of sync options. The <span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_NO_RETRY</span> means a sync job will not be performed again when it fails. The <span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_EXPEDITED</span> means another sync job will be operated as soon as possible. Of course, the value which is OR-ing let the other sync job operate just once with priority.</p>
 <pre class="prettyprint">
-result = sync_manager_add_sync_job(NULL, NULL, extra);
+result = sync_manager_on_demand_sync_job(account, sync_job_name2, SYNC_OPTION_NO_RETRY, sync_job_user_data, &amp;sync_job_id2);
+result = sync_manager_on_demand_sync_job(account, sync_job_name3, SYNC_OPTION_EXPEDITED, sync_job_user_data, &amp;sync_job_id3);
+result = sync_manager_on_demand_sync_job(account, sync_job_name4, (SYNC_OPTION_NO_RETRY | SYNC_OPTION_EXPEDITED), sync_job_user_data, &amp;sync_job_id4);
 </pre>
-<p>If the sync job addition process succeeds, the <span style="font-family: Courier New,Courier,monospace">SYNC_ERROR_NONE</span> value is returned.</p>
+<p>This API also can be called like below. Because, account handle and sync_job_user_data are not mandatory data:</p>
+<pre class="prettyprint">
+result = sync_manager_on_demand_sync_job(NULL, sync_job_name, SYNC_OPTION_NONE, sync_job_user_data, &amp;sync_job_id);
+result = sync_manager_on_demand_sync_job(account, sync_job_name2, SYNC_OPTION_NO_RETRY, NULL, &amp;sync_job_id2);
+result = sync_manager_on_demand_sync_job(NULL, sync_job_name3, SYNC_OPTION_EXPEDITED, NULL, &amp;sync_job_id3);
+</pre>
+<p>If the on-demand sync job addition process succeeds, the <span style="font-family: Courier New,Courier,monospace">SYNC_ERROR_NONE</span> value is returned.</p>
 </li>
 
-<li>When the on-demand sync is no longer needed, remove it with the <span style="font-family: Courier New,Courier,monospace">sync_manager_remove_sync_job()</span> function. If you want to stop using the account too, clean up the account handle.
-<p>At the end, disconnect from the sync manager and release the resources with the <span style="font-family: Courier New,Courier,monospace">sync_manager_disconnect()</span> function.</p>
+<li>When the on-demand sync is no longer needed, remove it with the <span style="font-family: Courier New,Courier,monospace">sync_manager_remove_sync_job()</span> API with its <span style="font-family: Courier New,Courier,monospace">sync_job_id</span>. If you want to stop using the account too, clean up the account handle. <p>At the end, unset the sync callbacks and release the resources with the <span style="font-family: Courier New,Courier,monospace">sync_adapter_unset_callbacks()</span> API.</p>
 <pre class="prettyprint">
-result = sync_manager_remove_sync_job(account, capability);
+result = sync_manager_remove_sync_job(sync_job_id);
 
-account_connect();
 account_delete_from_db_by_package_name(&quot;data-sync-module&quot;);
 account_destroy(account);
-account_disconnect();
 
-sync_manager_disconnect();
 sync_adapter_unset_callbacks();
-sync_adapter_destroy();
 </pre>
 <p>If no account is used:</p>
 <pre class="prettyprint">
-result = sync_manager_remove_sync_job(NULL, NULL);
+result = sync_manager_remove_sync_job(sync_job_id);
 
-sync_manager_disconnect();
 sync_adapter_unset_callbacks();
-sync_adapter_destroy();
 </pre>
 </li>
 </ol>
 
+
 <h2 id="periodic_sync" name="periodic_sync">Initializing the Periodic Sync</h2>
 
-<p>To inform the service application of a periodical sync operation and its sync interval:</p>
+<p>To inform periodically a service application of the time to operate sync job with its sync interval:</p>
+
+<ol>
+<li><a href="#set_callback">Set the sync adapter callbacks</a> in your service application first:
+<pre class="prettyprint">
+#include &lt;sync_adapter.h&gt;
+
+int result;
+result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
+</pre>
+</li>
+
+<li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">Sync Manager</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in your UI application:
+<pre class="prettyprint">
+#include &lt;sync_manager.h&gt;
+</pre>
+</li>
+
+<li>If you want to use an account, create the account and obtain some parameters which are used to call <span style="font-family: Courier New,Courier,monospace">sync_manager_add_periodic_sync_job()</span> like below: <p>For more information, see <a href="../social/account_tutorial_n.htm">Creating and Managing an Account</a> and <a href="../app_framework/bundle_tutorial_n.htm">Managing and Using the Bundle Content</a>.</p>
+
+<pre class="prettyprint">
+account_h account = NULL;
+int account_id = -1;
+account_create(&amp;account);
+account_set_user_name(account, &quot;test_name&quot;);
+account_set_email_address(account, &quot;test_email@samsung.com&quot;);
+account_set_package_name(account, &quot;data-sync-module&quot;);
+account_set_sync_support(account, ACCOUNT_SUPPORTS_SYNC);
+account_insert_to_db(account, &amp;account_id);
+
+const char *sync_job_name = "periodic_sync_job";
+
+sync_period_e sync_period = SYNC_PERIOD_INTERVAL_30MIN;
+sync_period_e sync_period2 = SYNC_PERIOD_INTERVAL_1H;
+sync_period_e sync_period3 = SYNC_PERIOD_INTERVAL_3H;
+sync_period_e sync_period4 = SYNC_PERIOD_INTERVAL_6H;
+
+bundle *sync_job_user_data = NULL;
+sync_job_user_data = bundle_create();
+bundle_add_str(sync_job_user_data, "str", "String sync_job_user_data sample.");
+
+int sync_job_id = -1;
+</pre>
+</li>
+
+<li>This API will operate sync job with given period interval. To add a periodic sync job with interval as 30 minutes:
+<pre class="prettyprint">
+result = sync_manager_add_periodic_sync_job(account, sync_job_name, sync_period, SYNC_OPTION_NONE, sync_job_user_data, &amp;sync_job_id);
+</pre>
+<p>This API can be used with different options each other. Below example shows the API is called with a variety of sync options. The <span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_NO_RETRY</span> means a sync job will not be performed again when it fails. The <span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_EXPEDITED</span> means another sync job will be operated as soon as possible. Of course, the value which is OR-ing let the other sync job operate just once with priority.</p>
+<pre class="prettyprint">
+result = sync_manager_add_periodic_sync_job(account, sync_job_name2, sync_period2, SYNC_OPTION_NO_RETRY, sync_job_user_data, &amp;sync_job_id2);
+result = sync_manager_add_periodic_sync_job(account, sync_job_name3, sync_period3, SYNC_OPTION_EXPEDITED, sync_job_user_data, &amp;sync_job_id3);
+result = sync_manager_add_periodic_sync_job(account, sync_job_name4, sync_period4, (SYNC_OPTION_NO_RETRY | SYNC_OPTION_EXPEDITED), sync_job_user_data, &amp;sync_job_id4);
+</pre>
+<p>This API also can be called like below. Because, account handle and sync_job_user_data are not mandatory data:</p>
+<pre class="prettyprint">
+result = sync_manager_add_periodic_sync_job(NULL, sync_job_name, sync_period, SYNC_OPTION_NONE, sync_job_user_data, &amp;sync_job_id);
+result = sync_manager_add_periodic_sync_job(account, sync_job_name2, sync_period2, SYNC_OPTION_NO_RETRY, NULL, &amp;sync_job_id2);
+result = sync_manager_add_periodic_sync_job(NULL, sync_job_name3, sync_period3, SYNC_OPTION_EXPEDITED, NULL, &amp;sync_job_id3);
+</pre>
+<p>If the periodic sync job addition process succeeds, the <span style="font-family: Courier New,Courier,monospace">SYNC_ERROR_NONE</span> value is returned.</p>
+</li>
+
+<li>This API can renew registered periodic sync job by using sync_job_name as same like below:
+<pre class="prettyprint">
+result = sync_manager_add_periodic_sync_job(account, sync_job_name, sync_period, SYNC_OPTION_NONE, sync_job_user_data, &amp;sync_job_id);
+result = sync_manager_add_periodic_sync_job(account, sync_job_name, sync_period2, SYNC_OPTION_EXPEDITED, sync_job_user_data2, &amp;sync_job_id);
+</pre>
+All the settings of the API can be reset except <span style="font-family: Courier New,Courier,monospace">sync_job_name</span> and <span style="font-family: Courier New,Courier,monospace">sync_job_id</span> which are used to manage a specific sync job.
+</li>
+
+<li>When the periodic sync is no longer needed, remove it with the <span style="font-family: Courier New,Courier,monospace">sync_manager_remove_sync_job()</span> API with its <span style="font-family: Courier New,Courier,monospace">sync_job_id</span>. If you want to stop using the account too, clean up the account handle. <p>At the end, unset the sync callbacks and release the resources with the <span style="font-family: Courier New,Courier,monospace">sync_adapter_unset_callbacks()</span> API.</p>
+<pre class="prettyprint">
+result = sync_manager_remove_sync_job(sync_job_id);
+
+account_delete_from_db_by_package_name(&quot;data-sync-module&quot;);
+account_destroy(account);
+
+sync_adapter_unset_callbacks();
+</pre>
+<p>If no account is used:</p>
+<pre class="prettyprint">
+result = sync_manager_remove_sync_job(sync_job_id);
+
+sync_adapter_unset_callbacks();
+</pre>
+</li>
+</ol>
+
+
+<h2 id="data_change_sync" name="data_change_sync">Initializing the Data Change Sync</h2>
+
+<p>To inform a service application of the time to operate sync job whenever corresponding DB changed:</p>
+
+<ol>
+<li><a href="#set_callback">Set the sync adapter callbacks</a> in your service application first:
+<pre class="prettyprint">
+#include &lt;sync_adapter.h&gt;
+
+int result;
+result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
+</pre>
+</li>
+
+<li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">Sync Manager</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in your UI application:
+<pre class="prettyprint">
+#include &lt;sync_manager.h&gt;
+</pre>
+</li>
+
+<li>If you want to use an account, create the account and obtain some parameters which are used to call <span style="font-family: Courier New,Courier,monospace">sync_manager_add_data_change_sync_job()</span> like below: <p>For more information, see <a href="../social/account_tutorial_n.htm">Creating and Managing an Account</a> and <a href="../app_framework/bundle_tutorial_n.htm">Managing and Using the Bundle Content</a>.</p>
+
+<pre class="prettyprint">
+account_h account = NULL;
+int account_id = -1;
+account_create(&amp;account);
+account_set_user_name(account, &quot;test_name&quot;);
+account_set_email_address(account, &quot;test_email@samsung.com&quot;);
+account_set_package_name(account, &quot;data-sync-module&quot;);
+account_set_sync_support(account, ACCOUNT_SUPPORTS_SYNC);
+account_insert_to_db(account, &amp;account_id);
+
+const char *sync_capability_calendar = SYNC_SUPPORTS_CAPABILITY_CALENDAR;
+const char *sync_capability_contact = SYNC_SUPPORTS_CAPABILITY_CONTACT;
+const char *sync_capability_image = SYNC_SUPPORTS_CAPABILITY_IMAGE;
+const char *sync_capability_music = SYNC_SUPPORTS_CAPABILITY_MUSIC;
+const char *sync_capability_sound = SYNC_SUPPORTS_CAPABILITY_SOUND;
+const char *sync_capability_video = SYNC_SUPPORTS_CAPABILITY_VIDEO;
+
+bundle *sync_job_user_data = NULL;
+sync_job_user_data = bundle_create();
+bundle_add_str(sync_job_user_data, "str", "String sync_job_user_data sample.");
+
+int sync_job_id = -1;
+</pre>
+</li>
+
+<li>This API will operate sync job only for registered capability. To add a data change sync job for calendar:
+<pre class="prettyprint">
+result = sync_manager_add_data_change_sync_job(account, sync_capability_calendar, SYNC_OPTION_NONE, sync_job_user_data, &amp;sync_job_id);
+</pre>
+<p>This API can be used with different options each other. Below example shows the API is called with a variety of sync options. The <span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_NO_RETRY</span> means a sync job will not be performed again when it fails. The <span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_EXPEDITED</span> means another sync job will be operated as soon as possible. Of course, the value which is OR-ing let the other sync job operate just once with priority.</p>
+<pre class="prettyprint">
+result = sync_manager_add_data_change_sync_job(account, sync_capability_calendar, SYNC_OPTION_NO_RETRY, sync_job_user_data, &amp;sync_job_id2);
+result = sync_manager_add_data_change_sync_job(account, sync_capability_contact, SYNC_OPTION_EXPEDITED, sync_job_user_data, &amp;sync_job_id3);
+result = sync_manager_add_data_change_sync_job(account, sync_capability_image, (SYNC_OPTION_NO_RETRY | SYNC_OPTION_EXPEDITED), sync_job_user_data, &amp;sync_job_id4);
+</pre>
+<p>This API also can be called like below. Because, account handle and sync_job_user_data are not mandatory data:</p>
+<pre class="prettyprint">
+result = sync_manager_add_data_change_sync_job(NULL, sync_capability_music, SYNC_OPTION_NONE, sync_job_user_data, &amp;sync_job_id);
+result = sync_manager_add_data_change_sync_job(account, sync_capability_sound, SYNC_OPTION_NO_RETRY, NULL, &amp;sync_job_id2);
+result = sync_manager_add_data_change_sync_job(NULL, sync_capability_video, SYNC_OPTION_EXPEDITED, NULL, &amp;sync_job_id3);
+</pre>
+<p>If the data change sync job addition process succeeds, the <span style="font-family: Courier New,Courier,monospace">SYNC_ERROR_NONE</span> value is returned.</p>
+</li>
+
+<li>This API can renew registered data change sync job by using sync_capability as same like below:
+<pre class="prettyprint">
+result = sync_manager_add_data_change_sync_job(account, sync_capability_calendar, SYNC_OPTION_NONE, sync_job_user_data, &amp;sync_job_id);
+result = sync_manager_add_data_change_sync_job(account, sync_capability_calendar, SYNC_OPTION_EXPEDITED, sync_job_user_data2, &amp;sync_job_id);
+</pre>
+All the settings of the API can be reset except <span style="font-family: Courier New,Courier,monospace">sync_capability</span> and <span style="font-family: Courier New,Courier,monospace">sync_job_id</span> which are used to manage a specific sync job.
+</li>
+
+<li>When the data change sync is no longer needed, remove it with the <span style="font-family: Courier New,Courier,monospace">sync_manager_remove_sync_job()</span> API with its <span style="font-family: Courier New,Courier,monospace">sync_job_id</span>. If you want to stop using the account too, clean up the account handle. <p>At the end, unset the sync callbacks and release the resources with the <span style="font-family: Courier New,Courier,monospace">sync_adapter_unset_callbacks()</span> API.</p>
+<pre class="prettyprint">
+result = sync_manager_remove_sync_job(sync_job_id);
+
+account_delete_from_db_by_package_name(&quot;data-sync-module&quot;);
+account_destroy(account);
+
+sync_adapter_unset_callbacks();
+</pre>
+<p>If no account is used:</p>
+<pre class="prettyprint">
+result = sync_manager_remove_sync_job(sync_job_id);
+
+sync_adapter_unset_callbacks();
+</pre>
+</li>
+</ol>
+
+
+<h2 id="foreach_sync" name="set_callback">Initializing the ForEach Sync</h2>
+
+<p>To interate all of registered sync jobs to manage sync job more efficiently:</p>
 
 <ol>
 <li>To use the features of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">Sync Manager</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in your UI application:
@@ -174,72 +355,23 @@ sync_adapter_destroy();
 </pre>
 </li>
 
-<li><a href="#set_callback">Set the sync adapter callbacks</a> in your service application:
+<li>Set the callback which is invoked and call the iterate function at the same time like below:
 <pre class="prettyprint">
-#include &lt;sync_adapter.h&gt;
-
-const char* capability = &quot;http://tizen.org/account/capability/contact&quot;;
 int result;
-result = sync_adapter_init(capability);
-result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
-</pre>
-<p>If no capabilities are defined (you do not want to receive notifications about calendar or contact data changes on the device):</p>
-<pre class="prettyprint">
-result = sync_adapter_init(NULL);
-result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
+result = sync_manager_foreach_sync_job(sync_job_cb, NULL);
 </pre>
 </li>
 
-<li>Connect to the sync manager service using the <span style="font-family: Courier New,Courier,monospace">sync_manager_connect()</span> function:
+<li>The <span style="font-family: Courier New,Courier,monospace">sync_job_cb()</span> callback is invoked as many as existing registered sync jobs. Then, the sync jobs are verified with corresponding data.
 <pre class="prettyprint">
-result = sync_manager_connect();
-</pre>
-</li>
-
-<li>If you want to use an account (track calendar or contact data changes on the device), create the account and the bundle to obtain the parameters for the <span style="font-family: Courier New,Courier,monospace">sync_manager_add_sync_job()</span> function you need later on.
-<p>The account handle is not a mandatory parameter, because it is meant for an application that uses the sync manager without an account. For more information, see <a href="../social/account_tutorial_n.htm">Creating and Managing an Account</a> and <a href="../app_framework/bundle_tutorial_n.htm">Managing and Using the Bundle Content</a>.</p>
-
-<pre class="prettyprint">
-bundle *extra = NULL;
-extra = bundle_create();
-bundle_add_str(extra, SYNC_OPTION_NO_RETRY, &quot;false&quot;);
-bundle_add_str(extra, SYNC_OPTION_EXPEDITED, &quot;false&quot;);
-</pre>
-<p>This example creates a bundle and adds options for sync-related information. All the sync options are set to <span style="font-family: Courier New,Courier,monospace">false</span> for a periodic sync request. The sync service tries again when the sync operation has failed and does not grant priority for the sync operation.</p>
-</li>
-
-<li>To add a periodic sync job:
-<pre class="prettyprint">
-sync_period_e sync_period = SYNC_PERIOD_INTERVAL_30MIN;
-result = sync_manager_add_periodic_sync_job(account, capability, extra, sync_period);
-</pre>
-<p>If no account is used:</p>
-<pre class="prettyprint">
-result = sync_manager_add_periodic_sync_job(NULL, NULL, extra, sync_period);
-</pre>
-<p>If the sync job addition process succeeds, the <span style="font-family: Courier New,Courier,monospace">SYNC_ERROR_NONE</span> value is returned. The last parameter stands for the time interval of the periodic sync.</p>
-</li>
-
-<li>When the periodic sync is no longer needed, remove it with the <span style="font-family: Courier New,Courier,monospace">sync_manager_remove_periodic_sync_job()</span> function. If you want to stop using the account too, clean up the account handle, as shown in the <a href="#on_demand_sync">Initializing the On-demand Sync</a> use case.
-
-<p>At the end, disconnect from the sync manager and release the resources with the <span style="font-family: Courier New,Courier,monospace">sync_manager_disconnect()</span> function.</p>
-<pre class="prettyprint">
-result = sync_manager_remove_periodic_sync_job(account, capability);
-
-sync_manager_disconnect();
-sync_adapter_unset_callbacks();
-sync_adapter_destroy();
-</pre>
-<p>If no account is used:</p>
-<pre class="prettyprint">
-result = sync_manager_remove_periodic_sync_job(NULL, NULL);
-
-sync_manager_disconnect();
-sync_adapter_unset_callbacks();
-sync_adapter_destroy();
+bool sync_job_cb(account_h account, const char *sync_job_name, const char *sync_capability, int sync_job_id, bundle *sync_job_user_data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;// Verify the registered sync jobs
+}
 </pre>
 </li>
 </ol>
+
 
 <h2 id="set_callback" name="set_callback">Setting the Callback Functions</h2>
 
@@ -252,49 +384,33 @@ sync_adapter_destroy();
 </pre>
 </li>
 
-<li>Initialize the sync adapter instance using the <span style="font-family: Courier New,Courier,monospace">sync_adapter_init()</span> function.
-<p>If both capabilities are defined (you can receive notification about both data changes on the device and set periodic sync job for both capabilities):</p>
-<pre class="prettyprint">
-int result;
-const char* capability_cal = &quot;http://tizen.org/account/capability/calendar&quot;;
-const char* capability_con = &quot;http://tizen.org/account/capability/contact&quot;;
-result = sync_adapter_init(capability_cal);
-result = sync_adapter_init(capability_con);
-</pre>
-<p>If no capabilities are defined (you do not want to receive notifications about calendar or contact data changes on the device):</p>
-<pre class="prettyprint">
-result = sync_adapter_init(NULL);
-</pre>
-</li>
-
 <li>Subscribe to the callback functions to receive notifications for the sync operation when a specific event or condition is detected on the device:
 <pre class="prettyprint">
+int result;
 result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
 </pre>
-<p>When a specific event is detected, the <span style="font-family: Courier New,Courier,monospace">sync_adapter_start_sync_cb</span> or <span style="font-family: Courier New,Courier,monospace">sync_adapter_cancel_sync_cb</span> callback is invoked.</p>
+<p>When a specific event is detected or sync job is requested, the <span style="font-family: Courier New,Courier,monospace">sync_adapter_start_sync_cb</span> or <span style="font-family: Courier New,Courier,monospace">sync_adapter_cancel_sync_cb</span> can be invoked.</p>
 </li>
 
-<li>When the <span style="font-family: Courier New,Courier,monospace">on_start_cb()</span> callback is invoked, the predefined sync process is performed inside the callback function. The <span style="font-family: Courier New,Courier,monospace">on_cancel_cb()</span> callback works in a similar way and cancels the sync operation.
+<li>When the <span style="font-family: Courier New,Courier,monospace">on_start_cb()</span> callback is invoked, the predefined data sync process is performed inside the callback function. The <span style="font-family: Courier New,Courier,monospace">on_cancel_cb()</span> callback works in a similar way and cancels the data sync process.
 <pre class="prettyprint">
-int on_start_cb(account_h account, bundle *extras, const char *capability)
+bool on_start_cb(account_h account, const char *sync_job_name, const char *sync_capability, bundle *sync_job_user_data)
 {
-&nbsp;&nbsp;&nbsp;// Start the sync operation
+&nbsp;&nbsp;&nbsp;// Start the data sync process
 }
 
-int on_cancel_cb(account_h account, const char *capability)
+void on_cancel_cb(account_h account, const char *sync_job_name, const char *sync_capability, bundle *sync_job_user_data)
 {
-&nbsp;&nbsp;&nbsp;// Cancel the sync operation
+&nbsp;&nbsp;&nbsp;// Cancel the data sync process
 }
 </pre>
 </li>
 
-<li>When the sync operation is no longer needed, destroy the sync adapter instance:
+<li>If the sync operation is no longer needed, unset callbacks to free the sync adapter instance:
 <pre class="prettyprint">
 result = sync_adapter_unset_callbacks();
-sync_adapter_destroy();
 </pre>
 </li>
-
 </ol>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>

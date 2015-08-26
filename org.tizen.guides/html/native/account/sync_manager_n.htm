@@ -41,21 +41,22 @@
      <th class="note">Note</th>
     </tr>
     <tr>
-     <td class="note">The Sync Manager API domain is supported in mobile applications only. Service and UI applications should have package name as same.</td>
+     <td class="note">The Sync Manager API domain is supported in mobile applications only.<br>Service and UI applications should have package name as same.</td>
     </tr>
    </tbody>
  </table>
 
-<p>On the device, you can receive notifications when the data changes in the calendar or contacts. To receive the notifications, you must define the applicable capabilities (<span style="font-family: Courier New,Courier,monospace">http://tizen.org/account/capability/calendar</span> for the calendar changes and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/account/capability/contact</span> for the contact changes). If you use the <a href="../../../../org.tizen.native.mobile.apireference/group__CORE__LIB__BUNDLE__MODULE.html">Bundle</a> API, you can deliver the change data to the callback function in the form of <span style="font-family: Courier New,Courier,monospace">user_data</span> by using a key-value pair.</p>
-
 <p>The main Sync Manager API features are:</p>
 <ul>
-<li>Add and remove the on-demand sync job schedule.</li>
-<li>Add and remove the periodic sync job schedule.</li>
+<li>Add on-demand sync job schedules.</li>
+<li>Add periodic sync job schedules.</li>
+<li>Add data change sync job schedules.</li>
+<li>Remove registered sync job schedules.</li>
+<li>Iterate registered sync job schedules.</li>
 </ul>
-<p>The sync manager operates the sync jobs based on the rules defined in the following table.</p>
+<p><br>The sync manager operates sync jobs based on the rules defined in the following table.</p>
   <table>
-  <caption>Table: Sync job scheduling rules
+  <caption>Table: Sync job scheduling rules<p>
   </caption>
    <tbody>
     <tr>
@@ -63,38 +64,92 @@
      <th>Description</th>
     </tr>
     <tr>
-     <td>Data on the server changes</td>
-     <td>The server sends the push message to the account provider service and service applications. When the data changes on a server, a push message arrives from a server. Then, the device which received the push message can trigger on-demand sync job.</td>
+     <td>Data changes on server</td>
+     <td>A server sends a push message to the account provider service and service applications. When the data is changed on a server, a push message is sent from the server. Then, the device which is received the push message can trigger on-demand sync job.</td>
     </tr>
     <tr>
-     <td>Data on the device changes</td>
-     <td>Changes are based on capabilities. The data change listener notices the changes by using the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SOCIAL__CALENDAR__SVC__MODULE.html">Calendar</a> or <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SOCIAL__CONTACTS__SVC__MODULE.html">Contacts</a> API. If there are any changes in the calendar or contacts data, the sync manager notices the changes and schedules a sync job.
-<p>Changing data in the Calendar database includes adding, updating, and deleting books, events, and todos. Changing data in the Contacts database includes adding, removing, and modifying contacts.</p></td>
+     <td>Data changes on device</td>
+     <td>A subscribed callback function is invoked whenever DB change occurs for the registered capability. The data change listener notices the changes by using the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SOCIAL__CALENDAR__SVC__MODULE.html">Calendar</a>, <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SOCIAL__CONTACTS__SVC__MODULE.html">Contacts</a>, and <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CONTENT__MODULE.html">Media Content</a> API. If there are any changes in corresponding data, the sync manager notices the changes and schedules a sync job. <br><br>Changing data in the Calendar database includes adding, updating, and deleting books, events, and todos. Changing data in the Contacts database includes adding, removing, and modifying contacts.<br>Media content provides notification for the types of changed data such as image, music, sound, and video.</td>
     </tr>
     <tr>
      <td>Network availability</td>
-     <td>When a change in the Bluetooth, Wi-Fi, or data network status is detected, a sync job occurs.</td>
+     <td>When a status change in the Wi-Fi or data network is detected, a sync job occurs.</td>
     </tr>
     <tr>
-     <td>On demand</td>
-     <td>The on-demand sync means that you can schedule a sync job for one time only. You can use this feature with the <span style="font-family: Courier New,Courier,monospace">sync_manager_add_sync_job()</span> function.</td>
+     <td>On demand sync</td>
+     <td>The on-demand sync means that you can schedule a sync job for once. You can use this feature with the <span style="font-family: Courier New,Courier,monospace">sync_manager_on_demand_sync_job()</span> API.</td>
     </tr>
     <tr>
-     <td>Sync schedule intervals</td>
-     <td>Sync schedule intervals mean that you can schedule a sync job to be performed regularly. You can use this feature with the <span style="font-family: Courier New,Courier,monospace">sync_manager_add_periodic_sync_job()</span> function. You can define the sync intervals with various enumerators provided through the Sync Manager API.</td>
+     <td>Periodic sync</td>
+     <td>The periodic sync means that you can schedule a sync job to be performed regularly. You can use this feature with the <span style="font-family: Courier New,Courier,monospace">sync_manager_add_periodic_sync_job()</span> API. You can also use the sync intervals as various enumerators which is provided through the Sync Manager API. To use this API, <span style="font-family: Courier New,Courier,monospace">"http://tizen.org/privilege/alarm.set"</span> is required. Because user who use this API can use setting an alarm indirectly.</td>
     </tr>
    </tbody>
   </table>
 
-<p>When you create a sync job, you can define options that set the sync job attributes. You need the Bundle API to set the sync job options for both the on-demand and periodic jobs:</p>
-<ul><li><span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_NO_RETRY</span>
-<p>This sync option defines whether retrying the sync request is allowed. If the option is set to <span style="font-family: Courier New,Courier,monospace">false</span>, the sync operation tries again after the job fails.</p></li>
-<li><span style="font-family: Courier New,Courier,monospace">SYNC_OPTION_EXPEDITED</span>
-<p>All sync jobs are passed into a sync job queue. If this sync option is set to <span style="font-family: Courier New,Courier,monospace">true</span>, it gives a priority to its job relative to the other queued jobs. Both the on-demand and periodic jobs in the queue are simultaneously influenced by this option.</p></li></ul>
+
+<p><br>The following table lists the variables and theirs description for using Sync Manager.</p>
+<table border="1">
+	<caption>Table: Sync Manager variables<p></caption>
+	<tbody>
+    <tr>
+		<th>Sync Manager variable</th>
+		<th>Data type</th>
+		<th>Mandatory</th>
+		<th>Description</th>
+	</tr>
+	<tr>
+		<td>Account Handle</td>
+		<td><span style="font-family: Courier New,Courier,monospace">account_s*</span></td>
+		<td>No</td>
+		<td>Handle of account module.<p>An account handle for managing account related data.</p></td>
+	</tr>
+	<tr>
+		<td>Sync Job Name</td>
+		<td><span style="font-family: Courier New,Courier,monospace">const char*</span></td>
+		<td>Yes</td>
+		<td>Name for managing sync jobs.<p>On-demand and periodic sync jobs can be managed by using Sync Job Name. It is user defined value. If <span style="font-family: Courier New,Courier,monospace">sync_manager_add_periodic_sync_job()</span> API is called again with same Sync Job Name, not adding a new sync job but renewing all the data except Sync Job Name and Sync Job ID. That is for mainly resetting of periodic interval.</p></td>
+	</tr>
+	<tr>
+		<td>Sync Capability</td>
+		<td><span style="font-family: Courier New,Courier,monospace">const char*</span></td>
+		<td>Yes</td>
+		<td>Capability for a data change sync jobs.<p>Data change sync job can provide notification whenever corresponding data change occurs. If <span style="font-family: Courier New,Courier,monospace">sync_manager_add_data_change_sync_job()</span> API is used with a capability, it is operated only for the related capability. In the case of using calendar and contact capability, <span style="font-family: Courier New,Courier,monospace">"http://tizen.org/privilege/calendar.read"</span> and <span style="font-family: Courier New,Courier,monospace">"http://tizen.org/privilege/contact.read"</span> are required for each.</p><p>Available capabilities are below:<br>#define&nbsp;&nbsp;&nbsp;&nbsp;SYNC_SUPPORTS_CAPABILITY_CALENDAR&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: Courier New,Courier,monospace">"http://tizen.org/sync/capability/calendar"</span><br>#define&nbsp;&nbsp;&nbsp;&nbsp;SYNC_SUPPORTS_CAPABILITY_CONTACT&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: Courier New,Courier,monospace">"http://tizen.org/sync/capability/contact"</span><br>#define&nbsp;&nbsp;&nbsp;&nbsp;SYNC_SUPPORTS_CAPABILITY_IMAGE&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: Courier New,Courier,monospace">"http://tizen.org/sync/capability/image"</span><br>#define&nbsp;&nbsp;&nbsp;&nbsp;SYNC_SUPPORTS_CAPABILITY_MUSIC&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: Courier New,Courier,monospace">"http://tizen.org/sync/capability/music"</span><br>#define&nbsp;&nbsp;&nbsp;&nbsp;SYNC_SUPPORTS_CAPABILITY_SOUND&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: Courier New,Courier,monospace">"http://tizen.org/sync/capability/sound"</span><br>#define&nbsp;&nbsp;&nbsp;&nbsp;SYNC_SUPPORTS_CAPABILITY_VIDEO&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: Courier New,Courier,monospace">"http://tizen.org/sync/capability/video"</span></p></td>
+	</tr>
+	<tr>
+		<td>Sync Period</td>
+		<td><span style="font-family: Courier New,Courier,monospace">sync_period_e</span></td>
+		<td>Yes</td>
+	<td>Interval for a periodic sync jobs.<p>With it, sync job is provided periodically. In the case of setting periodic interval as 30 minutes, a time interval is set as power of 2 less than 30. Then, the time interval which is 16 minutes will operate the sync job every 16 minutes with skipping the first notification. So, the first will be 32 minutes. That is same for the other cases.<br>In other words, it provides periodical sync job with an inexact time. By doing so, coupling various periodic sync jobs with interval as power of 2 is for preventing waking up service application too many times from a device.</p><p>Available period intervals are below:<br>SYNC_PERIOD_INTERVAL_30MIN&nbsp;&nbsp;&nbsp;&nbsp;Sync within 30 minutes<br>SYNC_PERIOD_INTERVAL_1H&nbsp;&nbsp;&nbsp;&nbsp;Sync within 1 hour<br>SYNC_PERIOD_INTERVAL_2H&nbsp;&nbsp;&nbsp;&nbsp;Sync within 2 hours<br>SYNC_PERIOD_INTERVAL_3H&nbsp;&nbsp;&nbsp;&nbsp;Sync within 3 hours<br>SYNC_PERIOD_INTERVAL_6H&nbsp;&nbsp;&nbsp;&nbsp;Sync within 6 hours<br>SYNC_PERIOD_INTERVAL_12H&nbsp;&nbsp;&nbsp;&nbsp;Sync within 12 hours<br>SYNC_PERIOD_INTERVAL_1DAY&nbsp;&nbsp;&nbsp;&nbsp;Sync within 1 day</p></td>
+	</tr>
+	<tr>
+		<td>Sync Option</td>
+		<td><span style="font-family: Courier New,Courier,monospace">sync_option_e</span></td>
+		<td>Yes</td>
+		<td>Option for deciding the behavior of sync jobs.<p>The behavior of sync job is decided with corresponding sync option. These options can be used as OR value. For example, the expression of "(SYNC_OPTION_EXPEDITED | SYNC_OPTION_NO_RETRY)" is available. That means "Sync job will be operated just once with priority".</p><p>Available options are below:<br>SYNC_OPTION_NONE&nbsp;&nbsp;&nbsp;&nbsp;Sync job will be operated normally<br>SYNC_OPTION_EXPEDITED&nbsp;&nbsp;&nbsp;&nbsp;Sync job will be operated as soon as possible<br>SYNC_OPTION_NO_RETRY&nbsp;&nbsp;&nbsp;&nbsp;Sync job will not be performed again when it fails</p></td>
+	</tr>
+	<tr>
+		<td>Sync Job ID</td>
+		<td><span style="font-family: Courier New,Courier,monospace">int*</span></td>
+		<td>Yes</td>
+		<td>Unique ID for managing sync jobs.<p>It is generated when a sync job is added. It is required to remove the sync job. The number of Sync Job ID which can be generated is restricted as a hundred per a package.</p></td>
+	</tr>
+	<tr>
+		<td>Sync Job User Data</td>
+		<td><span style="font-family: Courier New,Courier,monospace">bundle*</span></td>
+		<td>No</td>
+		<td>User data for sync jobs.<p>User data which contains additional information related registered sync jobs.</p></td>
+	</tr>
+	<tr>
+		<td>User Data</td>
+		<td><span style="font-family: Courier New,Courier,monospace">void*</span></td>
+		<td>No</td>
+		<td>User data for <span style="font-family: Courier New,Courier,monospace">sync_manager_for_each_sync_job()</span>.<p>User data which contains additional information related foreach jobs.</p></td>
+	</tr>
+	</tbody>
+</table>
 
 
 <h2>Sync Adapter</h2>
-<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__ADAPTER__MODULE.html">Sync Adapter</a> API allows you to:</p>
 
  <table class="note">
    <tbody>
@@ -102,7 +157,7 @@
      <th class="note">Note</th>
     </tr>
     <tr>
-     <td class="note">The Sync Adapter API should be carried out by a service application which will operate data synchronization before using the Sync Manager API.</td>
+     <td class="note">The Sync Adapter API should be carried out by a service application which will operate data synchronization before using the Sync Manager API.<br>The number of service application which can set callbacks is restricted as only one per a package.</td>
     </tr>
    </tbody>
  </table>
@@ -110,32 +165,7 @@
 <p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__ADAPTER__MODULE.html">Sync Adapter</a> API allows you to:</p>
 <ul>
 <li>Register callbacks for notifications about the sync job start and cancellation.</li>
-<li>Use an app control to start or cancel the sync operation, so that the application daemon does not need to stay awake.
-
-<p>With the app control mechanism, you can use specific operations exported by other Tizen applications. The mechanism allows you to receive notifications when starting or canceling a sync job without using the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html">App Control</a> API separately. <br>When an app control is used, the application does not need to be in the running state to receive the notifications.</p>
-<p>The following table defines the app control operation details related to a sync operation. The applications does not need to know about them, because the operations are set primitively in the daemon.</p>
-  <table>
-  <caption>Table: App control operations
-  </caption>
-   <tbody>
-    <tr>
-     <th>Operation</th>
-     <th>Value</th>
-     <th>Description</th>
-    </tr>
-    <tr>
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_START_SYNC</span></td>
-	 <td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/start_sync</span></td>
-     <td>Start a sync operation by invoking the service application callback.</td>
-    </tr>
-    <tr>
-     <td><span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_CANCEL_SYNC</span></td>
-	 <td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/cancel_sync</span></td>
-     <td>Cancel a sync operation by invoking the service application callback.</td>
-    </tr>
-   </tbody>
-  </table>
-
+<li>App control is used to start the sync operation, so that the application's daemon does not need to stay awake. <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__ADAPTER__MODULE.html">Sync Adapter</a> API allows you to use this mechanism without using the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html">App Control</a> API separately. <p>In other words, in the case of using <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__ADAPTER__MODULE.html">Sync Adapter</a> API, you can use the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html">App Control</a> API indirectly.</p>
 </li>
 </ul>
 
@@ -163,4 +193,3 @@ var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga
 
 </body>
 </html>
-
