@@ -124,6 +124,140 @@ typedef struct __viewdata viewdata_s;
 
 <h3 id="app-init">Application initialization</h3>
 
+  <p>
+  The entire application's life-cycle is implemented in the main source file, using a common Tizen application structure:
+  </p>
+
+<pre class="prettyprint">
+int main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;appdata_s ad = {{0,},};
+&nbsp;&nbsp;&nbsp;int ret = 0;
+
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback;
+&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL, };
+
+&nbsp;&nbsp;&nbsp;event_callback.create = __create_app;
+&nbsp;&nbsp;&nbsp;event_callback.terminate = __terminate_app;
+&nbsp;&nbsp;&nbsp;event_callback.pause = __pause_app;
+&nbsp;&nbsp;&nbsp;event_callback.resume = __resume_app;
+&nbsp;&nbsp;&nbsp;event_callback.app_control = __control_app;
+
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY, __ui_app_low_battery, &ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY, __ui_app_low_memory, &ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_DEVICE_ORIENTATION_CHANGED], APP_EVENT_DEVICE_ORIENTATION_CHANGED, __ui_app_orient_changed, &ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED, __ui_app_lang_changed, &ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED, __ui_app_region_changed, &ad);
+
+&nbsp;&nbsp;&nbsp;ret = ui_app_main(argc, argv, &event_callback, &ad);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function ui_app_main() failed with error = %d", ret);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+
+  <p>
+  The application's initilization procedure is executed in <span style="font-family: Courier New,Courier,monospace">__create_app()</span> callback function, which is invoked on application's startup.
+  </p>
+
+<pre class="prettyprint">
+static bool __create_app(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+
+&nbsp;&nbsp;&nbsp;return controller_init(&ad->view);
+}
+</pre>
+
+  <p>
+  Finally, the <span style="font-family: Courier New,Courier,monospace">controller_init()</span> function is invoked, which controls the entire initialization process
+  (see the code snippet below for details). This function is responsible for:
+    <ul>
+	  <li>
+	    Resource Manager engine initialization (<span style="font-family: Courier New,Courier,monospace">model_init()</span>);
+	  </li>
+	  <li>
+	    User interface creation (<span style="font-family: Courier New,Courier,monospace">view_create_base_gui()</span>) and initialization
+	    (<span style="font-family: Courier New,Courier,monospace">__controller_init_dpi()</span>).
+	  </li>
+	</ul>
+  </p>
+
+<pre class="prettyprint">
+bool controller_init(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;if (!model_init())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (!view_create_base_gui(vd))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;__controller_init_dpi(vd);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  For reference of model related functions that are not listed here refer to the <a href="#model">Model</a> section.
+  </p>
+
+  <p>
+  The view related source code is not listed here, as it is not a subject of this document.
+  </p>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">model_init()</span> function simply invokes
+  <span style="font-family: Courier New,Courier,monospace">app_resource_manager_init()</span> API function in order to get access to the Resource Manager engine (see the code snippet below for reference).
+  </p>
+
+<pre class="prettyprint">
+bool model_init(void)
+{
+&nbsp;&nbsp;&nbsp;return __model_init_app_resource_manager();
+}
+</pre>
+
+<pre class="prettyprint">
+bool __model_init_app_resource_manager(void)
+{
+&nbsp;&nbsp;&nbsp;int ret = app_resource_manager_init();
+&nbsp;&nbsp;&nbsp;if (ret != APP_RESOURCE_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function app_resource_manager_init() failed with error %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">__controller_init_dpi()</span> function gets the 'tizen.png' image's file path from the Resource Manager and updates the view with the
+  image relevant to the screen's DPI.
+  </p>
+
+<pre class="prettyprint">
+static void __controller_init_dpi(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;char *file_path = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!model_get_app_resource(APP_RESOURCE_TYPE_IMAGE, "tizen.png", &file_path))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;view_show_dpi_image(vd, file_path);
+&nbsp;&nbsp;&nbsp;free(file_path);
+}
+</pre>
+
+  <p>
+  For reference of model related functions that are not listed here refer to the <a href="#model">Model</a> section.
+  </p>
+
+  <p>
+  The view related source code is not listed here, as it is not a subject of this document.
+  </p>
+
 <h3 id="app-finit">Application termination</h3>
 
 <h3 id="model">Model</h3>
