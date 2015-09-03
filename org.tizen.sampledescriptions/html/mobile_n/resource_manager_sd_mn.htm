@@ -130,7 +130,7 @@
   In the application's source code, after the Resource Manager API is initialized, the relevant resource file's path is acquired using the
   <span style="font-family: Courier New,Courier,monospace">app_resource_manager_get(app_resource_e type, const char *id, char **path)</span> function, where
     <ul>
-	  <li><span style="font-family: Courier New,Courier,monospace">type</span> - specifies the type of the resource (image and sound is currently supported);</li>
+	  <li><span style="font-family: Courier New,Courier,monospace">type</span> - specifies the type of the resource (image, sound, layout and bin are currently supported);</li>
 	  <li><span style="font-family: Courier New,Courier,monospace">id</span> - specifies the identifier of the resource (file name with extension);</li>
 	  <li><span style="font-family: Courier New,Courier,monospace">path</span> - pointer to the path where the expected resource (file) is stored.</li>
 	</ul>
@@ -341,6 +341,96 @@ bool model_finit(void)
 
   <p>
   For <span style="font-family: Courier New,Courier,monospace">__model_release_app_resource_manager()</span> function's reference, see the <a href="#model">Model</a> section.
+  </p>
+
+<h3>Resource files handling</h3>
+
+  <p>
+  Once the resources are defined using <a href="#res-man">Resource Explorer</a> and appropriate resource files are uploded to the destination folders, one can start using these files.
+  For the demonstration purpose, two scenarions were chosen:
+    <ul>
+	  <li>displaying the image related to the current DPI setting;</li>
+	  <li>displaying the image related to the current locale setting.</li>
+	</ul>
+  </p>
+
+  <p>
+  In the first case, there are 5 image files (each name is set to 'tizen.png') depicting the Tizen's logo with resolution label attached. Each of the images is stored in a different folder with respect to the
+  DPI setting: 'res/contents/LDPI', 'res/contents/MDPI', 'res/contents/HDPI', 'res/contents/XHDPI', 'res/contents/XXHDPI'. On application's startup, during the initialization procedure
+  (<a href="#app-init">Application initialization</a> section), the <span style="font-family: Courier New,Courier,monospace">__controller_init_dpi()</span> function is called, which obtains
+  the path to the relevant image based on the current screen's settings. The core function, performing described task is
+  <span style="font-family: Courier New,Courier,monospace">model_get_app_resource()</span> (for reference, see the <a href="#model">Model</a> section).
+  </p>
+
+<pre class="prettyprint">
+static void __controller_init_dpi(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;char *file_path = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Obtains the path to the 'tizen.png' file with respect to the current screen's settings. */
+&nbsp;&nbsp;&nbsp;if (!model_get_app_resource(APP_RESOURCE_TYPE_IMAGE, "tizen.png", &file_path))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* The obtained image file is displayed. */
+&nbsp;&nbsp;&nbsp;view_show_dpi_image(vd, file_path);
+&nbsp;&nbsp;&nbsp;free(file_path);
+}
+</pre>
+
+  <p>
+  In the second case, there are 48 image files (each name is set to 'flag.png') depicting the national flags related to all supported languages. Each of the images is stored in a different folder:
+  'res/contents/az_AZ', 'res/contents/ca_ES', ... , 'res/contents/zh_TW'. Once the user changes the current language (Settings application &#10140; Language and input &#10140; Display language),
+  the <span style="font-family: Courier New,Courier,monospace">__ui_app_lang_changed()</span> callback function is invoked (see the <a href="#app-init">Application initialization</a> section).
+  This callback function hooks <span style="font-family: Courier New,Courier,monospace">APP_EVENT_LANGUAGE_CHANGED</span> event. At the entry point of the
+  <span style="font-family: Courier New,Courier,monospace">__ui_app_lang_changed()</span> function, the current locale is obtained using
+  <span style="font-family: Courier New,Courier,monospace">model_get_locale()</span> function in order to be later set as a current language for the application
+  (<span style="font-family: Courier New,Courier,monospace">elm_language_set()</span>). Finally, the
+  <span style="font-family: Courier New,Courier,monospace">controller_set_language()</span> function is invoked, which is responsible for obtaining and displaying the language relevant image.
+  </p>
+
+<pre class="prettyprint">
+static void __ui_app_lang_changed(app_event_info_h event_info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)user_data;
+&nbsp;&nbsp;&nbsp;char *locale = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Gets the current locale name. */
+&nbsp;&nbsp;&nbsp;if (!model_get_locale(&locale))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* Sets the language for this application. */
+&nbsp;&nbsp;&nbsp;elm_language_set(locale);
+
+&nbsp;&nbsp;&nbsp;/* See the code snippet below. */
+&nbsp;&nbsp;&nbsp;controller_set_language(&ad->view, locale);
+
+&nbsp;&nbsp;&nbsp;free(locale);
+
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+<pre class="prettyprint">
+void controller_set_language(viewdata_s *vd, char *locale)
+{
+&nbsp;&nbsp;&nbsp;char *file_path = NULL;
+
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Language set to: %s.", locale);
+
+&nbsp;&nbsp;&nbsp;/* Obtains the path to the 'flag.png' file with respect to the current language's settings. */
+&nbsp;&nbsp;&nbsp;if (!model_get_app_resource(APP_RESOURCE_TYPE_IMAGE, "flag.png", &file_path))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* The obtained image file is displayed. */
+&nbsp;&nbsp;&nbsp;view_show_language_info(vd, locale, file_path);
+
+&nbsp;&nbsp;&nbsp;if (file_path)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(file_path);
+}
+</pre>
+
+  <p>
+  For all Model related functions, see the <a href="#model">Model</a> section.
   </p>
 
 <h3 id="model">Model</h3>
