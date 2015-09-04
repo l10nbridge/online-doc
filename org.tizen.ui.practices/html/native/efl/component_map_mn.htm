@@ -1,0 +1,285 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Map</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#add">Adding a Map Component</a></li>
+			<li><a href="#play">Playing with the Map</a></li>
+			<li><a href="#overlay">Drawing Overlays</a></li>
+			<li><a href="#route">Calculating Routes</a></li>
+			<li><a href="#callback">Using Map Callbacks</a></li>
+		</ul>
+			<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Elementary.html">Elementary API for Mobile Native</a></li>				
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Map</h1>
+
+<p>This feature is supported in mobile applications only.</p>
+
+<p>The map component displays a geographic map. The default map data are provided by the OpenStreetMap project <a href="http://www.openstreetmap.org/" target="_blank">(http://www.openstreetmap.org/)</a>. Custom providers can also be added.</p>
+
+<p>This UI component supports:</p>
+  <ul> 
+   <li>Zooming</li> 
+   <li>Scrolling</li> 
+   <li>Markers with content to be displayed when the user clicks over them</li> 
+   <li>Group of markers</li>   
+   <li>Routes</li> 
+  </ul>
+
+<p>The map component implements the scroller interface so that all the functions that work with the scroller component also work with maps.</p>
+
+<p class="figure">Figure: Map hierarchy</p> 
+<p align="center"> <img alt="Map hierarchy" src="../../images/map_tree.png" /> </p>  
+
+<h2 id="add">Adding a Map Component</h2>
+
+<p>Once created with the <span style="font-family: Courier New,Courier,monospace">elm_map_add()</span> function, zoom level x12 can be set.</p>
+
+<pre class="prettyprint">
+Evas_Object *map, *parent;
+
+map = elm_map_add(parent);
+elm_map_zoom_mode_set(map, ELM_MAP_ZOOM_MODE_MANUAL);
+elm_map_zoom_set(map, 12);
+</pre>
+
+<p>Here the zoom mode is set to manual, but it can also be set to the <span style="font-family: Courier New,Courier,monospace">ELM_MAP_ZOOM_MODE_AUTO_FIT</span> mode and the <span style="font-family: Courier New,Courier,monospace">ELM_MAP_ZOOM_MODE_AUTO_FILL</span> mode. In that case however, the <span style="font-family: Courier New,Courier,monospace">elm_map_zoom_set()</span> function cannot be used.</p>
+
+<h2 id="play">Playing with the Map</h2>
+
+<p>If you have coordinates of a specific area (2 2 N, 48 8 E), it can be shown on the map.</p>
+<pre class="prettyprint">
+elm_map_region_show(map, 2.2, 48.8);
+</pre>
+
+<p>This shows the desired coordinates. The location can also be shown with a bring-in animation.</p>
+<pre class="prettyprint">
+elm_map_region_bring_in(map, 2.2, 48.8);
+</pre>
+
+<p>The map is rotated 90 degrees around the current position.</p>
+<pre class="prettyprint">
+elm_map_rotate_set(map, 90, 2.2, 48.8);
+</pre>
+
+<h2 id="overlay">Drawing Overlays</h2>
+
+<p>Overlays are markers that can be placed anywhere on the map. They can represent any object you want to put on the map.</p>
+
+<h3>Creating an Overlay Class</h3>
+
+<p>Overlay classes can be created if several objects are of the same type. For example, you can create a forest overlay class to represent the forests visible on the map. To do this, set the minimum zoom level at which this class is visible. The forest class overlay is visible when the zoom level is superior to eight.</p>
+
+<p>Set an icon (&quot;Home&quot; icon) to the forest class. This icon is displayed in place of the forest class on the map.</p>
+<pre class="prettyprint">
+Evas_Object *icon;
+Elm_Map_Overlay *forest_class = elm_map_overlay_class_add(map);
+
+// Set min zoom level at which class is displayed
+elm_map_overlay_displayed_zoom_min_set(forest_class, 8);
+
+// Create a Home icon object and set it to the forest class 
+icon = elm_icon_add(map);
+elm_icon_standard_set(icon, &quot;home&quot;);
+elm_map_overlay_icon_set(forest_class, icon);
+</pre>
+
+<h3>Adding Overlays to a Class</h3>
+
+<p>After creating a forest class, it is possible to add overlay objects to it. Here an overlay for the Meudon forest is created. The data is linked to the overlay with the <span style="font-family: Courier New,Courier,monospace">elm_map_overlay_data_set()</span> function. Set the name of the forest in the data. The icon can be set to the overlay with the <span style="font-family: Courier New,Courier,monospace">elm_map_overlay_icon_set()</span> function.</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Do not use the same icon object for two different overlays. Create a new icon object each time you need one.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+  
+<pre class="prettyprint">
+Elm_Map_Overlay *ovl;
+const char* data_meudon = &quot;Meudon forest&quot;;
+const char* data_fausses = &quot;Fausse forest&quot;;
+
+// Add an overlay
+ovl = elm_map_overlay_add(map, 2.20718, 48.79759);
+icon = elm_icon_add(map);
+elm_icon_standard_set(icon, &quot;stop&quot;);
+elm_map_overlay_icon_set(ovl, icon);
+elm_map_overlay_data_set(ovl, &amp;data_meudon);
+
+// Add the new ovl object to the forest class 
+elm_map_overlay_class_append(forest_class, ovl);
+
+// Add another overlay next to the first one 
+ovl = elm_map_overlay_add(map, 2.1699, 48.8189);
+icon = elm_icon_add(map);
+elm_icon_standard_set(icon, &quot;stop&quot;);
+elm_map_overlay_icon_set(ovl, icon);
+elm_map_overlay_data_set(ovl, &amp;data_fausses);
+elm_map_overlay_class_append(forest_class, ovl);
+</pre>  
+
+<p>If you add another overlay to the forest class, the two overlays can be grouped under the forest class icon on certain zoom level conditions. You can define on which zoom level items are grouped.</p>
+<pre class="prettyprint">
+elm_map_overlay_class_zoom_max_set(forest_class, 8);
+</pre>
+
+<p>In this case, overlay members of the forest class are grouped when the map is displayed at less than zoom level eight.</p>
+
+<h3>Creating Bubbles Following Overlays</h3>
+
+<p>The following example shows how to set a content in a bubble following an overlay.</p>
+
+<pre class="prettyprint">
+// Add an overlay bubble object 
+Elm_Map_Overlay *bubble = elm_map_overlay_bubble_add(map);
+
+// Set it to follow a specific overlay (the last created one here) 
+elm_map_overlay_bubble_follow(bubble, ovl);
+</pre>
+
+<p>Once following an overlay, the bubble appears, moves or hides following the parent overlay&#39;s behavior.</p>
+
+<p>Content is added to the bubble with the <span style="font-family: Courier New,Courier,monospace">elm_map_overlay_bubble_content_append()</span> function.</p>
+
+<h3 id="other_overlay">Adding Other Overlays</h3>
+
+<p>You can draw a circle on the map with coordinates and a radius size.</p>
+<pre class="prettyprint">
+Elm_Map_Overlay *circle = elm_map_overlay_circle_add(map, 2.2, 48.8, 0.02);
+</pre>
+
+<p>You can also add a scale at the 200x0 coordinate (in pixels).</p>
+<pre class="prettyprint">
+Elm_Map_Overlay *scale = elm_map_overlay_scale_add(map, 200, 0);
+</pre>
+
+<p>You can also draw a line, a polygon, or a route. For a full description of these functions, see the <a href="../../../../org.tizen.native.mobile.apireference/group__Map.html">Map API</a>.</p>
+
+<h2 id="route">Calculating Routes</h2>
+
+<p>A route between a starting point and an ending point is calculated with the <span style="font-family: Courier New,Courier,monospace">elm_map_route_add()</span> call. The type of transport and the routing calculation method can be provided so as to have the desired result.</p>
+
+<p>The following example shows how to get a route calculation between the first and the second overlay. It is configured to use the bicycle, and to find the fastest route possible.</p>
+
+<pre class="prettyprint">
+Elm_Map_Route *route = elm_map_route_add(map,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_MAP_ROUTE_TYPE_BICYCLE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_MAP_ROUTE_METHOD_FASTEST,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.20718, 48.79759,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.1699, 48.8189,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, NULL);
+
+// Add a callback to when the route has been calculated and loaded 
+evas_object_smart_callback_add(map, &quot;route,loaded&quot;, _route_loaded_cb, route);
+</pre>
+
+<p>Once the route is calculated, create a route overlay object and change its color. In this example, the <span style="font-family: Courier New,Courier,monospace">route,loaded</span> callback is used.</p>
+<pre class="prettyprint">
+static void
+_route_loaded_cb(void *data, Evas_Object *obj, void *ev)
+{
+&nbsp;&nbsp;&nbsp;Elm_Map_Route *route = data;
+
+&nbsp;&nbsp;&nbsp;Elm_Map_Overlay *route_ovl = elm_map_overlay_route_add(obj, route);
+&nbsp;&nbsp;&nbsp;elm_map_overlay_color_set(route_ovl, 0, 255, 0, 255);
+}
+</pre>     
+
+<h2 id="callback">Using Map Callbacks</h2>
+
+<p>The map component emits the following callbacks:</p>
+<ul> 
+   <li><span style="font-family: Courier New,Courier,monospace">clicked</span>: The user has clicked the map without dragging around.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">clicked,double</span>: The user has double-clicked the map.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">press</span>: The user has pressed down on the map.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">longpressed</span>: The user has pressed down on the map for a long time without dragging around.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">scroll</span>: The content is scrolled (moved).</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">scroll,drag,start</span>: Dragging the contents around starts.</li>  
+   <li><span style="font-family: Courier New,Courier,monospace">scroll,drag,stop</span>: Dragging the contents around stops.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">scroll,anim,start</span>: Scrolling animation starts.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">scroll,anim,stop</span>: Scrolling animation stops.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">zoom,start</span>: Zoom animation starts.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">zoom,stop</span>: Zoom animation stops.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">zoom,change</span>: The zoom is changed when using an auto zoom mode.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">tile,load</span>: A map tile image load begins.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">tile,loaded</span>: A map tile image load ends.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">tile,loaded,fail</span>: A map tile image load fails.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">route,load</span>: Route request begins.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">route,loaded</span>: Route request ends.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">route,loaded,fail</span>: Route request fails.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">name,load</span>: Name request begins.</li>   
+   <li><span style="font-family: Courier New,Courier,monospace">name,loaded</span>: Name request ends.</li>   
+   <li><span style="font-family: Courier New,Courier,monospace">name,loaded,fail</span>: Name request fails.</li>   
+   <li><span style="font-family: Courier New,Courier,monospace">overlay,clicked</span>: An overlay is clicked.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">loaded</span>: The map is loaded.</li>
+</ul>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.</td>
+        </tr>
+    </tbody>
+</table>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div> 
+
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

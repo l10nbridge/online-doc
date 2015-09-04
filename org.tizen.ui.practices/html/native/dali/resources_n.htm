@@ -1,0 +1,253 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Resources: Handling Images</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+		<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#image">Loading Image Files</a></li>
+			<li><a href="#patch">Using Nine-Patch Images</a></li>
+			<li><a href="#buffer">Using a Buffer Image</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1BufferImage.html">DALi::BufferImage API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1NinePatchImage.html">DALi::NinePatchImage API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1ResourceImage.html">DALi::ResourceImage API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1BufferImage.html">DALi::BufferImage API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1NinePatchImage.html">DALi::NinePatchImage API for Wearable Native</a></li><li><a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1ResourceImage.html">DALi::ResourceImage API for Wearable Native</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Resources: Handling Images</h1>
+
+
+<p>DALi provides several ways to handle resource images.</p>
+
+<h2 id="image" name="image">Loading Image Files</h2>
+
+<p>You can load an image file with the <span style="font-family: Courier New,Courier,monospace;">ResourceImage</span> class by specifying its location:</p>
+
+<pre class="prettyprint">
+Dali::ResourceImage image = Dali::ResourceImage::New(&quot;/my-path/my-image.png&quot;);
+</pre>
+
+<p>The loaded image can be displayed using the <a href="imageview_n.htm">ImageView</a> component:</p>
+
+<pre class="prettyprint">
+ImageView imageView = ImageView::New(image);
+Stage::GetCurrent().Add(imageView);
+</pre>
+
+
+<h3>Supported Resource Types</h3>
+
+<p>The resource location can be a file path or a URL.</p>
+
+<p>The currently supported image types are:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">png</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">jpeg</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">gif</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">bmp</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">wbmp</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">ico</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">ktx</span></li>
+</ul>
+
+<p>The currently supported URL schemes are:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">http</span></li>
+<li><span style="font-family: Courier New,Courier,monospace;">https</span></li>
+</ul>
+
+<h3>Asynchronous Loading</h3>
+
+<p>Resources are loaded in separate threads, which means that when you call the <span style="font-family: Courier New,Courier,monospace;">ResourceImage::New()</span> function, it returns immediately.</p>
+
+<p>The application can connect to the <span style="font-family: Courier New,Courier,monospace;">Dali::ResourceImage::LoadingFinishedSignal()</span> signal to get notified when the image has loaded:</p>
+
+<pre class="prettyprint">
+class ResourceImageController : public ConnectionTracker
+{
+&nbsp;&nbsp;&nbsp;public:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ResourceImageController(Application&amp; application) : mApplication(application)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mApplication.InitSignal().Connect(this, &amp;ResourceImageController::Create);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;void Create(Application&amp; application)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ResourceImage image = ResourceImage::New(&quot;https://www.tizen.org/sites/default/files/admins/tizen-branding-lockup-on-light.png&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.LoadingFinishedSignal().Connect(this, &amp;ResourceImageController::OnLoadFinished);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ImageView imageView = ImageView::New(image);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;imageView.SetSize(400, 200);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;imageView.SetParentOrigin(ParentOrigin::CENTER);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Stage::GetCurrent().Add(imageView);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;void OnLoadFinished(ResourceImage image)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;LoadingState state = image.GetLoadingState();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (state == ResourceLoadingSucceeded)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cout &lt;&lt; &quot;Loading &quot; &lt;&lt; image.GetUrl() &lt;&lt; &quot; is succeeded&quot; &lt;&lt; endl;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (state == ResourceLoadingFailed)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cout &lt;&lt; &quot;Loading &quot; &lt;&lt; image.GetUrl() &lt;&lt; &quot; is failed&quot; &lt;&lt; endl;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+};
+</pre>
+
+<p>For more information about the resource threads, see <a href="multi_threaded_n.htm#resource">Resource Loading with Multi-threading</a>.</p>
+
+
+<h3>Load and Release Policies</h3>
+
+
+<p>By default, resource images start loading immediately and the data is released only when the <span style="font-family: Courier New,Courier,monospace;">ResourceImage</span> handle is destroyed. To optimize its memory footprint, the application can ask resources to be loaded only when actually required and their data to be released automatically when they are no longer being used by actors:</p>
+
+<pre class="prettyprint">Dali::ResourceImage image = Dali::ResourceImage::New(&quot;/my-path/my-image.png&quot;, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dali::ResourceImage::ON_DEMAND, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Dali::Image::UNUSED);</pre>
+
+<p>If the <span style="font-family: Courier New,Courier,monospace;">Dali::Image::UNUSED</span> property is used, the resource data is reloaded automatically when the image is used again.</p>
+
+<h3>Load Time Resizing</h3>
+
+<p>An application loading images from an external source often wants to display those images at a lower resolution than their native ones. To support this, DALi can resize an image at load time so that its in-memory copy uses less space and its visual quality benefits from being prefiltered. The <span style="font-family: Courier New,Courier,monospace;">Dali::FittingMode</span> namespace (in <a href="../../../../org.tizen.native.mobile.apireference/namespaceDali_1_1FittingMode.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/namespaceDali_1_1FittingMode.html">wearable</a> applications) provides 4 algorithms, which can be used to fit an image to a desired rectangle, a desired width, or a desired height.</p>
+
+<p>The following code snippet is an example of rescaling:</p>
+
+<pre class="prettyprint">
+Dali::Image image = Dali::ResourceImage::New(filename, ImageDimensions(240, 240), FittingMode::SCALE_TO_FILL);
+</pre>
+
+<p>This example sets the size and fitting mode appropriately for a large thumbnail during the <span style="font-family: Courier New,Courier,monospace;">Dali::ResourceImage</span> object construction. In general, to enable scaling on load, pass a non-zero width or height and one of the 4 fitting modes to the <span style="font-family: Courier New,Courier,monospace;">Dali::ResourceImage</span> creator function as shown above.</p>
+
+<p>The fitting modes and suggested use cases are as follows:</p>
+
+<table>
+       <caption>
+               Table: Fitting mode use cases
+       </caption>
+       <tbody>
+       <tr>
+               <th>Fitting mode</th>
+               <th>Suggested use case</th>
+       </tr>
+       <tr>
+               <td><span style="font-family: Courier New,Courier,monospace;">Dali::FittingMode::SHRINK_TO_FIT</span></td>
+               <td>Full-screen image display: limit the loaded image resolution to the device resolution, but show all of the image.</td>
+       </tr>
+       <tr>
+               <td><span style="font-family: Courier New,Courier,monospace;">Dali::FittingMode::SCALE_TO_FILL</span></td>
+               <td>Thumbnail gallery grid: limit the loaded image resolution to the screen tile, filling the whole tile but losing a few pixels to match the tile shape.</td>
+       </tr>
+       <tr>
+               <td><span style="font-family: Courier New,Courier,monospace;">Dali::FittingMode::FIT_WIDTH</span></td>
+               <td>Image columns: limit the loaded image resolution to the column width.</td>
+       </tr>
+       <tr>
+            	<td><span style="font-family: Courier New,Courier,monospace;">Dali::FittingMode::FIT_HEIGHT</span></td>
+               <td>Image rows: limit the loaded image resolution to the row height.</td>
+       </tr>
+       </tbody>
+</table>
+
+
+<h3>Image Size</h3>
+
+<p>If the application requires the image dimensions immediately, they can be retrieved synchronously:</p>
+
+<pre class="prettyprint">Dali::ImageDimensions dimensions = Dali::ResourceImage::GetImageSize(&quot;/my-path/my-image.png&quot;);</pre>
+
+<p>This is a disk-read operation, which can be slow and block the event thread. This operation is currently not supported for remote resources, such as HTTP or HTTPS URLs.</p>
+
+
+<h2 id="patch" name="patch">Using Nine-Patch Images</h2>
+
+
+<p>DALi supports nine-patch images, which can be stretched while maintaining their corners.</p>
+
+<h3>Nine-Patch Image Format</h3>
+
+<p>A nine-patch image has 9 sections. In the following figure (on the right), the sections 2, 4, 5, 6, 8 are stretched and the sections 1, 3, 7, 9 keep their size unchanged when the size of the image is changed:</p>
+
+<p class="figure">Figure: A nine-patch image explained</p>  
+       <p align="center"><img alt="A nine-patch image" src="../../images/nine_patch_dali.9.png"/> <img alt="A nine-patch image" src="../../images/nine_patch_explained.png"/></p>
+
+<p>The black lines top and left side of the image determine the stretchable region.</p>
+	   
+<p>This format is compatible with the one used in Android. Therefore, you can easily make nine-patch images using existing tools, such as <a href="https://romannurik.github.io/AndroidAssetStudio/nine-patches.html" target="_blank">Simple Nine-patch Generator</a>.</p>
+
+
+
+<h3>Nine-Patch Image Loading</h3>
+
+<p>A nine-patch image can be loaded by the <span style="font-family: Courier New,Courier,monospace;">ResourceImage</span> class just like other images. If an image file has a <span style="font-family: Courier New,Courier,monospace;">.9.png</span> or <span style="font-family: Courier New,Courier,monospace;">.9.jpg</span> extension and proper nine-patch image contents as mentioned earlier, the image loaded by the <span style="font-family: Courier New,Courier,monospace;">ResourceImage</span> class is rendered in the nine-patch way with the <span style="font-family: Courier New,Courier,monospace;">ImageView</span> class.</p>
+
+<p>The following is an example of using a <span style="font-family: Courier New,Courier,monospace;">*.9.png</span> image:</p>
+
+<pre class="prettyprint">
+ResourceImage image = ResourceImage::New(&quot;nine_patch_dali.9.png&quot;);
+ImageActor imageView = ImageActor::New(image);
+imageView.SetSize(200, 200);
+</pre>
+
+<p>The following figure shows the result:</p>
+<p class="figure">Figure: 200 x 200 image</p>
+       <p align="center"><img alt="200 x 200 image" src="../../images/nine_patch_expanded.png"/></p>
+
+	   
+<h2 id="buffer" name="buffer">Using a Buffer Image</h2>
+
+<p>A <span style="font-family: Courier New,Courier,monospace;">DALi::BufferImage</span> class (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1BufferImage.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1BufferImage.html">wearable</a> applications) represents an image resource in the form of pixel buffer data. The application can write to this buffer as required and the image is updated on the screen:</p>
+
+<pre class="prettyprint">// Create a 200 by 200 pixel buffer with a color-depth of 32-bits (with alpha)
+Dali::BufferImage image = Dali::BufferImage::New(200, 200);</pre>
+
+    
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

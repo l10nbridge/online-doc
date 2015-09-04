@@ -20,7 +20,7 @@
 
 <div id="container"><div id="contents"><div class="content">
 	<div id="profile">
-		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
 	</div>
   <h1>Lockscreen Sample Overview</h1>
 
@@ -42,6 +42,21 @@
  
 <p>To make this application work, the user must select it as a default lockscreen through the Settings menu.</p> 
 
+<h2>Prerequisites</h2>
+<p>This application requires the following privileges to be set:</p>
+<ul>
+ <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/keymanager</span></li>
+ <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/display</span></li>
+</ul>
+<p>This application also has a special <span style="font-family: Courier New,Courier,monospace">category</span> attribute set in the <span style="font-family: Courier New,Courier,monospace">tizen-mainfest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;ui-application appid=&quot;packageName&quot; auto-restart=&quot;true&quot; exec=&quot;appName&quot; multiple=&quot;false&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nodisplay=&quot;true&quot; on-boot=&quot;true&quot; taskmanage=&quot;false&quot; type=&quot;capp&quot;>
+&nbsp;&nbsp;&nbsp;&lt;!--Common application attributes--&gt;
+&nbsp;&nbsp;&nbsp;&lt;category name=&quot;http://tizen.org/category/lockapp&quot;/>
+&lt;/ui-application>
+</pre>
+
  <h2>Implementation</h2>
 <p>The application follows the MVC pattern. Aside from the standard native application module with the <span style="font-family: Courier New,Courier,monospace">main()</span> function, it consists of the following components:</p>
 <ul>
@@ -50,7 +65,7 @@
 <li><span style="font-family: Courier New,Courier,monospace">main_window.c</span>, <span style="font-family: Courier New,Courier,monospace">lock.c</span>, and <span style="font-family: Courier New,Courier,monospace">swipe_lock.c</span> modules serving as views</li>
 </ul>
 
-<p>The application initialization takes place with the <span style="font-family: Courier New,Courier,monospace">controller_application_start()</span> function. This function creates the main window and sets the current lock type based on user preferences. It also sets the current lockscreen background. But most of all, it registers callbacks for the following events:</p>
+<p>The application initialization takes place with the <span style="font-family: Courier New,Courier,monospace">start_application()</span> function. This function creates the main window and sets the current lock type based on user preferences. It also sets the current lockscreen background. But most of all, it registers callbacks for the following events:</p>
 <ul>
 <li>Successful unlock using swipe gesture</li>
 <li>Lockscreen background change (using the Settings application)</li>
@@ -59,22 +74,22 @@
 
 <pre class="prettyprint">
 bool
-controller_application_start(void)
+start_application(void)
 {
-&nbsp;&nbsp;&nbsp;if (!main_window_create())
+&nbsp;&nbsp;&nbsp;if (!create_main_window())
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;current_lock_set();
+&nbsp;&nbsp;&nbsp;__set_current_lock();
 &nbsp;&nbsp;&nbsp;// Add a controller swipe callback to the main window
-&nbsp;&nbsp;&nbsp;main_window_callbacks_add(swipe_unlocked_cb);
+&nbsp;&nbsp;&nbsp;add_main_window_callbacks(__swipe_unlocked_cb);
 &nbsp;&nbsp;&nbsp;// Add a lockscreen background image change callback, the image is selected in Settings application
-&nbsp;&nbsp;&nbsp;wallpaper_changed_cb(SYSTEM_SETTINGS_KEY_WALLPAPER_LOCK_SCREEN, NULL)
+&nbsp;&nbsp;&nbsp;__wallpaper_changed_cb(SYSTEM_SETTINGS_KEY_WALLPAPER_LOCK_SCREEN, NULL)
 &nbsp;&nbsp;&nbsp;// Add a callback for the background change (also changed using the Settings application)
-&nbsp;&nbsp;&nbsp;system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_WALLPAPER_LOCK_SCREEN, wallpaper_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;system_settings_set_changed_cb(SYSTEM_SETTINGS_KEY_WALLPAPER_LOCK_SCREEN, __wallpaper_changed_cb, NULL);
 &nbsp;&nbsp;&nbsp;// Add a callback to listen to LCD on/off events
-&nbsp;&nbsp;&nbsp;device_add_callback(DEVICE_CALLBACK_DISPLAY_STATE, device_cb, NULL);
+&nbsp;&nbsp;&nbsp;device_add_callback(DEVICE_CALLBACK_DISPLAY_STATE, __device_cb, NULL);
 
 &nbsp;&nbsp;&nbsp;return true;
 }
@@ -84,51 +99,51 @@ controller_application_start(void)
 
 <p>To activate the lockscreen:</p>
 
-<ol><li>Each time the LCD display is switched on, the currently selected lock type is activated through the <span style="font-family: Courier New,Courier,monospace">device_cb()</span> callback function:
+<ol><li>Each time the LCD display is switched on, the currently selected lock type is activated through the <span style="font-family: Courier New,Courier,monospace">__device_cb()</span> callback function:
 
 <pre class="prettyprint">
 static void
-device_cb(device_callback_e type, void *value, void *user_data)
+__device_cb(device_callback_e type, void *value, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;switch ((display_state_e)value)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case DISPLAY_STATE_NORMAL:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current_lock_set();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_current_lock();
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case DISPLAY_STATE_SCREEN_DIM:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case DISPLAY_STATE_SCREEN_OFF:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current_lock_set();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_current_lock();
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 }
 </pre></li>
 
-<li>The <span style="font-family: Courier New,Courier,monospace">settings_get_lock_type()</span> model function is used to obtain the current lock type. 
+<li>The <span style="font-family: Courier New,Courier,monospace">get_lock_type()</span> model function is used to obtain the current lock type. 
 <p>With this sample application, you can add other types of lock implementations of your own. To do that, modify the <span style="font-family: Courier New,Courier,monospace">lockscreen_type_t</span> enumeration type.</p>
 <pre class="prettyprint">
 static void
-current_lock_set(void)
+__set_current_lock(void)
 {
 &nbsp;&nbsp;&nbsp;switch(settings_get_lock_type())
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case LOCKSCREEN_NONE:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;main_window_swipe_lock_deactivate();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deactivate_main_window_swipe_lock();
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case LOCKSCREEN_SWIPE:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;main_window_swipe_lock_activate();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;activate_main_window_swipe_lock();
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 }
 </pre></li>
-<li>The user interface is created with the <span style="font-family: Courier New,Courier,monospace">main_window_create()</span> function. It consists of a background and a swipe lock view.
+<li>The user interface is created with the <span style="font-family: Courier New,Courier,monospace">create_main_window()</span> function. It consists of a background and a swipe lock view.
 <pre class="prettyprint">
 bool
-main_window_create(void)
+create_main_window(void)
 {
 &nbsp;&nbsp;&nbsp;s_main_window_data.win = elm_win_add(NULL, PACKAGE, ELM_WIN_DOCK);
 
@@ -139,11 +154,11 @@ main_window_create(void)
 &nbsp;&nbsp;&nbsp;// Default alpha is 0
 &nbsp;&nbsp;&nbsp;elm_win_alpha_set(s_main_window_data.win, EINA_TRUE);
 
-&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(s_main_window_data.win, &quot;delete,request&quot;, delete_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(s_main_window_data.win, &quot;delete,request&quot;, __delete_cb, NULL);
 
-&nbsp;&nbsp;&nbsp;if (!background_create(s_main_window_data.screen_width, s_main_window_data.screen_height) ||
+&nbsp;&nbsp;&nbsp;if (!__create_background(s_main_window_data.screen_width, s_main_window_data.screen_height) ||
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Create the swipe lock to cover the entire window
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!swipe_create(s_main_window_data.screen_width, s_main_window_data.screen_height))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!__create_swipe(s_main_window_data.screen_width, s_main_window_data.screen_height)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 &nbsp;&nbsp;&nbsp;}
@@ -159,30 +174,30 @@ main_window_create(void)
 
 <p>To unlock the device:</p>
 
-<ol><li>The controller module uses the <span style="font-family: Courier New,Courier,monospace">main_window_callbacks_add()</span> function to register its callbacks for the user interface. Consequently, the module is notified whenever the user successfully unlocks the device with a swipe gesture, and the <span style="font-family: Courier New,Courier,monospace">swipe_unlocked_cb()</span> function is invoked.
+<ol><li>The controller module uses the <span style="font-family: Courier New,Courier,monospace">add_main_window_callbacks()</span> function to register its callbacks for the user interface. Consequently, the module is notified whenever the user successfully unlocks the device with a swipe gesture, and the <span style="font-family: Courier New,Courier,monospace">__swipe_unlocked_cb()</span> function is invoked.
 
 <pre class="prettyprint">
 void
-main_window_callbacks_add(swipe_unlock_cb unlock_cb)
+add_main_window_callbacks(swipe_unlock_cb unlock_cb)
 {
 &nbsp;&nbsp;&nbsp;if (!s_main_window_data.swipe_unlock_cb || unlock_cb)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;swipe_lock_callbacks_add(s_main_window_data.swipe_lock, swipe_drag_cb, swipe_drag_end_cb);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_add_swipe_lock_callbacks(s_main_window_data.swipe_lock, __swipe_drag_cb, __swipe_drag_end_cb);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_main_window_data.swipe_unlock_cb = unlock_cb;
 &nbsp;&nbsp;&nbsp;}
 }
 
 static void
-swipe_unlocked_cb(void)
+__swipe_unlocked_cb(void)
 {
-&nbsp;&nbsp;&nbsp;main_window_lock_deactivate();
+&nbsp;&nbsp;&nbsp;deactivate_main_window_swipe_lock();
 }
 </pre></li>
 
-<li>After a successful swipe, the swipe lock is deactivated using the <span style="font-family: Courier New,Courier,monospace">main_window_swipe_lock_deactivate()</span> function:
+<li>After a successful swipe, the swipe lock is deactivated using the <span style="font-family: Courier New,Courier,monospace">deactivate_main_window_swipe_lock()</span> function:
 <pre class="prettyprint">
 void
-main_window_swipe_lock_deactivate(void)
+deactivate_main_window_swipe_lock(void)
 {
 &nbsp;&nbsp;&nbsp;// Hide the swipe lock UI object
 &nbsp;&nbsp;&nbsp;evas_object_hide(s_main_window_data.swipe_lock);
@@ -193,17 +208,19 @@ main_window_swipe_lock_deactivate(void)
 
  <h3>Creating the Lockscreen View</h3>
 
-<p>The swipe lock view is created as the <span style="font-family: Courier New,Courier,monospace">elm_layout</span> in the <span style="font-family: Courier New,Courier,monospace">lock_create()</span> function (called from the <span style="font-family: Courier New,Courier,monospace">swipe_lock_create()</span> function). One of its parameters is the layout <span style="font-family: Courier New,Courier,monospace">edj</span> file name.</p>
-<p>The <span style="font-family: Courier New,Courier,monospace">lock_create()</span> function
+<p>The swipe lock view is created as the <span style="font-family: Courier New,Courier,monospace">elm_layout</span> in the <span style="font-family: Courier New,Courier,monospace">_create_lock()</span> function (called from the <span style="font-family: Courier New,Courier,monospace">_create_swipe_lock()</span> function). One of its parameters is the layout <span style="font-family: Courier New,Courier,monospace">edj</span> file name.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">_create_lock()</span> function
 associates the <span style="font-family: Courier New,Courier,monospace">elm_layout</span> with the EDJE.</p>
 <pre class="prettyprint">
-Evas_Object * lock_create(Evas_Object * parent, const char *edje_file_name)
+Evas_Object *_create_lock(Evas_Object *parent, const char *edje_file_name)
 {
 &nbsp;&nbsp;&nbsp;char layout_file_full_path[PATH_MAX] = {0,};
 
 &nbsp;&nbsp;&nbsp;Evas_Object *lock = elm_layout_add(parent);
 
-&nbsp;&nbsp;&nbsp;// Error handling and layout file path obtaining
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;compile_resource_path(edje_file_name, layout_file_full_path);
 
 &nbsp;&nbsp;&nbsp;if (!elm_layout_file_set(lock, layout_file_full_path, LOCK_MAIN_GROUP))
 &nbsp;&nbsp;&nbsp;{
@@ -214,9 +231,9 @@ Evas_Object * lock_create(Evas_Object * parent, const char *edje_file_name)
 }
 
 Evas_Object *
-swipe_lock_create(Evas_Object * parent)
+_create_swipe_lock(Evas_Object *parent)
 {
-&nbsp;&nbsp;&nbsp;return lock_create(parent, SWIPE_LOCK_EDJ_FILE_NAME);
+&nbsp;&nbsp;&nbsp;return _create_lock(parent, SWIPE_LOCK_EDJ_FILE_NAME);
 }
 </pre>
 
@@ -314,7 +331,7 @@ collections
 
 <pre class="prettyprint">
 void
-swipe_lock_drag_reset(Evas_Object *swipe_lock)
+_reset_swipe_lock_drag(Evas_Object *swipe_lock)
 {
 &nbsp;&nbsp;&nbsp;elm_layout_signal_emit(swipe_lock, SWIPE_RESET_SIGNAL, SWIPE_RESET_SIGNAL_SOURCE);
 }

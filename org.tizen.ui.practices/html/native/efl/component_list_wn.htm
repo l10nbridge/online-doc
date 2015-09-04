@@ -1,0 +1,252 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>List</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#add">Adding a List Component</a></li>
+			<li><a href="#use">Using the List</a></li>
+			<li><a href="#items">Adding Items to the List</a></li>
+			<li><a href="#change">Changing the Text or Icon of an Item</a></li>
+			<li><a href="#retrieve">Retrieving Selected Items</a></li>
+			<li><a href="#operation">List Item Operations</a></li>
+			<li><a href="#callback">Using List Callbacks</a></li>
+		</ul>
+			<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Edje.html">Edje API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__EFL__EXTENSION__MODULE.html">Efl Extension API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Elementary.html">Elementary API for Wearable Native</a></li>	
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>List</h1>
+
+<p>This feature is supported in wearable applications only.</p>
+
+ <p>This UI component is a very simple type of a list component. It is not to be used to manage a lot of items. For that, genlists are a better option. </p>
+
+ <p>The list items can contain a text and two contents (<span style="font-family: Courier New,Courier,monospace">start</span> and <span style="font-family: Courier New,Courier,monospace">end</span>). These are set with the <span style="font-family: Courier New,Courier,monospace">elm_object_item_*()</span> functions. </p>
+
+ 
+ <p class="figure">Figure: List component</p> 
+<p align="center"> <img alt="List component" src="../../images/list_wn.png" /> </p> 
+  
+  <p class="figure">Figure: List hierarchy</p> 
+<p align="center"> <img alt="List hierarchy" src="../../images/list_tree.png" /> </p> 
+ 
+<h2 id="add">Adding a List Component</h2>
+
+<pre class="prettyprint">
+Evas_Object *list, *parent;
+
+// Create a list 
+list = elm_list_add(parent);
+</pre>
+
+<h2 id="use">Using the List</h2>
+
+<p>This UI component implements the scrollable interface, so the scroller component functions can be used on it. For example, if you want to change the bounce property of the scroller or the scrolling policy:</p>
+
+<pre class="prettyprint">
+Evas_Object *list;
+
+// Change the scroller policy to fix the scroll only vertically
+elm_scroller_policy_set(list, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_AUTO);
+// Enable bounce effect when the list reaches the upper and lower limits 
+elm_scroller_bounce_set(list, EINA_FALSE, EINA_TRUE);
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">elm_list_multi_select_set()</span> function can be called to enable multi-selection of items. Each time an item is clicked, the state changes to <span style="font-family: Courier New,Courier,monospace">selected</span>.</p>
+
+<pre class="prettyprint">
+Evas_Object *list;
+
+// Activate multi selection 
+elm_list_multi_select_set(list, EINA_FALSE);
+</pre>
+
+<h2 id="items">Adding Items to the List</h2>
+
+ <p>Items are added with <span style="font-family: Courier New,Courier,monospace">elm_list_item_append()</span> or <span style="font-family: Courier New,Courier,monospace">elm_list_item_prepend()</span>. Here an example of adding ten items with text and one icon on the front: The last two arguments are the callback function when the created item is clicked and the data passed to the callback function.</p>
+
+<pre class="prettyprint">
+Evas_Object *list;
+int i;
+
+// This function is called when the list item is selected 
+static void _selected_item_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *list_it = elm_list_selected_item_get(obj);
+&nbsp;&nbsp;&nbsp;Eina_Bool selected = elm_list_item_selected_get(list_it);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;item is %s\n&quot;, selected? &quot;selected&quot;: &quot;unselected&quot;);
+}
+
+for (i = 0; i &lt; 10; i++)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *ic;
+&nbsp;&nbsp;&nbsp;char tmp[8];
+&nbsp;&nbsp;&nbsp;snprintf(tmp, sizeof(tmp), &quot;Item %02d&quot;, i);
+&nbsp;&nbsp;&nbsp;// Create an icon 
+&nbsp;&nbsp;&nbsp;ic = elm_icon_add(win);
+&nbsp;&nbsp;&nbsp;// Set the file to the icon file 
+&nbsp;&nbsp;&nbsp;elm_image_file_set(ic, &quot;path/to/file&quot;, NULL);
+&nbsp;&nbsp;&nbsp;// Add item to the list 
+&nbsp;&nbsp;&nbsp;elm_list_item_append(list, tmp, ic, NULL, _selected_item_cb, NULL);
+}
+
+</pre>
+ 
+<h2 id="change">Changing the Text or Icon of an Item</h2>
+
+<p>If you want to change the state of an item, you can do it by using all the functions relative to <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span>. Each item of the list contains two instances of an <span style="font-family: Courier New,Courier,monospace">evas_object</span>. Give those as the third and the fourth arguments when you append or prepend the item in the list. The <span style="font-family: Courier New,Courier,monospace">evas_object</span> instances are changed with <span style="font-family: Courier New,Courier,monospace">elm_object_item_part_content_set</span>. The first object is referenced as the <span style="font-family: Courier New,Courier,monospace">start</span> object in the theme, whereas the second one is referenced as the <span style="font-family: Courier New,Courier,monospace">end</span> object. Give these names when you use the <span style="font-family: Courier New,Courier,monospace">elm_object_item_part_content_set</span>. The label of the item is changed by using <span style="font-family: Courier New,Courier,monospace">elm_object_item_text_set</span>.</p>
+
+<pre class="prettyprint">
+Evas_Object *list;
+Eina_List *l;
+Elm_Object_Item *it;
+
+// Retrieve the current selected item 
+it = elm_list_selected_item_get(list);
+if (!it)
+&nbsp;&nbsp;&nbsp;return;
+
+ic = elm_icon_add(win);
+// Set the file to the icon file 
+elm_image_file_set(ic, &quot;path/to/file&quot;, NULL);
+// Change the first icon 
+elm_object_item_part_content_set(it, &quot;start&quot;, ic);
+// Change the second icon 
+elm_object_item_part_content_set(it, &quot;end&quot;, ic);
+// Change the label 
+elm_object_item_text_set(it, &quot;I&#39;ve been selected !&quot;);
+</pre>
+  
+<h2 id="retrieve">Retrieving Selected Items</h2>
+
+ <p>The list of the currently selected items is retrieved with <span style="font-family: Courier New,Courier,monospace">elm_list_selected_items_get()</span>. If the multiselect mode is false, you can retrieve the only selected item with <span style="font-family: Courier New,Courier,monospace">elm_list_selected_item_get()</span>. For example, this is how to unselect all previously selected items.</p>
+
+<pre class="prettyprint">
+Evas_Object *list; Eina_List *l;
+Eina_List *selected_items;
+// List of Elm_Object_Item 
+Elm_Object_Item *it;
+
+selected_items = elm_list_selected_items_get(list);
+EINA_LIST_FOREACH(selected_items, l, it)
+&nbsp;&nbsp;&nbsp;elm_list_item_selected_set(it, EINA_FALSE);
+</pre>
+
+<h2 id="operation">List Item Operations</h2>
+
+ <p>To find out if an item is selected, call <span style="font-family: Courier New,Courier,monospace">elm_list_item_selected_get</span>. This function returns <span style="font-family: Courier New,Courier,monospace">EINA_TRUE</span> if the item is selected, otherwise <span style="font-family: Courier New,Courier,monospace">EINA_FALSE</span>.</p>
+
+ <p>Elementary list provides two functions for sliding a list to a specific item. <span style="font-family: Courier New,Courier,monospace">elm_list_item_show</span> shows the item passed as an argument, whereas <span style="font-family: Courier New,Courier,monospace">elm_list_item_bring_in</span> shows the item, but only after animating the slide.</p>
+
+ <p>You can go to the item immediately preceding a specific item with the function <span style="font-family: Courier New,Courier,monospace">elm_list_item_prev</span>, or to the one immediately following a specific item with the function <span style="font-family: Courier New,Courier,monospace">elm_list_item_next</span>.</p>
+
+ <p>The following example shows selecting the item immediately following the currently selected one, unselecting it, selecting the next one and bringing it to the screen. </p>
+
+<pre class="prettyprint">
+Evas_Object *list;
+Elm_Object_Item *current, *next;
+current = elm_list_selected_item_get(list);
+elm_list_item_selected_set(current, EINA_FALSE);
+next = elm_list_item_next(current);
+elm_list_item_selected_set(next, EINA_TRUE);
+elm_list_item_bring_in(next);
+</pre>
+
+<h2 id="callback">Using List Callbacks</h2>
+
+ <p>The list emits the following signals: </p> 
+  <ul> 
+   <li><span style="font-family: Courier New,Courier,monospace">activated</span>: The user double-clicks or presses (enter | return | spacebar) on an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter of the callback function contains a pointer to the item activated.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">clicked,double</span>: The user double-clicks an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter of the callback function contains a pointer to the item activated.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">selected</span>: The user selects an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter of the callback function contains a pointer to the item activated.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">unselected</span>: The user unselects an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter of the callback function contains a pointer to the item activated.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">longpressed</span>: The user long-presses an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter of the callback function contains a pointer to the item activated.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">edge,top</span>: The list is scrolled to the top edge.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">edge,bottom</span>: The list is scrolled to the bottom edge.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">edge,left</span>: The list is scrolled to the left edge.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">edge,right</span>: The list is scrolled to the right edge.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">highlighted</span>: The user highlights an item on the list. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter of the callback function contains a pointer to the item activated.</li> 
+   <li><span style="font-family: Courier New,Courier,monospace">unhighlighted</span>: The user unhighlights an item in the list. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter of the callback function contains a pointer to the item activated.</li>  
+  </ul>
+
+<p>You can register to the <span style="font-family: Courier New,Courier,monospace">clicked,double</span> signal with the following code. Note that the currently double-clicked item can be retrieved using the <span style="font-family: Courier New,Courier,monospace">event_info</span> pointer. This code registers to the <span style="font-family: Courier New,Courier,monospace">double,clicked</span> signal and unselects the item that has been double-clicked.</p>
+
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *list;
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(list, &quot;clicked,double&quot;, double_clicked_cb, data);
+}
+
+// Callback function for the &quot;clicked&quot; signal
+// This callback is called when the button is clicked by the user
+void double_clicked_cb(void *data, Evas_Object *obj, void  *event_info)
+{
+&nbsp;&nbsp;&nbsp;elm_Object_Item *it = event_info;
+&nbsp;&nbsp;&nbsp;elm_list_selected_item_set(it,  EINA_FALSE);
+}
+</pre>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.</td>
+        </tr>
+    </tbody>
+</table>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div> 
+
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

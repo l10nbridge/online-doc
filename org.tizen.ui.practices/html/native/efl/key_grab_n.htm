@@ -1,0 +1,699 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Grabbing Hardware Key Events</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__EFL__EXTENSION__MODULE.html">Efl Extension API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__EFL__EXTENSION__MODULE.html">Efl Extension API for Wearable Native</a></li>		
+			</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+
+  <h1>Grabbing Hardware Key Events</h1> 
+
+<p>The applications do not normally grab hardware key events, because each key event is delivered to the focused window by default. Some applications, however, have more advanced functionalities and behavior. For example, a memo application can use the volume key to resize the text. However, in most cases, if the volume keys are pressed, a volume control popup opens. To receive special hardware key events in the application, use the <span style="font-family: Courier New,Courier,monospace;">eext_win_keygrab_set()</span>  and <span style="font-family: Courier New,Courier,monospace;">eext_win_keygrab_unset()</span> functions.</p>   
+
+<p>To grab hardware key events:</p>
+<ol>
+<li>To use the functions and data types of the EFL Extension API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__EFL__EXTENSION__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__EFL__EXTENSION__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace;">&lt;efl_extension.h&gt;</span> header in your application: 
+<pre class="prettyprint">
+#include &lt;efl_extension.h&gt;
+</pre>
+</li>
+
+<li>Create the objects using the window. For more information, see <a href="ui_containers_n.htm">UI Containers</a>.
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win = NULL;
+
+&nbsp;&nbsp;&nbsp;// Create the window
+&nbsp;&nbsp;&nbsp;win = elm_win_util_standard_add(NULL, &quot;extension sample&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;delete,request&quot;, _win_del, NULL);
+
+&nbsp;&nbsp;&nbsp;// Show the window
+&nbsp;&nbsp;&nbsp;evas_object_show(win);
+}
+</pre>
+</li>
+
+<li>Register the key event callbacks for the window. For more information, see <a href="event_types_n.htm#ecore">Ecore Events</a>. 
+<pre class="prettyprint">
+Eina_Bool ctrl_pressed = EINA_FALSE;
+
+static Eina_Bool
+_key_down_cb(void *data __UNUSED__, int type __UNUSED__, void *ev)
+{
+&nbsp;&nbsp;&nbsp;// The callback is used with the ECORE_EVENT_KEY_DOWN signal: the
+&nbsp;&nbsp;&nbsp;// parameter &quot;void *ev&quot; is therefore of the actual Ecore_Event_Key type
+&nbsp;&nbsp;&nbsp;// The following renders its fields accessible
+&nbsp;&nbsp;&nbsp;Ecore_Event_Key *event = ev;
+
+&nbsp;&nbsp;&nbsp;// Test whether the key that is pressed is Ctrl
+&nbsp;&nbsp;&nbsp;if (!strcmp(&quot;Control_L&quot;, event-&gt;key))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If it is, store that piece of information
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ctrl_pressed = EINA_TRUE;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Let the event continue to other callbacks which have not been called yet
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_PASS_ON;
+}
+
+ecore_event_handler_add(ECORE_EVENT_KEY_DOWN, _key_down_cb, NULL);
+</pre>
+</li>
+
+<li>Grab the key events using the <span style="font-family: Courier New,Courier,monospace;">eext_win_keygrab_set()</span> function. The parameters are the window object created in step 2 above, and the <a href="#keystring">key string</a>. 
+<pre class="prettyprint">
+eext_win_keygrab_set(win, &quot;XF86AudioRaiseVolume&quot;)
+</pre>
+</li>
+
+<li>When the application no longer needs to grab the key events, use the <span style="font-family: Courier New,Courier,monospace;">eext_win_keygrab_unset()</span> function to ungrab them:
+<pre class="prettyprint">
+eext_win_keygrab_unset(win, &quot;XF86AudioRaiseVolume&quot;)
+</pre>
+</li>   
+</ol>
+
+<p>The following table lists the hardware keys from which you can grab events in different profiles.</p>
+
+<table id="keystring">
+	<caption>
+		Table: Supported hardware keys
+	</caption>
+	<tbody>
+		<tr>
+			<th>Key</th>
+			<th>Description</th>
+			<th>Mobile</th>
+			<th>Wearable</th>
+			<th>TV</th>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioRaiseVolume&quot;</span></td>
+			<td>Key to raise the volume</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioLowerVolume&quot;</span></td>
+			<td>Key to lower the volume</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86PowerOff&quot;</span></td>
+			<td>Power key to switch the device on and off</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Menu&quot;</span></td>
+			<td>Application-specific menu key</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Home&quot;</span></td>
+			<td>Key to go to the home screen</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Back&quot;</span></td>
+			<td>Key to go back to the previous status or page</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Camera&quot;</span></td>
+			<td>Half shutter key to do something before taking a picture on the camera</td>
+			<td>Yes</td>
+			<td>-</td>
+			<td>-</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Camera_Full&quot;</span></td>
+			<td>Key to take a picture on the camera</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Search&quot;</span></td>
+			<td>Key to go to the search application</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioPlay&quot;</span></td>
+			<td>Key to play media</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioPause&quot;</span></td>
+			<td>Key to pause the media being played</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioStop&quot;</span></td>
+			<td>Key to stop the media being played</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioNext&quot;</span></td>
+			<td>Key to go to the next media item</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioPrev&quot;</span></td>
+			<td>Key to go to the previous media item</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioRewind&quot;</span></td>
+			<td>Key to rewind the playing position of the media</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioForward&quot;</span></td>
+			<td>Key to forward the playing position of the media</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioMedia&quot;</span></td>
+			<td>Key to go to the media player</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioPlayPause&quot;</span></td>
+			<td>Key to toggle between play and pause</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioMute&quot;</span></td>
+			<td>Key to mute the media</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioRecord&quot;</span></td>
+			<td>Key to start recording media</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;Cancel&quot;</span></td>
+			<td>Key to cancel the action triggered by the previous keys</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86SoftKBD&quot;</span></td>
+			<td>Key to show and hide the soft keyboard</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86QuickPanel&quot;</span></td>
+			<td>Key to toggle the quick panel</td>
+			<td>Yes</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86TaskPane&quot;</span></td>
+			<td>Key to toggle the task switcher</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86HomePage&quot;</span></td>
+			<td>Key to go to the homepage of the user-defined Web browser</td>
+			<td>Yes</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86WWW&quot;</span></td>
+			<td>Key to launch the user-defined Web browser</td>
+			<td>Yes</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Mail&quot;</span></td>
+			<td>Key to go to the user-defined email application</td>
+			<td>Yes</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86ScreenSaver&quot;</span></td>
+			<td>Key to activate the screen lock (such as a pattern lock or a PIN lock)</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86MonBrightnessDown&quot;</span></td>
+			<td>Key to lower the screen brightness</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86MonBrightnessUp&quot;</span></td>
+			<td>Key to raise the screen brightness</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Voice&quot;</span></td>
+			<td>Key to activate a voice-related application</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;Hangul&quot;</span></td>
+			<td>Key to toggle the current language</td>
+			<td>Yes</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Apps&quot;</span></td>
+			<td>Key to call the application holder application</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Call&quot;</span></td>
+			<td>Key to launch the call application</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Game&quot;</span></td>
+			<td>Key to go to the game application</td>
+			<td>Yes</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86VoiceWakeUp_LPSD&quot;</span></td>
+			<td>Key to wake up from voice input (LPSD)</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86VoiceWakeUp&quot;</span></td>
+			<td>Key to wake up from voice input</td>
+			<td>Yes</td>
+			<td>Yes</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86TV&quot;</span></td>
+			<td>Key to display the TV screen directly</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Display&quot;</span></td>
+			<td>Key to toggle the video source </td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86RCConfig&quot;</span></td>
+			<td>Key to set the remote control&#39;s specific configuration</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86RCMode&quot;</span></td>
+			<td>Key to show and hide the virtual remote control on the screen</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;1&quot;</span></td>
+			<td>Numeric key 1 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;2&quot;</span></td>
+			<td>Numeric key 2 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;3&quot;</span></td>
+			<td>Numeric key 3 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;4&quot;</span></td>
+			<td>Numeric key 4 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;5&quot;</span></td>
+			<td>Numeric key 5 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;6&quot;</span></td>
+			<td>Numeric key 6 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;7&quot;</span></td>
+			<td>Numeric key 7 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;8&quot;</span></td>
+			<td>Numeric key 8 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;9&quot;</span></td>
+			<td>Numeric key 9 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;0&quot;</span></td>
+			<td>Numeric key 0 on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;-&quot;</span></td>
+			<td>Minus key on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86LowerChannel&quot;</span></td>
+			<td>Key to lower the channel number</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86RaiseChannel&quot;</span></td>
+			<td>Key to raise the channel number</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86ChannelList&quot;</span></td>
+			<td>Key to display the channel list</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86PreviousChannel&quot;</span></td>
+			<td>Key to display the previous channel</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86SysMenu&quot;</span></td>
+			<td>Key to launch the system menu</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86SimpleMenu&quot;</span></td>
+			<td>Key to launch the simple menu</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86History&quot;</span></td>
+			<td>Key to launch the history functionality</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Favorites&quot;</span></td>
+			<td>Key to launch the favorite channels functionality</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;Up&quot;</span></td>
+			<td>Arrow key UP on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;Down&quot;</span></td>
+			<td>Arrow key DOWN on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;Left&quot;</span></td>
+			<td>Arrow key LEFT on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;Right&quot;</span></td>
+			<td>Arrow key RIGHT on the remote control</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;Return&quot;</span></td>
+			<td>OK key on the remote control to confirm or select an item</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Close&quot;</span></td>
+			<td>Exit key on the remote control to terminate the current menu or application</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Info&quot;</span></td>
+			<td>Key to display the basic and auxiliary information on the screen</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Red&quot;</span></td>
+			<td>Key to execute the functionality registered to the RED key</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Green&quot;</span></td>
+			<td>Key to execute the functionality registered to the GREEN key</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Yellow&quot;</span></td>
+			<td>Key to execute the functionality registered to the YELLOW key</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Blue&quot;</span></td>
+			<td>Key to execute the functionality registered to the BLUE key</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86ProgInfo&quot;</span></td>
+			<td>Key to display the program information</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86PictureMode&quot;</span></td>
+			<td>Key to change the screen mode</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86PictureSize&quot;</span></td>
+			<td>Key to change the screen size and aspect ratio</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86PIP&quot;</span></td>
+			<td>Key to set the PIP (Picture-In-Picture) mode to display one screen on the other</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Guide&quot;</span></td>
+			<td>Key to display the user guide</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86AudioMode&quot;</span></td>
+			<td>Key to set or change the audio mode</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF86Subtitle&quot;</span></td>
+			<td>Key to display or hide the subtitles</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+		<tr>
+			<td><span style="font-family: Courier New,Courier,monospace;">&quot;XF863D&quot;</span></td>
+			<td>Key to set or change the 3D mode</td>
+			<td>-</td>
+			<td>-</td>
+			<td>Yes</td>
+		</tr>
+	</tbody>
+</table>
+		
+		
+		
+		
+   
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

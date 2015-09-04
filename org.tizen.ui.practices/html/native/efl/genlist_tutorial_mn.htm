@@ -1,0 +1,475 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Creating Mobile Genlists</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+	
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#genlist_creation">Creating a Genlist</a></li>
+			<li><a href="#entries_creation">Adding List Entries</a></li>
+			<li><a href="#item_style">Managing Item Style and Size</a></li>
+			<li><a href="#item_modes">Using Item Modes</a></li>
+		</ul>		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Elementary.html">Elementary API for Mobile Native</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Creating Mobile Genlists</h1>
+
+  
+<p>This tutorial shows how to create genlists, which are list components for large sets of elements. Genlists use callbacks to populate entries. The same UI component handles both flat lists and trees.</p>
+
+<p>This feature is supported in mobile applications only.</p>
+
+ <h2 id="genlist_creation" name="genlist_creation">Creating a Genlist</h2>
+
+   
+<p>To initialize the application for a genlist and create the genlist component:</p>
+<ol>
+<li>
+<p>Create a window entitled <strong>Genlist Basic Tutorial</strong>. It consists of a conformant component that contains a naviframe component. The genlist goes inside the naviframe.</p>
+<pre class="prettyprint">
+static bool
+_app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *app = data;
+
+&nbsp;&nbsp;&nbsp;app-&gt;win = elm_win_util_standard_add(&quot;main&quot;, &quot;Genlist Basic Tutorial&quot;);
+&nbsp;&nbsp;&nbsp;elm_win_conformant_set(app-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_show(app-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_resize(app-&gt;win, 480, 800);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(app-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;app-&gt;conformant = elm_conformant_add(app-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(app-&gt;conformant, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(app-&gt;win, app-&gt;conformant);
+&nbsp;&nbsp;&nbsp;evas_object_show(app-&gt;conformant);
+
+&nbsp;&nbsp;&nbsp;app-&gt;naviframe = elm_naviframe_add(app-&gt;win);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(app-&gt;naviframe, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(app-&gt;win, app-&gt;naviframe);
+&nbsp;&nbsp;&nbsp;evas_object_show(app-&gt;naviframe);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(app-&gt;conformant, app-&gt;naviframe);
+
+&nbsp;&nbsp;&nbsp;_create_list(app);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_push(app-&gt;naviframe, NULL, NULL, NULL, app-&gt;list, NULL);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+int
+main(int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;// Declare a few structures and zero-initialize (C99 feature)
+&nbsp;&nbsp;&nbsp;struct app_data app = {0};
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = {0};
+
+&nbsp;&nbsp;&nbsp;event_callback.create = _app_create;
+
+&nbsp;&nbsp;&nbsp;// Run the mainloop
+&nbsp;&nbsp;&nbsp;return ui_app_main(&amp;argc, &amp;argv, &amp;event_callback, &amp;ad);
+}
+</pre>
+</li>
+<li>
+<p>Declare the <span style="font-family: Courier New,Courier,monospace">app_data</span> struct:</p>
+<pre class="prettyprint">struct 
+app_data
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;Evas_Object *naviframe;
+&nbsp;&nbsp;&nbsp;Evas_Object *conformant;
+&nbsp;&nbsp;&nbsp;Evas_Object *list;
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *itc;
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *itc2;
+};
+</pre>
+</li>
+
+
+<li>
+ <p>To create the genlist, call the <span style="font-family: Courier New,Courier,monospace">elm_genlist_add()</span> function:</p>
+<pre class="prettyprint">
+Evas_Object *list = elm_genlist_add(parent);
+</pre></li>
+</ol>
+   <p class="figure">Figure: Genlist example</p> 
+   <p align="center"><img alt="Genlist example" src="../../images/genlist_1line.png" /></p>
+
+ <h2 id="entries_creation" name="entries_creation">Adding List Entries</h2>
+ 
+ <p>To add entries to the list:</p>
+ <ol>
+<li>
+<p>Build a basic item class:</p>
+<pre class="prettyprint">Elm_Genlist_Item_Class *itc = elm_genlist_item_class_new();
+itc-&gt;item_style = &quot;default&quot;;
+itc-&gt;func.text_get = NULL;
+itc-&gt;func.content_get = NULL;
+itc-&gt;func.state_get = NULL;
+itc-&gt;func.del = NULL;
+</pre>
+
+<p>This example uses the item class to set the <span style="font-family: Courier New,Courier,monospace">item_style</span> to <span style="font-family: Courier New,Courier,monospace">default</span> and all other fields to <span style="font-family: Courier New,Courier,monospace">NULL</span>. Note that this leaves out the <span style="font-family: Courier New,Courier,monospace">text_get</span> and <span style="font-family: Courier New,Courier,monospace">content_get</span> fields, which are used to add text and an icon to the list entry. In general, the item class fields define the APIs that are used to manage the list items.</p>
+</li>
+<li>
+<p>Add a new element to the list by calling the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function. Its second parameter is the item class structure which describes how to populate entries. Typically this structure is built once and re-used across calls to the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function.</p>
+<pre class="prettyprint">
+elm_genlist_item_append(list,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, // Item data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, // Parent item for trees, NULL if none
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, // Item type; this is the common one
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, // Callback on selection of the item
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL // Data for that callback function
+);
+</pre>
+<p>With most parameters as <span style="font-family: Courier New,Courier,monospace">NULL</span> and <span style="font-family: Courier New,Courier,monospace">itc</span> having most of its members <span style="font-family: Courier New,Courier,monospace">NULL</span> too, the elements of the list are blank and do not trigger anything when selected.</p>
+</li>
+<li>
+<p>Use the <span style="font-family: Courier New,Courier,monospace">text_get()</span> callback to add text in the elements in the <span style="font-family: Courier New,Courier,monospace">Elm_Genlist_Item_Class</span> structure.</p>
+<p>The callback must follow a prototype that takes data, an Evas Object, and a part variable as parameters. It returns a C string that is displayed in the part named after the <span style="font-family: Courier New,Courier,monospace">part</span> parameter. The callback is called for each user-settable text part according to the current theme.</p>
+
+<p>For more information on parts as used in the EFL files, see <a href="edje_intro_n.htm#simple_edc_file">Writing a Simple EDC File</a>.</p>
+
+
+  <table class="note"> 
+   <tbody> 
+  <tr> 
+   <th class="note">Note</th> 
+  </tr> 
+  <tr> 
+   <td class="note">The value returned by the callback is freed by the EFL. The value must be freshly allocated: do not free it yourself and do not reuse it across list elements.</td> 
+  </tr> 
+   </tbody> 
+  </table> 
+
+<p>The <span style="font-family: Courier New,Courier,monospace">default</span> theme (style defined for the item class) contains an <span style="font-family: Courier New,Courier,monospace">elm.text</span> part. The following example shows a possible implementation of the <span style="font-family: Courier New,Courier,monospace">text_get()</span> callback displaying text in the <span style="font-family: Courier New,Courier,monospace">elm.text</span> part:</p>
+<pre class="prettyprint">
+static char *
+_genlist_text_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;// Check this is text for the expected part
+&nbsp;&nbsp;&nbsp;if (strcmp(part, &quot;elm.text&quot;) == 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(&quot;Some text&quot;);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+  <table class="note"> 
+   <tbody> 
+  <tr> 
+   <th class="note">Note</th> 
+  </tr> 
+  <tr> 
+   <td class="note">The part names and positions depend on the <span style="font-family: Courier New,Courier,monospace">item_style</span> chosen when adding new items to the genlist. Setting a custom theme makes it possible to completely change genlists by adding and moving parts. For more information, see <a href="edje_intro_n.htm">Introduction to EDC Programming</a>.</td> 
+  </tr> 
+   </tbody> 
+  </table> 
+
+<p>The <span style="font-family: Courier New,Courier,monospace">data</span> parameter makes it possible to vary the list behavior according to the data given to the EFL in the <span style="font-family: Courier New,Courier,monospace">data</span> parameter of the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function call. For example, given an integer in that field through casting with <span style="font-family: Courier New,Courier,monospace">(void *)(uintptr_t) i</span>, you can get its value back using <span style="font-family: Courier New,Courier,monospace">(int)(uintptr_t)data</span>:</p>
+<pre class="prettyprint">
+static char *
+_genlist_text_get(void *data, Evas_Object *obj__UNUSED__, const char *part)
+{
+&nbsp;&nbsp;&nbsp;if (strcmp(part, &quot;elm.text&quot;) == 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *buf = malloc(16);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(buf, 16, &quot;Entry %d.&quot;, (int)(uintptr_t)data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return buf;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre> 
+</li>
+<li>
+<p>Add icons to the list with the <span style="font-family: Courier New,Courier,monospace">content_get()</span> callback. It returns a pointer to an <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> and is called for each part whose content can be set. The callback must follow a prototype that takes data, an Evas Object, and a part variable as parameters. The only difference with the <span style="font-family: Courier New,Courier,monospace">text_get()</span> callback is that the <span style="font-family: Courier New,Courier,monospace">content_get()</span> function returns an <span style="font-family: Courier New,Courier,monospace">Evas_Object*</span> rather than a <span style="font-family: Courier New,Courier,monospace">char *</span>.</p>
+
+<p>The following example creates colored rectangles in the parts that are to be set. In the <span style="font-family: Courier New,Courier,monospace">default</span> theme, this displays a red rectangle on the left side of each list item and a green one on the right side.</p>
+<pre class="prettyprint">
+static Evas_Object *
+_genlist_content_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;int i = (int) (uintptr_t) data;
+
+&nbsp;&nbsp;&nbsp;if (strcmp(part, &quot;elm.swallow.icon&quot;) == 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *bg = elm_bg_add(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_bg_color_set(bg, 255 * cos(i / (double) 10), 0, i % 255);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return bg;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (strcmp(part, &quot;elm.swallow.end&quot;) == 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *bg = elm_bg_add(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_bg_color_set(bg, 0, 255 * sin(i / (double) 10), i % 255);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return bg;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>
+<p>Implement the genlist item events.</p>
+<p>Genlist items trigger a callback when clicked. The callback is chosen when adding the new item, for example, when calling the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function:</p>
+<pre class="prettyprint">
+elm_genlist_item_append(list, itc, NULL,  NULL,  ELM_GENLIST_ITEM_NONE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_genlist_selected_cb, // Callback on selection of the item
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+</pre>
+
+<p>The callback must follow a prototype that takes data, an Evas Object, and event information as parameters. The following implementation changes the item&#39;s style when the item is selected.</p>
+<pre class="prettyprint">
+static void
+_genlist_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;struct app_data *app = data;
+
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = (Elm_Object_Item*) event_info;
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_item_class_update(it, app-&gt;itc2);
+}
+</pre>
+</li>
+</ol>
+
+	<h2 id="item_style" name="item_style">Managing Item Style and Size</h2>
+ 
+
+<p>You can manage the item style and size:</p> 
+
+<ul>
+<li>Managing the item style:
+<p>The number of parts that you can fill for an item depends on the item style that you select when creating the item class ( <span style="font-family: Courier New,Courier,monospace">Elm_Genlist_Item_Class</span> struct) for the genlist:</p>
+<pre class="prettyprint">
+app-&gt;itc-&gt;item_style = &quot;default&quot;;
+</pre>
+<p>For all available styles, see <a href="component_genlist_mn.htm">Genlist</a>.</p>
+<p>You can customize the styles by <a href="edje_intro_n.htm">modifying the theme</a> in the EDC file. In case the customization is only visual, it is a good practice to keep the same item style names for new themes. This makes it possible to change the theme and keep the code the same while also retaining the same overall item placement.</p>
+</li>
+<li>Setting a homogeneous item size:
+<p>To set the scroller correctly, the actual height and width of the genlist must be computed at the beginning. Since this means computing the size of each item and adding all item sizes together, it has a cost and slows down the process of adding items to a genlist.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">elm_genlist_homogeneous_set()</span> function solves the problem by assuming that all items are the same size as the first item of the list. This assumption speeds up large insertions; however, it can lead to serious graphical issues if the items are not actually the same size. Use this function with care.</p></li>
+<li id="item_class_update">Changing the item class after the item has been created:
+<p>Changing the item class of a UI component is an easy way to change its appearance based on user actions (for example, when it is selected). To change the item class, call the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_item_class_update()</span> function:</p>
+<pre class="prettyprint">static void
+_tree_item_expand_request(void *data, Evas_Object *o, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = (Elm_Object_Item*) event_info;
+
+&nbsp;&nbsp;&nbsp;// Change the appearance and possibly content of the item being expanded
+&nbsp;&nbsp;&nbsp;elm_genlist_item_item_class_update(it, app-&gt;itc2);
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_expanded_set(it, EINA_TRUE);
+}
+</pre>
+</li>
+</ul>
+
+ <h2 id="item_modes" name="item_modes">Using Item Modes</h2>
+
+<p>The previous genlist examples have all featured bare lists. However, the genlist component is able to display items in a tree or group mode:</p>
+
+<ul>
+<li><strong>Tree</strong> mode uses the parenting relationship with other items.
+<p>The child elements are created on-demand when their parent is expanded, and deleted when it is contracted.</p></li>
+<li><strong>Group</strong> mode keeps an element visible as long as one of its children is visible.
+<p>When scrolling, the parent element remains at the top of the UI component until all its child elements have been scrolled through and another group replaces it. The group mode is very useful for &quot;title&quot; items.</p></li>
+</ul>
+<p>A common UI design is to mix the group and tree modes to allows for a tree behavior while keeping the group header item visible.</p>
+
+<ul>
+<li>
+<p>To use the group mode:</p>
+<ol>
+<li>
+<p>Mark some elements as <span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_GROUP</span> and use the returned <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> to establish the parent-children relationship when adding the children items.</p>
+<p>Since there are 2 kind of items, create 2 item classes. Give them different styles and callback functions.</p>
+<pre class="prettyprint">
+app-&gt;itc = elm_genlist_item_class_new();
+app-&gt;itc-&gt;item_style = &quot;default_style&quot;;
+app-&gt;itc-&gt;func.text_get = _genlist_text_get_size;
+app-&gt;itc-&gt;func.content_get = _genlist_content_get_bg;
+app-&gt;itc-&gt;func.state_get = NULL;
+app-&gt;itc-&gt;func.del = NULL; 
+
+app-&gt;itc2 = elm_genlist_item_class_new();
+app-&gt;itc2-&gt;item_style = &quot;icon_top_text_bottom&quot;;
+app-&gt;itc2-&gt;func.text_get = _genlist_text_get_nosize;
+app-&gt;itc2-&gt;func.content_get = _genlist_content_get_icon;
+app-&gt;itc2-&gt;func.state_get = NULL;
+app-&gt;itc2-&gt;func.del = NULL; 
+</pre>
+</li>
+<li>
+<p>Add a group header and follow it with 10 children. This is repeated 1000 times.</p>
+<p>The parent has the <span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_GROUP</span> type, while the children have the <span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_NONE</span> type.</p>
+<p>Note that the value returned by the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function for a group header is stored and sent to the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> call that adds the children. This creates the parent-child relationship.</p>
+<pre class="prettyprint">
+for (i = 0; i &lt; 1000; i++) 
+{
+&nbsp;&nbsp;&nbsp;it = elm_genlist_item_append(app-&gt;list, app-&gt;itc2, (void *)(uintptr_t) (10 * i), NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_GROUP, NULL, NULL);
+&nbsp;&nbsp;&nbsp;for (j = 0; j &lt; 10; j++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(app-&gt;list, app-&gt;itc, (void *)(uintptr_t) (10 * i + j), it,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, NULL, NULL);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ol>
+</li>
+
+<li><p>To use the tree mode:</p>
+<ol>
+<li>
+<p>Register the callbacks (<span style="font-family: Courier New,Courier,monospace">expand,request</span>, <span style="font-family: Courier New,Courier,monospace">expanded</span>, <span style="font-family: Courier New,Courier,monospace">contract,request</span>, and <span style="font-family: Courier New,Courier,monospace">contracted</span>) using the <span style="font-family: Courier New,Courier,monospace">evas_object_smart_callback_add()</span> function on the genlist object:</p>
+<pre class="prettyprint">
+evas_object_smart_callback_add(app-&gt;list, &quot;expand,request&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tree_item_expand_request, NULL);
+evas_object_smart_callback_add(app-&gt;list, &quot;expanded&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tree_item_expanded, NULL);
+
+evas_object_smart_callback_add(app-&gt;list, &quot;contract,request&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tree_item_contract_request, NULL);
+evas_object_smart_callback_add(app-&gt;list, &quot;contracted&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_tree_item_contracted, NULL);
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">expand,request</span> and <span style="font-family: Courier New,Courier,monospace">contract,request</span> callbacks do only one thing: decide whether the element is expanded or contracted. This is done by using the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_expanded_set()</span> function; if it changes the expansion status of the item, the next callback is called (either <span style="font-family: Courier New,Courier,monospace">expanded</span> or <span style="font-family: Courier New,Courier,monospace">contracted</span>, depending on whether it was an <span style="font-family: Courier New,Courier,monospace">expand,request</span> or <span style="font-family: Courier New,Courier,monospace">contract,request</span> event). The following examples show a minimal implementation of these callbacks.</p>
+<pre class="prettyprint">
+static void
+_tree_item_expand_request(void *data, Evas_Object *o, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = (Elm_Object_Item*) event_info;
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_item_class_update(it, app-&gt;itc2);
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_expanded_set(it, EINA_TRUE);
+}
+</pre>
+
+<pre class="prettyprint">
+static void
+_tree_item_contract_request(void *data, Evas_Object *o, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = (Elm_Object_Item*) event_info;
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_item_class_update(it, app-&gt;itc);
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_expanded_set(it, EINA_FALSE);
+}
+</pre>
+  <table class="note"> 
+   <tbody> 
+  <tr> 
+   <th class="note">Note</th> 
+  </tr> 
+  <tr> 
+   <td class="note">The above examples have an extra line: the call to the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_item_class_update()</span> function. This function <a href="#item_class_update">changes the item style after the item creation</a>.</td> 
+  </tr> 
+   </tbody> 
+  </table> 
+</li>
+<li>
+<p>Expand the list. Once the genlist item status is set to expanded, the <span style="font-family: Courier New,Courier,monospace">expanded</span> event is triggered and it is the duty of a callback for that event to populate the list with the item&#39;s children. This relies on the <span style="font-family: Courier New,Courier,monospace">parent</span> parameter of functions (such as <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span>), similar to the group mode.</p>
+<p>The following function is a callback implementation for the <span style="font-family: Courier New,Courier,monospace">expanded</span> event. It adds items that are built similarly to previous items, the only change is the parent parameter which is not <span style="font-family: Courier New,Courier,monospace">NULL</span>. Conveniently, the parent <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> pointer that is passed to the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function is given in the <span style="font-family: Courier New,Courier,monospace">event_info</span> callback and needs to be cast.</p>
+<pre class="prettyprint">
+static void
+_tree_item_expanded(void *data, Evas_Object *o, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it_parent = (Elm_Object_Item*) event_info;
+&nbsp;&nbsp;&nbsp;int i_parent = (int)(uintptr_t) data;
+&nbsp;&nbsp;&nbsp;int i;
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 10; i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(app-&gt;list, app-&gt;itc, (void *)(uintptr_t) (i + i_parent), it_parent,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, NULL, NULL);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>
+<p>Contract the list. The following code has the callback function for the <span style="font-family: Courier New,Courier,monospace">contracted</span> event. It simply calls the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_subitems_clear()</span> function to clear all children (including their own children if they have any) of the given item. Again, the item that is being contracted is available through the <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter to the callback.</p>
+<pre class="prettyprint">static void
+_tree_item_contracted(void *data, Evas_Object *o, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it_parent = (Elm_Object_Item*) event_info;
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_subitems_clear(it_parent);
+}
+</pre>
+</li>
+</ol>
+</li>
+<li>
+<p>To mix group and tree modes:</p>
+<ol>
+<li>Create an item of the group type, and an item of the tree type whose parent is the group type item.</li>
+<li>Add the callbacks to populate the children of the tree item in the regular way.</li>
+</ol>
+</li>
+</ul>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>	
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
