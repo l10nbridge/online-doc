@@ -11,7 +11,21 @@
 	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
 	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
 
-	<title>Handling Component Touch Gestures</title>  
+	<title>Handling Component Touch Gestures</title>
+
+	<script>
+		var show;
+		function hidetxt(type){
+			param=document.getElementById(type);
+			if(param.style.display == "none") {
+				if(show) show.style.display = "none";
+				param.style.display = "block";
+				show = param;
+			}
+			else
+				param.style.display = "none"
+		}
+	</script>
 </head>
 
 <body onload="prettyPrint()" style="overflow: auto;">
@@ -43,64 +57,221 @@
  <h2 id="init" name="init">Initializing Touch Gestures</h2>
 
 <p>The EFL library provides a wide range of touch gestures, such as tap, double tap, triple tap, long tap, momentum, line, zoom and rotate, which can be used by the application to build a dynamic user interface interaction which is simple to use as well as intuitive.</p>
-<p>The <span style="font-family: Courier New,Courier,monospace">create_base_gui</span> function creates the application layout. It starts by creating a window, then adds the <span style="font-family: Courier New,Courier,monospace">elm_conformant</span> component to it to decorate the window with an indicator. It then adds the <span style="font-family: Courier New,Courier,monospace">elm_naviframe</span> component which acts as a view manager for the window and provides the window title functionality. After this it creates a gesture view by using the <span style="font-family: Courier New,Courier,monospace">create_main_view()</span> function and adds it to naviframe.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">_create_base_gui</span> function creates the application layout. It starts by creating a window, then adds the <span style="font-family: Courier New,Courier,monospace">elm_box</span> and <span style="font-family: Courier New,Courier,monospace">elm_table</span> components.
+After this it creates a gesture view by using the <span style="font-family: Courier New,Courier,monospace">_create_gesture_box()</span> function and adds it to <span style="font-family: Courier New,Courier,monospace">elm_box</span>. Then creates Legend of gestures - states.
+A gesture layer is added to the rectangle object:</p>
 <pre class="prettyprint">
-static void
-create_base_gui(appdata_s *ad)
+static&nbsp;void
+_create_base_gui()
 {
-&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it, *tabbar_it;
-&nbsp;&nbsp;&nbsp;// Window
-&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
-&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
-&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
-&nbsp;&nbsp;&nbsp;// Conformant
-&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);
-&nbsp;&nbsp;&nbsp;elm_win_conformant_set(ad-&gt;win, EINA_TRUE);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
-&nbsp;&nbsp;&nbsp;// Naviframe
-&nbsp;&nbsp;&nbsp;ad-&gt;nf = elm_naviframe_add(ad-&gt;layout);
-&nbsp;&nbsp;&nbsp;// Calendar View
-&nbsp;&nbsp;&nbsp;create_main_view(ad);
-&nbsp;&nbsp;&nbsp;elm_naviframe_item_push(ad-&gt;nf, &quot;Calendar&quot;, NULL, NULL, ad-&gt;calendar, NULL);
-&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad-&gt;layout, &quot;elm.swallow.content&quot;, ad-&gt;nf);
-&nbsp;&nbsp;&nbsp;// Show window after the base GUI is set up
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+&nbsp;&nbsp;Evas_Object&nbsp;*win,&nbsp;*tb,&nbsp;*lb,&nbsp;*bx;
+&nbsp;&nbsp;Evas_Object&nbsp;*r;&nbsp;/*&nbsp;Gesture&nbsp;layer&nbsp;transparent&nbsp;object&nbsp;*/
+&nbsp;&nbsp;Evas_Object&nbsp;*g;&nbsp;/*&nbsp;The&nbsp;Gesture&nbsp;Layer&nbsp;object&nbsp;*/
+&nbsp;
+&nbsp;&nbsp;infra_data&nbsp;*infra&nbsp;=&nbsp;_infra_data_alloc();
+&nbsp;
+&nbsp;&nbsp;win&nbsp;=&nbsp;elm_win_util_standard_add("gesture-layer",&nbsp;"Gesture&nbsp;Layer");
+&nbsp;&nbsp;elm_win_autodel_set(win,&nbsp;EINA_TRUE);
+&nbsp;&nbsp;evas_object_smart_callback_add(win,&nbsp;"delete,request",&nbsp;_win_del,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;START&nbsp;-&nbsp;Building&nbsp;icons&nbsp;table&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;elm_box_add(win);
+&nbsp;&nbsp;tb&nbsp;=&nbsp;elm_table_add(win);
+&nbsp;&nbsp;elm_box_pack_end(bx,&nbsp;tb);
+&nbsp;&nbsp;elm_win_resize_object_add(win,&nbsp;bx);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(bx,&nbsp;EVAS_HINT_EXPAND,&nbsp;EVAS_HINT_EXPAND);
+&nbsp;&nbsp;evas_object_size_hint_align_set(tb,&nbsp;0.5,&nbsp;0.5);
+&nbsp;&nbsp;evas_object_show(tb);
+&nbsp;&nbsp;evas_object_show(bx);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Tap&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;0,&nbsp;TAP_NAME,&nbsp;"Tap");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;0,&nbsp;0,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Double&nbsp;Tap&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;1,&nbsp;DOUBLE_TAP_NAME,&nbsp;"Double&nbsp;Tap");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;1,&nbsp;0,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Triple&nbsp;Tap&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;2,&nbsp;TRIPLE_TAP_NAME,&nbsp;"Triple&nbsp;Tap");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;2,&nbsp;0,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Long&nbsp;Tap&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;3,&nbsp;LONG_TAP_NAME,&nbsp;"Long&nbsp;Tap");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;3,&nbsp;0,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Momentum&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;4,&nbsp;MOMENTUM_NAME,&nbsp;"Momentum");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;0,&nbsp;2,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Line&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;5,&nbsp;LINE_NAME,&nbsp;"Line");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;1,&nbsp;2,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Flick&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;6,&nbsp;FLICK_NAME,&nbsp;"Flick");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;2,&nbsp;2,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Zoom&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;7,&nbsp;ZOOM_NAME,&nbsp;"Zoom");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;0,&nbsp;3,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Rotate&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;8,&nbsp;ROTATE_NAME,&nbsp;"Rotate");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;1,&nbsp;3,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Legend&nbsp;of&nbsp;gestures&nbsp;-&nbsp;states&nbsp;*/
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"<b>Gesture&nbsp;States</b>");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;0,&nbsp;6,&nbsp;4,&nbsp;2);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;INI_R,&nbsp;INI_G,&nbsp;INI_B,&nbsp;INI_A);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;7,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Not&nbsp;Started");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;7,&nbsp;3,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;START_COLOR);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;8,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Gesture&nbsp;START");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;8,&nbsp;3,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;MOVE_COLOR);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;9,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Gesture&nbsp;MOVE");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;9,&nbsp;3,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;END_COLOR);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;10,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Gesture&nbsp;END");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;10,&nbsp;3,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;ABORT_COLOR);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;11,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Gesture&nbsp;ABORT");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;11,&nbsp;3,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;elm_table_padding_set(tb,&nbsp;TB_PADDING_X,&nbsp;TB_PADDING_Y);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;&nbsp;/*&nbsp;END&nbsp;&nbsp;&nbsp;-&nbsp;Building&nbsp;icons&nbsp;table&nbsp;*/
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Gesture&nbsp;layer&nbsp;transparent&nbsp;object&nbsp;*/
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_move(r,&nbsp;0,&nbsp;0);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;0,&nbsp;0,&nbsp;0,&nbsp;0);
+&nbsp;&nbsp;elm_win_resize_object_add(win,&nbsp;r);
+&nbsp;
+&nbsp;&nbsp;g&nbsp;=&nbsp;_create_gesture_layer(win,&nbsp;r,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Update&nbsp;color&nbsp;state&nbsp;20&nbsp;times&nbsp;a&nbsp;second&nbsp;*/
+&nbsp;&nbsp;infra->colortimer&nbsp;=&nbsp;ecore_timer_add(0.05,&nbsp;_icon_color_set_cb,&nbsp;infra->icons);
+&nbsp;
+&nbsp;&nbsp;evas_object_show(win);
 }
 </pre>
 
-<p>The <span style="font-family: Courier New,Courier,monospace">create_main_view</span> function creates the application layout by arranging the labels and rectangles by using recursive composition of the box layout:</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">_create_gesture_box</span> function creates the layout by arranging the labels and rectangles by using recursive composition of the box layout:</p>
 <pre class="prettyprint">
-static void
-create_main_view(appdata_s *ad)
-{
-&nbsp;&nbsp;&nbsp;// Box
-&nbsp;&nbsp;&nbsp;ad-&gt;box = elm_box_add(ad-&gt;nf);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;box, EVAS_HINT_EXPAND, VAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;elm_box_padding_set(ad-&gt;box, 0, 5 * elm_config_scale_get());
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;box);
-&nbsp;&nbsp;&nbsp;// Event Rect
-&nbsp;&nbsp;&nbsp;ad-&gt;rect = evas_object_rectangle_add(evas_object_evas_get(ad-&gt;box));
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;rect, EVAS_HINT_EXPAND, VAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(ad-&gt;rect, EVAS_HINT_FILL, EVAS_HINT_FILL);
-&nbsp;&nbsp;&nbsp;evas_object_color_set(ad-&gt;rect, 204, 204, 204, 255);
-&nbsp;&nbsp;&nbsp;evas_object_repeat_events_set(ad-&gt;rect, EINA_TRUE);
-
-&nbsp;&nbsp;&nbsp;ad-&gt;gl = create_gesture_layer(ad);
-
-&nbsp;&nbsp;&nbsp;elm_box_pack_end(ad-&gt;box, ad-&gt;rect);
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;rect);
+static&nbsp;Evas_Object&nbsp;*
+_create_gesture_box(Evas_Object&nbsp;*win,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;icon_properties&nbsp;*icons,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;idx,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const&nbsp;char&nbsp;*name,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const&nbsp;char&nbsp;*lb_txt)
+{&nbsp;&nbsp;/*&nbsp;Creates&nbsp;a&nbsp;box&nbsp;with&nbsp;icon&nbsp;and&nbsp;label,&nbsp;later&nbsp;placed&nbsp;in&nbsp;a&nbsp;table&nbsp;*/
+&nbsp;&nbsp;&nbsp;Evas_Object&nbsp;*lb,&nbsp;*bx&nbsp;=&nbsp;elm_box_add(win);
+&nbsp;&nbsp;&nbsp;char&nbsp;buf[1024];
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_box_padding_set(bx,&nbsp;BX_PADDING_X,&nbsp;BX_PADDING_Y);
+&nbsp;&nbsp;&nbsp;icons[idx].icon&nbsp;=&nbsp;elm_icon_add(win);
+&nbsp;&nbsp;&nbsp;icons[idx].name&nbsp;=&nbsp;name;
+&nbsp;&nbsp;&nbsp;snprintf(buf,&nbsp;sizeof(buf),&nbsp;"%s/images/g_layer/%s_1.png",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_app_data_dir_get(),&nbsp;icons[idx].name);
+&nbsp;&nbsp;&nbsp;elm_image_file_set(icons[idx].icon,&nbsp;buf,&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;elm_image_resizable_set(icons[idx].icon,&nbsp;0,&nbsp;0);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(icons[idx].icon,&nbsp;0.5,&nbsp;0.5);
+&nbsp;&nbsp;&nbsp;_icon_color_set(&icons[idx],&nbsp;INI_R,&nbsp;INI_G,&nbsp;INI_B,&nbsp;INI_A);
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(bx,&nbsp;icons[idx].icon);
+&nbsp;&nbsp;&nbsp;evas_object_show(icons[idx].icon);
+&nbsp;
+&nbsp;&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;lb_txt);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;0.5,&nbsp;0.5);
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(bx,&nbsp;lb);
+&nbsp;&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;&nbsp;&nbsp;evas_object_show(bx);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;bx;
 }
 </pre>
 
 <p>A gesture layer is added to the rectangle object. This layer is able to receive the gesture event:</p>
 <pre class="prettyprint">
-static Evas_Object *
-create_gesture_layer(appdata_s *ad)
+static&nbsp;Evas_Object&nbsp;*
+_create_gesture_layer(Evas_Object&nbsp;*parent,&nbsp;Evas_Object&nbsp;*rect,&nbsp;infra_data&nbsp;*infra)
 {
-&nbsp;&nbsp;&nbsp;Evas_Object *g = elm_gesture_layer_add(ad-&gt;win);
-&nbsp;&nbsp;&nbsp;elm_gesture_layer_attach(g, ad-&gt;rect);
+&nbsp;&nbsp;&nbsp;Evas_Object&nbsp;*g&nbsp;=&nbsp;elm_gesture_layer_add(parent);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_attach(g,&nbsp;rect);
+&nbsp;
+&nbsp;&nbsp;&nbsp;evas_object_show(rect);
+&nbsp;
+&nbsp;&nbsp;&nbsp;/*&nbsp;START&nbsp;-&nbsp;Setting&nbsp;gestures&nbsp;callbacks&nbsp;*/
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;/*&nbsp;END&nbsp;&nbsp;&nbsp;-&nbsp;Setting&nbsp;gestures&nbsp;callbacks&nbsp;*/
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;g;
 }
 </pre>
 
@@ -127,116 +298,873 @@ create_gesture_layer(appdata_s *ad)
 <ul>
 <li><p>The following example adds callbacks for listening to the tap gesture:</p>
 <pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, n_finger_tap_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, n_finger_tap_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, n_finger_tap_abort, ad);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_n_finger_tap_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_n_finger_tap_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_n_finger_tap_abort,&nbsp;infra);
 </pre></li>
 <li><p>The following example adds callbacks for listening to the double tap gesture:</p>
 <pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_DOUBLE_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, dbl_click_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_DOUBLE_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE, dbl_click_move, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_DOUBLE_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, dbl_click_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_DOUBLE_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, dbl_click_abort, ad);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_DOUBLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_dbl_click_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_DOUBLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_dbl_click_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_DOUBLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_dbl_click_abort,&nbsp;infra);
 </pre></li>
 
 <li><p>The following example adds callbacks for listening to the triple tap gesture:</p>
 <pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TRIPLE_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, triple_click_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TRIPLE_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE, triple_click_move, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TRIPLE_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, triple_click_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_TRIPLE_TAPS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, triple_click_abort, ad);
-</pre></li>
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TRIPLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_triple_click_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TRIPLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_triple_click_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TRIPLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_triple_click_abort,&nbsp;infra);</pre></li>
 <li><p>The following example adds callbacks for listening to the long tap gesture:</p>
 <pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_MOMENTUM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, momentum_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_MOMENTUM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, momentum_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_MOMENTUM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, momentum_abort, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_MOMENTUM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE, momentum_move, ad);
-</pre></li>
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LONG_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_n_long_tap_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LONG_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_n_long_tap_move,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LONG_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_n_long_tap_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LONG_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_n_long_tap_abort,&nbsp;infra);</pre></li>
 
 <li><p>The following example adds callbacks for listening to the momentum gesture:</p>
 <pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_MOMENTUM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, momentum_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_MOMENTUM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, momentum_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_MOMENTUM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, momentum_abort, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_MOMENTUM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE, momentum_move, ad);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_MOMENTUM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_momentum_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_MOMENTUM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_momentum_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_MOMENTUM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_momentum_abort,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_MOMENTUM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_momentum_move,&nbsp;infra);
 </pre></li>
 
 <li><p>The following example adds callbacks for listening to the line gesture:</p>
-<pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_LINES,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, line_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_LINES,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE, line_move, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_LINES,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, line_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_LINES,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, line_abort, ad);
-</pre></li>
+<pre class="prettyprint">&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LINES,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_line_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LINES,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_line_move,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LINES,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_line_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LINES,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_line_abort,&nbsp;infra);</pre></li>
  
 <li><p>The following examples add callbacks for listening to the flick gesture:</p>
 <pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_FLICKS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, flick_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_FLICKS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, flick_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_N_FLICKS,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, flick_abort, ad);
-</pre></li>
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_FLICKS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_flick_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_FLICKS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_flick_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_FLICKS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_flick_abort,&nbsp;infra);</pre></li>
 
 <li><p>The following examples add callbacks for listening to the zoom gesture:</p>
 <pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_ZOOM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, zoom_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_ZOOM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, zoom_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_ZOOM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, zoom_abort, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_ZOOM,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE, zoom_move, ad);
-</pre></li>
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ZOOM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_zoom_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ZOOM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_zoom_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ZOOM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_zoom_abort,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ZOOM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_zoom_move,&nbsp;infra);</pre></li>
  
 <li><p>The following example adds callbacks for listening to the rotate gesture:</p>
 <pre class="prettyprint">
-elm_gesture_layer_cb_set(g, ELM_GESTURE_ROTATE,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START, rotate_start, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_ROTATE,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END, rotate_end, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_ROTATE,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT, rotate_abort, ad);
-elm_gesture_layer_cb_set(g, ELM_GESTURE_ROTATE,
-&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE, rotate_move, ad);
-</pre></li>
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ROTATE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_rotate_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ROTATE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_rotate_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ROTATE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_rotate_abort,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ROTATE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_rotate_move,&nbsp;infra);</pre></li>
 
-<li><p>The following example adds a callback for getting the tap gesture finishing notification:</p>
+<li><p>The following example adds a callback for getting the tap gesture starting notification:</p>
 <pre class="prettyprint">
-static Evas_Event_Flags
-n_finger_tap_end(void *data, void *event_info)
+static&nbsp;Evas_Event_Flags
+_n_finger_tap_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
 {
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info *p = (Elm_Gesture_Taps_Info *) event_info;
-&nbsp;&nbsp;&nbsp;return EVAS_EVENT_FLAG_ON_HOLD;
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;TAP_NAME,&nbsp;p->n,&nbsp;MAX_TAP,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
 }
 </pre></li>
+<li><p>The following example adds a callback for getting the tap gesture finishing notification:</p>
+<pre class="prettyprint">
+static&nbsp;Evas_Event_Flags
+_n_finger_tap_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;TAP_NAME,&nbsp;p->n,&nbsp;MAX_TAP,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+</pre></li>
+<li>Example <a onclick="hidetxt('example'); return false;" href="#" rel="nofollow">gesture_detector.c</a>
+<div style="display:none;" id="example">
+<h2 id="init" name="init">Example</h2>
+<pre class="prettyprint">
+#include&nbsp;&lt;Elementary.h&gt;
+#include&nbsp;&lt;app.h&gt;
+&nbsp;
+#define&nbsp;TAP_NAME&nbsp;"tap"
+#define&nbsp;DOUBLE_TAP_NAME&nbsp;"double_tap"
+#define&nbsp;TRIPLE_TAP_NAME&nbsp;"triple_tap"
+#define&nbsp;LONG_TAP_NAME&nbsp;"long_tap"
+#define&nbsp;FLICK_NAME&nbsp;"flick"
+#define&nbsp;LINE_NAME&nbsp;"line"
+#define&nbsp;MOMENTUM_NAME&nbsp;"momentum"
+#define&nbsp;ROTATE_NAME&nbsp;"rotate"
+#define&nbsp;ZOOM_NAME&nbsp;"zoom"
+&nbsp;
+#define&nbsp;N_GESTURE_TYPE&nbsp;9
+#define&nbsp;MAX_DOUBLE_TAP&nbsp;5
+#define&nbsp;MAX_FLICK&nbsp;5
+#define&nbsp;MAX_LINE&nbsp;5
+#define&nbsp;MAX_LONG_TAP&nbsp;5
+#define&nbsp;MAX_MOMENTUM&nbsp;5
+#define&nbsp;MAX_ROTATE&nbsp;1
+#define&nbsp;MAX_TAP&nbsp;5
+#define&nbsp;MAX_TRIPLE_TAP&nbsp;5
+#define&nbsp;MAX_ZOOM&nbsp;1
+&nbsp;
+#define&nbsp;TB_PADDING_X&nbsp;4
+#define&nbsp;TB_PADDING_Y&nbsp;12
+&nbsp;
+#define&nbsp;BX_PADDING_X&nbsp;0
+#define&nbsp;BX_PADDING_Y&nbsp;2
+&nbsp;
+/*&nbsp;Define&nbsp;initial&nbsp;RGBA&nbsp;values&nbsp;for&nbsp;icons&nbsp;*/
+#define&nbsp;INI_R&nbsp;60
+#define&nbsp;INI_G&nbsp;66
+#define&nbsp;INI_B&nbsp;64
+#define&nbsp;INI_A&nbsp;128
+#define&nbsp;COLOR_STEP&nbsp;4
+&nbsp;
+#define&nbsp;START_COLOR&nbsp;220,&nbsp;220,&nbsp;200,&nbsp;255
+#define&nbsp;MOVE_COLOR&nbsp;255,&nbsp;255,&nbsp;0,&nbsp;255
+#define&nbsp;ABORT_COLOR&nbsp;255,&nbsp;0,&nbsp;0,&nbsp;255
+#define&nbsp;END_COLOR&nbsp;0,&nbsp;255,&nbsp;0,&nbsp;255
+&nbsp;
+typedef&nbsp;struct&nbsp;_icon_properties&nbsp;icon_properties;
+struct&nbsp;_icon_properties
+{
+&nbsp;&nbsp;&nbsp;Evas_Object&nbsp;*icon;
+&nbsp;&nbsp;&nbsp;int&nbsp;r;&nbsp;/*&nbsp;current&nbsp;r&nbsp;*/
+&nbsp;&nbsp;&nbsp;int&nbsp;g;
+&nbsp;&nbsp;&nbsp;int&nbsp;b;
+&nbsp;&nbsp;&nbsp;int&nbsp;a;
+&nbsp;
+&nbsp;&nbsp;&nbsp;const&nbsp;char&nbsp;*name;
+};
+&nbsp;
+typedef&nbsp;struct&nbsp;_infra_data&nbsp;infra_data;
+struct&nbsp;_infra_data
+{&nbsp;&nbsp;/*&nbsp;Some&nbsp;data&nbsp;that&nbsp;is&nbsp;passed&nbsp;aroung&nbsp;between&nbsp;callbacks&nbsp;(replacing&nbsp;globals)&nbsp;*/
+&nbsp;&nbsp;&nbsp;icon_properties&nbsp;*icons;
+&nbsp;&nbsp;&nbsp;Ecore_Timer&nbsp;*colortimer;
+&nbsp;&nbsp;&nbsp;char&nbsp;buf[1024];
+};
+&nbsp;
+void
+_infra_data_free(infra_data&nbsp;*infra)
+{
+&nbsp;&nbsp;&nbsp;if&nbsp;(infra)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(infra->colortimer)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_timer_del(infra->colortimer);
+&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(infra->icons)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(infra->icons);
+&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free&nbsp;(infra);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+&nbsp;
+infra_data&nbsp;*
+_infra_data_alloc(void)
+{
+&nbsp;&nbsp;&nbsp;infra_data&nbsp;*infra&nbsp;=&nbsp;malloc(sizeof(infra_data));
+&nbsp;&nbsp;&nbsp;infra->icons&nbsp;=&nbsp;calloc(N_GESTURE_TYPE,&nbsp;sizeof(icon_properties&nbsp;));
+&nbsp;&nbsp;&nbsp;infra->colortimer&nbsp;=&nbsp;NULL;
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;infra;
+}
+&nbsp;
+static&nbsp;void
+_win_del(void&nbsp;*data,&nbsp;Evas_Object&nbsp;*obj&nbsp;EINA_UNUSED,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{&nbsp;&nbsp;/*&nbsp;called&nbsp;when&nbsp;_win_main&nbsp;is&nbsp;requested&nbsp;to&nbsp;be&nbsp;deleted&nbsp;*/
+&nbsp;&nbsp;&nbsp;_infra_data_free(data);
+}
+&nbsp;
+icon_properties&nbsp;*
+_icon_properties_find(icon_properties&nbsp;*icons,&nbsp;char&nbsp;*name)
+{
+&nbsp;&nbsp;&nbsp;int&nbsp;n;
+&nbsp;
+&nbsp;&nbsp;&nbsp;for&nbsp;(n&nbsp;=&nbsp;0;&nbsp;n&nbsp;<&nbsp;N_GESTURE_TYPE;&nbsp;n++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(!strcmp(icons[n].name,&nbsp;name))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;&icons[n];
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;NULL;
+}
+&nbsp;
+void
+_icon_color_set(icon_properties&nbsp;*i,&nbsp;int&nbsp;r,&nbsp;int&nbsp;g,&nbsp;int&nbsp;b,&nbsp;int&nbsp;a)
+{
+&nbsp;&nbsp;&nbsp;i->r&nbsp;=&nbsp;&nbsp;r;
+&nbsp;&nbsp;&nbsp;i->g&nbsp;=&nbsp;&nbsp;g;
+&nbsp;&nbsp;&nbsp;i->b&nbsp;=&nbsp;&nbsp;b;
+&nbsp;&nbsp;&nbsp;i->a&nbsp;=&nbsp;&nbsp;a;
+&nbsp;&nbsp;&nbsp;evas_object_color_set(i->icon,&nbsp;i->r,&nbsp;&nbsp;i->g,&nbsp;&nbsp;i->b,&nbsp;&nbsp;i->a);
+}
+&nbsp;
+static&nbsp;Eina_Bool
+_icon_color_set_cb(void&nbsp;*data)
+{
+#define&nbsp;INC_COLOR(C,&nbsp;NC)&nbsp;\
+&nbsp;&nbsp;&nbsp;do&nbsp;{&nbsp;\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(abs(i->C&nbsp;-&nbsp;NC)&nbsp;<&nbsp;COLOR_STEP)&nbsp;\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i->C&nbsp;=&nbsp;NC;&nbsp;\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else&nbsp;\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i->C&nbsp;+=&nbsp;((i->C&nbsp;<&nbsp;NC)&nbsp;?&nbsp;COLOR_STEP&nbsp;:&nbsp;(-COLOR_STEP));&nbsp;\
+&nbsp;&nbsp;&nbsp;}&nbsp;while&nbsp;(0)
+&nbsp;
+&nbsp;&nbsp;&nbsp;int&nbsp;n;
+&nbsp;&nbsp;&nbsp;icon_properties&nbsp;*icons&nbsp;=&nbsp;data;
+&nbsp;&nbsp;&nbsp;icon_properties&nbsp;*i;
+&nbsp;
+&nbsp;&nbsp;&nbsp;for&nbsp;(n&nbsp;=&nbsp;0;&nbsp;n&nbsp;<&nbsp;N_GESTURE_TYPE;&nbsp;n++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i&nbsp;=&nbsp;&icons[n];
+&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INC_COLOR(r,INI_R);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INC_COLOR(g,INI_G);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INC_COLOR(b,INI_B);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INC_COLOR(a,INI_A);
+&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*&nbsp;Change&nbsp;Icon&nbsp;color&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(i->icon,&nbsp;i->r,&nbsp;&nbsp;i->g,&nbsp;&nbsp;i->b,&nbsp;&nbsp;i->a);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;ECORE_CALLBACK_RENEW;
+}
+&nbsp;
+void
+_color_and_icon_set(infra_data&nbsp;*infra,&nbsp;char&nbsp;*name,&nbsp;int&nbsp;n,&nbsp;int&nbsp;max,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;r,&nbsp;int&nbsp;g,&nbsp;int&nbsp;b,&nbsp;int&nbsp;a)
+{
+&nbsp;&nbsp;&nbsp;icon_properties&nbsp;*i;
+&nbsp;&nbsp;&nbsp;int&nbsp;nn&nbsp;=&nbsp;n;
+&nbsp;&nbsp;&nbsp;i&nbsp;=&nbsp;_icon_properties_find(infra->icons,&nbsp;name);
+&nbsp;&nbsp;&nbsp;if&nbsp;(i)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(n&nbsp;<&nbsp;1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nn&nbsp;=&nbsp;1;
+&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(n&nbsp;>&nbsp;max)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nn&nbsp;=&nbsp;max;
+&nbsp;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(infra->buf,&nbsp;sizeof(infra->buf),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"%s/images/g_layer/%s_%d.png",&nbsp;elm_app_data_dir_get(),&nbsp;i->name,&nbsp;nn);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_image_file_set(i->icon,&nbsp;infra->buf,&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_icon_color_set(i,&nbsp;r,&nbsp;g,&nbsp;b,&nbsp;a);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+&nbsp;
+/*&nbsp;START&nbsp;-&nbsp;Callbacks&nbsp;for&nbsp;gestures&nbsp;*/
+static&nbsp;Evas_Event_Flags
+_n_finger_tap_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;TAP_NAME,&nbsp;p->n,&nbsp;MAX_TAP,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_n_finger_tap_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;TAP_NAME,&nbsp;p->n,&nbsp;MAX_TAP,&nbsp;END_COLOR);
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_n_finger_tap_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;TAP_NAME,&nbsp;p->n,&nbsp;MAX_TAP,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_n_long_tap_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;LONG_TAP_NAME,&nbsp;p->n,&nbsp;MAX_LONG_TAP,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_n_long_tap_move(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;LONG_TAP_NAME,&nbsp;p->n,&nbsp;MAX_LONG_TAP,&nbsp;MOVE_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_n_long_tap_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;LONG_TAP_NAME,&nbsp;p->n,&nbsp;MAX_LONG_TAP,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_n_long_tap_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;LONG_TAP_NAME,&nbsp;p->n,&nbsp;MAX_LONG_TAP,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_dbl_click_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,DOUBLE_TAP_NAME,&nbsp;p->n,&nbsp;MAX_DOUBLE_TAP,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_dbl_click_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;DOUBLE_TAP_NAME,&nbsp;p->n,&nbsp;MAX_DOUBLE_TAP,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_dbl_click_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,DOUBLE_TAP_NAME,&nbsp;p->n,&nbsp;MAX_DOUBLE_TAP,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+
+static&nbsp;Evas_Event_Flags
+_triple_click_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,TRIPLE_TAP_NAME,&nbsp;p->n,&nbsp;MAX_TRIPLE_TAP,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_triple_click_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;TRIPLE_TAP_NAME,&nbsp;p->n,&nbsp;MAX_TRIPLE_TAP,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_triple_click_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Taps_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Taps_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,TRIPLE_TAP_NAME,&nbsp;p->n,&nbsp;MAX_TRIPLE_TAP,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_momentum_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Momentum_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Momentum_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;MOMENTUM_NAME,&nbsp;p->n,&nbsp;MAX_MOMENTUM,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_momentum_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Momentum_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Momentum_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;MOMENTUM_NAME,&nbsp;p->n,&nbsp;MAX_MOMENTUM,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_momentum_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Momentum_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Momentum_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;MOMENTUM_NAME,&nbsp;p->n,&nbsp;MAX_MOMENTUM,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_momentum_move(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Momentum_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Momentum_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;MOMENTUM_NAME,&nbsp;p->n,&nbsp;MAX_MOMENTUM,&nbsp;MOVE_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_line_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Line_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Line_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;LINE_NAME,&nbsp;p->momentum.n,&nbsp;MAX_LINE,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_line_move(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Line_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Line_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;LINE_NAME,&nbsp;p->momentum.n,&nbsp;MAX_LINE,&nbsp;MOVE_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_line_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Line_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Line_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;LINE_NAME,&nbsp;p->momentum.n,&nbsp;MAX_LINE,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_line_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Line_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Line_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;LINE_NAME,&nbsp;p->momentum.n,&nbsp;MAX_LINE,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_flick_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Line_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Line_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;FLICK_NAME,&nbsp;p->momentum.n,&nbsp;MAX_FLICK,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_flick_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Line_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Line_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;FLICK_NAME,&nbsp;p->momentum.n,&nbsp;MAX_FLICK,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_flick_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Gesture_Line_Info&nbsp;*p&nbsp;=&nbsp;(Elm_Gesture_Line_Info&nbsp;*)&nbsp;event_info;
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;FLICK_NAME,&nbsp;p->momentum.n,&nbsp;MAX_FLICK,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_zoom_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;ZOOM_NAME,&nbsp;MAX_ZOOM,&nbsp;MAX_ZOOM,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_zoom_move(void&nbsp;*data,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;ZOOM_NAME,&nbsp;MAX_ZOOM,&nbsp;MAX_ZOOM,&nbsp;MOVE_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_zoom_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;ZOOM_NAME,&nbsp;MAX_ZOOM,&nbsp;MAX_ZOOM,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_zoom_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;ZOOM_NAME,&nbsp;MAX_ZOOM,&nbsp;MAX_ZOOM,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_rotate_start(void&nbsp;*data,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;ROTATE_NAME,&nbsp;MAX_ROTATE,&nbsp;MAX_ROTATE,&nbsp;START_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_rotate_move(void&nbsp;*data,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;ROTATE_NAME,&nbsp;MAX_ROTATE,&nbsp;MAX_ROTATE,&nbsp;MOVE_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_rotate_end(void&nbsp;*data,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;ROTATE_NAME,&nbsp;MAX_ROTATE,&nbsp;MAX_ROTATE,&nbsp;END_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+&nbsp;
+static&nbsp;Evas_Event_Flags
+_rotate_abort(void&nbsp;*data,&nbsp;void&nbsp;*event_info&nbsp;EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;_color_and_icon_set(data,&nbsp;ROTATE_NAME,&nbsp;MAX_ROTATE,&nbsp;MAX_ROTATE,&nbsp;ABORT_COLOR);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;EVAS_EVENT_FLAG_ON_HOLD;
+}
+/*&nbsp;END&nbsp;&nbsp;&nbsp;-&nbsp;Callbacks&nbsp;for&nbsp;gestures&nbsp;*/
+&nbsp;
+static&nbsp;Evas_Object&nbsp;*
+_create_gesture_box(Evas_Object&nbsp;*win,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;icon_properties&nbsp;*icons,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;idx,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const&nbsp;char&nbsp;*name,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const&nbsp;char&nbsp;*lb_txt)
+{&nbsp;&nbsp;/*&nbsp;Creates&nbsp;a&nbsp;box&nbsp;with&nbsp;icon&nbsp;and&nbsp;label,&nbsp;later&nbsp;placed&nbsp;in&nbsp;a&nbsp;table&nbsp;*/
+&nbsp;&nbsp;&nbsp;Evas_Object&nbsp;*lb,&nbsp;*bx&nbsp;=&nbsp;elm_box_add(win);
+&nbsp;&nbsp;&nbsp;char&nbsp;buf[1024];
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_box_padding_set(bx,&nbsp;BX_PADDING_X,&nbsp;BX_PADDING_Y);
+&nbsp;&nbsp;&nbsp;icons[idx].icon&nbsp;=&nbsp;elm_icon_add(win);
+&nbsp;&nbsp;&nbsp;icons[idx].name&nbsp;=&nbsp;name;
+&nbsp;
+&nbsp;&nbsp;&nbsp;snprintf(buf,&nbsp;sizeof(buf),&nbsp;"%s/images/g_layer/%s_1.png",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_app_data_dir_get(),&nbsp;icons[idx].name);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_image_file_set(icons[idx].icon,&nbsp;buf,&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;elm_image_resizable_set(icons[idx].icon,&nbsp;0,&nbsp;0);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(icons[idx].icon,&nbsp;0.5,&nbsp;0.5);
+&nbsp;&nbsp;&nbsp;_icon_color_set(&icons[idx],&nbsp;INI_R,&nbsp;INI_G,&nbsp;INI_B,&nbsp;INI_A);
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(bx,&nbsp;icons[idx].icon);
+&nbsp;&nbsp;&nbsp;evas_object_show(icons[idx].icon);
+&nbsp;
+&nbsp;&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;lb_txt);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;0.5,&nbsp;0.5);
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(bx,&nbsp;lb);
+&nbsp;&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;&nbsp;&nbsp;evas_object_show(bx);
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;bx;
+}
+&nbsp;
+static&nbsp;Evas_Object&nbsp;*
+_create_gesture_layer(Evas_Object&nbsp;*parent,&nbsp;Evas_Object&nbsp;*rect,&nbsp;infra_data&nbsp;*infra)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object&nbsp;*g&nbsp;=&nbsp;elm_gesture_layer_add(parent);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_attach(g,&nbsp;rect);
+&nbsp;
+&nbsp;&nbsp;&nbsp;evas_object_show(rect);
+&nbsp;
+&nbsp;&nbsp;&nbsp;/*&nbsp;START&nbsp;-&nbsp;Setting&nbsp;gestures&nbsp;callbacks&nbsp;*/
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TRIPLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_triple_click_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TRIPLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_triple_click_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TRIPLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_triple_click_abort,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_DOUBLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_dbl_click_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_DOUBLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_dbl_click_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_DOUBLE_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_dbl_click_abort,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_n_finger_tap_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_n_finger_tap_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_n_finger_tap_abort,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LONG_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_n_long_tap_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LONG_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_n_long_tap_move,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LONG_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_n_long_tap_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LONG_TAPS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_n_long_tap_abort,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_MOMENTUM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_momentum_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_MOMENTUM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_momentum_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_MOMENTUM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_momentum_abort,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_MOMENTUM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_momentum_move,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LINES,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_line_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LINES,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_line_move,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LINES,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_line_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_LINES,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_line_abort,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_FLICKS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_flick_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_FLICKS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_flick_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_N_FLICKS,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_flick_abort,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ZOOM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_zoom_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ZOOM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_zoom_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ZOOM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_zoom_abort,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ZOOM,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_zoom_move,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ROTATE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_START,&nbsp;_rotate_start,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ROTATE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_END,&nbsp;_rotate_end,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ROTATE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_ABORT,&nbsp;_rotate_abort,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;elm_gesture_layer_cb_set(g,&nbsp;ELM_GESTURE_ROTATE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GESTURE_STATE_MOVE,&nbsp;_rotate_move,&nbsp;infra);
+&nbsp;&nbsp;&nbsp;/*&nbsp;END&nbsp;&nbsp;&nbsp;-&nbsp;Setting&nbsp;gestures&nbsp;callbacks&nbsp;*/
+&nbsp;
+&nbsp;&nbsp;&nbsp;return&nbsp;g;
+}
+&nbsp;
+static&nbsp;void
+_create_base_gui()
+{
+&nbsp;&nbsp;Evas_Object&nbsp;*win,&nbsp;*tb,&nbsp;*lb,&nbsp;*bx;
+&nbsp;&nbsp;Evas_Object&nbsp;*r;&nbsp;/*&nbsp;Gesture&nbsp;layer&nbsp;transparent&nbsp;object&nbsp;*/
+&nbsp;&nbsp;Evas_Object&nbsp;*g;&nbsp;/*&nbsp;The&nbsp;Gesture&nbsp;Layer&nbsp;object&nbsp;*/
+&nbsp;
+&nbsp;&nbsp;infra_data&nbsp;*infra&nbsp;=&nbsp;_infra_data_alloc();
+&nbsp;
+&nbsp;&nbsp;win&nbsp;=&nbsp;elm_win_util_standard_add("gesture-layer",&nbsp;"Gesture&nbsp;Layer");
+&nbsp;&nbsp;elm_win_autodel_set(win,&nbsp;EINA_TRUE);
+&nbsp;&nbsp;evas_object_smart_callback_add(win,&nbsp;"delete,request",&nbsp;_win_del,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;START&nbsp;-&nbsp;Building&nbsp;icons&nbsp;table&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;elm_box_add(win);
+&nbsp;&nbsp;tb&nbsp;=&nbsp;elm_table_add(win);
+&nbsp;&nbsp;elm_box_pack_end(bx,&nbsp;tb);
+&nbsp;&nbsp;elm_win_resize_object_add(win,&nbsp;bx);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(bx,&nbsp;EVAS_HINT_EXPAND,&nbsp;EVAS_HINT_EXPAND);
+&nbsp;&nbsp;evas_object_size_hint_align_set(tb,&nbsp;0.5,&nbsp;0.5);
+&nbsp;&nbsp;evas_object_show(tb);
+&nbsp;&nbsp;evas_object_show(bx);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Tap&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;0,&nbsp;TAP_NAME,&nbsp;"Tap");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;0,&nbsp;0,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Double&nbsp;Tap&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;1,&nbsp;DOUBLE_TAP_NAME,&nbsp;"Double&nbsp;Tap");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;1,&nbsp;0,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Triple&nbsp;Tap&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;2,&nbsp;TRIPLE_TAP_NAME,&nbsp;"Triple&nbsp;Tap");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;2,&nbsp;0,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Long&nbsp;Tap&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;3,&nbsp;LONG_TAP_NAME,&nbsp;"Long&nbsp;Tap");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;3,&nbsp;0,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Momentum&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;4,&nbsp;MOMENTUM_NAME,&nbsp;"Momentum");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;0,&nbsp;2,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Line&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;5,&nbsp;LINE_NAME,&nbsp;"Line");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;1,&nbsp;2,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Flick&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;6,&nbsp;FLICK_NAME,&nbsp;"Flick");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;2,&nbsp;2,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Zoom&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;7,&nbsp;ZOOM_NAME,&nbsp;"Zoom");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;0,&nbsp;3,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Box&nbsp;of&nbsp;Rotate&nbsp;icon&nbsp;and&nbsp;label&nbsp;*/
+&nbsp;&nbsp;bx&nbsp;=&nbsp;_create_gesture_box(win,&nbsp;infra->icons,&nbsp;8,&nbsp;ROTATE_NAME,&nbsp;"Rotate");
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;bx,&nbsp;1,&nbsp;3,&nbsp;1,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Legend&nbsp;of&nbsp;gestures&nbsp;-&nbsp;states&nbsp;*/
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"<b>Gesture&nbsp;States</b>");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;0,&nbsp;6,&nbsp;4,&nbsp;2);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;INI_R,&nbsp;INI_G,&nbsp;INI_B,&nbsp;INI_A);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;7,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Not&nbsp;Started");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;7,&nbsp;3,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;START_COLOR);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;8,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Gesture&nbsp;START");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;8,&nbsp;3,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;MOVE_COLOR);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;9,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Gesture&nbsp;MOVE");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;9,&nbsp;3,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;END_COLOR);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;10,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Gesture&nbsp;END");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;10,&nbsp;3,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_resize(r,&nbsp;64,&nbsp;64);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;ABORT_COLOR);
+&nbsp;&nbsp;evas_object_size_hint_weight_set(r,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(r,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;r,&nbsp;0,&nbsp;11,&nbsp;1,&nbsp;1);
+&nbsp;&nbsp;evas_object_show(r);
+&nbsp;
+&nbsp;&nbsp;lb&nbsp;=&nbsp;elm_label_add(win);
+&nbsp;&nbsp;elm_object_text_set(lb,&nbsp;"Gesture&nbsp;ABORT");
+&nbsp;&nbsp;evas_object_size_hint_weight_set(lb,&nbsp;EVAS_HINT_EXPAND,&nbsp;0.0);
+&nbsp;&nbsp;evas_object_size_hint_align_set(lb,&nbsp;EVAS_HINT_FILL,&nbsp;EVAS_HINT_FILL);
+&nbsp;&nbsp;elm_table_pack(tb,&nbsp;lb,&nbsp;1,&nbsp;11,&nbsp;3,&nbsp;1);
+&nbsp;
+&nbsp;&nbsp;elm_table_padding_set(tb,&nbsp;TB_PADDING_X,&nbsp;TB_PADDING_Y);
+&nbsp;&nbsp;evas_object_show(lb);
+&nbsp;&nbsp;/*&nbsp;END&nbsp;&nbsp;&nbsp;-&nbsp;Building&nbsp;icons&nbsp;table&nbsp;*/
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Gesture&nbsp;layer&nbsp;transparent&nbsp;object&nbsp;*/
+&nbsp;&nbsp;r&nbsp;=&nbsp;evas_object_rectangle_add(evas_object_evas_get(win));
+&nbsp;&nbsp;evas_object_move(r,&nbsp;0,&nbsp;0);
+&nbsp;&nbsp;evas_object_color_set(r,&nbsp;0,&nbsp;0,&nbsp;0,&nbsp;0);
+&nbsp;&nbsp;elm_win_resize_object_add(win,&nbsp;r);
+&nbsp;
+&nbsp;&nbsp;g&nbsp;=&nbsp;_create_gesture_layer(win,&nbsp;r,&nbsp;infra);
+&nbsp;
+&nbsp;&nbsp;/*&nbsp;Update&nbsp;color&nbsp;state&nbsp;20&nbsp;times&nbsp;a&nbsp;second&nbsp;*/
+&nbsp;&nbsp;infra->colortimer&nbsp;=&nbsp;ecore_timer_add(0.05,&nbsp;_icon_color_set_cb,&nbsp;infra->icons);
+&nbsp;
+&nbsp;&nbsp;evas_object_show(win);
+}
+&nbsp;
+static&nbsp;bool
+app_create(void&nbsp;*data)
+{
+&nbsp;
+&nbsp;&nbsp;_create_base_gui();
+&nbsp;
+&nbsp;&nbsp;return&nbsp;true;
+}
+&nbsp;
+int
+main(int&nbsp;argc,&nbsp;char&nbsp;*argv[])
+{
+&nbsp;&nbsp;ui_app_lifecycle_callback_s&nbsp;event_callback&nbsp;=&nbsp;{0,};
+&nbsp;
+&nbsp;&nbsp;event_callback.create&nbsp;=&nbsp;app_create;
+&nbsp;
+&nbsp;&nbsp;return&nbsp;ui_app_main(argc,&nbsp;argv,&nbsp;&event_callback,&nbsp;NULL);
+}
+</pre>
+</div>
+</li>
 </ul>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
