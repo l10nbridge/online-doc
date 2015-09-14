@@ -1,0 +1,473 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Event Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation"></div>
+
+<div id="container"><div id="contents"><div class="content">
+  <div id="profile">
+    <p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+  </div>
+
+  <h1>Event Sample Overview</h1>
+
+  <p>
+  The Tizen API's Event module provides a set of functions enabling listeners creation for specified system and custom events. In order to receive a custom event via created listener, one must be created
+  and published. This sample application gives an example of custom events creation and publishing as well as the listening for both types of events.
+  </p>
+  <p>The figure below illustrates the view of the application.</p>
+  <p id="app-screenshot" class="figure">Figure: Event application screens.</p>
+  <p style="text-align:center;">
+    <img alt="System events view" height="364" hspace="20" src="../images/event_system_events_view_sd_mn.png" />
+	<img alt="Custom events view" height="364" hspace="20" src="../images/event_custom_events_view_sd_mn.png" />
+	<img alt="Received custom event view" height="364" hspace="20" src="../images/event_custom_events_received_view_sd_mn.png" />
+  </p>
+
+  <p>The sample application provides a user interface for previewing available events and their status:
+  <ul>
+    <li>system events:
+      <ul>
+	    <li>battery level and charger status,</li>
+	    <li>USB and earjack status,</li>
+	    <li>display state and auto-rotation mode,</li>
+	    <li>system boot and shutdown status,</li>
+	    <li>memory status,</li>
+	    <li>Wi-Fi, Bluetooth, mobile data and roaming state,</li>
+		<li>location, GPS and NPS state,</li>
+		<li>incoming message status,</li>
+		<li>time, zone and hour format change,</li>
+		<li>language and region format change,</li>
+		<li>silent and vibration mode change,</li>
+		<li>font change;</li>
+      </ul>
+	</li>
+	<li>custom events:
+	  <ul>
+	    <li>custom events are received once they are registered and published by the user via "Custom events" tab.</li>
+	  </ul>
+	</li>
+  </ul>
+  The structure of the user interface is depicted below (EDJE layout scripts are used).
+  </p>
+  <p id="ui-main-struct" class="figure">Figure: Event main layout structure.</p>
+  <p style="text-align:center;">
+    <img alt="Event main layout structure" hspace="80" height="400" src="../images/event_ui_layout_1_sd_mn.png" />
+  </p>
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">PART_MAIN_CONTENT</span> swallow is used as a container for any of the below layouts.
+  </p>
+  <p id="ui-tabs-struct" class="figure">Figure: Event tabs layout structure.</p>
+  <p style="text-align:center;">
+    <img alt="Event tabs layout structure" hspace="80" height="400" src="../images/event_ui_layout_2_sd_mn.png" />
+  </p>
+  <p>
+  The final application's view is created by embedding proper widgets into the layouts depicted above. The resulting UI views are shown below.
+  </p>
+  <p id="ui-view" class="figure">Figure: Event application's UI view.</p>
+  <p style="text-align:center;">
+    <img alt="Event application's UI view" hspace="80" height="450" src="../images/event_ui_tabs_view_sd_mn.png" />
+  </p>
+  <br>
+  The application's workflow can be divided into three logical pipelines:
+  <ul>
+    <li>application startup,</li>
+	<li>system events handling,</li>
+	<li>custom event creation, publishing and receiving,</li>
+  </ul>
+  which can be described by the following figure:
+  </p>
+  <p id="workflow" class="figure">Figure: Event application workflow.</p>
+  <p style="text-align:center;">
+    <img alt="Application workflow" height="450" hspace="0" src="../images/event_workflow_sd_mn.png"/>
+  </p>
+
+  <h3>Prerequisites</h3>
+  <p>
+  To ensure proper application execution, the following privileges must be set:
+    <ul>
+      <li>http://tizen.org/privilege/network.get,</li>
+      <li>http://tizen.org/privilege/message.read,</li>
+      <li>http://tizen.org/privilege/display.</li>
+	</ul>
+  </p>
+
+<h2>Implementation</h2>
+
+<h3 id="type-defs">Type definitions</h3>
+
+<pre class="prettyprint">
+/* The general structure for application's data storage. */
+struct __appdata {
+&nbsp;&nbsp;&nbsp;viewdata_s view;
+};
+</pre>
+
+<pre class="prettyprint">
+/* All the Evas_Object objects represent UI widgets. */
+struct __viewdata {
+&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;Evas_Object *conform;
+&nbsp;&nbsp;&nbsp;Evas_Object *layout_main_panel;
+&nbsp;&nbsp;&nbsp;Evas_Object *main_toolbar;
+&nbsp;&nbsp;&nbsp;Evas_Object *main_toolbar_item_system_ev;
+&nbsp;&nbsp;&nbsp;Evas_Object *main_toolbar_item_custom_ev;
+&nbsp;&nbsp;&nbsp;Evas_Object *layout_system_ev;
+&nbsp;&nbsp;&nbsp;Evas_Object *system_ev_list;
+&nbsp;&nbsp;&nbsp;Evas_Object *layout_custom_ev;
+&nbsp;&nbsp;&nbsp;Evas_Object *custom_ev_name;
+&nbsp;&nbsp;&nbsp;Evas_Object *custom_ev_submit;
+&nbsp;&nbsp;&nbsp;Evas_Object *custom_ev_list;
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *custom_ev_itc;
+&nbsp;&nbsp;&nbsp;/* The structure of callbacks handlers used by the Controller module to establish interaction with the Model module. */
+&nbsp;&nbsp;&nbsp;viewcallbacks_s callbacks;
+};
+
+typedef struct __viewdata viewdata_s;
+</pre>
+
+<pre class="prettyprint">
+/* All the callbacks handlers are hooked by the Controller module in order to relate the control flow between the View and the Model modules. */
+struct __viewcallbacks {
+&nbsp;&nbsp;&nbsp;/* The callback handler is invoked when the custom event needs to be published. */
+&nbsp;&nbsp;&nbsp;event_do_publish_cb do_publish_cb;
+&nbsp;&nbsp;&nbsp;/* The callback handler is invoked at the initialization phase to obtain all the information about system events for UI generation purpose. */
+&nbsp;&nbsp;&nbsp;event_get_system_info_cb get_system_info_cb;
+&nbsp;&nbsp;&nbsp;/* The callback handler is invoked when the user requests to register the custom event handler. */
+&nbsp;&nbsp;&nbsp;event_set_custom_info_cb set_custom_info_cb;
+};
+
+typedef struct __viewcallbacks viewcallbacks_s;
+</pre>
+
+<pre class="prettyprint">
+/* The definition of callbacks handlers declared in the viewcallbacks_s structure. */
+&nbsp;&nbsp;&nbsp;typedef void (* event_do_publish_cb)(const char *event_name);
+&nbsp;&nbsp;&nbsp;typedef bool (* event_get_system_info_cb)(int index, void **ev_info);
+&nbsp;&nbsp;&nbsp;typedef bool (* event_set_custom_info_cb)(const char *event_name, void **ev_info);
+</pre>
+
+<pre class="prettyprint">
+/* The structure keeps all the event related information. */
+struct __system_ev_info {
+&nbsp;&nbsp;&nbsp;/* The type of the event - used only for the system events specification.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The type is defined as an enum whose values represents all available system events. */
+&nbsp;&nbsp;&nbsp;event_type_t type;
+&nbsp;&nbsp;&nbsp;/* The name of the event. */
+&nbsp;&nbsp;&nbsp;char *name;
+&nbsp;&nbsp;&nbsp;/* The readable description of the event. */
+&nbsp;&nbsp;&nbsp;char *desc;
+&nbsp;&nbsp;&nbsp;/* The status of the event. */
+&nbsp;&nbsp;&nbsp;char *status_1;
+&nbsp;&nbsp;&nbsp;/* The status of the event. Used if the event contains up to two different status information:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Incoming message type / id; */
+&nbsp;&nbsp;&nbsp;char *status_2;
+&nbsp;&nbsp;&nbsp;/* The status of the event. Used if the event contains up to three different status information:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- Bluetooth state / LE state / transferring state; */
+&nbsp;&nbsp;&nbsp;char *status_3;
+&nbsp;&nbsp;&nbsp;/* Event's callback handler function. */
+&nbsp;&nbsp;&nbsp;event_handler_h event_h;
+};
+
+typedef struct __system_ev_info system_ev_info_s;
+typedef struct __system_ev_info custom_ev_info_s;
+</pre>
+
+   <p>
+   The Model module declares two arrays:
+     <ul>
+	   <li><span style="font-family: Courier New,Courier,monospace">static system_ev_info_s __system_ev[__SYSTEM_EVENT_COUNT_MAX];</span></li>
+	   <li><span style="font-family: Courier New,Courier,monospace">static custom_ev_info_s __custom_ev[__CUSTOM_EVENT_COUNT_MAX];</span></li>
+	  </ul>
+	which are used to store system and custom events information, respectively. The <span style="font-family: Courier New,Courier,monospace">__SYSTEM_EVENT_COUNT_MAX</span> and
+	<span style="font-family: Courier New,Courier,monospace">__CUSTOM_EVENT_COUNT_MAX</span> values are both set to 25 as an upperbound limit.
+   </p>
+
+<h3 id="app-init">Application initialization</h3>
+
+   <p>
+  The entire application's life-cycle is implemented in the main source file, using a common Tizen application structure:
+  </p>
+
+<pre class="prettyprint">
+int main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;appdata_s ad = {{0,},};
+&nbsp;&nbsp;&nbsp;int ret = 0;
+
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback;
+&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL, };
+
+&nbsp;&nbsp;&nbsp;event_callback.create = __create_app;
+&nbsp;&nbsp;&nbsp;event_callback.terminate = __terminate_app;
+&nbsp;&nbsp;&nbsp;event_callback.pause = __pause_app;
+&nbsp;&nbsp;&nbsp;event_callback.resume = __resume_app;
+&nbsp;&nbsp;&nbsp;event_callback.app_control = __control_app;
+
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY, __ui_app_low_battery, &ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY, __ui_app_low_memory, &ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_DEVICE_ORIENTATION_CHANGED], APP_EVENT_DEVICE_ORIENTATION_CHANGED, __ui_app_orient_changed, &ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED, __ui_app_lang_changed, &ad);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED, __ui_app_region_changed, &ad);
+
+&nbsp;&nbsp;&nbsp;ret = ui_app_main(argc, argv, &event_callback, &ad);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function ui_app_main() failed with error = %d", ret);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+
+  <p>
+  The application's initilization procedure is executed in <span style="font-family: Courier New,Courier,monospace">__create_app()</span> callback function, which is invoked on application's startup.
+  </p>
+
+<pre class="prettyprint">
+static bool __create_app(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+
+&nbsp;&nbsp;&nbsp;return controller_init(&ad->view);
+}
+</pre>
+
+  <p>
+  Finally, the <span style="font-family: Courier New,Courier,monospace">controller_init()</span> function is invoked, which controls the entire initialization process
+  (see the code snippet below for details). This function is responsible for attaching callback functions invoked by the View module in order to perform required tasks:
+    <ul>
+	  <li><span style="font-family: Courier New,Courier,monospace">__controller_event_do_publish_cb()</span> - publish the custom event registered by the user;</li>
+	  <li><span style="font-family: Courier New,Courier,monospace">__controller_event_get_system_info_cb()</span> - query system's event information to populate the list with relevant data;</li>
+	  <li><span style="font-family: Courier New,Courier,monospace">__controller_event_set_custom_info_cb()</span> - register event handler to be invoked on custom event occurance.</li>
+	</ul>
+  The first and the third callback function is called when the user performs appropriate action from the application's UI. The second callback function is called during the application's UI creation.
+  The application's UI is afterwards created by the <span style="font-family: Courier New,Courier,monospace">view_create_base_gui()</span> function. Its source code is not listed
+  within this documentation, as it is not a subject of this document. At the end of the initialization phase, a callback function is attached to each of the available system events within the
+  <span style="font-family: Courier New,Courier,monospace">__add_system_event_handlers()</span> function.
+  </p>
+
+<pre class="prettyprint">
+bool controller_init(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;vd->callbacks.do_publish_cb = __controller_event_do_publish_cb;
+&nbsp;&nbsp;&nbsp;vd->callbacks.get_system_info_cb = __controller_event_get_system_info_cb;
+&nbsp;&nbsp;&nbsp;vd->callbacks.set_custom_info_cb = __controller_event_set_custom_info_cb;
+
+&nbsp;&nbsp;&nbsp;if (!view_create_base_gui(vd))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;__add_system_event_handlers();
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+static void __controller_event_do_publish_cb(const char *event_name)
+{
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Event publishing: '%s'.", event_name);
+
+&nbsp;&nbsp;&nbsp;model_publish_event(event_name);
+}
+</pre>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">__controller_event_get_system_info_cb()</span> is invoked by the View module as long as the function returns
+  <span style="font-family: Courier New,Courier,monospace">true</span> value. Each time the function is called with incremented <span style="font-family: Courier New,Courier,monospace">index</span>
+  value. As a result, the system's event information <span style="font-family: Courier New,Courier,monospace">ev_info</span>, stored at specified
+  <span style="font-family: Courier New,Courier,monospace">index</span>, is returned. The requested data structure is obtained with the
+  <span style="font-family: Courier New,Courier,monospace">model_get_system_event_info()</span> function.
+  </p>
+
+<pre class="prettyprint">
+static bool __controller_event_get_system_info_cb(int index, void **ev_info)
+{
+&nbsp;&nbsp;&nbsp;*ev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;if (index >= model_get_system_events_count())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;system_ev_info_s *ev_info_tmp = NULL;
+&nbsp;&nbsp;&nbsp;if (!model_get_system_event_info(index, &ev_info_tmp))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;*ev_info = (system_ev_info_s *)ev_info_tmp;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">__controller_event_set_custom_info_cb()</span> callback function is invoked by the View model when the user requests to register
+  custom event. If the registration procedure succeeds (see the <span style="font-family: Courier New,Courier,monospace">__controller_register_custom_event()</span> function's implementation for
+  details), the reference to the event's information structure is returned via the <span style="font-family: Courier New,Courier,monospace">ev_info</span> argument.
+  </p>
+
+<pre class="prettyprint">
+static bool __controller_event_set_custom_info_cb(const char *event_name, void **ev_info)
+{
+&nbsp;&nbsp;&nbsp;*ev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info_tmp = NULL;
+&nbsp;&nbsp;&nbsp;if (!__controller_register_custom_event(event_name, &ev_info_tmp))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;*ev_info = (custom_ev_info_s *)ev_info_tmp;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+bool __controller_register_custom_event(const char *event_name, custom_ev_info_s **ev_info)
+{
+&nbsp;&nbsp;&nbsp;*ev_info = NULL;
+&nbsp;&nbsp;&nbsp;bool name_exists = false;
+
+&nbsp;&nbsp;&nbsp;/* The event's name, assigned by the user, must be unique, so we have to check if it does not exist yet. */
+&nbsp;&nbsp;&nbsp;if (!model_check_event_exists(event_name, &name_exists))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* If there is already an event registered with the given name, then the function fails. */
+&nbsp;&nbsp;&nbsp;if (name_exists) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_WARN, "Custom event '%s' already registered.", event_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Otherwise new event's information structure is created. */
+&nbsp;&nbsp;&nbsp;if (!model_create_custom_event_info(event_name, ev_info))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* Finally, the event's callback function is assigned, to be invoked when the event occurs. */
+&nbsp;&nbsp;&nbsp;if (!model_add_custom_event_handler(*ev_info, __custom_event_cb, (void *)(*ev_info)))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Custom event registered: '%s'.", (*ev_info)->name);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<h3 id="app-finit">Application termination</h3>
+
+  <p>
+  When the application is terminated, the <span style="font-family: Courier New,Courier,monospace">__terminate_app()</span> callback function is called (see the code snippet below).
+  </p>
+
+<pre class="prettyprint">
+static void __terminate_app(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+
+&nbsp;&nbsp;&nbsp;controller_finit(&ad->view);
+}
+</pre>
+
+  <p>
+  All the resources, allocated previously, are released with <span style="font-family: Courier New,Courier,monospace">controller_finit()</span> function, which is responsible for destroying the UI
+  and detaching system and custom events handlers.
+  </p>
+
+<pre class="prettyprint">
+void controller_finit(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;view_destroy_base_gui(vd);
+&nbsp;&nbsp;&nbsp;model_finit();
+}
+</pre>
+
+  <p>
+  As the UI is not a subject for this documentation, the implementation of the <span style="font-family: Courier New,Courier,monospace">view_destroy_base_gui()</span> function is ommited.
+  Detaching events handlers is performed in the Model module within the <span style="font-family: Courier New,Courier,monospace">model_finit()</span> function, which calls two internal functions:
+  <span style="font-family: Courier New,Courier,monospace">__model_release_system_events()</span> and <span style="font-family: Courier New,Courier,monospace">__model_release_custom_events()</span>.
+  </p>
+
+<pre class="prettyprint">
+void model_finit(void)
+{
+&nbsp;&nbsp;&nbsp;__model_release_system_events();
+&nbsp;&nbsp;&nbsp;__model_release_custom_events();
+}
+</pre>
+
+  <p>
+  The events handlers detaching procedure relies on <span style="font-family: Courier New,Courier,monospace">__model_remove_event_handler()</span> function (for reference see the
+  <a href="#model">Model</a> section) for each attached event handler regardless of its type (system or custom). The related resources are freed with the
+  <span style="font-family: Courier New,Courier,monospace">__model_free_system_event_info()</span> and
+  <span style="font-family: Courier New,Courier,monospace">__model_free_custom_event_info()</span> functions.
+  </p>
+
+<pre class="prettyprint">
+static void __model_release_system_events(void)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;for (i = 0; i < __SYSTEM_EVENT_COUNT_MAX; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;system_ev_info_s *ev_info = &__system_ev[i];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__model_remove_event_handler(ev_info->event_h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__model_free_system_event_info(ev_info);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<pre class="prettyprint">
+static void __model_release_custom_events(void)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;for (i = 0; i < __custom_ev_count; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info = &__custom_ev[i];
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__model_remove_event_handler(ev_info->event_h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__model_free_custom_event_info(ev_info);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;__custom_ev_count = 0;
+}
+</pre>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">__model_free_system_event_info()</span> and
+  <span style="font-family: Courier New,Courier,monospace">__model_free_custom_event_info()</span> functions are not listed here, as their implementation is based only on
+  <span style="font-family: Courier New,Courier,monospace">free()</span> function used to free the previously allocated memory.
+  </p>
+
+<h3 id="ev-system">System events</h3>
+
+<h3 id="ev-custom">Custom events</h3>
+
+<h3 id="model">Model</h3>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
