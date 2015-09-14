@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Sync Adapter Service Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+</div>
+
+<h1>Sync Adapter Service Sample Overview</h1>
+<p>The service application acts as a sync adapter to <a href="./syncadapterapp_sd_mn.htm">Sync Adapter UI App</a>. The service app handles all sync requets from Sync Adapter UI App.</p>
+
+<h2>Prerequisites</h2>
+<ol>
+<li>To ensure proper application execution, the following privileges must be set:
+<ul>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/contact.read</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/datasharing</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.get</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/appmanager.launch</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.read</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.profile</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/internet</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.set</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/download</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/contact.read</span></li>
+</ul>
+</li>
+<li>Register the service application as a sync adapter by passiong the sync callbacks to the following Sync adapter API.
+<pre class="prettyprint">
+bool service_app_create(void *data)
+{
+	LOGI("service_app_create called");
+
+	sync_adapter_set_callbacks(handleStartSync, handleStopSync);
+	...
+	...
+	return true;
+}</pre>
+</li>
+<li>Create a database and intialize data_control handle for writing data into database.
+<pre class="prettyprint">
+#define DB_PATH "/opt/usr/apps/org.tizen.syncadapterapp/data/sync.db"
+...
+...
+
+int create_database()
+{
+	LOGI("create database, %s", DB_PATH);
+	remove(DB_PATH);
+
+	char* sql_command = "CREATE TABLE IF NOT EXISTS sync_data ( TITLE TEXT)";
+	int open_flags = (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
+
+	int ret = sqlite3_open_v2(DB_PATH, &db, open_flags, NULL);
+	if (ret != SQLITE_OK)
+	{
+		LOGE("database creation failed with error: %d",ret);
+		return ret;
+	}
+
+	ret = sqlite3_exec(db, sql_command, NULL, NULL, NULL);
+	if (ret != SQLITE_OK)
+	{
+		LOGE("database table creation failed with error: %d",ret);
+	}
+
+	return ret;
+}
+</pre>
+</li>
+</ol>
+
+<h2>Start Sync</h2>
+<h3>Handle start sync</h3>
+<li>Whenever sync manager schedules a sync job for Sync Adapter UI app, the following callback method will be tirgger to perform sync job.
+The sample service application will download the content from server and communicates to Sync Adapter UI app using app_control.
+<pre class="prettyprint">
+static bool handleStartSync(account_h account, const char *sync_job_name, const char *sync_capability, bundle *sync_job_user_data)
+{
+	bool is_data_sync_cb = sync_capability ? true : false;
+	LOGI("HandleStartSync called in service app");
+	LOGI("Sync parameters:");
+	if (sync_job_name)
+	{
+		LOGI("Syncjob Name [%s]", sync_job_name);
+	}
+	else
+		LOGE("Error Syncjob Name is must");
+
+	if (account)
+	{
+		int id;
+		account_get_account_id(account, &id);
+		LOGI("account [%d] ", id);
+	}
+	else
+		LOGI("account is NULL");
+
+	if (is_data_sync_cb)
+	{
+		LOGI("Data change sync capability [%s]", sync_capability);
+	}
+
+	app_control_h app_control;
+	int ret = app_control_create(&app_control);
+	ret = app_control_set_app_id(app_control, "org.tizen.syncadapterapp");
+
+	char* pURL = NULL;
+	ret = bundle_get_str(sync_job_user_data, "URL", &pURL);
+	if (pURL != NULL)
+	{
+		if (is_data_sync_cb)
+		{
+			start_upload_to_server(pURL);
+			ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/upload_sync_complete");
+			LOGI("upload sync completed");
+		}
+		else
+		{
+			start_download_from_server(pURL);
+			ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/sync_complete");
+			LOGI("Download sync completed");
+		}
+	}
+
+	app_control_send_launch_request(app_control, NULL, NULL);
+
+	return 0;
+}</pre>
+</li>
+
+
+<h2>Cancel sync</h2>
+<h3>Handle Cancel sync</h3>
+<li>This callback method is a notification to inform sync adapter service app to safely cancel ongoing sync job (if any).
+<pre class="prettyprint">
+static void handleStopSync(account_h account, const char* capability)
+{
+	int id;
+	account_get_account_id(account, &id);
+	LOGI("details %d, %s ", id, capability);
+	LOGI("HandleStopSync called in client");
+}</pre>
+</li>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
