@@ -26,10 +26,10 @@
 
   <p>
   The Tizen API's Resource Manager module provides a small set of functions enabling "objects" extraction from the application's prior created resources. The "objects" extraction process is based on the
-  environment the application is running in: language and/or screen's DPI. Currently supported objects which may be handled by the Resource Manager are images and sounds (files). The Resource Manager's
-  operational principle is to deliver an object relevant to the current application's environment.
+  environment the application is running in: language and/or screen's DPI. Currently supported objects which may be handled by the Resource Manager are images, sounds, layouts and custom binary files.
+  The Resource Manager's operational principle is to deliver an object relevant to the current application's environment.
   <br>
-  This application demonstrates how to automatically pick an image matching:
+  This application demonstrates how to automatically pick an image and layout matching:
     <ul>
 	  <li>the language changed via Settings application;</li>
 	  <li>the device's screen DPI.</li>
@@ -81,7 +81,7 @@
   <ul>
     <li>application startup,</li>
 	<li>image extraction relevant to the screen's DPI,</li>
-	<li>image extraction relevant to the current language,</li>
+	<li>image and layout extraction relevant to the current language,</li>
   </ul>
   which can be described by the following figure:
   </p>
@@ -113,12 +113,13 @@
   </p>
 
   <p>
-  Once the resource directories structure is created, one can put relevant resource files in target directories. In case of this sample application, two types of images were uploaded:
+  Once the resource directories structure is created, one can put relevant resource files in target directories. In case of this sample application, two types of images and a layout script were uploaded:
     <ul>
 	  <li>'tizen.png' - the Tizen's logo adapted to each resolution respectively;</li>
-	  <li>'flag.png' - the national flag relevant to each supported language.</li>
+	  <li>'flag.png' - the national flag relevant to each supported language;</li>
+	  <li>'language.edc' - the layout script relevant to each supported language.</li>
 	</ul>
-  The name of each of the resolution related file is set to 'tizen.png' and to 'flag.png" for the each language related resource.
+  The name of each of the resolution related file is set to 'tizen.png' and to 'flag.png' / 'language.edc' for the each language related resource.
   </p>
 
   <p>
@@ -155,6 +156,7 @@ struct __viewdata {
 &nbsp;&nbsp;&nbsp;Evas_Object *win;
 &nbsp;&nbsp;&nbsp;Evas_Object *conform;
 &nbsp;&nbsp;&nbsp;Evas_Object *layout_main_panel;
+&nbsp;&nbsp;&nbsp;Evas_Object *layout_language;
 &nbsp;&nbsp;&nbsp;Evas_Object *image_dpi;
 &nbsp;&nbsp;&nbsp;Evas_Object *image_language;
 };
@@ -356,10 +358,11 @@ bool __model_release_app_resource_manager(void)
 
   <p>
   Once the resources are defined using <a href="#res-man">Resource Explorer</a> and appropriate resource files are uploded to the destination folders, one can start using these files.
-  For the demonstration purpose, two scenarions were chosen:
+  For the demonstration purpose, three scenarions were chosen:
     <ul>
 	  <li>displaying the image related to the current DPI setting;</li>
-	  <li>displaying the image related to the current locale setting.</li>
+	  <li>displaying the image related to the current locale setting;</li>
+	  <li>setting the layout related to the current locale setting.</li>
 	</ul>
   </p>
 
@@ -387,9 +390,10 @@ static void __controller_init_dpi(viewdata_s *vd)
 </pre>
 
   <p>
-  In the second case, there are 48 image files (each name is set to 'flag.png') depicting the national flags related to all supported languages. Each of the images is stored in a different folder:
-  'res/contents/az_AZ', 'res/contents/ca_ES', ... , 'res/contents/zh_TW'. Once the user changes the current language (Settings application &#10140; Language and input &#10140; Display language),
-  the <span style="font-family: Courier New,Courier,monospace">__ui_app_lang_changed()</span> callback function is invoked (see the <a href="#app-init">Application initialization</a> section).
+  In the second and third cases, there are 48 image files (each name is set to 'flag.png') depicting the national flags and 48 layout files (each name is set to 'language.edc') creating the text fields
+  related to all supported languages. Each of the images and layouts are stored in a different folder:
+  'res/contents/az_AZ', 'res/contents/ca_ES', ... , 'res/contents/zh_TW'. Once, the user changes the current language (Settings application &#10140; Language and input &#10140; Display language),
+  the callback function <span style="font-family: Courier New,Courier,monospace">__ui_app_lang_changed()</span> is invoked (see the <a href="#app-init">Application initialization</a> section).
   This callback function hooks <span style="font-family: Courier New,Courier,monospace">APP_EVENT_LANGUAGE_CHANGED</span> event. At the entry point of the
   <span style="font-family: Courier New,Courier,monospace">__ui_app_lang_changed()</span> function, the current locale is obtained using
   <span style="font-family: Courier New,Courier,monospace">model_get_locale()</span> function in order to be later set as a current language for the application
@@ -403,35 +407,46 @@ static void __ui_app_lang_changed(app_event_info_h event_info, void *user_data)
 &nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)user_data;
 &nbsp;&nbsp;&nbsp;char *locale = NULL;
 
-&nbsp;&nbsp;&nbsp;/* Gets the current locale name. */
 &nbsp;&nbsp;&nbsp;if (!model_get_locale(&locale))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 
-&nbsp;&nbsp;&nbsp;/* Sets the language for this application. */
 &nbsp;&nbsp;&nbsp;elm_language_set(locale);
 
-&nbsp;&nbsp;&nbsp;/* See the code snippet below. */
-&nbsp;&nbsp;&nbsp;controller_set_language(&ad->view, locale);
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Language set to: %s.", locale);
 
-&nbsp;&nbsp;&nbsp;free(locale);
+&nbsp;&nbsp;&nbsp;if (locale)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(locale);
+
+&nbsp;&nbsp;&nbsp;controller_set_language(&ad->view);
 
 &nbsp;&nbsp;&nbsp;return;
 }
 </pre>
 
 <pre class="prettyprint">
-void controller_set_language(viewdata_s *vd, char *locale)
+void controller_set_language(viewdata_s *vd)
 {
 &nbsp;&nbsp;&nbsp;char *file_path = NULL;
 
-&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Language set to: %s.", locale);
+&nbsp;&nbsp;&nbsp;/* Obtains the path to the 'language.edj' file with respect to the current language's settings. */
+&nbsp;&nbsp;&nbsp;if (model_get_app_resource(APP_RESOURCE_TYPE_LAYOUT, "language.edj", &file_path)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *rel_file_path = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* The layout's file path must be transformed to the relative one, as the elm_layout widget does not accept absolute paths. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (__controller_get_relative_resource_file_path(file_path, &rel_file_path))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If successful, then the layout file is uploaded and inserted to the PART_MAIN_BOTTOM_PANEL_LANGUAGE_PANEL swallow of the main layout. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_language_layout(vd, rel_file_path);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (file_path)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(file_path);
+
+&nbsp;&nbsp;&nbsp;file_path = NULL;
 
 &nbsp;&nbsp;&nbsp;/* Obtains the path to the 'flag.png' file with respect to the current language's settings. */
-&nbsp;&nbsp;&nbsp;if (!model_get_app_resource(APP_RESOURCE_TYPE_IMAGE, "flag.png", &file_path))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-
-&nbsp;&nbsp;&nbsp;/* The obtained image file is displayed. */
-&nbsp;&nbsp;&nbsp;view_show_language_info(vd, locale, file_path);
+&nbsp;&nbsp;&nbsp;if (model_get_app_resource(APP_RESOURCE_TYPE_IMAGE, "flag.png", &file_path))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If successful, then the image is displayed. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_language_info(vd, file_path);
 
 &nbsp;&nbsp;&nbsp;if (file_path)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(file_path);
