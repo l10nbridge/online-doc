@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>The (Circle) Sensors Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Wearable native" src="../images/wearable_s_n.png"/></p>
+	</div>
+
+  <h1>(Circle) Sensors Sample Overview</h1>
+
+<p>The (Circle) Sensors sample application demonstrates how to handle sensors API and get data from device's sensors.</p>
+
+<p>The following figure illustrates two screens of the (Circle) Sensors sample application: main and settings views.</p>
+
+<p class="figure">Figure: (Circle) Sensors views</p>
+  <p align="center"><img alt="(Circle) Sensors views" src="../images/circlesensors_wn0.png" /> <img alt="(Circle) Rotary Timer main views" src="../images/circlesensors_wn1.png" /></p>
+
+<p>Click gear wheel button to enter settings view.</p>
+<p>From there you can select which device's sensors you want to monitor. In this sample there is a limit of four sensors monitored simultaneously.</p>
+
+<p class="figure">Figure: (Circle) Sensors widgets structure</p>
+  <p align="center"><img alt="(Circle) Sensors widgets structure" src="../images/circlesensors_wn2.png"/>
+  </p>
+
+<h2>Implementation</h2>
+
+<h3 id="mainview">Device sensors controller module</h3>
+
+<p>This is the most essential module in the sample application. The <span style="font-family: Courier New,Courier,monospace">device_sensors_init()</span>
+function makes necessary setup of module's static array - <span style="font-family: Courier New,Courier,monospace">available_sens_descr</span>.</p>
+<p>The helper <span style="font-family: Courier New,Courier,monospace">sens_descr</span> array contains objects of
+<span style="font-family: Courier New,Courier,monospace">sensor_description_s</span> type, defined in the application. Each object of this type consist of:</p>
+<ol>
+<li><span style="font-family: Courier New,Courier,monospace">sensor_type_e</span> API type enumeration - unique sensor identifier,</li>
+<li>full sensor name,</li>
+<li>sensor name abbreviation,</li>
+<li>sensor's maximum and minimum value.</li>
+</ol>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">device_sensors_init()</span> function iterates over all known sensor types and checks
+if they are supported on the current device. If so, the sensor handle is obtained (<span style="font-family: Courier New,Courier,monospace">sensor_get_default_sensor()</span>
+) and a listener is created (<span style="font-family: Courier New,Courier,monospace">sensor_create_listener()</span>).</p>
+<p>Next, it is necessary to bind the sensor listener with a callback function
+(the sole parameter of <span style="font-family: Courier New,Courier,monospace">device_sensors_init()</span>) which will be called each time a sensor
+data is ready to be obtained. You can pass a time interval value to <span style="font-family: Courier New,Courier,monospace">sensor_listener_set_event_cb()</span>
+function. It defines an interval at which the listener object will poll the bound sensor. You can set this value to anything between 10 and 1000 ms. Also, it is worth noting that the sensor listener is set to be active even when the watch's screen is off.
+It is done with <span style="font-family: Courier New,Courier,monospace">sensor_listener_set_option()</span> function.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">device_sensors_init()</span> also uses
+<span style="font-family: Courier New,Courier,monospace">sensor_get_min_range()</span> and
+<span style="font-family: Courier New,Courier,monospace">sensor_get_max_range()</span> functions to get expected sensor minimum and maximum readings' values.
+These values are stored in respective elements of <span style="font-family: Courier New,Courier,monospace">sens_descr</span> array.</p>
+<p>Once the loop is over, the <span style="font-family: Courier New,Courier,monospace">available_sens_descr</span> array contains pointers to <span style="font-family: Courier New,Courier,monospace">sensor_description_s</span> structures which describe all available sensors.</p>
+<pre class="prettyprint">
+const static sensor_description_s sens_descr[SENSOR_LAST] = {
+&nbsp;&nbsp;{SENSOR_ACCELEROMETER, "Accelerometer", "ACC", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_GRAVITY, "Gravity sensor", "GRAV", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_LINEAR_ACCELERATION, "Linear acceleration sensor", "LINA", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_MAGNETIC, "Magnetic sensor", "MAG", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_ROTATION_VECTOR, "Rotation Vector sensor", "ROT", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_ORIENTATION, "Orientation sensor", "ORI", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_GYROSCOPE, "Gyroscope sensor", "GYRO", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_LIGHT, "Light sensor", "L", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_PROXIMITY, "Proximity sensor", "PROX", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_PRESSURE, "Pressure sensor", "PRES", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_ULTRAVIOLET, "Ultraviolet sensor", "UV", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_TEMPERATURE, "Temperature sensor", "TEMP", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_HUMIDITY, "Humidity sensor", "HUM", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_HRM, "Heart Rate Monitor sensor", "HRT", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_HRM_LED_GREEN, "HRM (LED Green) sensor", "HRTG", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_HRM_LED_IR, "HRM (LED IR) sensor", "HRTI", 0.0, 0.0},
+&nbsp;&nbsp;{SENSOR_HRM_LED_RED, "HRM (LED RED) sensor", "HRTR", 0.0, 0.0}
+};
+</pre>
+
+<pre class="prettyprint">
+static sensor_description_s *available_sens_descr[SENSOR_LAST + 1] = {NULL,};
+</pre>
+
+<pre class="prettyprint">
+bool device_sensors_init(sensor_event_cb cb)
+{
+&nbsp;&nbsp;//Variables declarations ...
+
+&nbsp;&nbsp;for (i = 0; i < SENSOR_LAST; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;if (SENSOR_ERROR_NONE == sensor_is_supported(sens_descr[i].type, &supported) &&
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;supported) {
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sensor = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;listener = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (SENSOR_ERROR_NONE != sensor_get_default_sensor(sens_descr[i].type, &sensor)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Error handling ...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (SENSOR_ERROR_NONE != sensor_create_listener(sensor, &listener)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Error handling ...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (SENSOR_ERROR_NONE != sensor_listener_set_event_cb(listener,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;POLL_INTERVAL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)sens_descr[i].type)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Error handling ...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sensor_listener_set_option(listener, SENSOR_OPTION_ON_IN_SCREEN_OFF);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sensor_get_min_range(sensor, (float *)&sens_descr[i].min_range);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sensor_get_max_range(sensor, (float *)&sens_descr[i].max_range);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;available_sens_descr[j++] = (sensor_description_s *)sens_descr + i;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sens_listeners[sens_descr[i].type] = listener;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;return initiated = true;
+}
+</pre>
+
+<p>To start/stop listening to sensor data, the client module has to call <span style="font-family: Courier New,Courier,monospace">device_sensors_start_listening()</span>
+or <span style="font-family: Courier New,Courier,monospace">device_sensors_stop_listening()</span> function
+and pass a sensor identifier to it.</p>
+
+<pre class="prettyprint">
+bool device_sensors_start_listening(const sensor_type_e sensor)
+{
+&nbsp;&nbsp;if (sensor < SENSOR_ACCELEROMETER || sensor >= SENSOR_LAST)
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;sensor_listener_start(sens_listeners[sensor]);
+
+&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+void device_sensors_stop_listening(const sensor_type_e sensor)
+{
+&nbsp;&nbsp;if (sensor < SENSOR_ACCELEROMETER || sensor >= SENSOR_LAST)
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;sensor_listener_stop(sens_listeners[sensor]);
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
