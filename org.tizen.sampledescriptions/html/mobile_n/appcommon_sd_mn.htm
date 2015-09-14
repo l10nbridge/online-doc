@@ -225,7 +225,7 @@ bool controller_init(viewdata_s *vd, modeldata_s *md)
 &nbsp;&nbsp;&nbsp;if (!__add_event_handlers())
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 
-&nbsp;&nbsp;&nbsp;if (!view_create_base_gui(vd, __paths_popup_opened))
+&nbsp;&nbsp;&nbsp;if (!view_create_base_gui(vd, __paths_popup_opened_cb))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 
 &nbsp;&nbsp;&nbsp;__init_view_app();
@@ -282,9 +282,9 @@ static void __init_view_app(void)
 &nbsp;&nbsp;&nbsp;char *name = NULL;
 &nbsp;&nbsp;&nbsp;char *version = NULL;
 
-&nbsp;&nbsp;&nbsp;if (model_app_get_id(&id) &&
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model_app_get_name(&name) &&
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model_app_get_version(&version))
+&nbsp;&nbsp;&nbsp;if (model_get_app_id(&id) &&
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model_get_app_name(&name) &&
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model_get_app_version(&version))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_update_application_tab(id, name, version);
 
 &nbsp;&nbsp;&nbsp;char *paths[PATHS_LIST_ITEMS_COUNT] = { NULL };
@@ -358,6 +358,61 @@ static void __remove_event_handlers(void)
 &nbsp;&nbsp;&nbsp;model_remove_event_handler(APP_EVENT_SUSPENDED_STATE_CHANGED);
 }
 </pre>
+
+<h3 id="app-res">Application's resources</h3>
+
+  <p>
+  Once the application is created and its UI is displayed, one can browse through the information gathered during the <a href="#app-init">Application initialization</a> procedure. This information consists of:
+    <ul>
+      <li>application's name, id, version;</li>
+	  <li>paths to the application's resources like: data, cache, etc.</li>
+    </ul>
+  These information is obtained using <span style="font-family: Courier New,Courier,monospace">model_get_app_id()</span>,
+  <span style="font-family: Courier New,Courier,monospace">model_get_app_name()</span> and <span style="font-family: Courier New,Courier,monospace">model_get_app_version()</span> functions
+  within the <span style="font-family: Courier New,Courier,monospace">__init_view_app()</span> function called during the <a href="#app-init">Application initialization</a> procedure.
+  The paths to the application's resources directories are obtained using the <span style="font-family: Courier New,Courier,monospace">model_get_app_<b>#dir_type#</b>_path()</span> functions.
+  The implementation of the mentioned functions is listed below.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_app_id(char **id)
+{
+&nbsp;&nbsp;&nbsp;*id = NULL;
+
+&nbsp;&nbsp;&nbsp;int ret = app_get_id(id);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function app_get_id() failed with error = %d", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  The implementation of the <span style="font-family: Courier New,Courier,monospace">model_get_app_name()</span> and
+  <span style="font-family: Courier New,Courier,monospace">model_get_app_version()</span> functions is exactly the same as the implementation of the
+  <span style="font-family: Courier New,Courier,monospace">model_get_app_id()</span> function, but the Tizen's API <span style="font-family: Courier New,Courier,monospace">app_get_name()</span>
+  and <span style="font-family: Courier New,Courier,monospace">app_get_version()</span> functions are used instead of the
+  <span style="font-family: Courier New,Courier,monospace">app_get_id()</span> function.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_app_<b>#dir_type#</b>_path(char **path)
+{
+&nbsp;&nbsp;&nbsp;*path = NULL;
+
+&nbsp;&nbsp;&nbsp;char *path_tmp = app_get_<b>#dir_type#</b>_path();
+&nbsp;&nbsp;&nbsp;if (!path_tmp) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function app_get_<b>#dir_type#</b>_path() failed");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;*path = strdup(path_tmp);
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
 
 <h3 id="model">Model</h3>
 
