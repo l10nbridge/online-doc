@@ -413,6 +413,97 @@ bool model_get_app_<b>#dir_type#</b>_path(char **path)
 }
 </pre>
 
+<h3 id="app-events">Application's events</h3>
+
+  <p>
+  Together with the <a href="#app-res">Application's resources</a> the events handling is implemented. At the <a href="#app-init">Application initialization</a> phase the events handlers are attached for:
+    <ul>
+	  <li>low memory status;</li>
+	  <li>low battery status;</li>
+	  <li>language changed;</li>
+	  <li>region format changed;</li>
+	  <li>device orientation change;</li>
+	  <li>suspended state occurance.</li>
+	</ul>
+	Each of the events above is handled by one of the callback functions attached using the <span style="font-family: Courier New,Courier,monospace">model_add_event_handler()</span> function
+	(see below for implementation details) within the <span style="font-family: Courier New,Courier,monospace">__add_event_handlers()</span> function (see the
+	<a href="#app-init">Application initialization</a> section for implementation reference).
+  </p>
+
+<pre class="prettyprint">
+bool model_add_event_handler(app_event_type_e event_type, app_event_cb callback)
+{
+&nbsp;&nbsp;&nbsp;int ret = ui_app_add_event_handler(&__modeldata->handlers[event_type], event_type, callback, NULL);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function ui_app_add_event_handler() failed with error = %d", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  Once the event handler is attached and the event occurs, the assigned callback function is called. Regardless of the event type, the callback function structure is the same (see below for reference).
+  </p>
+
+<pre class="prettyprint">
+static void __app_event_<b>#event_type#</b>_cb(app_event_info_h event_info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;<b>#event_status_type#</b> status;
+
+&nbsp;&nbsp;&nbsp;if (!model_get_app_event_<b>#event_type#</b>(event_info, &status))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;* The event is handled appropriately to its type and displayed on the application's UI.
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+}
+</pre>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">model_get_app_event_<b>#event_type#</b>()</span> function is responsible for detailed information obtaining from the
+  <span style="font-family: Courier New,Courier,monospace">event_info</span> argument of the event's callback function. Depending on the event type, the event's relevant information is returned:
+    <ul>
+	  <li>low memory event - normal status, soft/hard warning;</li>
+	  <li>low battery event - the battery is under 1% or under 5%;</li>
+	  <li>language changed event - language code;</li>
+	  <li>region format changed event - region code;</li>
+	  <li>device orientation changed event - natural position, left-side up, up-side down, right-side up;</li>
+	  <li>suspended state occurance event - will enter/did exit from suspended state.</li>
+	</ul>
+  The implementation of the <span style="font-family: Courier New,Courier,monospace">model_get_app_event_<b>#event_type#</b>()</span> function is listed below.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_app_event_<b>#event_type#</b>(app_event_info_h event_info, <b>#event_status_type#</b> *status)
+{
+&nbsp;&nbsp;&nbsp;int ret = app_event_get_<b>#event_type#</b>(event_info, status);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function app_event_get_<b>#event_type#</b>() failed with error = %d", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  On the <a href="#app-finit">Application termination</a> phase, each attached event is detached with <span style="font-family: Courier New,Courier,monospace">model_remove_event_handler()</span> function.
+  </p>
+
+<pre class="prettyprint">
+bool model_remove_event_handler(app_event_type_e event_type)
+{
+&nbsp;&nbsp;&nbsp;int ret = ui_app_remove_event_handler(__modeldata->handlers[event_type]);
+&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function event_remove_event_handler() failed with error = %d", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
 
 <h3 id="model">Model</h3>
 
