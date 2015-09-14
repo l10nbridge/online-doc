@@ -556,7 +556,364 @@ static void __system_event_cb(const char *event_name, bundle *event_data, void *
 
 <h3 id="ev-custom">Custom events</h3>
 
+  <p>
+  Once the user registers a new event using "Register event" button, the <span style="font-family: Courier New,Courier,monospace">__controller_register_custom_event()</span> function is invoked
+  in a <span style="font-family: Courier New,Courier,monospace">__controller_event_set_custom_info_cb()</span> callback function triggered by the
+  <span style="font-family: Courier New,Courier,monospace">__view_register_event_button_clicked_cb()</span> function attached to the "Register event" button. In order to clarify the entire
+  procedure, all the mentioned functions are listed below in the order of invocation.
+  </p>
+
+<pre class="prettyprint">
+/* This callback function is invoked on "Register event" button press. */
+static void __view_register_event_button_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;viewdata_s *vd = (viewdata_s *)data;
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info = NULL;
+&nbsp;&nbsp;&nbsp;char *event_name = NULL;
+
+&nbsp;&nbsp;&nbsp;/* The event's name input by the user is obtained. */
+&nbsp;&nbsp;&nbsp;if (!__view_get_custom_event_name(vd, &event_name)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_WARN, "The custom event has no name assigned.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* If the event's name is provided properly, the Controller's callback function is invoked
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;in order to register a new event with the given name.*/
+&nbsp;&nbsp;&nbsp;bool ret = false;
+&nbsp;&nbsp;&nbsp;if (vd->callbacks.set_custom_info_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = vd->callbacks.set_custom_info_cb((const char *)event_name, (void *)&ev_info);
+
+&nbsp;&nbsp;&nbsp;free(event_name);
+
+&nbsp;&nbsp;&nbsp;if (!ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* Once the custom event is registered successfully, the UI is updated to reflect recent changes. */
+&nbsp;&nbsp;&nbsp;elm_genlist_item_append(__viewdata->custom_ev_list,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__viewdata->custom_ev_itc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)ev_info,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__view_custom_event_item_select_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)ev_info);
+}
+</pre>
+
+<pre class="prettyprint">
+/* The callback function invoked within the __view_register_event_button_clicked_cb(). */
+static bool __controller_event_set_custom_info_cb(const char *event_name, void **ev_info)
+{
+&nbsp;&nbsp;&nbsp;*ev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info_tmp = NULL;
+&nbsp;&nbsp;&nbsp;/* Custom event registration is performed here. */
+&nbsp;&nbsp;&nbsp;if (!__controller_register_custom_event(event_name, &ev_info_tmp))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;*ev_info = (custom_ev_info_s *)ev_info_tmp;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+bool __controller_register_custom_event(const char *event_name, custom_ev_info_s **ev_info)
+{
+&nbsp;&nbsp;&nbsp;*ev_info = NULL;
+&nbsp;&nbsp;&nbsp;bool name_exists = false;
+
+&nbsp;&nbsp;&nbsp;/* Before the custom event is registered, one have to verify if provided name does not exist yet.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;There is no dedicated Event's API function which performs this task. In such case
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;the Model iterates over all registered custom events stored within internal data structure
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and compares the name being registered with those alredy registered.*/
+&nbsp;&nbsp;&nbsp;if (!model_check_event_exists(event_name, &name_exists))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (name_exists) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_WARN, "Custom event '%s' already registered.", event_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* If the custom name fails the extence verification, then the relevant data structure is created
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to store event's related information internally. */
+&nbsp;&nbsp;&nbsp;if (!model_create_custom_event_info(event_name, ev_info))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* Once the internal data structure is created, the custom event handler is registered
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;and the callback function attached to the event's handler. */
+&nbsp;&nbsp;&nbsp;if (!model_add_custom_event_handler(*ev_info, __custom_event_cb, (void *)(*ev_info)))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Custom event registered: '%s'.", (*ev_info)->name);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  For Model-related functions implementation and description, see the <a href="#model">Model</a> section.
+  </p>
+
+  <p>
+  After the custom event is registered and appears on the list, it may be published by simple click on relevant list's item. The published item can be hooked only by those applications which are signed
+  with the publisher's ceriticate.
+  <br>
+  The entire publishing procedure is shown within the source code below.
+  </p>
+
+<pre class="prettyprint">
+/* This callback function is invoked when the user selects an event's related item on the list. */
+static void __view_custom_event_item_select_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info = (custom_ev_info_s *)data;
+
+&nbsp;&nbsp;&nbsp;if (!ev_info) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "ev_info == NULL !!!");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;} else if (!ev_info->name) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "ev_info->name == NULL !!!");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The Controller is requested to publish the event by its name. */
+&nbsp;&nbsp;&nbsp;if (__viewdata->callbacks.do_publish_cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__viewdata->callbacks.do_publish_cb(ev_info->name);
+}
+</pre>
+
+<pre class="prettyprint">
+/* This callback function is invoked by the __view_custom_event_item_select_cb() function. */
+static void __controller_event_do_publish_cb(const char *event_name)
+{
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Event publishing: '%s'.", event_name);
+
+&nbsp;&nbsp;&nbsp;/* The event is published. */
+&nbsp;&nbsp;&nbsp;model_publish_event(event_name);
+}
+</pre>
+
+  <p>
+  For Model-related functions implementation and description, see the <a href="#model">Model</a> section.
+  </p>
+
+  <p>
+  Once the event is published, the callback function attached to its handler will be invoked within all those applications which are signed with the same certificate as the publisher.
+  In this case, only Event sample application will receive the event via previously attached <span style="font-family: Courier New,Courier,monospace">__custom_event_cb()</span> callback function.
+  The implementation of the <span style="font-family: Courier New,Courier,monospace">__custom_event_cb()</span> is shown below.
+  </p>
+
+<pre class="prettyprint">
+static void __custom_event_cb(const char *event_name, bundle *event_data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;custom_ev_info_s *ev_info = (custom_ev_info_s *)user_data;
+&nbsp;&nbsp;&nbsp;char *status = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Each custom event owns only one predefined key pointing to its status: CUSTOM_EVENT_KEY_STATUS.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The key is defined within this application: CUSTOM_EVENT_KEY_STATUS == "custom_event_status". */
+&nbsp;&nbsp;&nbsp;if (!model_get_bundle_str(event_data, CUSTOM_EVENT_KEY_STATUS, &status))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* If the status is successfully obtained from the event's bundle, it is stored within internal data structure. */
+&nbsp;&nbsp;&nbsp;model_assign_event_status(&ev_info->status_1, status);
+
+&nbsp;&nbsp;&nbsp;/* Finally, the event's status is displayed on toast message ... */
+&nbsp;&nbsp;&nbsp;view_display_custom_event(ev_info->name, ev_info->status_1);
+&nbsp;&nbsp;&nbsp;/* ... and on the relevant list's item. */
+&nbsp;&nbsp;&nbsp;view_update_custom_events();
+}
+</pre>
+
+  <p>
+  For Model-related functions implementation and description, see the <a href="#model">Model</a> section.
+  </p>
+
 <h3 id="model">Model</h3>
+
+  <p>
+  The responsibility of the application's "Model" module is to operate directly on the Event API and related data. The additional benefit of this module is the simplification of the API function calling:
+  error checking and message logging is performed here.
+  <br>
+  Some of the functions implemented within the "Model" module were briefly described in the <a href="#app-finit">Application termination</a> section
+  (<span style="font-family: Courier New,Courier,monospace">__model_release_system_events()</span>, <span style="font-family: Courier New,Courier,monospace">__model_release_custom_events()</span>,
+  <span style="font-family: Courier New,Courier,monospace">model_finit()</span>, <span style="font-family: Courier New,Courier,monospace">__model_free_system_event_info()</span>,
+  <span style="font-family: Courier New,Courier,monospace">__model_free_custom_event_info()</span>). Other, the most important functions, are described here.
+  </p>
+
+  <p>
+  Most of the Model functions operate on the <span style="font-family: Courier New,Courier,monospace">system_ev_info_s</span> or
+  <span style="font-family: Courier New,Courier,monospace">custom_ev_info_s</span> structures which represent the system or custom event internally.
+  </p>
+
+  <p>
+  Adding a handler to the specified event is performed by the <span style="font-family: Courier New,Courier,monospace">model_add_<b>#event_type#</b>_event_handler()</span> function, where
+  <span style="font-family: Courier New,Courier,monospace"><b>#event_type#</b></span> stands for <span style="font-family: Courier New,Courier,monospace">system</span>
+  or <span style="font-family: Courier New,Courier,monospace">custom</span>.
+  </p>
+
+<pre class="prettyprint">
+bool model_add_<b>#event_type#</b>_event_handler(<b>#event_type#</b>_ev_info_s *ev_info, event_cb callback, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (!ev_info || !callback) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Wrong argument provided.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Event's API function is called with name stored in the internal data structure.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The callback function is attached to the event's handler. */
+&nbsp;&nbsp;&nbsp;int ret = event_add_event_handler(ev_info->name, callback, user_data, &ev_info->event_h);
+&nbsp;&nbsp;&nbsp;if (ret != EVENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function event_add_event_handler() failed with error = %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  Event's handler created with the <span style="font-family: Courier New,Courier,monospace">model_add_<b>#event_type#</b>_event_handler()</span> is released using
+  <span style="font-family: Courier New,Courier,monospace">__model_remove_event_handler()</span> regardless of its
+  <span style="font-family: Courier New,Courier,monospace"><b>#event_type#</b></span>.
+  </p>
+
+<pre class="prettyprint">
+bool __model_remove_event_handler(event_handler_h event_handler)
+{
+&nbsp;&nbsp;&nbsp;int ret = event_remove_event_handler(event_handler);
+&nbsp;&nbsp;&nbsp;if (ret != EVENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function event_remove_event_handler() failed with error = %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  In order to publish a custom event, the <span style="font-family: Courier New,Courier,monospace">model_publish_event()</span> function must be called with event's name passed in the function's
+  argument.
+  </p>
+
+<pre class="prettyprint">
+bool model_publish_event(const char *event_name)
+{
+&nbsp;&nbsp;&nbsp;static unsigned int custom_ev_counter = 0;
+
+&nbsp;&nbsp;&nbsp;if (!event_name) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Wrong argument provided.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The bundle object is the carrier of the event's information.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;It must be created and filled with proper data which describes event's status. */
+&nbsp;&nbsp;&nbsp;bundle *bundle_ev = bundle_create();
+&nbsp;&nbsp;&nbsp;if (!bundle_ev) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function bundle_create() failed.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The custom event's status is created by simple concatenation of the status counter (custom_ev_counter) followed by the "status value" label. */
+&nbsp;&nbsp;&nbsp;custom_ev_counter++;
+&nbsp;&nbsp;&nbsp;char status[__STATUS_MSG_BUFF] = {0,};
+&nbsp;&nbsp;&nbsp;snprintf(status, __STATUS_MSG_BUFF, "status value %u", custom_ev_counter);
+
+&nbsp;&nbsp;&nbsp;/* The custom event's status string is added to the event's information carrier (bundle object)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;with predefined key: CUSTOM_EVENT_KEY_STATUS == "custom_event_status". */
+&nbsp;&nbsp;&nbsp;int ret = bundle_add_str(bundle_ev, CUSTOM_EVENT_KEY_STATUS, status);
+&nbsp;&nbsp;&nbsp;if (ret != EVENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function bundle_add_str() failed with error %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Finally, the event (identified by event_name) is published (broadcasted) with the bundle object previously created. */
+&nbsp;&nbsp;&nbsp;ret = event_publish_app_event(event_name, bundle_ev);
+&nbsp;&nbsp;&nbsp;/* Once the event is published, the associated bundle object is not necessary anymore - it must be freed. */
+&nbsp;&nbsp;&nbsp;bundle_free(bundle_ev);
+
+&nbsp;&nbsp;&nbsp;if (ret != EVENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function event_publish_app_event() failed with error %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  The custom event's name must strictly follow the rule defined by the Event's API:
+  <br>
+  <center><span style="font-family: Courier New,Courier,monospace">event.<b>#app_id#</b>.<b>#custom_name#</b></span>,</center>
+  <br>
+  where:
+    <ul>
+	  <li><span style="font-family: Courier New,Courier,monospace"><b>#app_id#</b></span> is the identifier of the calling application;</li>
+	  <li><span style="font-family: Courier New,Courier,monospace"><b>#custom_name#</b></span> is a custom name assigned by the user/developer.</li>
+	</ul>
+  For this reason, the supporting <span style="font-family: Courier New,Courier,monospace">__model_format_custom_event_name()</span> function is implemented.
+  </p>
+
+<pre class="prettyprint">
+static void __model_format_custom_event_name(const char *custom_name, char **ev_name)
+{
+&nbsp;&nbsp;&nbsp;/* Naming rule is applied. */
+&nbsp;&nbsp;&nbsp;int ev_name_len = strlen("event") + strlen(APP_ID) + strlen(custom_name) + 3;
+&nbsp;&nbsp;&nbsp;*ev_name = (char *)calloc(ev_name_len, sizeof(char));
+&nbsp;&nbsp;&nbsp;snprintf(*ev_name, ev_name_len, "event.%s.%s", APP_ID, custom_name);
+
+&nbsp;&nbsp;&nbsp;/* All whitespaces are removed from the <b>#custom_name#</b> and the string is converted to the lower case. */
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;for (i = 0; i < ev_name_len; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*ev_name)[i] = tolower((*ev_name)[i]);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((*ev_name)[i] == 32)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*ev_name)[i] = '_';
+&nbsp;&nbsp;&nbsp;}
+}
+
+</pre>
+
+  <p>
+  Finally, the <span style="font-family: Courier New,Courier,monospace">model_get_bundle_str()</span> function is used to obtain event's status from the associated bundle object based on
+  known key <span style="font-family: Courier New,Courier,monospace">CUSTOM_EVENT_KEY_STATUS == "custom_event_status"</span>.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_bundle_str(bundle *bundle_obj, const char *key, char **str)
+{
+&nbsp;&nbsp;&nbsp;*str = NULL;
+
+&nbsp;&nbsp;&nbsp;int ret = bundle_get_str(bundle_obj, key, str);
+&nbsp;&nbsp;&nbsp;if (ret != BUNDLE_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function bundle_get_str() failed with error = %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  The remaining functions play supportive roles only, are self-explanatory and do not need to be described here. Only brief information on their role is included below.
+    <ul>
+      <li>
+	    <span style="font-family: Courier New,Courier,monospace">model_get_system_events_count()</span> - returns the number of registered system events based on the number of
+	    relevant data stored internally.</li>
+      <li>
+	    <span style="font-family: Courier New,Courier,monospace">model_get_system_event_info()</span> - returns the system event's information structure stored internally.
+	  </li>
+      <li>
+	    <span style="font-family: Courier New,Courier,monospace">model_create_custom_event_info()</span> - creates the custom event's information structure and stores it internally.
+	  </li>
+      <li>
+	    <span style="font-family: Courier New,Courier,monospace">model_assign_event_status()</span> - assigns the status message to the specified event's structure stored internally.
+	  </li>
+      <li>
+	    <span style="font-family: Courier New,Courier,monospace">model_check_event_exists()</span> - checks whether given event's name is already registered within internal data structure.
+	  </li>
+    </ul>
+  </p>
+
+
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
