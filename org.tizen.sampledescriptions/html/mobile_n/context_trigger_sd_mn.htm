@@ -1,0 +1,312 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Context Trigger Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+
+  <h1>Context Trigger Sample Overview</h1>
+<p>The Context Trigger sample demonstrates how to manage contextual rules using the <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__CONTEXT__TRIGGER__MODULE.html">Context Trigger</a> API. The Context Trigger displays several rules in a genlist. You can tap each list item to start/stop the rule. When a rule is triggered, a notification will be posted with appropriate message.</p>
+<p>The following figure illustrates the main view of the Context Trigger.</p>
+
+ <p class="figure">Figure: Context Trigger screen</p>
+  <p align="center"><img alt="Context Trigger screen" src="../images/context_trigger_sd.png" /></p>
+
+<h2>Prerequisites</h2>
+<p>To ensure proper application execution, the corresponding privileges must be specified in the tizen-manifest.xml file.</p>
+ <ul>
+  <li>To post a notification:</li>
+   <ul>
+    <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/notification</span></li>
+   </ul>
+  <li>To use 'Important Call' rule:</li>
+   <ul>
+    <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/telephony</span></li>
+    <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/callhistory.read</span></li>
+   </ul>
+  <li>To use 'The 5th-day-no-driving System' rule:</li>
+   <ul>
+    <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.set</span></li>
+   </ul>
+  <li>To use 'Home Wi-Fi' rule:</li>
+   <ul>
+    <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/location</span></li>
+    <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.get</span></li>
+   </ul>
+  </li>
+ </ul>
+
+<h2>Implementation</h2>
+<h3>Rule Module</h3>
+
+<p>The initialization of Context Trigger sample application is donw within the <span style="font-family: Courier New,Courier,monospace">app_create()</span> callback function. And <span style="font-family: Courier New,Courier,monospace">add_rules()</span> function is responsible for contextual rule registration. Below example shows how to create rule handle for battery rule and register the rule.
+
+<pre class="prettyprint">
+void add_rules(void)
+{
+&nbsp;&nbsp;&nbsp;/* Add rules */
+&nbsp;&nbsp;&nbsp;ruleinfo_arr[RULE_BATTERY].id = add_battery_rule();
+&nbsp;&nbsp;&nbsp;ruleinfo_arr[RULE_CALL].id = add_call_rule();
+&nbsp;&nbsp;&nbsp;ruleinfo_arr[RULE_DRIVING].id = add_driving_rule();
+&nbsp;&nbsp;&nbsp;ruleinfo_arr[RULE_HOME].id = add_home_rule();
+}
+
+static int add_battery_rule(void)
+{
+&nbsp;&nbsp;&nbsp;int rule_id;
+&nbsp;&nbsp;&nbsp;context_trigger_rule_h rule;
+&nbsp;&nbsp;&nbsp;context_trigger_rule_entry_h battery_e;
+
+&nbsp;&nbsp;&nbsp;context_trigger_rule_create(CONTEXT_TRIGGER_LOGICAL_CONJUNCTION, &amp;rule);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_set_description(rule, ruleinfo_arr[RULE_BATTERY].description);
+
+&nbsp;&nbsp;&nbsp;context_trigger_rule_event_create(CONTEXT_TRIGGER_EVENT_BATTERY, CONTEXT_TRIGGER_LOGICAL_CONJUNCTION, &amp;battery_e);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_entry_add_key(battery_e, CONTEXT_TRIGGER_LOGICAL_DISJUNCTION, CONTEXT_TRIGGER_LEVEL);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_entry_add_comparison_string(battery_e, CONTEXT_TRIGGER_LEVEL, CONTEXT_TRIGGER_EQUAL_TO, CONTEXT_TRIGGER_EMPTY);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_entry_add_comparison_string(battery_e, CONTEXT_TRIGGER_LEVEL, CONTEXT_TRIGGER_EQUAL_TO, CONTEXT_TRIGGER_CRITICAL);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_entry_add_comparison_string(battery_e, CONTEXT_TRIGGER_LEVEL, CONTEXT_TRIGGER_EQUAL_TO, CONTEXT_TRIGGER_LOW);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_entry_add_key(battery_e, CONTEXT_TRIGGER_LOGICAL_CONJUNCTION, CONTEXT_TRIGGER_IS_CHARGING);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_entry_add_comparison_int(battery_e, CONTEXT_TRIGGER_IS_CHARGING, CONTEXT_TRIGGER_EQUAL_TO, CONTEXT_TRIGGER_FALSE);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_add_entry(rule, battery_e);
+
+&nbsp;&nbsp;&nbsp;context_trigger_rule_set_action_notification(rule, ruleinfo_arr[RULE_BATTERY].name, ruleinfo_arr[RULE_BATTERY].msg, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;ruleinfo_arr[RULE_BATTERY].result = context_trigger_add_rule(rule, &amp;rule_id);
+&nbsp;&nbsp;&nbsp;if (ruleinfo_arr[RULE_BATTERY].result != CONTEXT_TRIGGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed to add '%s' rule: %d", ruleinfo_arr[RULE_BATTERY].name, ruleinfo_arr[RULE_BATTERY].result);
+
+&nbsp;&nbsp;&nbsp;context_trigger_rule_entry_destroy(battery_e);
+&nbsp;&nbsp;&nbsp;context_trigger_rule_destroy(rule);
+
+&nbsp;&nbsp;&nbsp;return rule_id;
+}
+</pre>
+
+<p>On the application termination, the app_terminate() callback function is called, and all the rules registered are disabled and removed in the <span style="font-family: Courier New,Courier,monospace">remove_rules()</span> function. Enabled rule can be removed after being disabled.</p>
+
+<pre class="prettyprint">
+void remove_rules(void)
+{
+&nbsp;&nbsp;&nbsp;/* Get rules */
+&nbsp;&nbsp;&nbsp;int enabled_rule_cnt = 0;
+&nbsp;&nbsp;&nbsp;int disabled_rule_cnt = 0;
+&nbsp;&nbsp;&nbsp;int *enabled_rule_ids = NULL;
+&nbsp;&nbsp;&nbsp;int *disabled_rule_ids = NULL;
+&nbsp;&nbsp;&nbsp;int error = context_trigger_get_own_rule_ids(&amp;enabled_rule_ids, &amp;enabled_rule_cnt, &amp;disabled_rule_ids, &amp;disabled_rule_cnt);
+&nbsp;&nbsp;&nbsp;if (error != CONTEXT_TRIGGER_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed to get rule ids");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Disable and remove enabled rules */
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;for (i = 0; i < enabled_rule_cnt; i++)&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context_trigger_disable_rule(enabled_rule_ids[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context_trigger_remove_rule(enabled_rule_ids[i]);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Remove disabled rules */
+&nbsp;&nbsp;&nbsp;for (i = 0; i < disabled_rule_cnt; i++)&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context_trigger_remove_rule(disabled_rule_ids[i]);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (enabled_rule_ids) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(enabled_rule_ids);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;enabled_rule_ids = NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (disabled_rule_ids) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(disabled_rule_ids);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;disabled_rule_ids = NULL;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h3>View Manager Module</h3>
+
+<p>To create the genlist:</p>
+<ol><li>
+<p>The genlist is created using the <span style="font-family: Courier New,Courier,monospace">elm_genlist_add()</span> function. For the genlist to be displayed properly, genlist item classes have to be created and defined with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_class_new()</span> function. The following code snippet demonstrates how to set the item class properties. A <span style="font-family: Courier New,Courier,monospace">text_get</span> and a <span style="font-family: Courier New,Courier,monospace">content_get</span> callback function are defined to create item text and layout creation.</p>
+
+<pre class="prettyprint">
+Evas_Object *genlist;
+Elm_Genlist_Item_Class *itc_name, *itc_description;
+int index;
+
+/* Create item class */
+itc_name = elm_genlist_item_class_new();
+itc_name-&gt;item_style = &quot;default&quot;;
+itc_name-&gt;func.text_get = gl_text_name_get_cb;
+itc_name-&gt;func.content_get = gl_content_get_cb;
+
+itc_description = elm_genlist_item_class_new();
+itc_description-&gt;item_style = &quot;multiline&quot;;
+itc_description-&gt;func.text_get = gl_text_description_get_cb;
+
+/* Genlist */
+genlist = elm_genlist_add(ad-&gt;nf);
+Evas_Object *genlist = elm_genlist_add(viewdata.win);
+
+// Error handling
+
+viewdata.item_class = elm_genlist_item_class_new();
+
+// Error handling
+
+viewdata.item_class-&gt;item_style = &quot;full&quot;;
+viewdata.item_class-&gt;func.text_get = NULL;
+viewdata.item_class-&gt;func.content_get = __get_item_content;
+viewdata.item_class-&gt;func.state_get = NULL;
+viewdata.item_class-&gt;func.del = NULL;
+</pre></li>
+
+<li>
+<p>The genlist is filled with rule items and its descriptions. To append items to the genlist, the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function is invoked for each <span style="font-family: Courier New,Courier,monospace">Eina_List</span> item.</p>
+
+<pre class="prettyprint">
+// For each rule
+for (index = RULE_FIRST; index < RULE_LAST; index++) {
+&nbsp;&nbsp;&nbsp;/* Rule name item */
+&nbsp;&nbsp;&nbsp;if (ruleinfo_arr[index].result == CONTEXT_TRIGGER_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, itc_name, (void *) &ruleinfo_arr[index], NULL, ELM_GENLIST_ITEM_NONE, gl_selected_cb, NULL);
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, itc_name, (void *) &ruleinfo_arr[index], NULL, ELM_GENLIST_ITEM_NONE, gl_disabled_selected_cb, ad);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Rule description item */
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *item = elm_genlist_item_append(genlist, itc_description, (void *) &ruleinfo_arr[index], NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
+&nbsp;&nbsp;&nbsp;elm_genlist_item_select_mode_set(item, ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY);
+}
+</pre></li>
+
+<li>
+<p>The application&#39;s <span style="font-family: Courier New,Courier,monospace">rule_info</span> structure containing its rule information such as name, description, and so on. It is later passed on to the previously defined callback function. The following example shows the <span style="font-family: Courier New,Courier,monospace">gl_text_name_get_cb</span>, the <span style="font-family: Courier New,Courier,monospace">gl_text_description_get_cb</span>, the <span style="font-family: Courier New,Courier,monospace">gl_content_get_cb</span> callback function. Rule information is retrieved from the parameter and used to create the item layout.</p>
+<pre class="prettyprint">
+static char *gl_text_name_get_cb(void *data, Evas_Object * obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;rule_info_s *info = (rule_info_s *) data;
+
+&nbsp;&nbsp;&nbsp;if (!strcmp(part, "elm.text"))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(info->name);
+
+&nbsp;&nbsp;&nbsp;return NULL;
+}
+
+static char *gl_text_description_get_cb(void *data, Evas_Object * obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;rule_info_s *info = (rule_info_s *) data;
+
+&nbsp;&nbsp;&nbsp;if (!strcmp(part, "elm.text.multiline"))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(info->description);
+
+&nbsp;&nbsp;&nbsp;return NULL;
+}
+
+static Evas_Object *gl_content_get_cb(void *data, Evas_Object * obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;rule_info_s *info = (rule_info_s *) data;
+
+&nbsp;&nbsp;&nbsp;if (!strcmp(part, "elm.swallow.end")) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *check = elm_check_add(obj);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(check, "changed", check_changed_cb, info);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_propagate_events_set(check, EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(check, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(check, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_style_set(check, "on&amp;off");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(check, false);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_pointer_set(check, &amp;info->enabled);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (info->result != CONTEXT_TRIGGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_disabled_set(check, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return check;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return NULL;
+}
+</pre></li>
+</ol>
+
+<p>When a genlist item or a check button is clicked, corresponding rule will be enabled or disabled.</p>
+<pre class="prettyprint">
+static void gl_selected_cb(void *data EINA_UNUSED, Evas_Object * obj EINA_UNUSED, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = (Elm_Object_Item *) event_info;
+&nbsp;&nbsp;&nbsp;int error = CONTEXT_TRIGGER_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;rule_info_s *info = elm_object_item_data_get(it);
+&nbsp;&nbsp;&nbsp;elm_genlist_item_selected_set(it, false);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *check = elm_object_item_part_content_get(it, "elm.swallow.end");
+
+&nbsp;&nbsp;&nbsp;if (elm_check_state_get(check)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = disable_rule(info->id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error == CONTEXT_TRIGGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(check, !info->enabled);
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = enable_rule(info->id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error == CONTEXT_TRIGGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(check, !info->enabled);
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void check_changed_cb(void *data, Evas_Object * obj, void *event_info EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;rule_info_s *info = (rule_info_s *) data;
+&nbsp;&nbsp;&nbsp;int error = CONTEXT_TRIGGER_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;if (elm_check_state_get(obj)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = enable_rule(info->id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error != CONTEXT_TRIGGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(obj, !info->enabled);
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = disable_rule(info->id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error != CONTEXT_TRIGGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(obj, !info->enabled);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
