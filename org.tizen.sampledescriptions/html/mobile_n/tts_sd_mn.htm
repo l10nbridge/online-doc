@@ -1,0 +1,236 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>SelfCamera Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+
+<h1>TTS Sample Overview</h1> 
+
+<p>This sample application helps you to use TTS (Text-To-Speech) api in your application, service or other purpose.</p>
+<p>The following figure illustrates the main view of the TTS sample application and how it works. The application set the language and the voice type of text and add the text which user want to read-out. Because this application stores the added text information, it is possible to get the number of added text at now and the list of them. By click buttons, you can also request play/pause/stop.</p>
+
+<p class="figure">Figure: Application view</p> 
+<p align="center"><img alt="TTS sample application view" src="../images/tts_sample_view.png" /></p> 
+
+<h2>Implementation</h2>
+
+<p>To implement the TTS application:</p>
+<ol>
+<li>Create the layout for the application.
+<p>For this sample application, native widgets are applied include genlist and entry, and the structure <span style="font-family: Courier New,Courier,monospace;">appdata_s</span> and some global value include the <span style="font-family: Courier New,Courier,monospace;"> GList *g_tts_text_list</span> have information for those widget implementation. However, this decription concentrates on how to use TTS api not for native widget usage. If you need support or more information for these widget, "UI Components" sample application can help.</p>
+</li>
+
+<li>Initialize TTS.
+<p>At the application starting, the <span style="font-family: Courier New,Courier,monospace;">init_tts()</span> function creates the tts handle and sets the callback functions for the state changed and utterance completed. (You can find the more type of callback function in TTS api set.) At the next, the application obtains the default TTS voice(language and voice type) and connects to TTS service for working. the <span style="font-family: Courier New,Courier,monospace;">__tts_utterance_completed_cb()</span> is called when the reading for each added text is finished. so, this application removes it from the added text list.</p>
+
+<pre class="prettyprint">
+static void __tts_state_changed_cb(tts_h tts, tts_state_e previous, tts_state_e current, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;...
+}
+
+static void __tts_utterance_completed_cb(tts_h tts, int utt_id, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;...
+}
+
+static int init_tts(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Create tts handle
+&nbsp;&nbsp;&nbsp;if (0 != tts_create(&g_tts))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Set state changed callback
+&nbsp;&nbsp;&nbsp;if (0 != tts_set_state_changed_cb(g_tts, __tts_state_changed_cb, ad))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tts_destroy(g_tts);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Set Utterance completed callback
+&nbsp;&nbsp;&nbsp;if (0 != tts_set_utterance_completed_cb(g_tts, __tts_utterance_completed_cb, ad))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tts_destroy(g_tts);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Get Default voice
+&nbsp;&nbsp;&nbsp;char *language = NULL;
+&nbsp;&nbsp;&nbsp;int voice_type;
+&nbsp;&nbsp;&nbsp;if (0 != tts_get_default_voice(g_tts, &language, &voice_type))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tts_destroy(g_tts);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;if (NULL != language)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(language);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Connect tts service
+&nbsp;&nbsp;&nbsp;if (0 != tts_prepare(g_tts))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tts_destroy(g_tts);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return 0;
+}
+</pre>
+</li>
+
+<li>Deinitialize TTS.
+<p>The <span style="font-family: Courier New,Courier,monospace;">deinit_tts()</span> is called for disconnect service and destroy handle when the application is finalized. If you want to only disconnect service, the <span style="font-family: Courier New,Courier,monospace;">tts_unprepare()</span> helps you</p>
+
+<pre class="prettyprint">
+static voice deinit_tts(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;// Destroy tts handle (Disconnect service included)
+&nbsp;&nbsp;&nbsp;if (0 != tts_destroy(g_tts))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Get supported voice list.
+<p>This application shows the supported TTS voice list when the "Select Voice" item is clicked. The <span style="font-family: Courier New,Courier,monospace;">__voice_item_selected_cb()</span> is the callback function for click event, and the <span style="font-family: Courier New,Courier,monospace;">__show_voice_list()</span> calls the <span style="font-family: Courier New,Courier,monospace;">tts_foreach_supported_voices()</span> for get the supported voice list.</p>
+
+<pre class="prettyprint">
+static bool __tts_supported_voice_cb(const char* engine_id, const char* language, int voice_type, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;// If you want to continue to get next supported voice
+&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;// If you want to stop
+&nbsp;&nbsp;&nbsp;return false;
+}
+
+static void __show_voice_list(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;if (0 != tts_foreach_supported_voices(g_tts, __tts_supported_voice_cb, ad))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void __voice_item_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;__show_voice_list(ad);
+}
+</pre>
+</li>
+
+<li>Add text with current voice.
+<p>When the "Add text" item is clicked, the <span style="font-family: Courier New,Courier,monospace;">__add_text_item_selected_cb()</span> function is called. in this function, the <span style="font-family: Courier New,Courier,monospace;">tts_add_text()</span> is called for add text which is filled in the input entry with the current selected voice. In this application, these added text is stored via <span style="font-family: Courier New,Courier,monospace;">GList</span> for show the list.</p>
+
+<pre class="prettyprint">
+__add_text_item_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;char *text = elm_entry_entry_get(ad->entry);
+&nbsp;&nbsp;&nbsp;if (NULL != text)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int utt_id;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 != tts_add_text(g_tts, text, g_current_voice->language, g_current_voice->voice_type, TTS_SPEED_AUTO, &utt_id))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Play/Pause reading
+<p>The "Play" item is changed following the current tts state.(When the state is TTS_STATE_PLAYING, the text of item is changed to "Pause") The <span style="font-family: Courier New,Courier,monospace;">__play_pause_item_selected_cb()</span> is called when the item is clicked. Then, the application calls TTS api following the state inside it .</p>
+
+<pre class="prettyprint">
+static void __play_pause_item_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;if (TTS_STATE_READY == g_current_state || TTS_STATE_PAUSED == g_current_state)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 != tts_play(g_tts))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else if (TTS_STATE_PLAYING == g_current_state)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 != tts_pause(g_tts))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>Stop reading
+<p>The "Stop" item invokes the <span style="font-family: Courier New,Courier,monospace;">__stop_item_selected_cb()</span> callback funtions and the <span style="font-family: Courier New,Courier,monospace;">tts_stop()</span> is called inside it. the <span style="font-family: Courier New,Courier,monospace;">tts_stop()</span> remove all the added text, so this applcation also remove the stored text list.</p> 
+
+<pre class="prettyprint">
+static void __stop_item_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;if (0 != tts_stop(g_tts))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+</ol>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
