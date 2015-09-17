@@ -11,7 +11,7 @@
 	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
 	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
 
-	<title>Sync Adapter Sample Overview</title>
+	<title>Sync Adapter App Sample Overview</title>
 </head>
 
 <body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
@@ -24,16 +24,16 @@
 		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
 </div>
 
-<h1>Sync Adapter Sample Overview</h1>
+<h1>Sync Adapter App Sample Overview</h1>
 <p>The application opens with the <strong>Sync Adapter App</strong> screen, which displays a list of sync manager features.</p>
 <p>The following figure illustrates the home screen of the application.</p>
-	<p class="figure">Figure: Sync adapter home screen view</p>
-	<p align="center"><img alt="Sync adapter home screen view" src="../images/syncadapterapp_mainscreen.png" />
+	<p class="figure">Figure: Sync Adapter App home screen view</p>
+	<p align="center"><img alt="sync adapter home screen view" src="../images/syncadapterapp_mainscreen.png" />
 </p>
 <ul>
 	<li>To request one time/on demand sync click <strong>On Demand Sync</strong></li>
 	<li>To schedule sync periodically click <strong>Periodic Sync</strong></li>
-	<li>To perform sync upon device data change click <strong>Data change Sync</strong></li>
+	<li>To perform sync upon device data change click <strong>Data Change Sync</strong></li>
 	<li>To get all the sync jobs requested by application click <strong> Get all sync jobs</strong></li>
 	<li>To remove all sync jobs requested by application <strong>Remove all sync jobs</strong>.</li>
 </ul>
@@ -60,17 +60,17 @@
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/contact.read</span></li>
 </ul>
 </li>
-<li>Launch the service app which acts as a sync adapter to this UI app. The service app must be built and included along with Sync adapter UI app into the package.
+<li>Launch the Sync Adapter Service App which acts as a sync adapter to this UI application. The service application must be built and included along with Sync Adapter App into the package.
 Please refer <a href="./syncadapterserviceapp_sd_mn.htm">Sync Adapter Service App</a> for reference.
 <pre class="prettyprint">
-#define SYNC_ADAPTER_APP_ID "org.tizen.syncadapterserviceapp"
+#define SYNC_ADAPTER_SERVICE_APP_ID "org.tizen.syncadapterserviceapp"
 
 static void
 create_sync_main_menu(appdata_s *ad)
 {
 	app_control_h app_control;
-	int ret = app_control_create(&app_control);
-	ret = app_control_set_app_id(app_control, SYNC_ADAPTER_APP_ID);
+	int ret = app_control_create(&amp;app_control);
+	ret = app_control_set_app_id(app_control, SYNC_ADAPTER_SERVICE_APP_ID);
 
 	app_control_send_launch_request(app_control, NULL, NULL);
 	...
@@ -88,7 +88,7 @@ create_account()
 	sa_account_id = 10;
 	account_h account;
 
-	int ret = account_create(&account);
+	int ret = account_create(&amp;account);
 	LOGI("account_create = %d", ret);
 
 	ret = account_set_user_name(account, "dummy_user");
@@ -103,7 +103,7 @@ create_account()
 	ret = account_set_sync_support(account, ACCOUNT_SYNC_STATUS_IDLE);
 	LOGI("account_set_sync_support = %d", ret);
 
-	ret = account_insert_to_db(account, &sa_account_id);
+	ret = account_insert_to_db(account, &amp;sa_account_id);
 	LOGI("Account id is = %d", sa_account_id);
 	account_destroy(account);
 
@@ -118,7 +118,7 @@ create_account()
 
 <h3>Request On Demand Sync</h3>
 <ol>
-<li>To perform On Demand sync select <strong>On Demand sync</strong> from home screen view. Click on <strong>Sync</strong> button which will trigger corresponding sync manager API as shown below.
+<li>To perform On Demand Sync select <strong>On Demand Sync</strong> from home screen view. Click on <strong>Sync</strong> button which will trigger corresponding sync manager API as shown below.
 <pre class="prettyprint">
 static void
 cb_add_on_demand_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
@@ -129,14 +129,14 @@ cb_add_on_demand_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 	account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
 
 	account_h account;
-	account_create(&account);
-	account_query_account_by_account_id(sa_account_id, &account);
+	account_create(&amp;account);
+	account_query_account_by_account_id(sa_account_id, &amp;account);
 
 	bundle *extra = bundle_create();
 	bundle_add_str(extra, "URL", "http://android-developers.blogspot.com/atom.xml");
-	viewData->account_id = sa_account_id;
+	viewData-&gt;account_id = sa_account_id;
 
-	int ret = sync_manager_on_demand_sync_job(account, "OnDemand", SYNC_OPTION_NO_RETRY, extra, &on_demand_sync_job_id);
+	int ret = sync_manager_on_demand_sync_job(account, "OnDemand", SYNC_OPTION_NO_RETRY, extra, &amp;on_demand_sync_job_id);
 	if (ret != SYNC_ERROR_NONE)
 		LOGE("Sync manager failed with error code %d", ret);
 	else
@@ -148,27 +148,27 @@ cb_add_on_demand_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 }</pre>
 </li>
 
-<li>When the sync manager schedules sync job for this request, sync callbacks in sync adapter service app will be invoked. The sync adapter service app will download the titles from the URL parameter sent along with the API and writes it into a database.
-Upon completion of sync job, service app will communicate the same to Sync adapter UI app using app_control.
+<li>When the sync manager schedules a sync job for this request, sync callback functions in Sync Adapter Service App will be invoked. The Sync Adapter Service App will download the titles from the URL parameter sent along with the API and writes it into a database.
+Upon completion of the sync job, the service application will communicate the same to Sync Adapter App by using app_control.
 <pre class="prettyprint">
 static void
 app_control(app_control_h app_control, void *data)
 {
 	char *operation;
-	int ret = app_control_get_operation(app_control, &operation);
+	int ret = app_control_get_operation(app_control, &amp;operation);
 	if (ret != APP_CONTROL_ERROR_NONE) {
 		LOGE("failed to get operation");
 		return;
 	}
 
-	if (operation && !strcmp(operation, "http://tizen.org/appcontrol/operation/sync_complete")) {
+	if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/sync_complete")) {
 		LOGE("Sync completed by service app. Loading ..");
 
 		char* collist[5];
 		collist[0] = "TITLE";
 
 		int req_id;
-		int result = data_control_sql_select_with_page(sql_provider, collist, 1, NULL, "TITLE DESC", 1, 5, &req_id);
+		int result = data_control_sql_select_with_page(sql_provider, collist, 1, NULL, "TITLE DESC", 1, 5, &amp;req_id);
 		if (result != DATA_CONTROL_ERROR_NONE)
 			LOGE("data_control_sql_select() is failed: ");
 		return;
@@ -220,7 +220,7 @@ static void select_response_cb(int request_id, data_control_h provider, result_s
 			char word[1024] = {0};
 			char word_desc[1024] = {0};
 			int count = 0;
-			while (data_control_sql_step_next(enumerator) == DATA_CONTROL_ERROR_NONE && ++count < 10) {
+			while (data_control_sql_step_next(enumerator) == DATA_CONTROL_ERROR_NONE &amp;&amp; ++count < 10) {
 				memset(word, 0, 1024);
 				memset(word_desc, 0, 1024);
 				data_control_sql_get_column_name(enumerator, 0, col_name);
@@ -242,34 +242,34 @@ static void select_response_cb(int request_id, data_control_h provider, result_s
 </li>
 </ol>
 
-<h2>Periodic sync</h2>
+<h2>Periodic Sync</h2>
 <p class="figure">Figure: Periodic Sync</p>
 <p align="center"> <img alt="Periodic Sync" src="../images/syncadapterapp_periodic.png"/> <img alt="Periodic sync" src="../images/syncadapterapp_periodic_sync.png"/></p>
 
 <h3>Request Periodic Sync</h3>
 <ol>
-<li>To perform Periodic sync select <strong>Periodic sync</strong> from home screen view. Click on <strong>Sync</strong> button which will trigger corresponding sync manager API as shown below.
+<li>To perform Periodic Sync select <strong>Periodic Sync</strong> from home screen view. Click on <strong>Sync</strong> button which will trigger corresponding sync manager API as shown below.
 <pre class="prettyprint">
 static void
 cb_add_periodic_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 {
 	LOGI("Request periodic sync");
 	viewdata_s* viewData = pData;
-	elm_object_text_set(viewData->syncBtn, "Wait for 30 Min");
-	evas_object_smart_callback_del(viewData->syncBtn, "clicked", cb_add_periodic_sync);
+	elm_object_text_set(viewData-&gt;syncBtn, "Wait for 30 Min");
+	evas_object_smart_callback_del(viewData-&gt;syncBtn, "clicked", cb_add_periodic_sync);
 
 	account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
 
 	account_h account;
-	account_create(&account);
-	account_query_account_by_account_id(sa_account_id, &account);
+	account_create(&amp;account);
+	account_query_account_by_account_id(sa_account_id, &amp;account);
 
 	bundle *extra = bundle_create();
 	bundle_add_str(extra, "URL", "http://android-developers.blogspot.com/atom.xml");
 
-	viewData->account_id = sa_account_id;
+	viewData-&gt;account_id = sa_account_id;
 	int job_id;
-	int ret = sync_manager_add_periodic_sync_job(account, "Periodic", SYNC_PERIOD_INTERVAL_30MIN, SYNC_OPTION_EXPEDITED, extra, &periodic_sync_job_id);
+	int ret = sync_manager_add_periodic_sync_job(account, "Periodic", SYNC_PERIOD_INTERVAL_30MIN, SYNC_OPTION_EXPEDITED, extra, &amp;periodic_sync_job_id);
 	if (ret == SYNC_ERROR_NONE)
 		LOGI("sync manager added periodic sync job id %d", ret, periodic_sync_job_id);
 	else
@@ -281,27 +281,27 @@ cb_add_periodic_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 }</pre>
 </li>
 
-<li>When the sync manager schedules sync job for this request, sync callbacks in sync adapter service app will be invoked periodically. The sync adapter service app will download the titles from the URL parameter sent along with the API and writes it into a database.
-Upon completion of sync job, service app will communicate the same to Sync adapter UI app using app_control.
+<li>When the sync manager schedules a sync job for this request, sync callback functions in Sync Adapter Service App will be invoked periodically. The Sync Adapter Service App will download the titles from the URL parameter sent along with the API and writes it into a database.
+Upon completion of the sync job, the service application will communicate the same to Sync Adapter App by using app_control.
 <pre class="prettyprint">
 static void
 app_control(app_control_h app_control, void *data)
 {
 	char *operation;
-	int ret = app_control_get_operation(app_control, &operation);
+	int ret = app_control_get_operation(app_control, &amp;operation);
 	if (ret != APP_CONTROL_ERROR_NONE) {
 		LOGE("failed to get operation");
 		return;
 	}
 
-	if (operation && !strcmp(operation, "http://tizen.org/appcontrol/operation/sync_complete")) {
+	if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/sync_complete")) {
 		LOGE("Sync completed by service app. Loading ..");
 
 		char* collist[5];
 		collist[0] = "TITLE";
 
 		int req_id;
-		int result = data_control_sql_select_with_page(sql_provider, collist, 1, NULL, "TITLE DESC", 1, 5, &req_id);
+		int result = data_control_sql_select_with_page(sql_provider, collist, 1, NULL, "TITLE DESC", 1, 5, &amp;req_id);
 		if (result != DATA_CONTROL_ERROR_NONE)
 			LOGE("data_control_sql_select() is failed: ");
 		return;
@@ -353,7 +353,7 @@ static void select_response_cb(int request_id, data_control_h provider, result_s
 			char word[1024] = {0};
 			char word_desc[1024] = {0};
 			int count = 0;
-			while (data_control_sql_step_next(enumerator) == DATA_CONTROL_ERROR_NONE && ++count < 10) {
+			while (data_control_sql_step_next(enumerator) == DATA_CONTROL_ERROR_NONE &amp;&amp; ++count < 10) {
 				memset(word, 0, 1024);
 				memset(word_desc, 0, 1024);
 				data_control_sql_get_column_name(enumerator, 0, col_name);
@@ -375,13 +375,13 @@ static void select_response_cb(int request_id, data_control_h provider, result_s
 </li>
 </ol>
 
-<h2>Data Change sync</h2>
+<h2>Data Change Sync</h2>
 <p class="figure">Figure: Data Change Sync</p>
 <p align="center"> <img alt="Data Change Sync" src="../images/syncadapterapp_datachange.png"/></p>
 
-<h3>Request Data change Sync</h3>
+<h3>Request Data Change Sync</h3>
 <ol>
-<li>To perform data change sync select <strong>Data Change sync </strong> from home screen view. Click on <strong>ContactSync</strong> button which will trigger corresponding sync manager API as shown below.
+<li>To perform Data Change Sync select <strong>Data Change Sync</strong> from home screen view. Click on <strong>ContactSync</strong> button which will trigger corresponding sync manager API as shown below.
 <pre class="prettyprint">
 static void
 cb_add_data_change_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
@@ -392,13 +392,13 @@ cb_add_data_change_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 	account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
 
 	account_h account;
-	account_create(&account);
-	account_query_account_by_account_id(sa_account_id, &account);
+	account_create(&amp;account);
+	account_query_account_by_account_id(sa_account_id, &amp;account);
 
 	bundle *extra = bundle_create();
 	bundle_add_str(extra, "URL", "http://posttestserver.com/post.php?dir=MyContacts");
-	viewData->account_id = sa_account_id;
-	int ret = sync_manager_add_data_change_sync_job(account, SYNC_SUPPORTS_CAPABILITY_CONTACT, SYNC_OPTION_NONE, extra, &data_change_sync_job_id);
+	viewData-&gt;account_id = sa_account_id;
+	int ret = sync_manager_add_data_change_sync_job(account, SYNC_SUPPORTS_CAPABILITY_CONTACT, SYNC_OPTION_NONE, extra, &amp;data_change_sync_job_id);
 	if (ret == SYNC_ERROR_NONE)
 		LOGI("sync manager added data change sync job id %d", ret, data_change_sync_job_id);
 	else
@@ -410,9 +410,8 @@ cb_add_data_change_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 }</pre>
 </li>
 
-<li>The sync manager stores the data change sync request. Whenever there is a change in contacts db of the device sync manager schedules sync job for contacts data. Sync callbacks in sync adapter service app will be invoked accordingly.
-The sync adapter service app will upload the contact details to the server given along with the request. Upon completion of upload sync job, service app will communicate the same to Sync adapter UI app using app_control.
-The Sync adapter UI app will show a popup to notify the user about the status.
+<li>The sync manager stores the data change sync request. Whenever there is a change in contacts db of the device, sync manager schedules a sync job for contacts data. Sync callback functions in Sync Adapter Service App will be invoked accordingly.
+The Sync Adapter Service App will upload the contact details to the server given along with the request. Upon completion of the upload sync job, the service application will communicate the same to Sync Adapter App by using app_control. Also, the Sync Adapter App will show a popup to notify the user about the status.
 <pre class="prettyprint">
 
 static void
@@ -420,7 +419,7 @@ app_control(app_control_h app_control, void *data)
 {
 	...
 	...
-	if (operation && !strcmp(operation, "http://tizen.org/appcontrol/operation/upload_sync_complete")) {
+	if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/upload_sync_complete")) {
 		LOGE("upload sync");
 		Evas_Object *popup;
 		Evas_Object *win = NF;
@@ -444,8 +443,8 @@ app_control(app_control_h app_control, void *data)
 <p class="figure">Figure: Get all sync jobs</p>
 <p align="center"> <img alt="Get all sync jobs" src="../images/syncadapterapp_getsyncjobs.png"/></p>
 
-<h3>Request get sync jobs</h3>
-<li>To query the sync jobs requested by the application select <strong>Get all sync jobs </strong> from home screen view. The corresponding sync manager API will be called as shown below.
+<h3>Request to get sync jobs</h3>
+<li>To query the sync jobs requested by the Sync Adapter App, select <strong>Get all sync jobs</strong> from home screen view. The corresponding sync manager API will be called as shown below.
 <pre class="prettyprint">
 bool
 sync_adapter_sample_foreach_sync_job_cb(account_h account, const char *sync_job_name, const char *sync_capability, int sync_job_id, bundle* sync_job_user_data, void *user_data)
@@ -489,7 +488,7 @@ on_get_all_sync_jobs_cb(void *data, Evas_Object *obj, void *event_info)
 <h2>Remove all sync jobs</h2>
 
 <h3>Request to remove all sync jobs</h3>
-<li>To remove all the sync jobs requested by the application select <strong>Remove all sync jobs</strong> from home screen view. The corresponding sync manager API will be called as shown below.
+<li>To remove all the sync jobs requested by the Sync Adapter App, select <strong>Remove all sync jobs</strong> from home screen view. The corresponding sync manager API will be called as shown below.
 <pre class="prettyprint">
 void
 on_remove_all_sync_jobs_cb(void *data, Evas_Object *obj, void *event_info)
