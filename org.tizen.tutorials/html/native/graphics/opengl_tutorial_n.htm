@@ -164,7 +164,7 @@ elm_glview_init_func_set(ad-&gt;glview, init_gl);
 elm_glview_resize_func_set(ad-&gt;glview, resize_gl);
 elm_glview_render_func_set(ad-&gt;glview, draw_gl);
 elm_glview_del_func_set(ad-&gt;glview, del_gl);
-ani = ecore_animator_add(animate_cb, ad-&gt;glview);</pre>
+ad->ani = ecore_animator_add(animate_cb, ad-&gt;glview);</pre>
 
 <ul>
 	<li>Callback for initialization
@@ -592,7 +592,7 @@ glFlush();
 
 <h2 id="animate" name="animate">Animating the Cube</h2>
 
-<p><span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> is used to create an animation.</p>
+<p><span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> is used to create an animation. The animator callback function is also triggered when the display is off. So you should use <span style="font-family: Courier New,Courier,monospace">ecore_animator_freeze()</span> and <span style="font-family: Courier New,Courier,monospace">ecore_animator_thaw()</spn> in <span style="font-family: Courier New,Courier,monospace">app_pause_cb, app_resume_cb</span> for power saving.</p>
 <pre class="prettyprint">static Eina_Bool
 animate_cb(void *data)
 {
@@ -604,7 +604,21 @@ animate_cb(void *data)
 static void
 create_gl_canvas(appdata_s *ad)
 {
-&nbsp;&nbsp;&nbsp;ani = ecore_animator_add(animate_cb, ad-&gt;glview);
+&nbsp;&nbsp;&nbsp;ad-&gt;ani = ecore_animator_add(animate_cb, ad-&gt;glview);
+}
+
+static void 
+app_pause(void *data) 
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;ecore_animator_freeze(ad-&gt;ani);
+}
+>
+static void 
+app_resume(void *data) 
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;ecore_animator_thaw(ad-&gt;ani);
 }
 </pre>
 
@@ -823,6 +837,7 @@ typedef struct appdata
 &nbsp;&nbsp;&nbsp;Evas_Object *sly;
 &nbsp;&nbsp;&nbsp;Evas_Object *slz;
 &nbsp;&nbsp;&nbsp;Evas_Object *button;
+&nbsp;&nbsp;&nbsp;Ecore_Animator *ani;
 
 &nbsp;&nbsp;&nbsp;unsigned int program;
 &nbsp;&nbsp;&nbsp;unsigned int vtx_shader;
@@ -1219,8 +1234,8 @@ animate_cb(void *data)
 static void 
 del_animate_cb(void *data, Evas *evas, Evas_Object *obj, void *event_info) 
 {
-&nbsp;&nbsp;&nbsp;Ecore_Animator *ani = evas_object_data_get(obj, &quot;ani&quot;);
-&nbsp;&nbsp;&nbsp;ecore_animator_del(ani);
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;ecore_animator_del(ad->ani);
 }
 
 static void 
@@ -1336,8 +1351,6 @@ create_base_gui(appdata_s *ad)
 static void 
 create_gl_canvas(appdata_s *ad) 
 {
-&nbsp;&nbsp;&nbsp;Ecore_Animator *ani;
-
 &nbsp;&nbsp;&nbsp;// Create and initialize GLView
 &nbsp;&nbsp;&nbsp;ad-&gt;glview = elm_glview_add(ad-&gt;main_box);
 &nbsp;&nbsp;&nbsp;ELEMENTARY_GLVIEW_GLOBAL_USE(ad-&gt;glview);
@@ -1380,8 +1393,7 @@ create_gl_canvas(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;//
 &nbsp;&nbsp;&nbsp;// NOTE: If you delete GL, this animator will keep running trying to access
 &nbsp;&nbsp;&nbsp;// GL so this animator needs to be deleted with ecore_animator_del()
-&nbsp;&nbsp;&nbsp;ani = ecore_animator_add(animate_cb, ad-&gt;glview);
-&nbsp;&nbsp;&nbsp;evas_object_data_set(ad-&gt;glview, &quot;ani&quot;, ani);
+&nbsp;&nbsp;&nbsp;ad->ani = ecore_animator_add(animate_cb, ad-&gt;glview);
 &nbsp;&nbsp;&nbsp;evas_object_data_set(ad-&gt;glview, &quot;ad&quot;, ad);
 &nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;glview, EVAS_CALLBACK_DEL, del_animate_cb, ad-&gt;glview);
 &nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;glview, EVAS_CALLBACK_MOUSE_DOWN, mouse_down_cb, ad);
@@ -1479,13 +1491,15 @@ app_control(app_control_h app_control, void *data)
 static void 
 app_pause(void *data) 
 {
-&nbsp;&nbsp;&nbsp;// Take necessary actions when application becomes invisible
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;ecore_animator_freeze(ad->ani);
 }
 
 static void 
 app_resume(void *data) 
 {
-&nbsp;&nbsp;&nbsp;// Take necessary actions when application becomes visible
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;ecore_animator_thaw(ad->ani);
 }
 
 static void 
