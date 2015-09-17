@@ -1,0 +1,209 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Voice Control for EFL Widgets Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+
+<h1>Voice Control for EFL Widgets Sample Overview</h1> 
+
+<p>You can register voice commands for EFL-supported UI components to allow the user to interact with visible UI components inside the application using their voice commands. The Voice control elementary library recognizes spoken commands from registered UI components.</p>
+
+<p>You have no need to consider how to recognize voice commands or start and stop the recognition process. A preloaded voice application handles the process automatically. You just need to set the command and hint on every EFL elementary component on which you want to use the voice command.</p>
+
+<p class="figure">Figure: Application view</p> 
+<p align="center"><img height="600" alt="TTS sample application view" src="../images/vc-elm-sample-screenshot.png" /></p> 
+<p />
+<p>The following figure illustrates the application screen when the Voice Control elementary features are enabled. When the screen is updated, any UI components that have a registered command and hint are shown with a voice tooltip (hint). When the user speaks the hint, the callback function of the action related to the UI component is executed.</p>
+<p />
+<p class="figure">Figure: Application view with hints</p> 
+<p align="center"><img height="600" alt="TTS sample application view" src="../images/vc-elm-sample-screenshot_hints.png" /></p> 
+
+<h2>Implementation</h2>
+
+<p>To implement the voice-control-elm application:</p>
+<ol>
+<li>Create the layout for the application.
+<p>For this sample application, native widgets are applied include button, checkbox, genlist, toolbar, slider and the structure <span style="font-family: Courier New,Courier,monospace;">appdata_s</span> and some global value have information for those widget implementation. However, this description concentrates on how to use voice-control-elm api not for native widget usage. If you need support or more information for these widget, "UI Components" sample application can help.</p>
+</li>
+
+
+<li>Include the <span style="font-family: Courier New,Courier,monospace">&lt;voice_control_elm.h&gt;</span> header file in your application:
+<pre class="prettyprint"><span class="pun">#</span><span class="pln">include </span><span class="str">&lt;voice_control_elm.h&gt;</span></pre>
+</li>
+
+
+<li>Initialize the Voice Control Elementary library with the <span style="font-family: Courier New,Courier,monospace">vc_elm_initialize()</span> function:
+<pre class="prettyprint"><span class="kwd">static</span><span class="pln"> bool app_create</span><span class="pun">(<span class="kwd">void</span><span class="pln"> *data)</span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">int</span><span class="pln"> ret</span><span class="pun">;</span><span class="pln">
+&nbsp;&nbsp;&nbsp;ret </span><span class="pun">=</span><span class="pln"> vc_elm_initialize</span><span class="pun">();</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">VC_ELM_ERROR_NONE </span><span class="pun">!=</span><span class="pln"> ret</span><span class="pun">)</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="com">// Error handling</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun">}</span><span class="pln">
+</span><span class="pun">}</span></pre>
+</li>
+
+
+<li>Create a handle for each UI component for which you want to set a command and hint. Use the <span style="font-family: Courier New,Courier,monospace">vc_elm_create_object()</span> function to create a handle for Evas_Objects, and the <span style="font-family: Courier New,Courier,monospace">vc_elm_create_item()</span> function for Elm_Object_Items.
+<pre class="prettyprint">
+<span class="kwd">static</span><span class="pln"> vc_elm_h first_view[7];</span><span class="pun"></span><span class="pln">
+<span class="kwd">static</span><span class="pln"> vc_elm_h tabbar_view[2];</span><span class="pun"></span><span class="pln">
+
+<span class="kwd">static</span><span class="pln"> Evas_Object *create_basic</span><span class="pun">(appdata_s *ad)</span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">int</span><span class="pln"> ret</span><span class="pun">;</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="typ">Evas_Object</span><span class="pln"> </span><span class="pun">*</span><span class="pln">button; </span>
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+	
+&nbsp;&nbsp;&nbsp;</span><span class="com">// Creating Evas_Object button</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pln">button </span><span class="pun">=</span><span class="pln"> elm_button_add</span><span class="pun">(ad-></span><span class="pln">win</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;ret </span><span class="pun">=</span><span class="pln"> vc_elm_create_object</span><span class="pun">(</span><span class="pln">button</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view[0]</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">VC_ELM_ERROR_NONE </span><span class="pun">!=</span><span class="pln"> ret</span><span class="pun">)</span><span class="pln"> 
+&nbsp;&nbsp;&nbsp;</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="com">// Error handling</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun">}</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+</span><span class="pun">}</span>
+
+<span class="kwd">static</span><span class="pln"> Evas_Object *create_toolbar</span><span class="pun">(appdata_s *ad)</span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">int</span><span class="pln"> ret</span><span class="pun">;</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">Evas_Object</span><span class="pln"> *toolbar</span><span class="pun">;</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">Elm_Object_Item</span><span class="pln"> *it</span><span class="pun">;</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+
+&nbsp;&nbsp;&nbsp;</span><span class="com">// Creating Evas_Object button</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pln">toolbar </span><span class="pun">=</span><span class="pln"> elm_toolbar_add</span><span class="pun">(ad-></span><span class="pln">nf</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;it </span><span class="pun">=</span><span class="pln"> elm_toolbar_item_append</span><span class="pun">(</span><span class="pln">toolbar</span><span class="pun">, NULL, "First", toolbar_it_cb, ad</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;ret </span><span class="pun">=</span><span class="pln"> vc_elm_create_item</span><span class="pun">(</span><span class="pln">it</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">tabbar_view[0]</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">if</span><span class="pln"> </span><span class="pun">(</span><span class="pln">VC_ELM_ERROR_NONE </span><span class="pun">!=</span><span class="pln"> ret</span><span class="pun">)</span><span class="pln"> 
+&nbsp;&nbsp;&nbsp;</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="com">// Error handling</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun">}</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+</span><span class="pun">}</span>
+</pre>
+</li>
+
+
+<li>When voice control is no longer needed, destroy the handle and deinitialize the library:
+<pre class="prettyprint"><span class="kwd">static </span><span class="kwd">void</span><span class="pln"> nf_back_cb</span><span class="pun">(</span><span class="pln">void </span><span class="pln">*data, Evas_Object *obj, </span><span class="pln">void </span><span class="pln">*event_info</span><span class="pun">)</span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="kwd">int</span><span class="pln"> index</span><span class="pun">;</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pln">for </span><span class="pun">(</span><span class="pln">index = 0; index < 7; ++index</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><span class="pln">vc_elm_destroy</span><span class="pun">(</span><span class="pln">first_view[index]</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+</span><span class="pun">}</span><span class="pln">
+
+</span><span class="kwd">static </span><span class="kwd">void</span><span class="pln"> app_terminate</span><span class="pun">(</span><span class="pln">void </span><span class="pln">*data) </span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pln">vc_elm_deinitialize</span><span class="pun">();</span><span class="pln">
+</span><span class="pun">}</span></pre>
+</li>
+
+<li>Use the handle created for a specific UI component to set a command the user must speak in order to perform actions on the UI component:
+
+<pre class="prettyprint">
+<span class="kwd">static</span><span class="pln"> vc_elm_h first_view[7];</span><span class="pun"></span><span class="pln">
+<span class="kwd">static</span><span class="pln"> vc_elm_h tabbar_view[2];</span><span class="pun"></span><span class="pln">
+
+<span class="kwd">static</span><span class="pln"> Evas_Object *create_basic</span><span class="pun">(appdata_s *ad)</span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="typ">Evas_Object</span><span class="pln"> </span><span class="pun">*</span><span class="pln">button; </span>
+	
+&nbsp;&nbsp;&nbsp;</span><span class="com">// Creating Evas_Object button</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pln">button </span><span class="pun">=</span><span class="pln"> elm_button_add</span><span class="pun">(ad-></span><span class="pln">win</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_create_object</span><span class="pun">(</span><span class="pln">button</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view[0]</span><span class="pun">);</span><span class="pln">,
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_set_command</span><span class="pun">(</span><span class="pln">first_view[0]</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view_cmd[0]</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+</span><span class="pun">}</span>
+</pre>
+</li>
+<li>To show the command on the screen as a tooltip, set a hint (tooltip) for the UI component:
+
+<pre class="prettyprint">
+<span class="kwd">static</span><span class="pln"> vc_elm_h first_view[7];</span><span class="pun"></span><span class="pln">
+<span class="kwd">static</span><span class="pln"> vc_elm_h tabbar_view[2];</span><span class="pun"></span><span class="pln">
+
+<span class="kwd">static</span><span class="pln"> Evas_Object *create_basic</span><span class="pun">(appdata_s *ad)</span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="typ">Evas_Object</span><span class="pln"> </span><span class="pun">*</span><span class="pln">button; </span>
+	
+&nbsp;&nbsp;&nbsp;</span><span class="com">// Creating Evas_Object button</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pln">button </span><span class="pun">=</span><span class="pln"> elm_button_add</span><span class="pun">(ad-></span><span class="pln">win</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_create_object</span><span class="pun">(</span><span class="pln">button</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view[0]</span><span class="pun">);</span><span class="pln">,
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_set_command</span><span class="pun">(</span><span class="pln">first_view[0]</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view_cmd[0]</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_set_command_hint</span><span class="pun">(</span><span class="pln">first_view[0]</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view_cmd[0]</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+</span><span class="pun">}</span>
+</pre>
+</li>
+<li>Set the hint direction and offset (X and Y coordinates).
+<p>By default, the hint tooltip is shown so that it does not cover the underlying UI component and does not intersect with other hints.</p>
+<pre class="prettyprint">
+<span class="kwd">static</span><span class="pln"> vc_elm_h first_view[7];</span><span class="pun"></span><span class="pln">
+<span class="kwd">static</span><span class="pln"> vc_elm_h tabbar_view[2];</span><span class="pun"></span><span class="pln">
+
+<span class="kwd">static</span><span class="pln"> Evas_Object *create_basic</span><span class="pun">(appdata_s *ad)</span><span class="pln">
+</span><span class="pun">{</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="typ">Evas_Object</span><span class="pln"> </span><span class="pun">*</span><span class="pln">button; </span>
+	
+&nbsp;&nbsp;&nbsp;</span><span class="com">// Creating Evas_Object button</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pln">button </span><span class="pun">=</span><span class="pln"> elm_button_add</span><span class="pun">(ad-></span><span class="pln">win</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_create_object</span><span class="pun">(</span><span class="pln">button</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view[0]</span><span class="pun">);</span><span class="pln">,
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_set_command</span><span class="pun">(</span><span class="pln">first_view[0]</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view_cmd[0]</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_set_command_hint</span><span class="pun">(</span><span class="pln">first_view[0]</span><span class="pun">,</span><span class="pln"> </span><span class="pun">&amp;</span><span class="pln">first_view_cmd[0]</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="pun"></span><span class="pln">vc_elm_set_command_hint_direction</span><span class="pun">(</span><span class="pln">first_view[0]</span><span class="pun">,</span><span class="pln"> </span><span class="pun"></span><span class="pln">VC_ELM_DIRECTION_CENTER</span><span class="pun">);</span><span class="pln">
+&nbsp;&nbsp;&nbsp;</span><span class="com">// ...</span><span class="pln">
+</span><span class="pun">}</span>
+</pre>
+
+</li>
+
+</ol>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
