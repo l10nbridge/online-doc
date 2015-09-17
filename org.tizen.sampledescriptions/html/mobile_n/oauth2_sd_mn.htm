@@ -1,0 +1,389 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>OAuth2 Sample Overview</title>
+	<style>figure {
+	display: inline-block;
+	margin: 20px; /* adjust as needed */
+}
+figure img {
+	vertical-align: top;
+}
+figure figcaption {
+	text-align: center;
+}</style>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+	<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+</div>
+
+<h1>OAuth2 Sample Overview</h1>
+
+<p>The OAuth2 sample application demonstrates how to get access token from various resource owners such as Google, Facebook, Twitter, etc. which uses OAuth2 protocol RFC6749.</p>
+<p>The following figure illustrates the main view of the OAuth2 application in its normal state.</p>
+<p>The main screen has the list of various resource providers along with it's authorization grant type as shown below.</p>
+
+<p class="figure"> Figure: OAuth2 main view</p>
+<p align="center"> <img alt="OAuth2 main view" src="../images/oauth2_main.png"/> </p>
+
+<h2>Prerequisites</h2>
+<p>To ensure proper application execution, the following privileges must be set:</p>
+ <ul>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.get</span></li>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/internet</span></li>
+ </ul>
+
+<p>The App Id and App secret should be obtained from the respective resource owner provider and is out of scope of OAuth2 library service.</p>
+
+
+<h2 id="implementation" name="implementation">Implementation</h2>
+
+<p>The OAuth 2.0 specification is defined in <a href="http://tools.ietf.org/html/rfc6749" target="_blank">[RFC 6749]</a> and it builds on the OAuth 1.0 <a href="http://tools.ietf.org/html/rfc5849" target="_blank">[RFC 5849]</a> deployment experience, as well as additional use cases and extensibility requirements gathered from the wider IETF community. The OAuth 2.0 protocol is not backward-compatible with OAuth 1.0.</p>
+<p>An authorization grant is a credential representing the resource owner's authorization (to access its protected resources) used by the client to obtain an access token.  This specification defines four grant types -- authorization code, implicit, resource owner password credentials, and client credentials -- as well as an extensibility mechanism for defining additional types.</p>
+<p>The four different types of authorization grant are explained below using the sample app with examples.</p>
+
+<h3 id="1. Authorization code" name="1. Authorization code"> 1. Authorization code</h3>
+<p>The authorization code is obtained by using an authorization server as an intermediary between the client and resource owner. Instead of requesting authorization directly from the resource owner, the client directs the resource owner to an authorization server, which in turn directs the resource owner back to the client with the authorization code.</p>
+
+<p>The authorization code provides some important security benefits, such as the ability to authenticate the client, as well as the transmission of the access token directly to the client without passing it through the resource owner&#39;s user-agent and potentially exposing it to others, including the resource owner. We will explain this with example of Google as resource owner.</p>
+
+<p>After you press Google button, the following window will appear.</p>
+<p class="figure">Figure: Google Authorization </p>
+
+<div align="center">
+<figure style="white-space:nowrap" style="float:right">
+	<img src='../images/oauth2_google.png' alt='missing' />
+	<figcaption>Screen 1: Sign in
+		</figcaption>
+</figure>
+
+<figure style="white-space:nowrap" style="float:right">
+	<img src='../images/oauth2_google_permission.png' alt='missing' />
+	<figcaption>Screen 2: Permission
+		</figcaption>
+</figure>
+
+<figure style="white-space:nowrap" style="float:right">
+	<img src='../images/oauth2_google_response.png' alt='missing' />
+	<figcaption>Screen 3: Response token
+		</figcaption>
+</figure>
+</div>
+
+<p>You can enter your Google account credentials to get the access token (as shown in Screen 1).</p>
+<p>After you click on the sign in key and once your account gets verified you will be taken to permission window (as shown in Screen 2) where you can click on the accept key to get the access token.</p>
+<p>The response will be visible on the home screen as a pop up (as shown in Screen 3).</p>
+<p>You can cancel the operation by pressing the back key or by choosing the deny button on the screen 2.</p>
+
+<pre class="prettyprint">
+void
+start_google_oauth_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;win_data = (Evas_Object *) data;
+
+&nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
+&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
+
+&nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&request);
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"https://accounts.google.com/o/oauth2/auth");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_token_end_point_url(request,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"https://accounts.google.com/o/oauth2/token");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"https://localhost:8080");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, GOOGLE_CLIENT_ID);
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, GOOGLE_CLIENT_SECRET);
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_scope(request, "email");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_response_type(request,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OAUTH2_RESPONSE_TYPE_CODE);
+
+&nbsp;&nbsp;&nbsp;if (mgr && request) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_token(mgr, request,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;token_response_cb, NULL);
+&nbsp;&nbsp;&nbsp;}
+}
+
+void
+token_response_cb(oauth2_response_h response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;char *acc_token = NULL;
+&nbsp;&nbsp;&nbsp;oauth2_response_get_access_token(response, &acc_token);
+
+&nbsp;&nbsp;&nbsp;char *ref_token = NULL;
+&nbsp;&nbsp;&nbsp;oauth2_response_get_refresh_token(response, &ref_token);
+&nbsp;&nbsp;&nbsp;google_refresh_token = ref_token;
+
+&nbsp;&nbsp;&nbsp;long long int expires_in = 0;
+&nbsp;&nbsp;&nbsp;oauth2_response_get_expires_in(response, &expires_in);
+
+&nbsp;&nbsp;&nbsp;char displayStr[1024] = {0,};
+&nbsp;&nbsp;&nbsp;if (acc_token) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;displayStr[0] = '\0';
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(displayStr, "access token= ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(displayStr, acc_token);
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_error_h e_handle =  NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_response_get_error(response, &e_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *error_val = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_error_get_custom_data(e_handle, "error", &error_val);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error_val)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(displayStr, error_val);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int error_code = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int platform_error_code = 0;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_error_get_code(e_handle, &error_code, &platform_error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != 0 || platform_error_code != 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(displayStr, "Error=[%d][%d]",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error_code, platform_error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(displayStr, "Unknown server error");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (ref_token) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(displayStr, "\r\n");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(displayStr, "refresh token = ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(displayStr, ref_token);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (expires_in != 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(displayStr, "\r\n");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(displayStr, "expires in= ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char expires_str[128] = {0};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(expires_str, "%lld", expires_in);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(displayStr, expires_str);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;create_popup(displayStr , win_data);
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+
+<h3 id="2. Implicit code" name="2. Implicit code"> 2. Implicit code</h3>
+<p>In the implicit flow, the client is issued an access token directly (as a result of the resource owner authorization). The grant type is implicit, as no intermediate credentials (such as an authorization code) are issued.</p>
+
+<p>Implicit grants improve the responsiveness and efficiency of some clients (such as a client implemented as an in-browser application), since it reduces the number of round trips required to obtain an access token. We will explain this with example of Facebook as resource owner.</p>
+
+<p>After you press Facebook button, the following window will appear.</p>
+<p class="figure">Figure: Facebook Authorization </p>
+
+<div align="center">
+<figure style="white-space:nowrap" style="float:right">
+	<img src='../images/oauth2_facebook.png' alt='missing' />
+	<figcaption>Screen 1: Authorization
+		</figcaption>
+</figure>
+
+<figure style="white-space:nowrap" style="float:right">
+	<img src='../images/oauth2_facebook_response.png' alt='missing' />
+	<figcaption>Screen 2: Response token
+		</figcaption>
+</figure>
+
+</figure>
+</div>
+
+<p>You can enter your Facebook account credentials to get the access token (as shown in figure 1).</p>
+<p>After you click on the sign in key and once your account gets verified the response will be visible on the home screen as a pop up(as shown in figure 2).</p>
+<p>You can cancel the operation by pressing the back key.</p>
+
+<pre class="prettyprint">
+void
+start_fb_oauth_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
+&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
+
+&nbsp;&nbsp;&nbsp;win_data = (Evas_Object *) data;
+
+&nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&request);
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, "https://www.facebook.com/dialog/oauth");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, "https://developer.tizen.org");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, "280875681986395");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_scope(request, "read_stream");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_response_type(request, OAUTH2_RESPONSE_TYPE_TOKEN);
+
+&nbsp;&nbsp;&nbsp;if (mgr && request) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_token(mgr, request, token_response_cb, NULL);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h3 id="3. Client credentials" name="3. Client credentials"> 3. Client credentials</h3>
+<p>The client credentials can be used as an authorization grant when the authorization scope is limited to the protected resources under the control of the client, or to protected resources previously arranged with the authorization server. Client credentials are typically used as an authorization grant when the client is acting on its own behalf (the client is also the resource owner) or is requesting access to protected resources based on an authorization previously arranged with the authorization server.</p>
+<p>We will explain this with example of Twitter as resource owner.</p>
+<p>After you press Twitter button, the following response window will appear.</p>
+<p class="figure">Figure: Twitter Authorization </p>
+
+<div align="center">
+<figure style="white-space:nowrap" style="float:right">
+	<img src='../images/oauth2_twitter_response.png' alt='missing' />
+	<figcaption>Response token
+		</figcaption>
+</figure>
+</div>
+
+<pre class="prettyprint">
+void
+start_twitter_apponly_oauth_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
+&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
+
+&nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&request);
+
+&nbsp;&nbsp;&nbsp;win_data = (Evas_Object *) data;
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, "https://api.twitter.com/oauth2/token");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_token_end_point_url(request, "https://api.twitter.com/oauth2/token");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, "https://developer.tizen.org");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, "PiQeUGnE96DQxEw36rAPw");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, "qxLHpdcAg5fCmE6b46GXO8UjDefr6H5C9jXF2SOFAE");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_grant_type(request, OAUTH2_GRANT_TYPE_CLIENT_CREDENTIALS);
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_authentication_type(request, OAUTH2_CLIENT_AUTHENTICATION_TYPE_BASIC);
+
+&nbsp;&nbsp;&nbsp;if (mgr && request) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_token(mgr, request, token_response_cb, NULL);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+
+<h3 id="4. Resource owner password credentials" name="4. Resource owner password credentials"> 4. Resource owner password credentials</h3>
+<p>The resource owner password credentials (such as username and password) can be used directly as an authorization grant to obtain an access token.</p>
+
+<p>Even though this grant type requires direct client access to the resource owner credentials, the resource owner credentials are used for a single request and are exchanged for an access token. This grant type can eliminate the need for the client to store the resource owner credentials for future use, by exchanging the credentials with a long-lived access token or refresh token. We will explain this with example of Salesforce as resource owner.</p>
+
+<p>After you press Salesforce button, the following response window will appear.</p>
+<p class="figure">Figure: Salesforce Authorization </p>
+
+<div align="center">
+<figure style="white-space:nowrap" style="float:right">
+	<img src='../images/oauth2_salesforce_response.png' alt='missing' />
+	<figcaption>Response token
+		</figcaption>
+</figure>
+</div>
+
+<pre class="prettyprint">
+void
+start_salesforce_oauth_code_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;oauth2_manager_h mgr = NULL;
+&nbsp;&nbsp;&nbsp;int ret = oauth2_manager_create(&mgr);
+
+&nbsp;&nbsp;&nbsp;oauth2_request_h request = NULL;
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_create(&request);
+
+&nbsp;&nbsp;&nbsp;win_data = (Evas_Object *) data;
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_auth_end_point_url(request, "https://login.salesforce.com/services/oauth2/authorize");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_token_end_point_url(request, "https://login.salesforce.com/services/oauth2/token");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_redirection_url(request, "https://developer.tizen.org");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_id(request, "3MVG9ZL0ppGP5UrCxqVnY_izjlRzW6tCeDYs64KXns0wGEgbtfqK8cWx16Y4gM3wx2htt0GuoDiQ.CkX2ZuI1");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_client_secret(request, "3431205550072092349");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_grant_type(request, OAUTH2_GRANT_TYPE_PASSWORD);
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_user_name(request, "sam_test1@outlook.com");
+
+&nbsp;&nbsp;&nbsp;ret = oauth2_request_set_password(request, "samsung@1gOeXzn5nKDGVNNQP4kJYEqNPp");
+
+&nbsp;&nbsp;&nbsp;if (mgr && request) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = oauth2_manager_request_token(mgr, request, token_response_cb, request);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h3 id="Clear cache and cookies data" name="Clear cache and cookies data"> Clear cache and cookies data</h3>
+<p>This will delete all the data related to stored credentials from all the resource owner website from the sample appliation.</p>
+<p>After successful deletion of data the following pop up screen will appear.</p>
+
+<p class="figure">Figure: clear cache and cookies data </p>
+<div align="center">
+<figure style="white-space:nowrap" style="float:right">
+	<img src='../images/oauth2_clear_cache.png' alt='missing' />
+	<figcaption>Response message
+		</figcaption>
+</figure>
+</div>
+
+<pre class="prettyprint">
+void
+clear_cache_and_cookies_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;win_data = (Evas_Object *) data;
+
+&nbsp;&nbsp;&nbsp;if (mgr1 != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_manager_clear_cache(mgr1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;oauth2_manager_clear_cookies(mgr1);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mgr1 = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;flag = 1;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;popStr = "cache and cookie data cleared!!!";
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create_popup(popStr , win_data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+</script>
+
+</body>
+</html>
