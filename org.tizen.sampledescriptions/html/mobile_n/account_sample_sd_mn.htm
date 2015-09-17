@@ -1,0 +1,191 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Sample Account Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+  <h1>Sample Account Overview</h1>
+<p>The Sample Account application demonstrates how to implement a Account provider which can add and configure account.</p>
+<p>This application uses <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__ACCOUNT__MANAGER__MODULE.html">Account Manager</a> API to control account.</p>
+	<p class="figure">Figure: Sample Account view</p>
+	<p align="center"><img alt="Application control view" src="../images/account_sample_0.png" />
+  <img alt="Application control view" src="../images/account_sample_1.png" />
+</p>
+
+<p>The application is responsible for displaying account signin screen and configure screen.</p>
+
+<p>The application main window consists of 2 areas:</p>
+  <ul>
+    <li>Singin view : displays account signin view and handel adding account</li>
+    <li>Configure View : displays account information and setting for selected account</li>
+  </ul>
+  
+<h2>Prerequisites</h2>
+<p>To ensure proper application execution, following privileges must be set:
+ <ul>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.read</span></li>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.write</span></li>
+ </ul>
+</p>  
+
+<h2>Implementation</h2>
+<p>To run this application, go Settings > Accounts. Then you can see 'SampleAccount' on Add account list.</p>
+<h3>Adding Account in Signin View</h3>
+<p>If singin button in signin view pressed, this application add account with inputted text.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">account_create()</span> function is used to initialize the account manager handle, which is later used to set account data.</p>
+
+<pre class="prettyprint">
+int ret = 0;
+account_h account = NULL;
+
+/* create account handle */
+ret = account_create(&account);
+
+if(ret != ACCOUNT_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+<p>After set user ID with <span style="font-family: Courier New,Courier,monospace">account_set_user_name()</span> function and set PASS with <span style="font-family: Courier New,Courier,monospace">account_set_access_token()</span> function.</p>
+<p>You can add various other account data with functions which start with <span style="font-family: Courier New,Courier,monospace">account_set</span>. Please check <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__ACCOUNT__MANAGER__MODULE.html">Account Manager</a>.</p>
+<pre class="prettyprint">
+const char *user_name = NULL, *password = NULL;
+
+/* set account data */
+ret = account_set_user_name(account, user_name);
+
+if(ret != ACCOUNT_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return;
+}
+
+ret = account_set_access_token(account, password);
+
+if(ret != ACCOUNT_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return;
+</pre>
+
+<p>Once acocunt data set, need to insert data to account db. <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__ACCOUNT__MANAGER__MODULE.html">Account Manager</a> provides <span style="font-family: Courier New,Courier,monospace">account_insert_to_db()</span> function.</p>
+<p><span style="font-family: Courier New,Courier,monospace">account_insert_to_db()</span> function hand inserted data's account id as an 2nd parameter.</p>
+<pre class="prettyprint">
+int account_id = 0;
+
+/* insert data to DB */
+ret = account_insert_to_db(account, &account_id);
+
+if(ret != ACCOUNT_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+<p>Then release account handle with <span style="font-family: Courier New,Courier,monospace">account_destroy()</span> function.</p>
+<pre class="prettyprint">
+/* release account handle */
+ret = account_destroy(account);
+
+if(ret != ACCOUNT_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+<h3>Getting Account in Configure View</h3>
+
+<p>When you select account which you added in the Account list, account id would hand to this application.</p>
+<p>Then get account data with <span style="font-family: Courier New,Courier,monospace">account_query_account_by_account_id()</span> function using handed account id.</p>
+<p>If you add more account data during adding account, you could get others with functions start with <span style="font-family: Courier New,Courier,monospace">account_get</span>.</p>
+<p>In this application, just get user ID with <span style="font-family: Courier New,Courier,monospace">account_get_user_name()</span> function.</p>
+<pre class="prettyprint">
+int account_id = handed_value;
+account_h account = NULL;
+int ret = 0;
+
+/* account_create() needed, please refer Adding Account part */
+
+/* get account data with account_id */
+ret = account_query_account_by_account_id(account_id, &account);
+
+if(ret != ACCOUNT_ERROR_NONE)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+
+/* get user ID from account data */
+ret = account_get_user_name(account, &account_user_id);
+
+if (ret != ACCOUNT_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+
+/* account_destroy() needed, please refer Adding Account part */
+</pre>
+
+<h3>Deleting Account in Configure View</h3>
+
+<p>If singout button in configure view pressed, this application remove selected account from account DB.</p>
+<p>To delete account, use <span style="font-family: Courier New,Courier,monospace">account_get_user_name()</span> with handed account id.</p>
+<p>There are several functions provided for deleting account. Please refer <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__ACCOUNT__MANAGER__MODULE.html">Account Manager</a> functions which start with <span style="font-family: Courier New,Courier,monospace">account_delete</span>.</p>
+<pre class="prettyprint">
+int account_id = handed_value;
+int ret = 0;
+
+/* signout current account */
+ret = account_delete_from_db_by_id(account_id);
+
+if (ret != ACCOUNT_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+</pre>
+  
+  
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
