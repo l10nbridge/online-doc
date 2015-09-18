@@ -1,0 +1,1078 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>LBS Maps Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mn_icon.png"/></p>
+	</div>
+  <h1>LBS Maps Overview</h1>
+<p>The LBS Maps application demonstrates how to use map services like geocode, place search and route using the <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__GEOFENCE__MODULE.html">Map Service API</a>.</p>
+<p>The following figure illustrates the main views of the LBS Maps application.</p>
+	<p class="figure">Figure: Application main view</p>
+	<p align="center"><img alt="Application control view" src="../images/lbs_maps.png" />
+</p>
+
+<p>In the main view, the user can choose one of the available operations.</p>
+
+<h2>Prerequisites</h2>
+<p>To ensure proper application execution, the following privileges must be set:</p>
+ <ul>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/mapservice</span></li>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/internet</span></li>
+  <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.get</span></li>
+ </ul>
+
+<h2>Implementation</h2>
+<h3>Application Main View</h3>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function creates a searchbar and map view panel.</p>
+
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;/* Window */
+&nbsp;&nbsp;&nbsp;ad->win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_conformant_set(ad->win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad->win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad->win)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = { 0, 90, 180, 270 };
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad->win, (const int *)(&rots), 4);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad->win, "delete,request", win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;/* Conformant */
+&nbsp;&nbsp;&nbsp;ad->conform = elm_conformant_add(ad->win);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(ad->win, ELM_WIN_INDICATOR_SHOW);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_opacity_set(ad->win, ELM_WIN_INDICATOR_OPAQUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad->conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad->win, ad->conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad->conform);
+
+&nbsp;&nbsp;&nbsp;/* layout */
+&nbsp;&nbsp;&nbsp;ad->layout = elm_layout_add(ad->conform);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad->layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_layout_theme_set(ad->layout, "layout", "application", "default");
+&nbsp;&nbsp;&nbsp;elm_object_content_set(ad->conform, ad->layout);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad->layout);
+
+&nbsp;&nbsp;&nbsp;ad->nf = elm_naviframe_add(ad->layout);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad->layout, "elm.swallow.content", ad->nf);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad->nf, EEXT_CALLBACK_BACK, eext_naviframe_back_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad->nf);
+
+&nbsp;&nbsp;&nbsp;create_map_view(ad->nf);
+
+&nbsp;&nbsp;&nbsp;/* Show window after base gui is set up */
+&nbsp;&nbsp;&nbsp;evas_object_show(ad->win);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">create_map_view()</span> function creates a searchbar and map view panel.</p>
+<pre class="prettyprint">
+Evas_Object*
+create_map_view(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;init();
+
+&nbsp;&nbsp;&nbsp;Evas_Object *view_layout = elm_layout_add(parent);
+
+&nbsp;&nbsp;&nbsp;MapLocationView(view_layout);
+
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *navi_item = elm_naviframe_item_push(parent, "Maps Service Sample", NULL, NULL, view_layout, NULL);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(navi_item, __map_view_delete_request_cb, (void *)NULL);
+
+&nbsp;&nbsp;&nbsp;m_parent_evas_obj = parent;
+&nbsp;&nbsp;&nbsp;m_map_view_layout = view_layout;
+
+&nbsp;&nbsp;&nbsp;return view_layout;
+}
+
+static void
+MapLocationView(Evas_Object *view_layout)
+{
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+
+&nbsp;&nbsp;&nbsp;app_get_resource(MAP_VIEW_EDJ_FILE, edj_path, (int)PATH_MAX);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "edj_path : %s", edj_path);
+
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(view_layout, edj_path, "map-view");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(view_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(view_layout, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(view_layout);
+
+&nbsp;&nbsp;&nbsp;if (!m_map_obj_layout) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_map_obj_layout = __create_map_object(view_layout);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (m_map_obj_layout == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "failed to create map object");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(view_layout, "map", m_map_obj_layout);
+
+&nbsp;&nbsp;&nbsp;if (!m_searchbar_obj)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_searchbar_obj = __create_map_searchbar(view_layout);
+
+&nbsp;&nbsp;&nbsp;if (m_searchbar_obj) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_realized_items_update(m_searchbar_obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(view_layout, "searchbar", m_searchbar_obj);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;elm_object_focus_set(m_map_obj_layout, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;elm_object_focus_custom_chain_append(view_layout, m_map_obj_layout, NULL);
+&nbsp;&nbsp;&nbsp;elm_object_focus_custom_chain_append(view_layout, m_searchbar_obj, NULL);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__create_map_object()</span> function creates map view panel and has callbacks for scroll, longpress and click events on map</p>
+<pre class="prettyprint">
+static Evas_Object*
+__create_map_object(Evas_Object *layout)
+{
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+
+&nbsp;&nbsp;&nbsp;if (m_map_evas_object != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* WERROR("m_map_evas_object is created already"); */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return m_map_evas_object;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;m_map_evas_object = elm_map_add(layout);
+&nbsp;&nbsp;&nbsp;if (m_map_evas_object == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "m_map_evas_object is NULL");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;elm_map_zoom_min_set(m_map_evas_object, 2);
+&nbsp;&nbsp;&nbsp;elm_map_user_agent_set(m_map_evas_object, UA_TIZEN_WEB);
+&nbsp;&nbsp;&nbsp;evas_object_show(m_map_evas_object);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *map_obj_layout = elm_layout_add(layout);
+
+&nbsp;&nbsp;&nbsp;app_get_resource(MAP_VIEW_EDJ_FILE, edj_path, (int)PATH_MAX);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(map_obj_layout, edj_path, "map_object");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(map_obj_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(map_obj_layout, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(map_obj_layout);
+&nbsp;&nbsp;&nbsp;elm_layout_content_set(map_obj_layout, "content", m_map_evas_object);
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(m_map_evas_object, "scroll", __maps_scroll_cb, (void *)NULL);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(m_map_evas_object, "longpressed", __maps_longpress_cb, (void *)NULL);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(m_map_evas_object, "clicked", __maps_clicked_cb, (void *)NULL);
+
+&nbsp;&nbsp;&nbsp;elm_map_zoom_set(m_map_evas_object, 15);
+&nbsp;&nbsp;&nbsp;elm_map_region_bring_in(m_map_evas_object, DEFAULT_LON, DEFAULT_LAT);
+
+&nbsp;&nbsp;&nbsp;return map_obj_layout;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__create_map_searchbar()</span> function creates searchbar which is placed on top of map view.</p>
+<pre class="prettyprint">
+static Evas_Object*
+__create_map_searchbar(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *searchbar_obj = elm_genlist_add(parent);
+&nbsp;&nbsp;&nbsp;if (searchbar_obj == NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "searchbar is NULL");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(searchbar_obj, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(searchbar_obj, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;elm_genlist_mode_set(searchbar_obj, ELM_LIST_COMPRESS);
+&nbsp;&nbsp;&nbsp;evas_object_show(searchbar_obj);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(searchbar_obj, "realized", __searchbar_gl_realized_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *search_itc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;search_itc->item_style = "entry.icon";
+&nbsp;&nbsp;&nbsp;search_itc->func.text_get = NULL;
+&nbsp;&nbsp;&nbsp;search_itc->func.content_get = __searchbar_gl_content_cb;
+&nbsp;&nbsp;&nbsp;search_itc->func.del = NULL;
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_append(searchbar_obj, search_itc, NULL, NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
+&nbsp;&nbsp;&nbsp;elm_genlist_item_class_free(search_itc);
+&nbsp;&nbsp;&nbsp;elm_object_focus_custom_chain_append(parent, searchbar_obj, NULL);
+&nbsp;&nbsp;&nbsp;return searchbar_obj;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">create_search_view()</span> function creates searchbar and place category view for place search.</p>
+<pre class="prettyprint">
+Evas_Object *
+create_search_view(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;__poi_result_obtained = false;
+
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+
+&nbsp;&nbsp;&nbsp;app_get_resource(SEARCH_VIEW_EDJ_FILE, edj_path, (int)PATH_MAX);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "edj_path : %s", edj_path);
+
+&nbsp;&nbsp;&nbsp;m_search_view_layout = elm_layout_add(parent);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(m_search_view_layout, edj_path, "result-view");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(m_search_view_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(m_search_view_layout, EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *searchbar_obj = __create_searchbar(m_search_view_layout);
+&nbsp;&nbsp;&nbsp;if (searchbar_obj == NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "searchbar_obj is NULL");
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(m_search_view_layout, "searchbar", searchbar_obj);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *scroller = elm_scroller_add(m_search_view_layout);
+&nbsp;&nbsp;&nbsp;elm_scroller_policy_set(scroller, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_OFF);
+
+&nbsp;&nbsp;&nbsp;m_search_content_layout = __create_search_category_genlist(scroller);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(m_search_view_layout, "list", m_search_content_layout);
+
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *navi_item = elm_naviframe_item_push(parent, "Search", NULL, NULL, m_search_view_layout, NULL);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_title_enabled_set(navi_item, EINA_FALSE, EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(navi_item, __search_view_delete_request_cb, (void *)NULL);
+
+&nbsp;&nbsp;&nbsp;m_search_parent_obj = parent;
+
+&nbsp;&nbsp;&nbsp;__poi_result_obtained = false;
+
+&nbsp;&nbsp;&nbsp;return m_search_view_layout;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__create_searchbar()</span> function creates a searchbar for place search.</p>
+<pre class="prettyprint">
+static Evas_Object*
+__create_searchbar(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *searchbar_obj = elm_layout_add(parent);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(searchbar_obj, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(searchbar_obj, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(searchbar_obj);
+&nbsp;&nbsp;&nbsp;elm_layout_theme_set(searchbar_obj, "layout", "searchbar", "default");
+
+&nbsp;&nbsp;&nbsp;/* entry */
+&nbsp;&nbsp;&nbsp;Evas_Object *editfield = create_editfield(searchbar_obj);
+&nbsp;&nbsp;&nbsp;eext_entry_selection_back_event_allow_set(editfield, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(editfield, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(editfield, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;Evas_Object *entry = elm_object_part_content_get(editfield, "elm.swallow.content");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(entry, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(entry, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;elm_entry_single_line_set(entry, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_entry_cnp_mode_set(entry, ELM_CNP_MODE_PLAINTEXT);
+&nbsp;&nbsp;&nbsp;elm_entry_autocapital_type_set(entry, ELM_AUTOCAPITAL_TYPE_NONE);
+&nbsp;&nbsp;&nbsp;elm_entry_input_panel_layout_set(entry, ELM_INPUT_PANEL_LAYOUT_NORMAL);
+&nbsp;&nbsp;&nbsp;elm_entry_input_panel_return_key_type_set(entry, ELM_INPUT_PANEL_RETURN_KEY_TYPE_SEARCH);
+&nbsp;&nbsp;&nbsp;eext_entry_selection_back_event_allow_set(entry, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(entry, "elm.guide", "Search");
+&nbsp;&nbsp;&nbsp;elm_entry_prediction_allow_set(entry, EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;evas_object_show(entry);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(searchbar_obj, "elm.swallow.content", entry);
+
+&nbsp;&nbsp;&nbsp;return searchbar_obj;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__create_search_category_genlist()</span> function creates some predefined search categories for place search below the searchbar.</p>
+<pre class="prettyprint">
+static Evas_Object*
+__create_search_category_genlist(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *search_category_genlist = elm_genlist_add(parent);
+&nbsp;&nbsp;&nbsp;elm_list_mode_set(search_category_genlist, ELM_LIST_COMPRESS);
+&nbsp;&nbsp;&nbsp;evas_object_show(search_category_genlist);
+
+&nbsp;&nbsp;&nbsp;/* category */
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *category_itc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;category_itc->item_style = "type1";
+&nbsp;&nbsp;&nbsp;category_itc->func.content_get = NULL;	/* __search_category_gl_content_get_cb; */
+&nbsp;&nbsp;&nbsp;category_itc->func.text_get = __search_category_gl_text_get_cb;
+
+&nbsp;&nbsp;&nbsp;for (int i = 0; i < NUM_OF_CATEGORY; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(search_category_genlist,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;category_itc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)i,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__search_category_gl_select_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)i);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_class_free(category_itc);
+&nbsp;&nbsp;&nbsp;return search_category_genlist;
+}
+
+const char *category_list_text[] = {
+&nbsp;&nbsp;&nbsp;"Food and Drink",
+&nbsp;&nbsp;&nbsp;"Transport",
+&nbsp;&nbsp;&nbsp;"Hotels",
+&nbsp;&nbsp;&nbsp;"Shopping",
+&nbsp;&nbsp;&nbsp;"Leisure"
+};
+
+static char*
+__search_category_gl_text_get_cb(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;int index = (int)data;
+&nbsp;&nbsp;&nbsp;if (!strcmp(part, "elm.text"))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(category_list_text[index]);
+
+&nbsp;&nbsp;&nbsp;return NULL;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">create_route_view()</span> function creates 2 searchbars for source and destination.</p>
+<pre class="prettyprint">
+void
+create_route_view(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;__route_result_obtained = false;
+&nbsp;&nbsp;&nbsp;__route_result = NULL;
+
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+&nbsp;&nbsp;&nbsp;app_get_resource(ROUTE_VIEW_EDJ_FILE, edj_path, (int)PATH_MAX);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *m_view_layout = elm_layout_add(parent);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(m_view_layout, edj_path, "route-view");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(m_view_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(m_view_layout, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(m_view_layout);
+
+&nbsp;&nbsp;&nbsp;m_route_searchbox_layout = __create_route_searchbox(m_view_layout);
+&nbsp;&nbsp;&nbsp;if (m_route_searchbox_layout != NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(m_view_layout, "searchbar-box", m_route_searchbox_layout);
+
+&nbsp;&nbsp;&nbsp;m_route_view_layout = m_view_layout;
+
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *navi_item = elm_naviframe_item_push(parent, "Search", NULL, NULL, m_route_view_layout, NULL);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_title_enabled_set(navi_item, EINA_FALSE, EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;m_route_parent_obj = parent;
+
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(navi_item, __route_view_delete_request_cb, (void *)NULL);
+
+&nbsp;&nbsp;&nbsp;find_route();
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__create_route_searchbox()</span> function creates 2 editfields for source and destination.</p>
+<pre class="prettyprint">
+static Evas_Object*
+__create_route_searchbox(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0, };
+&nbsp;&nbsp;&nbsp;app_get_resource(ROUTE_VIEW_EDJ_FILE, edj_path, (int)PATH_MAX);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *searchbox_layout = elm_layout_add(parent);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(searchbox_layout, edj_path, "searchbox-layout");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(searchbox_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(searchbox_layout, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(searchbox_layout);
+
+&nbsp;&nbsp;&nbsp;/* set icon */
+&nbsp;&nbsp;&nbsp;Evas_Object *icon_layout = elm_layout_add(searchbox_layout);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(icon_layout, edj_path, "searchbox-icon-layout");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(icon_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(icon_layout, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(icon_layout);
+
+&nbsp;&nbsp;&nbsp;/* set Searchbox entry */
+&nbsp;&nbsp;&nbsp;Evas_Object *entry_layout = elm_layout_add(searchbox_layout);
+&nbsp;&nbsp;&nbsp;elm_layout_file_set(entry_layout, edj_path, "searchbox-entry-layout");
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(entry_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(entry_layout, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;evas_object_show(entry_layout);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(searchbox_layout, "searchbox-entry", entry_layout);
+
+&nbsp;&nbsp;&nbsp;/* Set From */
+&nbsp;&nbsp;&nbsp;Evas_Object *searchbar_from_obj = __create_searchbar_from(entry_layout);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(entry_layout, "entry-from", searchbar_from_obj);
+
+&nbsp;&nbsp;&nbsp;/* Set dest */
+&nbsp;&nbsp;&nbsp;Evas_Object *searchbar_to_obj = __create_searchbar_to(entry_layout);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(entry_layout, "entry-to", searchbar_to_obj);
+
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(parent, "searchbar-box", searchbox_layout);
+
+&nbsp;&nbsp;&nbsp;return searchbox_layout;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__create_searchbar_from()</span> function creates creates editfield for displaying source.</p>
+<pre class="prettyprint">
+static Evas_Object*
+__create_searchbar_from(Evas_Object *layout)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *editfield = create_editfield(layout);
+&nbsp;&nbsp;&nbsp;eext_entry_selection_back_event_allow_set(editfield, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(editfield, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(editfield, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;Evas_Object *entry = elm_object_part_content_get(editfield, "elm.swallow.content");
+&nbsp;&nbsp;&nbsp;elm_entry_input_panel_enabled_set(entry, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;eext_entry_selection_back_event_allow_set(entry, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_object_focus_allow_set(entry, EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;elm_entry_entry_set(entry, "Map Center Location");
+
+&nbsp;&nbsp;&nbsp;return entry;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__create_searchbar_to()</span> function creates editfield for displaying destination.</p>
+<pre class="prettyprint">
+static Evas_Object*
+__create_searchbar_to(Evas_Object *layout)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *editfield = create_editfield(layout);
+&nbsp;&nbsp;&nbsp;eext_entry_selection_back_event_allow_set(editfield, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(editfield, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(editfield, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;Evas_Object *entry = elm_object_part_content_get(editfield, "elm.swallow.content");
+&nbsp;&nbsp;&nbsp;elm_entry_input_panel_enabled_set(entry, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;eext_entry_selection_back_event_allow_set(entry, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_entry_input_panel_enabled_set(entry, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;elm_object_focus_allow_set(entry, EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;double tLat = 0.0;
+&nbsp;&nbsp;&nbsp;double tLng = 0.0;
+&nbsp;&nbsp;&nbsp;char *name = NULL;
+
+&nbsp;&nbsp;&nbsp;map_get_selected_poi_lat_lng(&tLat, &tLng, &name);
+
+&nbsp;&nbsp;&nbsp;elm_entry_entry_set(entry, name);
+
+&nbsp;&nbsp;&nbsp;return entry;
+}
+</pre>
+
+<h3>Application Operation</h3>
+<p>To use map services:</p>
+<ol>
+<li>
+
+<p>Create a handle of maps-service.</p>
+
+<pre class="prettyprint">
+void
+create_maps_service_handle()
+{
+&nbsp;&nbsp;&nbsp;int error = maps_service_create(MAPS_PROVIDER, &__maps_service_handler);
+&nbsp;&nbsp;&nbsp;bool supported = false;
+
+&nbsp;&nbsp;&nbsp;/* Set the provider Key to access the services from provider */
+&nbsp;&nbsp;&nbsp;maps_service_set_provider_key(__maps_service_handler, PROVIDER_TEST_KEY);
+
+&nbsp;&nbsp;&nbsp;/* Check if Routing is available */
+&nbsp;&nbsp;&nbsp;error = maps_service_provider_is_service_supported(__maps_service_handler,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MAPS_SERVICE_SEARCH_ROUTE, &supported);
+&nbsp;&nbsp;&nbsp;__is_routing_supported = (error == MAPS_ERROR_NONE) ? supported : false;
+
+&nbsp;&nbsp;&nbsp;error = maps_service_provider_is_service_supported(__maps_service_handler,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MAPS_SERVICE_SEARCH_PLACE, &supported);
+&nbsp;&nbsp;&nbsp;__is_place_search_supported = (error == MAPS_ERROR_NONE) ? supported : false;
+
+&nbsp;&nbsp;&nbsp;error = maps_service_provider_is_service_supported(__maps_service_handler,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MAPS_SERVICE_REVERSE_GEOCODE, &supported);
+&nbsp;&nbsp;&nbsp;__is_revgeocode_supported = (error == MAPS_ERROR_NONE) ? supported : false;
+}
+</pre>
+</li>
+
+<li>
+<p>Destroy the handle of maps-service.</p>
+
+<pre class="prettyprint">
+void
+destroy_maps_service_handle()
+{
+&nbsp;&nbsp;&nbsp;if (__maps_service_handler) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int error = maps_service_destroy(__maps_service_handler);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error != MAPS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed to destroy maps service [%d]", error);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__maps_service_handler = NULL;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>
+<p>Perform Longpress gesture on the particular location in the map and request reverse geocode.</p>
+
+<pre class="prettyprint">
+int
+request_revgeocode(maps_service_h maps, double latitude, double longitude)
+{
+&nbsp;&nbsp;&nbsp;int request_id = -1;
+
+&nbsp;&nbsp;&nbsp;maps_preference_h preference = NULL;
+&nbsp;&nbsp;&nbsp;maps_preference_create(&preference);
+
+&nbsp;&nbsp;&nbsp;int error = maps_service_reverse_geocode(maps,					/* maps service handle */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;latitude,				/* center location */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;longitude,				/* search radius from center location */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;preference,				/* reverse geocode preference */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__maps_service_reverse_geocode_cb,	/* callback */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)NULL,				/* user_data */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&request_id);				/* request_id */
+
+&nbsp;&nbsp;&nbsp;if (error != MAPS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__request_id = GEO_REQ_ID_IDLE;
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__request_id = request_id;
+
+&nbsp;&nbsp;&nbsp;maps_preference_destroy(preference);
+
+&nbsp;&nbsp;&nbsp;return error;
+}
+</pre>
+</li>
+
+<li>
+<p>Get the reverse geocode result</p>
+
+<pre class="prettyprint">
+void
+__maps_service_reverse_geocode_cb(maps_error_e result, int request_id, int index, int total, maps_address_h address, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;__request_id = GEO_REQ_ID_IDLE;
+
+&nbsp;&nbsp;&nbsp;if (result != MAPS_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Invalid Result */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Invalid Reverse Geocode Result");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handle_addr_notification(NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char resultText[1024] = {0, };
+&nbsp;&nbsp;&nbsp;strcpy(resultText, "");
+
+&nbsp;&nbsp;&nbsp;char *street = NULL;
+&nbsp;&nbsp;&nbsp;maps_address_get_street(address, &street);
+&nbsp;&nbsp;&nbsp;if (street != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, street);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(street);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;street = NULL;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Street is NULL");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char *district = NULL;
+&nbsp;&nbsp;&nbsp;maps_address_get_district(address, &district);
+&nbsp;&nbsp;&nbsp;if (district != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, ", ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, district);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(district);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;district = NULL;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "District is NULL");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char *city = NULL;
+&nbsp;&nbsp;&nbsp;maps_address_get_city(address, &city);
+&nbsp;&nbsp;&nbsp;if (city != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, ", ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, city);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(city);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;city = NULL;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "City is NULL");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char *state = NULL;
+&nbsp;&nbsp;&nbsp;maps_address_get_state(address, &state);
+&nbsp;&nbsp;&nbsp;if (state != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, ", ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, state);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(state);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state = NULL;
+&nbsp;&nbsp;&nbsp;} else {
+		dlog_print(DLOG_ERROR, LOG_TAG, "State is NULL");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char *country = NULL;
+&nbsp;&nbsp;&nbsp;maps_address_get_country(address, &country);
+&nbsp;&nbsp;&nbsp;if (country != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, ", ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, country);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(country);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;country = NULL;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Country is NULL");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char *country_code = NULL;
+&nbsp;&nbsp;&nbsp;maps_address_get_country_code(address, &country_code);
+&nbsp;&nbsp;&nbsp;if (country_code != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, ", ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, country_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(country_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;country_code = NULL;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Country Code is NULL");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char *county = NULL;
+&nbsp;&nbsp;&nbsp;maps_address_get_county(address, &county);
+&nbsp;&nbsp;&nbsp;if (county != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, ", ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, county);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(county);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;county = NULL;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "County is NULL");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char *postal_code = NULL;
+&nbsp;&nbsp;&nbsp;maps_address_get_postal_code(address, &postal_code);
+&nbsp;&nbsp;&nbsp;if (postal_code != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, ", ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(resultText, postal_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(postal_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;postal_code = NULL;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Postal Code is NULL");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;revgeocode_result = (revgeocode_s *)malloc(sizeof(revgeocode_s));
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!revgeocode_result) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handle_addr_notification(NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *top = strdup(resultText);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strtok(top, ",");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (top == NULL || !strcmp(top, resultText)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (top) free(top);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(top, "Selected location");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "addr %s, set name as %s", resultText, top);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(revgeocode_result->name, top);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strlen(resultText) > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(revgeocode_result->address, &resultText[strlen(top) + 2]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(revgeocode_result->address, (char *)"Not found");
+&nbsp;&nbsp;&nbsp;} else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;revgeocode_result = NULL;
+
+&nbsp;&nbsp;&nbsp;handle_addr_notification(revgeocode_result);
+
+&nbsp;&nbsp;&nbsp;maps_address_destroy(address);
+}
+</pre>
+</li>
+
+<li>
+<p>Perform place search by clicking the searchbar in the main application view and selecting any of the predefined search category list</p>
+
+<pre class="prettyprint">
+int
+request_place(maps_service_h maps, double lat, double lon, char *search_keyword, place_type category_type, int distance, int max_results, place_s **place_res)
+{
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;int request_id = 0;
+
+&nbsp;&nbsp;&nbsp;maps_place_filter_h filter = NULL;
+&nbsp;&nbsp;&nbsp;maps_preference_h preference = NULL;
+&nbsp;&nbsp;&nbsp;maps_place_category_h category = NULL;
+&nbsp;&nbsp;&nbsp;maps_coordinates_h coords = NULL;
+
+&nbsp;&nbsp;&nbsp;if (distance < 1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;distance = POI_SERVICE_CATEGORY_SEARCH_RADIUS;
+
+&nbsp;&nbsp;&nbsp;maps_preference_create(&preference);	/* Create Maps Preference */
+&nbsp;&nbsp;&nbsp;maps_place_filter_create(&filter);		/* Create Maps Place Filter */
+
+&nbsp;&nbsp;&nbsp;if (category_type != none_category) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* CATEGORY Search */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maps_place_category_create(&category);	/* Create place_category */
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maps_place_category_set_name(category, __get_category_name(category_type));	/* Set Category Name for place search */
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = maps_place_filter_set_category(filter, category);	/* Set place_category to filter */
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MAPS_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "maps_place_filter_set error [%d]", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto EXIT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Keyword Search */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "poi search keyword : %s", search_keyword);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = maps_place_filter_set_place_name(filter, search_keyword);	/* Keyword Search. No POI category search */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MAPS_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "maps_place_filter_set error [%d]", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto EXIT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;maps_preference_set_max_results(preference, max_results);	/* Set Max Results Preference */
+
+&nbsp;&nbsp;&nbsp;maps_coordinates_create(lat, lon, &coords);	/* Create maps coordinates for radius search */
+&nbsp;&nbsp;&nbsp;if (coords == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "coords is NULL");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto EXIT;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Places Search */
+&nbsp;&nbsp;&nbsp;ret = maps_service_search_place(maps,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;coords,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;distance,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;filter,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;preference,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__maps_service_search_place_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *) place_res,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&request_id);
+
+&nbsp;&nbsp;&nbsp;if (ret != MAPS_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "failed to poi_service_search.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__request_id = POI_REQ_ID_IDLE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto EXIT;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__request_id = request_id;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "request_id : %d", __request_id);
+&nbsp;&nbsp;&nbsp;}
+
+EXIT:
+&nbsp;&nbsp;&nbsp;if (coords)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maps_coordinates_destroy(coords);
+&nbsp;&nbsp;&nbsp;if (category)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maps_place_category_destroy(category);
+&nbsp;&nbsp;&nbsp;if (filter)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maps_place_filter_destroy(filter);
+&nbsp;&nbsp;&nbsp;maps_preference_destroy(preference);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+</li>
+
+<li>
+<p>Get the place result.</p>
+
+<pre class="prettyprint">
+static bool
+__maps_service_search_place_cb(maps_error_e error, int request_id , int index, int length , maps_place_h place , void *user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "Place result >> index [%d]/ length [%d]", index, length);
+
+&nbsp;&nbsp;&nbsp;place_s** place_result = (void *) user_data;
+
+&nbsp;&nbsp;&nbsp;maps_coordinates_h coordinates;
+&nbsp;&nbsp;&nbsp;static double cur_lat, cur_lon;
+&nbsp;&nbsp;&nbsp;double distance = 0.0;
+
+&nbsp;&nbsp;&nbsp;if (error != MAPS_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__request_id = POI_REQ_ID_IDLE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on_poi_result(length);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;double latitude = 0.0, longitude = 0.0;
+
+&nbsp;&nbsp;&nbsp;if (index == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_get_poi_lat_lng(&cur_lat, &cur_lon);
+
+&nbsp;&nbsp;&nbsp;place_result[index] = (place_s *) malloc(sizeof(place_s));
+
+&nbsp;&nbsp;&nbsp;/* Place Name */
+&nbsp;&nbsp;&nbsp;maps_place_get_name(place , &name);
+&nbsp;&nbsp;&nbsp;strcpy(place_result[index]->__place_name, name);
+
+&nbsp;&nbsp;&nbsp;/* Place Location */
+&nbsp;&nbsp;&nbsp;maps_place_get_location(place,  &coordinates);
+&nbsp;&nbsp;&nbsp;maps_coordinates_get_latitude(coordinates, &latitude);
+&nbsp;&nbsp;&nbsp;maps_coordinates_get_longitude(coordinates, &longitude);
+&nbsp;&nbsp;&nbsp;place_result[index]->__lat = latitude;
+&nbsp;&nbsp;&nbsp;place_result[index]->__lon = longitude;
+&nbsp;&nbsp;&nbsp;maps_coordinates_destroy(coordinates);
+
+&nbsp;&nbsp;&nbsp;/* Distance Calculation */
+&nbsp;&nbsp;&nbsp;location_manager_get_distance(cur_lat, cur_lon, latitude, longitude, &distance);
+&nbsp;&nbsp;&nbsp;distance = distance * 0.001;
+&nbsp;&nbsp;&nbsp;place_result[index]->__distance = distance;
+
+&nbsp;&nbsp;&nbsp;if (index == (length-1))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on_poi_result(length);
+
+&nbsp;&nbsp;&nbsp;__request_id = POI_REQ_ID_IDLE;
+
+&nbsp;&nbsp;&nbsp;/* Release the place result */
+&nbsp;&nbsp;&nbsp;maps_place_destroy(place);
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+
+<li>
+<p>Perform route search from map center location to selected place result by clicking direction icon in the searchbar in main application view.</p>
+
+<pre class="prettyprint">
+int
+request_route(maps_service_h maps, double src_lat, double src_lon, double dest_lat, double dest_lon, route_s **res)
+{
+&nbsp;&nbsp;&nbsp;if (maps == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "maps service handle is NULL");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;int request_id;
+
+&nbsp;&nbsp;&nbsp;maps_coordinates_h origin = NULL;
+&nbsp;&nbsp;&nbsp;maps_coordinates_h destination = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Origin Coordinates */
+&nbsp;&nbsp;&nbsp;maps_coordinates_create(src_lat, src_lon, &origin);
+&nbsp;&nbsp;&nbsp;/* Destination Coordinates */
+&nbsp;&nbsp;&nbsp;maps_coordinates_create(dest_lat, dest_lon, &destination);
+
+&nbsp;&nbsp;&nbsp;/* Maps Preference */
+&nbsp;&nbsp;&nbsp;maps_preference_h preference = NULL;
+&nbsp;&nbsp;&nbsp;maps_preference_create(&preference);
+
+&nbsp;&nbsp;&nbsp;/* Set Route Transport mode Preference */
+&nbsp;&nbsp;&nbsp;/* Transport Mode - Car */
+&nbsp;&nbsp;&nbsp;maps_preference_set_route_transport_mode(preference, MAPS_ROUTE_TRANSPORT_MODE_CAR);
+
+&nbsp;&nbsp;&nbsp;/* Route Search */
+&nbsp;&nbsp;&nbsp;int error = maps_service_search_route(maps,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;origin,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;destination,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;preference,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__maps_service_search_route_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *) res,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&request_id);
+
+&nbsp;&nbsp;&nbsp;if (error == MAPS_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "request_id : %d", request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__route_request_id = request_id;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Route Service Request Failed ::  [%d]", error);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__route_request_id = ROUTE_REQ_ID_IDLE;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;maps_coordinates_destroy(origin);
+&nbsp;&nbsp;&nbsp;maps_coordinates_destroy(destination);
+
+&nbsp;&nbsp;&nbsp;maps_preference_destroy(preference);
+
+&nbsp;&nbsp;&nbsp;return error;
+}
+</pre>
+</li>
+
+<li>
+<p>Get the route result.</p>
+
+<pre class="prettyprint">
+bool
+__maps_route_segment_maneuver_cb(int index, int total, maps_route_maneuver_h maneuver, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;route_s **route_result = (route_s **) user_data;
+
+&nbsp;&nbsp;&nbsp;double _distance = 0.0;
+&nbsp;&nbsp;&nbsp;maps_route_maneuver_get_distance_to_next_instruction(maneuver, &_distance);
+
+&nbsp;&nbsp;&nbsp;/* Route Segment Maneuver Instruction Text */
+&nbsp;&nbsp;&nbsp;char *instruction = NULL;
+&nbsp;&nbsp;&nbsp;maps_route_maneuver_get_instruction_text(maneuver, &instruction);
+
+&nbsp;&nbsp;&nbsp;if (instruction) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(((*route_result)->__maneuver[__maneuver_count]).__instruction, instruction);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(instruction);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;instruction = NULL;
+&nbsp;&nbsp;&nbsp;} else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(((*route_result)->__maneuver[__maneuver_count]).__instruction, "");
+
+&nbsp;&nbsp;&nbsp;/* Route Segment Maneuver Road Name */
+&nbsp;&nbsp;&nbsp;char *road_name = NULL;
+&nbsp;&nbsp;&nbsp;maps_route_maneuver_get_road_name(maneuver, &road_name);
+
+&nbsp;&nbsp;&nbsp;if (road_name) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(((*route_result)->__maneuver[__maneuver_count]).__street_name, road_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(road_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;road_name = NULL;
+&nbsp;&nbsp;&nbsp;} else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(((*route_result)->__maneuver[__maneuver_count]).__street_name, "");
+
+&nbsp;&nbsp;&nbsp;((*route_result)->__maneuver[__maneuver_count]).__origin_lat = segment_origin.latitude;
+&nbsp;&nbsp;&nbsp;((*route_result)->__maneuver[__maneuver_count]).__origin_lon = segment_origin.longitude;
+&nbsp;&nbsp;&nbsp;((*route_result)->__maneuver[__maneuver_count]).__dest_lat = segment_destination.latitude;
+&nbsp;&nbsp;&nbsp;((*route_result)->__maneuver[__maneuver_count]).__dest_lon = segment_destination.longitude;
+
+&nbsp;&nbsp;&nbsp;/* Route Segment Maneuver turn type */
+&nbsp;&nbsp;&nbsp;maps_route_turn_type_e turn_type = MAPS_ROUTE_TURN_TYPE_NONE;
+&nbsp;&nbsp;&nbsp;maps_route_maneuver_get_turn_type(maneuver, &turn_type);
+
+&nbsp;&nbsp;&nbsp;strcpy(((*route_result)->__maneuver[__maneuver_count]).__turn_string, turn_id_string[turn_type]);
+
+&nbsp;&nbsp;&nbsp;__maneuver_count++;
+
+&nbsp;&nbsp;&nbsp;maps_route_maneuver_destroy(maneuver);
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+bool
+__maps_route_segment_cb(int index, int total, maps_route_segment_h segment, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (!segment) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "critical error : FAILED");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;maps_coordinates_h origin = NULL, destination = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Segment Origin Coordinates */
+&nbsp;&nbsp;&nbsp;maps_route_segment_get_origin(segment, &origin);
+&nbsp;&nbsp;&nbsp;maps_coordinates_get_latitude(origin, &(segment_origin.latitude));
+&nbsp;&nbsp;&nbsp;maps_coordinates_get_longitude(origin, &(segment_origin.longitude));
+&nbsp;&nbsp;&nbsp;maps_coordinates_destroy(origin);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "Segment Origin Lat : %f, Lon : %f", segment_origin.latitude, segment_origin.longitude);
+
+&nbsp;&nbsp;&nbsp;/* Segment Destination Coordinates */
+&nbsp;&nbsp;&nbsp;maps_route_segment_get_destination(segment, &destination);
+&nbsp;&nbsp;&nbsp;maps_coordinates_get_latitude(destination, &(segment_destination.latitude));
+&nbsp;&nbsp;&nbsp;maps_coordinates_get_longitude(destination, &(segment_destination.longitude));
+&nbsp;&nbsp;&nbsp;maps_coordinates_destroy(destination);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "Segment Destination Lat : %f, Lon : %f", segment_destination.latitude, segment_destination.longitude);
+
+&nbsp;&nbsp;&nbsp;/* Segment Maneuvers information */
+&nbsp;&nbsp;&nbsp;maps_route_segment_foreach_maneuver(segment, __maps_route_segment_maneuver_cb, user_data);
+
+&nbsp;&nbsp;&nbsp;maps_route_segment_destroy(segment);
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+bool
+__parse_route_data(maps_route_h route, int index, int total, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;route_s **route_result = (route_s **) user_data;
+
+&nbsp;&nbsp;&nbsp;maps_distance_unit_e dist_unit;
+&nbsp;&nbsp;&nbsp;double distance = 0;
+&nbsp;&nbsp;&nbsp;long duration = 0;
+&nbsp;&nbsp;&nbsp;int ret = 0;
+
+&nbsp;&nbsp;&nbsp;/* Cloning the route */
+&nbsp;&nbsp;&nbsp;if (ret != MAPS_ERROR_NONE || !route) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Route Response error [%d]", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Route - Total Distance */
+&nbsp;&nbsp;&nbsp;maps_route_get_total_distance(route, &distance);
+&nbsp;&nbsp;&nbsp;/* Route - Distance Unit */
+&nbsp;&nbsp;&nbsp;maps_route_get_distance_unit(route, &dist_unit);
+
+&nbsp;&nbsp;&nbsp;/* Changing everything to KM (by default) */
+&nbsp;&nbsp;&nbsp;if (dist_unit == MAPS_DISTANCE_UNIT_M) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "distance : %.5f m", distance);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;distance = distance / 1000;	/* convert the distance into km */
+&nbsp;&nbsp;&nbsp;} else if (dist_unit == MAPS_DISTANCE_UNIT_KM) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "distance : %.5f km", distance);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Route - Total Duration */
+&nbsp;&nbsp;&nbsp;maps_route_get_total_duration(route, &duration);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "duration : %ld sec", duration);
+&nbsp;&nbsp;&nbsp;duration = (duration + 30) / 60;	/*converting duration to minutes */
+
+&nbsp;&nbsp;&nbsp;(*route_result) = (route_s *)malloc(sizeof(route_s));
+
+&nbsp;&nbsp;&nbsp;(*route_result)->__distance = distance;
+&nbsp;&nbsp;&nbsp;(*route_result)->__duration = duration;
+
+&nbsp;&nbsp;&nbsp;__maneuver_count = 0;
+
+&nbsp;&nbsp;&nbsp;/* Check if maneuver path data is supported */
+&nbsp;&nbsp;&nbsp;bool supported = false;
+&nbsp;&nbsp;&nbsp;int error = maps_service_provider_is_data_supported(get_maps_service_handle(), MAPS_ROUTE_SEGMENTS_PATH, &supported);
+&nbsp;&nbsp;&nbsp;const bool is_route_segment_path_supported = (error == MAPS_ERROR_NONE) ? supported : false;
+
+&nbsp;&nbsp;&nbsp;/* Check if maneuver sements data is supported */
+&nbsp;&nbsp;&nbsp;error = maps_service_provider_is_data_supported(get_maps_service_handle(), MAPS_ROUTE_SEGMENTS_MANEUVERS, &supported);
+&nbsp;&nbsp;&nbsp;const bool is_route_segment_maneuvers_supported = (error == MAPS_ERROR_NONE) ? supported : false;
+
+&nbsp;&nbsp;&nbsp;if ((is_route_segment_path_supported) && (is_route_segment_maneuvers_supported)) {
+&nbsp;&nbsp;&nbsp;/* Allow segment maneuvers and path usage */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maps_route_foreach_segment(route, __maps_route_segment_cb, (void *)route_result);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;(*route_result)->__maneuver_count = __maneuver_count;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+bool
+__maps_service_search_route_cb(maps_error_e error, int request_id, int index, int total, maps_route_h route, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;route_s **route_result = (route_s **) user_data;
+
+&nbsp;&nbsp;&nbsp;__parse_route_data(route, index, total, (void *) user_data);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "distance :: %f", (*route_result)->__distance);
+
+&nbsp;&nbsp;&nbsp;on_route_result();
+
+&nbsp;&nbsp;&nbsp;maps_route_destroy(route);
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+</ol>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
