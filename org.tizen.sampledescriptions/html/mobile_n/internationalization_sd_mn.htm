@@ -396,6 +396,94 @@ static void __view_apply_button_click_cb(void *data, Evas_Object *obj, void *eve
 
 <h3 id="model">Model</h3>
 
+  <p>
+  The responsibility of the application's "Model" module is to operate directly on the i18n (localization) API. The additional benefit of this module is the simplification of the API function calling,
+  error checking and message logging.
+  <br>
+  One of the functions implemented within the "Model" module was briefly described in the <a href="#global-lang-ch">Handling global language change</a> section
+  (<span style="font-family: Courier New,Courier,monospace">model_get_locale_language()</span>). Other functions are presented here.
+  </p>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">model_get_available_locale()</span> function is responsible for enumerating all languages with respect to their localization information.
+  For each localization code, the callback function of <span style="font-family: Courier New,Courier,monospace">get_available_locale_cb</span> type is called.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_available_locale(get_available_locale_cb func_cb, void *data)
+{
+&nbsp;&nbsp;&nbsp;if (!func_cb) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Wrong argument provided.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The number of available locale is acquired. */
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;int32_t count = i18n_ulocale_count_available();
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i < count; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* The localization code is obtained by its index. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *locale = i18n_ulocale_get_available(i);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* For each localization code obtained, the provided callback function is called. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (locale && !func_cb(locale, data))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">model_get_locale_display_language()</span> function is responsible for obtaining the readable display language name based on
+  its localization code.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_locale_display_language(const char *locale, char **display_language)
+{
+&nbsp;&nbsp;&nbsp;i18n_uchar i18n_language[256] = {0,};
+
+&nbsp;&nbsp;&nbsp;if (!display_language) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Wrong argument provided.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The readable display language string is obtained from the localization code. */
+&nbsp;&nbsp;&nbsp;i18n_ulocale_get_display_language(locale, NULL, i18n_language, sizeof(i18n_language));
+&nbsp;&nbsp;&nbsp;int ret = get_last_result();
+&nbsp;&nbsp;&nbsp;if (ret != I18N_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function i18n_ulocale_get_display_language() failed with error %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The returned display language string is stored in an array of i18n_uchar,&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;/* which is represented by the 16-bit unsigned int value, so it can not be simply&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;/* typecasted to the char string. The transformation to the char string&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;/* requires the i18n relevant function application. In order to store&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;/* the display language in a char string, a new memory area is reserved.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;int32_t str_len = i18n_ustring_get_length(i18n_language);
+&nbsp;&nbsp;&nbsp;*display_language = (char *)calloc(str_len + 1, sizeof(char));
+&nbsp;&nbsp;&nbsp;if (!(*display_language)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function calloc() failed.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The display language string of type i18n_uchar is copied to the char string,&nbsp;*/
+&nbsp;&nbsp;&nbsp;/* while the 8 higher bits are truncated from each of the i18n_uchar character.&nbsp;*/
+&nbsp;&nbsp;&nbsp;i18n_ustring_copy_au_n(*display_language, i18n_language, str_len);
+&nbsp;&nbsp;&nbsp;ret = get_last_result();
+&nbsp;&nbsp;&nbsp;if (ret != I18N_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(*display_language);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*display_language = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function i18n_ustring_copy_au_n() failed with error %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
 </div></div></div>
