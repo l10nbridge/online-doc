@@ -240,8 +240,18 @@ bool controller_init(viewdata_s *vd)
 static bool __get_available_locale_cb(const char *locale, void *data)
 {
 &nbsp;&nbsp;&nbsp;viewdata_s *vd = (viewdata_s *)data;
+&nbsp;&nbsp;&nbsp;char fpath[512] = { 0, };
+&nbsp;&nbsp;&nbsp;char *res_path = app_get_resource_path();
 
-&nbsp;&nbsp;&nbsp;view_add_locale(vd, locale);
+&nbsp;&nbsp;&nbsp;/* We need to limit the number of languages to those which are supported by this application.&nbsp;*/
+&nbsp;&nbsp;&nbsp;/* In order to do that, the existence of relevant translation file is checked.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;snprintf(fpath, sizeof(fpath), "%slocale/%s/LC_MESSAGES/$(appName).mo", res_path, locale);
+&nbsp;&nbsp;&nbsp;free(res_path);
+
+&nbsp;&nbsp;&nbsp;if (access(fpath, F_OK) != -1) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Language supported: %s", locale);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_add_locale(vd, locale);
+&nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;return true;
 }
