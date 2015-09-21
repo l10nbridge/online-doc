@@ -85,8 +85,6 @@ Evas_Object *add_win(const char *name)
 <pre class="prettyprint">
 static void init_evasgl(appdata_s *ad)
 {
-&nbsp;&nbsp;&nbsp;Ecore_Animator *ani;
-
 &nbsp;&nbsp;&nbsp;// Set config of the surface for Evas GL
 &nbsp;&nbsp;&nbsp;ad-&gt;cfg = evas_gl_config_new();
 &nbsp;&nbsp;&nbsp;ad-&gt;cfg-&gt;color_format = EVAS_GL_RGB_888;
@@ -122,8 +120,7 @@ static void init_evasgl(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_MOUSE_UP, mouse_up_cb, ad);
 &nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;img, EVAS_CALLBACK_MOUSE_MOVE, mouse_move_cb, ad);
 
-&nbsp;&nbsp;&nbsp;ani = ecore_animator_add(animate_cb, ad-&gt;img);
-&nbsp;&nbsp;&nbsp;evas_object_data_set(ad-&gt;img, &quot;ani&quot;, ani);
+&nbsp;&nbsp;&nbsp;ad-&gt;ani = ecore_animator_add(animate_cb, ad-&gt;img);
 &nbsp;&nbsp;&nbsp;elm_object_content_set(ad-&gt;conform, ad-&gt;img);
 }
 </pre>
@@ -230,7 +227,7 @@ static void img_pixel_cb(void *data, Evas_Object *obj)
 </li>
 
 <li>Add animators.
-<p>The scene does not get updated unless the object is marked as such. Games usually use an animator to have a regular update of the scene. The following is an example for a default update refresh rate:</p>
+<p>The scene does not get updated unless the object is marked as such. Games usually use an animator to have a regular update of the scene. The following is an example for a default update refresh rate. The animator callback function is also triggered when the display is off. So you should use <span style="font-family: Courier New,Courier,monospace">ecore_animator_freeze()</span> and <span style="font-family: Courier New,Courier,monospace">ecore_animator_thaw()</spn> in <span style="font-family: Courier New,Courier,monospace">app_pause_cb, app_resume_cb</span> for power saving.</p>
 <pre class="prettyprint">
 static Eina_Bool animate_cb(void *data)
 {
@@ -241,6 +238,20 @@ static Eina_Bool animate_cb(void *data)
 &nbsp;&nbsp;&nbsp;evas_object_image_pixels_dirty_set(img, EINA_TRUE);
 
 &nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+
+static void
+app_pause(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;ecore_animator_freeze(ad-&gt;ani);
+}
+
+static void
+app_resume(void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;ecore_animator_thaw(ad-&gt;ani);
 }
 </pre>
 
@@ -253,8 +264,7 @@ static Eina_Bool animate_cb(void *data)
 static void img_del_cb(void *data, Evas *e , Evas_Object *obj , void *event_info)
 {
 &nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;Ecore_Animator *ani = evas_object_data_get(ad-&gt;img, &quot;ani&quot;);
-&nbsp;&nbsp;&nbsp;ecore_animator_del(ani);
+&nbsp;&nbsp;&nbsp;ecore_animator_del(ad-&gt;ani);
 
 &nbsp;&nbsp;&nbsp;// Free the GL resources when image object is deleted
 &nbsp;&nbsp;&nbsp;evas_gl_make_current(ad-&gt;evasgl, ad-&gt;sfc, ad-&gt;ctx);
