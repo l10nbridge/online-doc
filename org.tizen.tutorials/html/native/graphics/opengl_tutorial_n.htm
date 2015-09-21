@@ -35,7 +35,6 @@
 				<li><a href="#source">Viewing the Entire Cube Source</a></li>
 			</ul>
 		</li>
-		 <li><a href="#multithread">Using OpenGL ES in Multi-threaded Applications</a></li>	
 		 <li><a href="#ext">Using OpenGL ES Extensions</a></li>
 	     <li><a href="#evas_ext">Using EvasGL Extensions</a></li>
 	     <li><a href="#direct">Using Direct Rendering</a></li>
@@ -76,8 +75,6 @@
 		<li><a href="#source">Viewing the Entire Cube Source</a>
 		<p>View the entire source code of the cube example.</p></li>  
 	  </ul>	  </li>
-	  <li><a href="#multithread">Using OpenGL ES in Multi-threaded Applications</a>
-	  <p>Share OpenGL ES data across threads, synchronize data, and pass messages between threads.</p></li>
 	  <li><a href="#ext">Using OpenGL ES Extensions</a>
 	  <p>Check whether an extension is available, and call it.</p></li>
 	  <li><a href="#evas_ext">Using EvasGL Extensions</a>
@@ -90,13 +87,9 @@
 
 <h2 id="basic" name="basic">Creating the Basic Application</h2>
 
-<p>This tutorial demonstrates how you can create a multicolored 3D rotating cube using the OpenGL ES 2.0 API provided by the GLView library. Several concepts are explained, such as the cube geometry, the initialization phase of the model, the adjustment of this very model frame by frame, and the way to design the OpenGL ES rendering loop.</p>
-<p>To create the basic application:</p>
-<ol>
-<li><p>Create a basic application as explained in the Basic application tutorial. The basic UI application skeleton already makes available the window object that contains the GLView canvas.</p>
-</li>
-<li>Build the environment:
-
+<p>This tutorial demonstrates how you can create a multicolored 3D rotating cube using OpenGL ES 2.0 API provided by GLView library. Several concepts are explained, such as the cube geometry, the initialization phase of the model, the adjustment of this very model frame by frame, and the way to design the OpenGL ES rendering loop.</p>
+<p>First create a basic application as explained in the Basic application tutorial. This provides a basic UI application skeleton which already makes available the window object that contains the GLView  canvas.</p>
+<h3>Building the Environment</h3>
 <p>Define the application data structure that holds all the objects pertinent for the GLView application:</p>
 <ul>
 <li><span style="font-family: Courier New,Courier,monospace">Evas_Object *win</span>: Application window</li>
@@ -116,26 +109,25 @@ appdata
 &nbsp;&nbsp;&nbsp;Evas_Object *main_box;
 &nbsp;&nbsp;&nbsp;Evas_Object *inner_box;
 } appdata_s;
-</pre></li>
+</pre>
 
-<li>
+<h3>OpenGL ES Canvas</h3>
 
-<p>Create the OpenGL ES canvas:</p>
-<ol type="a">
-<li>
-<p>When developing an application with Elementary, you can create a window by using the Elementary utility function:</p>
+<p>When developing an application with Elementary, you can create a window by using the Elementary utility function as below:</p>
+
 <pre class="prettyprint">
 elm_config_accel_preference_set(&quot;opengl&quot;); 
 ad-&gt;win = elm_win_util_standard_add(&quot;GLView Example&quot;, &quot;GLView Example&quot;);</pre>
-</li>
-<li>
-<p>To develop a GL application, you have to call the <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set()</span> function before creating a window which makes an application to use the GPU.</p>
+
+<p>To develop a GL application, you have to call <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set()</span> before creating a window which makes an application to use GPU.</p>
+
 <pre class="prettyprint">
 ad-&gt;glview = elm_glview_add(ad-&gt;main_box);</pre>
 
-<p>There are 2 different methods to call the GL functions:</p>
+<p>There are 2 different methods to call GL functions.</p>
 
-<ul><li>Use the Elementary GL Helper functions. You have to include the <span style="font-family: Courier New,Courier,monospace">Elementary_GL_Helpers.h</span> header file and define a global variable using the <span style="font-family: Courier New,Courier,monospace">ELEMENTARY_GLVIEW_GLOBAL_DEFINE()</span> function. Before calling the gl functions, write the <span style="font-family: Courier New,Courier,monospace">ELEMENTARY_GLVIEW_GLOBAL_USE()</span> function. This tutorial uses this method.
+<ul><li>First is to use Elementary GL Helper functions. You have to include <span style="font-family: Courier New,Courier,monospace">Elementary_GL_Helpers.h</span> and define a global variable by using <span style="font-family: Courier New,Courier,monospace">ELEMENTARY_GLVIEW_GLOBAL_DEFINE()</span>. Before calling gl functions, write <span style="font-family: Courier New,Courier,monospace">ELEMENTARY_GLVIEW_GLOBAL_USE()</span>. This tutorial uses this method. The usage is as follows.
+
 <pre class="prettyprint">
 #include &lt;Elementary_GL_Helpers.h&gt;
 ELEMENTARY_GLVIEW_GLOBAL_DEFINE();
@@ -153,77 +145,64 @@ draw_gl(Evas_Object *obj)
 &nbsp;&nbsp;&nbsp;glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }</pre></li>
 
-<li><p>Get the Evas_GL instance from the <span style="font-family: Courier New,Courier,monospace">elm_glview_gl_api_get()</span> function, and call the OpenGL ES functions with the instance.</p>
+<li><p>Second, you can get the Evas_GL instance from <span style="font-family: Courier New,Courier,monospace">elm_glview_gl_api_get</span> function, then you can call the OpenGL ES functions with the instance.</p>
 
 <pre class="prettyprint">
 ad-&gt;glview = elm_glview_add(ad-&gt;main_box);
 Evas_GL_API *glapi = elm_glview_gl_api_get(ad-&gt;glview);
 glapi-&gt;glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);</pre></li></ul>
-</li>
-<li>
-<p>Set the GLView mode. The <span style="font-family: Courier New,Courier,monospace">elm_glview_mode_set()</span> function supports alpha, depth, stencil, MSAA, and client_side_rotation.</p>
+
+<p>The next thing to do is to set the GLView mode. <span style="font-family: Courier New,Courier,monospace">elm_glview_mode_set(Evas_Object *obj, Elm_GLView_Mode mode)</span> supports alpha, depth, stencil, MSAA, and client_side_rotation.</p>
 
 <pre class="prettyprint">
 elm_glview_mode_set(ad-&gt;glview, ELM_GLVIEW_DEPTH);</pre>
-</li>
-<li>
-<p>Set up callbacks:</p>
+
+<p>To set up callbacks:</p>
+
+<pre class="prettyprint">
+elm_glview_init_func_set(ad-&gt;glview, init_gl);
+elm_glview_resize_func_set(ad-&gt;glview, resize_gl);
+elm_glview_render_func_set(ad-&gt;glview, draw_gl);
+elm_glview_del_func_set(ad-&gt;glview, del_gl);
+ani = ecore_animator_add(animate_cb, ad-&gt;glview);</pre>
+
 <ul>
 	<li>Callback for initialization
 	<p>The initialization callback is called when the GLView is first created, after a valid OpenGL ES context and surface have been created. This is called from the main loop, just as the 3 other callbacks.</p>
-	<pre class="prettyprint">
-elm_glview_init_func_set(ad-&gt;glview, init_gl);
-</pre>
 	</li>
 	<li>Callback for resizing
 	<p>The resize callback is called whenever the GLView component is resized. A common action to take here is to reset the viewport.</p>
-	<pre class="prettyprint">
-elm_glview_resize_func_set(ad-&gt;glview, resize_gl);
-</pre>
 	</li>
 	<li>Callback for drawing
-	<p>The drawing callback is called whenever a new frame has to be drawn.</p>
-	<pre class="prettyprint">
-elm_glview_render_func_set(ad-&gt;glview, draw_gl);
-</pre>
-	<p>The exact moment when this function is called depends on the policy set when calling.</p>
+	<p>The drawing callback is called whenever a new frame has to be drawn. The exact moment when this function is called depends on the policy set when calling.</p>
 
 	<pre class="prettyprint">
 elm_glview_render_policy_set(glview, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);</pre>
 
-	<p>Another policy is <span style="font-family: Courier New,Courier,monospace">ELM_GLVIEW_POLICY_ALWAYS</span>, which requests render always even when it is not visible. So on demand policy is probably what you are looking for. The application can now draw anything using GL primitives when this callback is triggered. All draw operations are restricted to the surface of the GLView object previously created. Here it covers the whole window.</p>
+	<p>Another policy is ELM_GLVIEW_POLICY_ALWAYS, which requests render always even when it is not visible. So on demand policy is probably what you are looking for. The application can now draw anything using GL primitives when this callback is triggered. All draw operations are restricted to the surface of the GLView object previously created. Here it covers the whole window.</p>
 	</li>
 	<li>Callback for deleting
 	<p>The delete callback is triggered when the GLView is being destroyed, from the main loop, and no other callback can be called on the same object afterwards.</p>
-	<pre class="prettyprint">
-elm_glview_del_func_set(ad-&gt;glview, del_gl);
-</pre>
 	</li>
 	<li>Add an animator.
-	<p>The application above is technically working but the scene does not get updated unless the object is marked as such. Games want to use an animator to have a regular update of the scene.</p>
-	<pre class="prettyprint">
-ani = ecore_animator_add(animate_cb, ad-&gt;glview);</pre>
+	<p>The application above is technically working but the scene does not get updated unless the object is marked as such. Games might want to use an animator to have a regular update of the scene.</p>
 
 	<p>Any other event can be used to refresh the view, for example user input if the view needs to be updated.</p>
 	</li>
 </ul>
-</li>
-</ol>
-</li>
-</ol>
+
 
 <h2 id="cube" name="cube">Creating the Cube</h2>
 
-<p>Creating and the coloring the cube can be separated into 2 distinct tasks: define the vertices and then add the colors to the faces.</p>
-<p>To create and color the cube:</p>
+<p>Creating and the coloring the cube can be separated into two distinct tasks: define the vertices and then add the colors to the faces.</p>
+
 
   <p class="figure">Figure: Cube</p> 
   <p align="center"><img alt="Cube" src="../../images/cube.png" /></p>
 
-<ol>
-<li><p>Declare an array that stores the vertices of the cube to make it look like the drawing above.</p>
- <pre class="prettyprint">
-static const float vertices[] =
+
+<p>Declare an array that stores the vertices of the cube in order to make it look like the drawing above.</p>
+ <pre class="prettyprint">static const float vertices[] =
 {
 &nbsp;&nbsp;&nbsp;// Front
 &nbsp;&nbsp;&nbsp;-0.5f, 0.5f, 0.5f,
@@ -273,10 +252,8 @@ static const float vertices[] =
   <p class="figure">Figure: Cube matrix</p> 
   <p align="center"><img alt="Cube matrix" src="../../images/cube_matrix.png" /></p>
 
-<p>Each triangle is defined with 3 point coordinates, 3 vertices for each triangle, 2 triangles per face and 6 faces. There are 36 vertices is total.</p>
-</li>
-<li>
-<p>Specify a color for each face of the cube. Each color is represented in the RGBA format for the corresponding vertex, where each component is ranged from 0 to 1 where 1 is the maximum value. For example, in 32-byte color space, the RGB color of (16, 147, 237) is translated as (0.0625, 0.57421875, 0.92578125). The A of RGBA stands for the alpha channel, which represents the transparency of the color. All colors defined in this tutorial are opaque to make it simpler, so each alpha value is set to 1.0. In this example, different variants of blue are used for the faces of the cube.</p>
+<p>Each triangle is defined with three point coordinates, three vertices for each triangle, two triangles per face and six faces, so there are 36 vertices is total.</p>
+<p>The next step is to specify a color for each face of the cube. Each color is represented in the RGBA format for the corresponding vertex, where each component is ranged from 0 to 1 where 1 is the maximum value. For example, in 32-byte color space, the RGB color of (16, 147, 237) is translated as (0.0625, 0.57421875, 0.92578125). The A of RGBA stands for the alpha channel, which represents the transparency of the color. All colors defined in this tutorial are opaque to make it simpler, so each alpha value is set to 1.0. In this example, different variants of blue are used for the faces of the cube.</p>
 <p>Specify the colors of the cube into an array dedicated to this vertex:</p>
 <pre class="prettyprint">static const float colors[] =
 {
@@ -324,17 +301,12 @@ static const float vertices[] =
 &nbsp;&nbsp;&nbsp;0.52734375f, 0.76171875f, 0.92578125f, 1.0f
 };
 </pre>
-</li>
-</ol>
 
 <h2 id="draw" name="draw">Drawing the Cube with GLView</h2>
 
-<p>After the model is initialized, create functionality to manipulate the scene. OpenGL ES 2.0 provided by GLView requires more preliminary work that the previous version of the library, but it gives you more power and flexibility, although this example does not take much benefit.</p>
-<p>To draw the cube with GLView and use mathematical functions for matrices:</p>
-
-<ol>
-<li>
-<p>Declare additional global variables for tasks specific to OpenGL ES 2.0. A program object is needed, an identifier for the vertices buffer, and another for the colors. Three variables are also required to ensure the connection with the shader language:</p>
+<h3>Mathematical Functions for Matrices</h3>
+<p>After the model is initialized, create functionality to manipulate the scene. OpenGL ES 2.0 provided by GLView  requires more preliminary work that the previous version of the library, but  gives more power and flexibility, although our example does not take much benefit.</p>
+<p>First, declare additional global variables for tasks specific to OpenGL ES 2.0. A program object is needed, an identifier for the vertices buffer and another for the colors. Three variables are also required to ensure the connection with the shader language:</p>
 <ul>
 <li><span style="font-family: Courier New,Courier,monospace">mvpLoc</span> is an identifier for model-view-projection matrix.</li>
 <li><span style="font-family: Courier New,Courier,monospace">positionLoc</span> is an identifier for the vertex position.</li>
@@ -353,13 +325,11 @@ static const float vertices[] =
 &nbsp;&nbsp;&nbsp;unsigned int colorLoc;
 }
 </pre>
-</li>
-<li>
-<p>Since OpenGL ES 2.0, some functions for matrix transformations have been removed. Define 3 matrices to use: projection matrix, model-view matrix, and a combination of these allows you to perform any transformations on the initial vertices matrix.</p>
-<ul>
-<li>Create the matrix multiplication function.
-<p>Define a function that is able to return the inner product of 2 matrices. This function reproduces the behavior of the <span style="font-family: Courier New,Courier,monospace">glMultMatrix()</span> function available in OpenGL ES 1.1. This function is very useful since almost every matrix transformation can be translated as multiplications of matrices.</p>
-<p>The function takes 3 parameters, 1 is for the result and the other 2 matrices are operands.</p>
+<p>Since OpenGL ES 2.0, some functions for matrix transformations have been removed. Define three matrices to use: projection matrix, model-view matrix, and a combination of these allows you to perform any transformations on the initial vertices matrix.</p>
+
+<h4>Matrix Multiplication Function (glMultMatrix)</h4>
+<p>First, define a function that is able to return the inner  product of two matrices. This function reproduces the behavior of <span style="font-family: Courier New,Courier,monospace">glMultMatrix()</span> available in OpenGL ES 1.1. This function is very useful since almost every matrix transformation can be translated as multiplications of matrices.</p>
+<p>The function takes three arguments, one is for the result and the other 2 matrices are operands:</p>
 <pre class="prettyprint">static void
 customMutlMatrix(float matrix[16], const float matrix0[16], const float matrix1[16])
 {
@@ -378,9 +348,9 @@ customMutlMatrix(float matrix[16], const float matrix0[16], const float matrix1[
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;matrix[i] = temp[i];
 }
 </pre>
-</li>
-<li>Create the matrix identity function.
-<p>Implement a function equivalent to the <span style="font-family: Courier New,Courier,monospace">glLoadIdentity()</span> function that replaces the current matrix with the identity matrix.</p>
+<h4>Matrix Identity Function (glLoadIdentity)</h4>
+
+<p>Implement a function equivalent to <span style="font-family: Courier New,Courier,monospace">glLoadIdentity()</span> that replaces the current matrix with the identity matrix:</p>
 <pre class="prettyprint">const float unit_matrix[] = 
 {
 &nbsp;&nbsp;&nbsp;1.0f, 0.0f, 0.0f, 0.0f,
@@ -396,9 +366,9 @@ customLoadIdentity(float matrix[16])
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;matrix[i] = unit_matrix[i];
 }
 </pre>
-</li>
-<li>Create the matrix projection function.
-<p>Since the <span style="font-family: Courier New,Courier,monospace">glFrustum()</span> function has been deprecated, implement a function that produces perspective projection matrices that are used to transform from eye coordinate space to clip coordinate space. This matrix projects a portion of the space (the &quot;frustum&quot;) to your screen. Many caveats apply (such as normalized device coordinates and perspective divide), but that is the idea.</p>
+
+<h4>Matrix Projection Function (glFrustum)</h4>
+<p>Since <span style="font-family: Courier New,Courier,monospace">glFrustum</span> has been depreciated, implement a function that produces perspective projection matrices that are used to transform from eye coordinate space to clip coordinate space. This matrix projects a portion of the space (the &quot;fustum&quot;) to your screen. Many caveats apply (normalized device coordinates, perspective divide, etc), but that is the idea:</p>
 <pre class="prettyprint">static int
 customFrustum(float result[16], 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const float left, const float right, 
@@ -431,9 +401,9 @@ customFrustum(float result[16],
 &nbsp;&nbsp;&nbsp;return 1;
 }
 </pre>
-</li>
-<li>Create the matrix scaling function.
-<p>The deprecated <span style="font-family: Courier New,Courier,monospace">glScale()</span> function represents a non-uniform scaling along the x, y, and z axes. The 3 parameters indicate the desired scale factor along each of the 3 axes.</p>
+
+<h4>Matrix Scaling Function (glScale)</h4>
+<p>Depreciated <span style="font-family: Courier New,Courier,monospace">glScale()</span> function represents  a non-uniform scaling along the x, y, and z axes. The three parameters indicate the desired scale factor along each of the three axes:</p>
 <pre class="prettyprint">const float scale_matrix[] = 
 {
 &nbsp;&nbsp;&nbsp;x,    0.0f, 0.0f, 0.0f,
@@ -442,7 +412,7 @@ customFrustum(float result[16],
 &nbsp;&nbsp;&nbsp;0.0f, 0.0f, 0.0f, 1.0f
 }
 </pre>
-<p>The following example shows the implementation of the matrix scaling function:</p>
+<p>Here is the implementation of the matrix scaling function:</p>
 <pre class="prettyprint">static void
 customScale(float matrix[16], const float sx, const float sy, const float sz)
 { 
@@ -462,10 +432,9 @@ customScale(float matrix[16], const float sx, const float sy, const float sz)
 &nbsp;&nbsp;&nbsp;matrix[11] *= sz; 
 }
 </pre>
-</li>
 
-<li>Create the matrix rotation function.
-<p>Define a function to represent a rotation by the vector (x y z). The current matrix is multiplied by a rotation matrix.</p>
+<h4>Matrix Rotation Function (glRotate)</h4>
+<p>Define a function to represent a rotation by the vector (x y z). The current matrix is multiplied by a rotation matrix:</p>
 <pre class="prettyprint">static void
 customRotate(float matrix[16], const float anglex, const float angley, const floatanglez)
 {
@@ -498,15 +467,10 @@ customRotate(float matrix[16], const float anglex, const float angley, const flo
 &nbsp;&nbsp;&nbsp;customMultMatrix(matrix, matrix, temp);
 }
 </pre>
-</li>
-</ul>
-</li>
-<li>Create the shader:
-<ol type="a">
-<li>
-<p>Define the source for the shader using a string array. First comes out vertex shader, which is used to a medium precision for float values. Then build a uniform matrix with dimensions 4x4 intended to hold the model-view-projection matrix. Also create 2 vector attributes which have 4 components for the vertex position and the color. This varying variable <span style="font-family: Courier New,Courier,monospace">v_color</span> can be accessed from the fragment shader.</p>
-<p>In the main function of the shader, initialize the position of the current vertex, <span style="font-family: Courier New,Courier,monospace">gl_Position</span>, with the product of the vertex position and the model-view-projection matrix, to normalize the position for the target screen. The pixel color is calculated by the varying variable from the vertex shader.</p>
-<p>In the fragment shader, declare a varying variable, and set the color of the pixel with this interpolated color.</p>
+
+<h3>Create the Shader</h3>
+<p>Define the source for the shader using a string array. First comes out vertex shader, which is used to a medium precision for float values. Then build a uniform matrix with dimensions 4x4 intended to hold the model-view-projection matrix. Also create two vector attributes which have 4 components for the vertex position and the color. This varying variable <span style="font-family: Courier New,Courier,monospace">v_color</span> can be accessed from the fragment shader. In the main function of the shader, initialize the position of the current vertex, <span style="font-family: Courier New,Courier,monospace">gl_Position</span>, with the product of the vertex position and the model-view-projection matrix, in order to normalize the position for the target screen. The pixel color is calculated by the varying variable from the vertex shader.</p>
+<p>In the fragment shader, declare a varying variable, then set the color of the pixel with this interpolated color.</p>
 <pre class="prettyprint">static const char vertex_shader[] =
 &nbsp;&nbsp;&nbsp;&quot;precision mediump float;&quot;
 &nbsp;&nbsp;&nbsp;&quot;uniform mat4 u_mvpMat;&quot;
@@ -526,9 +490,7 @@ static const char fragment_shader[] =
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;gl_FragColor = v_color;&quot;
 &nbsp;&nbsp;&nbsp;&quot;}&quot;;
 </pre>
-</li>
-<li>
-<p>Create the shaders, attach the source code that is just defined, and compile the program object:</p>
+<p>Create the shaders, attach the source code that is just defined and compile the program object:</p>
 <pre class="prettyprint">static void
 initShaders(void* data)
 {
@@ -545,9 +507,7 @@ initShaders(void* data)
 &nbsp;&nbsp;&nbsp;glShaderSource(ad-&gt;fgmt_shader, 1, &amp;p, NULL);
 &nbsp;&nbsp;&nbsp;glCompileShader(ad-&gt;fgmt_shader);
 </pre>
-</li>
-<li>
-<p>Once the shaders are ready, instantiate the program object and link the shaders. If the linking succeeds, you can destroy the shaders afterwards (using the <span style="font-family: Courier New,Courier,monospace">glDeleteShader()</span> function). Since they are inside the program object, it is pointless to keep them in memory.</p>
+<p>Once the shaders are ready, instantiate the program object and link the shaders. If the linking succeeds, you can destroy the shaders afterwards (using <span style="font-family: Courier New,Courier,monospace">glDeleteShader</span>). Since they are inside the program object, so it is pointless to keep them in memory.</p>
 <pre class="prettyprint">&nbsp;&nbsp;&nbsp;ad-&gt;program = glCreateProgram();
 
 &nbsp;&nbsp;&nbsp;glAttachShader(ad-&gt;program, ad-&gt;vtx_shader);
@@ -558,16 +518,14 @@ initShaders(void* data)
 
 &nbsp;&nbsp;&nbsp;glLinkProgram(ad-&gt;program);
 </pre>
-</li>
-<li>
-<p>For shader process, create identifiers for the attribute variables used in the shader program. Create an identifier for the model-view-projection matrix, another one for the current vertex position, and a last one for the vertex color.</p>
+
+<p>For shader process, create identifiers for the attribute variables used in the shader program. First create an identifier for the model-view-projection matrix, another one for the current vertex position, and a last one for the vertex color.</p>
 <pre class="prettyprint">&nbsp;&nbsp;&nbsp;ad-&gt;mvpLoc      = glGetUniformLocation(ad-&gt;program, &quot;u_mvpMat&quot;);
 &nbsp;&nbsp;&nbsp;ad-&gt;positionLoc = glGetAttribLocation(ad-&gt;program, &quot;a_position&quot;);
 &nbsp;&nbsp;&nbsp;ad-&gt;colorLoc    = glGetAttribLocation(ad-&gt;program, &quot;a_color&quot;);
 </pre>
-</li>
-<li>
-<p>Generate the buffers for the vertex positions and colors:</p>
+
+<p>Finally, generate the buffers for the vertex positions and colors.</p>
 <pre class="prettyprint">
 &nbsp;&nbsp;&nbsp;glGenBuffers(1, &amp;ad-&gt;vertexID);
 &nbsp;&nbsp;&nbsp;glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vertexID);
@@ -578,9 +536,8 @@ initShaders(void* data)
 &nbsp;&nbsp;&nbsp;glBufferData(GL_ARRAY_BUFFER, sizeof(colors), colors, GL_STATIC_DRAW);
 }
 </pre>
-</li>
-<li>
-<p>Allocate memory for the matrix and load a unit matrix into it. Define the value that is used to build the perspective projection matrix with the <span style="font-family: Courier New,Courier,monospace">customFrustum()</span> function. Multiply this resulting matrix with a resizing matrix, so the model is correctly adjusted to the screen.</p>
+
+<p>Allocate memory for the matrix and load a unit matrix into it. Then define the value that is used in order to build the perspective projection matrix. The <span style="font-family: Courier New,Courier,monospace">customFrustum()</span> function is used for it. Multiply this resulting matrix with a resizing matrix, so the model is correctly adjusted to the screen.</p>
 <pre class="prettyprint">
 float aspect;
 customLoadIdentity(view);
@@ -596,25 +553,17 @@ else
 &nbsp;&nbsp;&nbsp;customFrustum(view, -1.0, 1.0, -1.0 * aspect, 1.0 * aspect, -1.0, 1.0);
 }
 </pre>
-</li>
-</ol>
-</li>
-</ol>
 
 <h2 id="render" name="render">Rendering the Cube</h2>
 
-<p>To render the cube:</p>
-<ol>
-<li>
-<p>Set the viewport at 0,0 corresponding to the bottom left edge of the window, and the height and width of the GL surface. Clear the depth and the color buffers to the values that were selected during initialization. Call the <span style="font-family: Courier New,Courier,monospace">glUseProgram()</span> function to trigger the shader program.</p>
+<p>We set the viewport at 0,0 corresponding to the bottom left edge of the window, and the height and width of the GL surface. Clear the depth and the color buffers to the values that were selected during initialization. Then call the <span style="font-family: Courier New,Courier,monospace">glUseProgram()</span> function in order to trigger the shader program.</p>
 <pre class="prettyprint">glViewport(0, 0, w, h);
 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 glUseProgram(ad-&gt;program);
 </pre>
-</li>
-<li>
-<p>Bind the position and color identifiers to the buffers defined above:</p>
+
+<p>Also bind the position and color identifiers to the buffers defined above.</p>
 <pre class="prettyprint">glEnableVertexAttribArray(ad-&gt;positionLoc);
 glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vertexID);
 glVertexAttribPointer(ad-&gt;positionLoc, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
@@ -623,32 +572,27 @@ glEnableVertexAttribArray(ad-&gt;colorLoc);
 glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;colorID);
 glVertexAttribPointer(ad-&gt;colorLoc, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
 </pre>
-</li>
-<li>
-<p>Initialize and calculate the transformation matrix of the model-view matrix by calling the <span style="font-family: Courier New,Courier,monospace">customRotate()</span> function. This makes the cube view rotate a little for a better perspective. Once the model-view matrix is ready to display, multiply the projection matrix with the model-view matrix.</p>
+
+<p>After this, initialize and calculate the transformation matrix of the model-view matrix by calling the <span style="font-family: Courier New,Courier,monospace">customRotate()</span> function. This makes the cube view rotate a little for a better perspective. Once the model-view matrix is ready to display, multiply the projection matrix with the model-view matrix.</p>
 <pre class="prettyprint">customLoadIdentity(model);
 customRotate(ad-&gt;model, 45.0f, 45.0f, 0.0f);
 customMutlMatrix(ad-&gt;mvp, ad-&gt;view, ad-&gt;model);
 </pre>
-</li>
-<li>
-<p>Load the model-view-projection matrix into the shader and call the <span style="font-family: Courier New,Courier,monospace">glDrawArrays()</span> function to draw the model:</p>
+
+<p>Then load the model-view-projection matrix into the shader and call <span style="font-family: Courier New,Courier,monospace">glDrawArrays()</span> to draw the model.</p>
 <pre class="prettyprint">glUniformMatrix4fv(ad-&gt;mvpLoc, 1, GL_FALSE, mvp);
 glDrawArrays(GL_TRIANGLES, 0, 36);
 glFlush();
 </pre>
-</li>
-</ol>
+
+<p>You now are the proud owner of a nice cube!</p>
 
   <p class="figure">Figure: Static cube</p> 
   <p align="center"><img alt="Static cube" src="../../images/static_cube.png" /></p>
 
 <h2 id="animate" name="animate">Animating the Cube</h2>
 
-<p>To animate the cube:</p>
-<ol>
-<li>
-<p>Use the <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> to create an animation:</p>
+<p><span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> is used to create an animation.</p>
 <pre class="prettyprint">static Eina_Bool
 animate_cb(void *data)
 {
@@ -663,9 +607,8 @@ create_gl_canvas(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;ani = ecore_animator_add(animate_cb, ad-&gt;glview);
 }
 </pre>
-</li>
-<li>
-<p>Define the global variables which are used as parameters of the rendering process. Add parameters to the application data object that are used to control the scaling and the rotation of the cube. To make the cube rotate on 1 axis, take z, and allow the user to interact with the mouse to make the cube rotate on the other axes x and y. To figure out whether the user is holding the mouse down, add a Boolean variable to have this information. Operations such as shader initialization or program compilation are not required at each tick of the animation loop. For better performance, isolate such task from the repetitive rendering loop. For such purpose, add a Boolean variable which tells whether the initialization is already done.</p>
+
+<p>Next define the global variables which are used as parameters of the rendering process. Add parameters to the application data object that are used to control the scaling and the rotation of the cube. To make the cube rotate on one axis, take z, and allow the user to interact with the mouse to make the cube rotate on the two other axes x and y. In order to figure out whether the user is holding the mouse down, add a Boolean variable to have this information. Operations such as shader initialization or program compilation are not required at each tick of the animation loop. For better performance, isolate such task from the repetitive rendering loop. For such purpose, add a Boolean variable which tells whether the initialization is already done.</p>
 <pre class="prettyprint">typedef struct appdata 
 {
 &nbsp;&nbsp;&nbsp;float xangle;
@@ -675,29 +618,23 @@ create_gl_canvas(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;Eina_Bool initialized : 1;
 }  appdata_s;
 </pre>
-</li>
-<li><p>Modify the rendering loop for animation.</p>
-<ul>
-<li>
-<p>Lighten the recurrent rendering process by adding an initialization step:</p>
+
+<p>Here are the modifications that must be done to the rendering loop for animation.</p>
+<p>First, lighten the recurrent rendering process by adding an initialization step:</p>
 <pre class="prettyprint">if (ad-&gt;initialized) 
 {
 &nbsp;&nbsp;&nbsp;initShaders(ad);
 &nbsp;&nbsp;&nbsp;ad-&gt;initialized = EINA_TRUE;
 }
 </pre>
-</li>
-<li>
-<p>Before drawing the vertices, the rotation angle for the model-view matrix must be incremented for every tick. This makes the cube rotate automatically.</p>
+
+<p>Before drawing the vertices, the rotation angle for the model-view matrix must be incremented for every tick.</p>
 <pre class="prettyprint">customLoadIdentity(ad-&gt;model);
 customRotate(ad-&gt;model, ad-&gt;xangle, ad-&gt;yangle, ad-&gt;zangle++);
 customMutlMatrix(ad-&gt;mvp, ad-&gt;view, ad-&gt;model);
 </pre>
-</li>
-</ul>
-</li>
-<li>
-<p>Use the mouse to drag the cube around. To do so, add callbacks for mouse events. The first callback defines whether the user is holding the mouse down while moving the cursor around.</p>
+
+<p>This makes the cube rotate automatically. The next thing is to use the mouse to drag the cube around. To do so, add callbacks for mouse events. The first callback defines whether the user is holding the mouse down while moving the cursor around:</p>
 <pre class="prettyprint">static void
 mouse_down_cb(void *data, Evas *e , Evas_Object *obj , void *event_info)
 {
@@ -731,22 +668,16 @@ mouse_move_cb(void *data, Evas *e , Evas_Object *obj , void *event_info)
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
-</li>
-<li>
+
 <p>Define the mouse events callbacks when creating the image canvas:</p>
 <pre class="prettyprint">evas_object_event_callback_add(ad-&gt;glview, EVAS_CALLBACK_MOUSE_DOWN, mouse_down_cb, ad);
 evas_object_event_callback_add(ad-&gt;glview, EVAS_CALLBACK_MOUSE_UP, mouse_up_cb, ad);
 evas_object_event_callback_add(ad-&gt;glview, EVAS_CALLBACK_MOUSE_MOVE, mouse_move_cb, ad);
 </pre>
-</li>
-</ol>
 
 <h2 id="component" name="component">Implementing UI Component Interaction</h2>
 
-<p>To implement UI component interaction:</p>
-<ol>
-<li>
-<p>Use the UI component to control some aspects of the rendering, such as some sliders to control the shape of the cube. Declare 3 sliders to play with the scaling coordinates of the cube.</p>
+<p>Consider using UI component to control some aspects of the rendering. For example, use some sliders to control the shape of the cube. Declare 3 sliders to play with the scaling coordinates of the cube.</p>
 <pre class="prettyprint">typedef struct appdata 
 {
 &nbsp;&nbsp;&nbsp;Evas_Object *slx;
@@ -754,10 +685,9 @@ evas_object_event_callback_add(ad-&gt;glview, EVAS_CALLBACK_MOUSE_MOVE, mouse_mo
 &nbsp;&nbsp;&nbsp;Evas_Object *slz;
 }
 </pre>
-</li>
-<li>
-<p>Build and show the sliders when rendering the GUI. The sliders accept values in a range from 0.0 to 1.5. They control the scaling of each axis of the cube.</p>
-<pre class="prettyprint">// Slider for X axis scale
+
+<p>When rendering the GUI, build and show the sliders. Those accept values in a range from 0.0 to 1.5 and control the scaling of each axis of the cube.</p>
+<pre class="prettyprint">// Slider for X-axis scale
 ad-&gt;slx = elm_slider_add(ad-&gt;inner_box);
 evas_object_size_hint_align_set(ad-&gt;slx, EVAS_HINT_FILL, 0);
 elm_slider_horizontal_set(ad-&gt;slx, EINA_TRUE);
@@ -796,9 +726,8 @@ evas_object_color_set(ad-&gt;slz, 0.0, 0.0, 120, 255);
 elm_box_pack_end(ad-&gt;inner_box, ad-&gt;slz);
 evas_object_show(ad-&gt;slz);
 </pre>
-</li>
-<li>
-<p>Use the actual sliders&#39;s values and pass them to the scaling function in the rendering loop:</p>
+
+<p>Then use the actual sliders&#39;s values and pass them to the scaling function in the rendering loop:</p>
 <pre class="prettyprint">double scalex = elm_slider_value_get(ad-&gt;slx);
 double scaley = elm_slider_value_get(ad-&gt;sly);
 double scalez = elm_slider_value_get(ad-&gt;slz);
@@ -808,57 +737,25 @@ customRotate(ad-&gt;model, ad-&gt;xangle, ad-&gt;yangle, ad-&gt;zangle++);
 customScale(ad-&gt;model, scalex, scaley, scalez);
 customMutlMatrix(ad-&gt;mvp, ad-&gt;view, ad-&gt;model);
 </pre>
-</li>
-<li>
-<p>Use a colorpicker to change the background by adding a colorselector component:</p>
-<pre class="prettyprint">typedef struct appdata 
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *cs;
-}
-</pre>
-</li>
-<li>
-<p>Build the UI component with a default palette and add it to the GUI:</p>
-<pre class="prettyprint">ad-&gt;cs = elm_colorselector_add(ad-&gt;inner_box);
-elm_colorselector_mode_set(ad-&gt;cs, ELM_COLORSELECTOR_BOTH);
-elm_colorselector_palette_name_set(ad-&gt;cs, &quot;default&quot;);
-elm_box_pack_end(ad-&gt;inner_box, ad-&gt;cs);
-evas_object_show(ad-&gt;cs);
-</pre>
-</li>
-<li>
-<p>When rendering the cube, retrieve the currently selected color to define the color buffer. The colors from the colorselector vary from 0 to 255, which needs to be converted to the color format of OpenGL ES.</p>
-<pre class="prettyprint">int r, g, b, a;
-elm_colorselector_color_get(ad-&gt;cs, &amp;r, &amp;g, &amp;b, &amp;a);
-glClearColor(r/255.0, g/255.0, b/255.0, a/255.0);
-glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-</pre>
-</li>
-</ol>
 
 <h2 id="effect" name="effect">Implementing Effects</h2>
 
-<p>To implement effects:</p>
-<ol>
-<li>
-<p>Create a button that resets the scene by putting the background color to black and makes the cube bounce back to its original scale. Add the button to the application data object.</p>
+<p>Create a button that resets the scene by putting the background color to black and makes the cube bounce back to its original scale. First add the button to the application data object:</p>
 <pre class="prettyprint">typedef struct appdata 
 {
 &nbsp;&nbsp;&nbsp;Evas_Object *button;
 }
 </pre>
-</li>
-<li>
-<p>Add the button to the GUI:</p>
+
+<p>Then add the button to the GUI:</p>
 <pre class="prettyprint">elm_object_text_set(ad-&gt;button, &quot;Reset&quot;);
 elm_box_pack_start(ad-&gt;reset_vbox, ad-&gt;button);
 evas_object_smart_callback_add(ad-&gt;button, &quot;clicked&quot;, btn_reset_cb, ad);
 elm_box_pack_end(ad-&gt;inner_box, ad-&gt;button);
 evas_object_show(ad-&gt;button);
 </pre>
-</li>
-<li>
-<p>Declare a callback that resets the variables that have influence on the drawing of the cube. In addition, animate the sliders when they get back to their original position using the <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span>.</p>
+
+<p>Declare a callback that resets the variables that have influence on the drawing of the cube. In addition, animate the sliders when they get back to their original position using <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span>.</p>
 <pre class="prettyprint">
 typedef struct appdata 
 {
@@ -896,8 +793,6 @@ btn_reset_cb(void *data, Evas *e , Evas_Object *obj , void *event_info)
 &nbsp;&nbsp;&nbsp;ecore_animator_timeline_add(1, animate_reset_cb, ad);
 }
 </pre>
-</li>
-</ol>
 
 <h2 id="source" name="source">Viewing the Entire Cube Source</h2>
 
@@ -927,7 +822,6 @@ typedef struct appdata
 &nbsp;&nbsp;&nbsp;Evas_Object *slx;
 &nbsp;&nbsp;&nbsp;Evas_Object *sly;
 &nbsp;&nbsp;&nbsp;Evas_Object *slz;
-&nbsp;&nbsp;&nbsp;Evas_Object *cs;
 &nbsp;&nbsp;&nbsp;Evas_Object *button;
 
 &nbsp;&nbsp;&nbsp;unsigned int program;
@@ -1267,7 +1161,6 @@ static void
 draw_gl(Evas_Object *obj) 
 {
 &nbsp;&nbsp;&nbsp;int w, h;
-&nbsp;&nbsp;&nbsp;int r, g, b, a;
 &nbsp;&nbsp;&nbsp;appdata_s *ad = evas_object_data_get(obj, &quot;ad&quot;);
 
 &nbsp;&nbsp;&nbsp;double scalex = elm_slider_value_get(ad-&gt;slx);
@@ -1275,10 +1168,9 @@ draw_gl(Evas_Object *obj)
 &nbsp;&nbsp;&nbsp;double scalez = elm_slider_value_get(ad-&gt;slz);
 
 &nbsp;&nbsp;&nbsp;elm_glview_size_get(obj, &amp;w, &amp;h);
-&nbsp;&nbsp;&nbsp;elm_colorselector_color_get(ad-&gt;cs, &amp;r, &amp;g, &amp;b, &amp;a);
 
 &nbsp;&nbsp;&nbsp;glClearDepthf(1.0f);
-&nbsp;&nbsp;&nbsp;glClearColor(r / 255.0, g / 255.0, b / 255.0, a / 255.0);
+&nbsp;&nbsp;&nbsp;glClearColor(0.0, 0.0, 0.0, 1.0);
 &nbsp;&nbsp;&nbsp;glEnable(GL_CULL_FACE);
 
 &nbsp;&nbsp;&nbsp;glViewport(0, 0, w, h);
@@ -1321,7 +1213,6 @@ static Eina_Bool
 animate_cb(void *data) 
 {
 &nbsp;&nbsp;&nbsp;elm_glview_changed_set(data);
-
 &nbsp;&nbsp;&nbsp;return EINA_TRUE;
 }
 
@@ -1392,29 +1283,11 @@ btn_reset_cb(void *data, Evas_Object *obj,	void *event_info)
 &nbsp;&nbsp;&nbsp;ecore_animator_timeline_add(1, animate_reset_cb, ad);
 }
 
-static void 
-win_resize_cb(void *data, Evas *e, Evas_Object *obj, void *event_info) 
-{
-&nbsp;&nbsp;&nbsp;Evas_Coord w, h;
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-
-&nbsp;&nbsp;&nbsp;evas_object_geometry_get(obj, NULL, NULL, &amp;w, &amp;h);
-
-&nbsp;&nbsp;&nbsp;if (w &gt; h) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_box_horizontal_set(ad-&gt;main_box, EINA_TRUE);
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_box_horizontal_set(ad-&gt;main_box, EINA_FALSE);
-&nbsp;&nbsp;&nbsp;}
-}
-
-static void 
+static void
 win_back_cb(void *data, Evas_Object *obj, void *event_info) 
 {
 &nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;// Let the window go to the hidden state
+&nbsp;&nbsp;&nbsp;// Let window go to hidden state
 &nbsp;&nbsp;&nbsp;elm_win_lower(ad-&gt;win);
 }
 
@@ -1438,7 +1311,6 @@ create_base_gui(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *) (&amp;rots), 4);
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;win, EVAS_CALLBACK_RESIZE, win_resize_cb, ad);
 &nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
 &nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;win, EEXT_CALLBACK_BACK, win_back_cb, ad);
 
@@ -1476,15 +1348,15 @@ create_gl_canvas(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;elm_glview_mode_set(ad-&gt;glview, ELM_GLVIEW_DEPTH);
 
 &nbsp;&nbsp;&nbsp;// The resize policy tells GLView what to do with the surface when it
-&nbsp;&nbsp;&nbsp;// resizes. ELM_GLVIEW_RESIZE_POLICY_RECREATE tells it to
+&nbsp;&nbsp;&nbsp;// resizes. ELM_GLVIEW_RESIZE_POLICY_RECREATE will tell it to
 &nbsp;&nbsp;&nbsp;// destroy the current surface and recreate it to the new size
 &nbsp;&nbsp;&nbsp;elm_glview_resize_policy_set(ad-&gt;glview, ELM_GLVIEW_RESIZE_POLICY_RECREATE);
 
-&nbsp;&nbsp;&nbsp;// The render policy sets how GLView must render GL code.
-&nbsp;&nbsp;&nbsp;// ELM_GLVIEW_RENDER_POLICY_ON_DEMAND has the GL callback
+&nbsp;&nbsp;&nbsp;// The render policy sets how GLView should render GL code.
+&nbsp;&nbsp;&nbsp;// ELM_GLVIEW_RENDER_POLICY_ON_DEMAND will have the GL callback
 &nbsp;&nbsp;&nbsp;// called only when the object is visible.
-&nbsp;&nbsp;&nbsp;// ELM_GLVIEW_RENDER_POLICY_ALWAYS causes the callback to be
-&nbsp;&nbsp;&nbsp;// called even if the object were hidden
+&nbsp;&nbsp;&nbsp;// ELM_GLVIEW_RENDER_POLICY_ALWAYS would cause the callback to be
+&nbsp;&nbsp;&nbsp;// called even if the object were hidden.
 &nbsp;&nbsp;&nbsp;elm_glview_render_policy_set(ad-&gt;glview, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);
 
 &nbsp;&nbsp;&nbsp;// The initialize callback function gets registered here
@@ -1503,10 +1375,10 @@ create_gl_canvas(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;elm_box_pack_end(ad-&gt;main_box, ad-&gt;glview);
 &nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;glview);
 
-&nbsp;&nbsp;&nbsp;// This adds an animator so that the app regularly
-&nbsp;&nbsp;&nbsp;// triggers updates of the GLView using elm_glview_changed_set()
+&nbsp;&nbsp;&nbsp;// This adds an animator so that the app will regularly
+&nbsp;&nbsp;&nbsp;// trigger updates of the GLView using elm_glview_changed_set()
 &nbsp;&nbsp;&nbsp;//
-&nbsp;&nbsp;&nbsp;// NOTE: If you delete GL, this animator keeps running trying to access
+&nbsp;&nbsp;&nbsp;// NOTE: If you delete GL, this animator will keep running trying to access
 &nbsp;&nbsp;&nbsp;// GL so this animator needs to be deleted with ecore_animator_del()
 &nbsp;&nbsp;&nbsp;ani = ecore_animator_add(animate_cb, ad-&gt;glview);
 &nbsp;&nbsp;&nbsp;evas_object_data_set(ad-&gt;glview, &quot;ani&quot;, ani);
@@ -1528,17 +1400,11 @@ static void
 create_toolbox(appdata_s *ad) 
 {
 &nbsp;&nbsp;&nbsp;ad-&gt;inner_box = elm_box_add(ad-&gt;main_box);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(ad-&gt;inner_box, EVAS_HINT_FILL, 0);
 &nbsp;&nbsp;&nbsp;elm_box_horizontal_set(ad-&gt;inner_box, EINA_FALSE);
 &nbsp;&nbsp;&nbsp;elm_box_homogeneous_set(ad-&gt;inner_box, EINA_FALSE);
 &nbsp;&nbsp;&nbsp;elm_box_pack_end(ad-&gt;main_box, ad-&gt;inner_box);
 &nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;inner_box);
-
-&nbsp;&nbsp;&nbsp;// Color selector for the background
-&nbsp;&nbsp;&nbsp;ad-&gt;cs = elm_colorselector_add(ad-&gt;inner_box);
-&nbsp;&nbsp;&nbsp;elm_colorselector_mode_set(ad-&gt;cs, ELM_COLORSELECTOR_BOTH);
-&nbsp;&nbsp;&nbsp;elm_colorselector_palette_name_set(ad-&gt;cs, &quot;default&quot;);
-&nbsp;&nbsp;&nbsp;elm_box_pack_end(ad-&gt;inner_box, ad-&gt;cs);
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;cs);
 
 &nbsp;&nbsp;&nbsp;// Slider for X axis scale
 &nbsp;&nbsp;&nbsp;ad-&gt;slx = elm_slider_add(ad-&gt;inner_box);
@@ -1646,654 +1512,10 @@ main(int argc, char *argv[])
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, PACKAGE, &quot;The application failed to start, and returned %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
+
 &nbsp;&nbsp;&nbsp;return ret;
 }
-</pre>	  
-
-<h2 id="multithread" name="multithread">Using OpenGL ES in Multi-threaded Applications</h2>
-	
-<p>To use OpenGL ES in multi-threaded applications, set up the rendering view and initialize the application:</p>
- 
-<ol>
-<li>Manage the Elementary GLView:
-<ol type="a">
-
-<li>Create a single GLView component covering the whole window using the <span style="font-family: Courier New,Courier,monospace;">app_create()</span> function:
-<pre class="prettyprint">
-typedef struct 
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *glview;
-
-&nbsp;&nbsp;&nbsp;Eina_Lock lck;
-
-&nbsp;&nbsp;&nbsp;// RT to main loop
-&nbsp;&nbsp;&nbsp;Ecore_Pipe *pipe;
-
-&nbsp;&nbsp;&nbsp;// Main loop to RT: direct pipe file descriptors
-&nbsp;&nbsp;&nbsp;int rt_rpipefd, rt_wpipefd;
-
-&nbsp;&nbsp;&nbsp;// General OpenGL ES data: program to draw a texture fullscreen
-&nbsp;&nbsp;&nbsp;GLuint vtx_shader[1], fgmt_shader[1], program[1], vbo[2];
-&nbsp;&nbsp;&nbsp;Evas_GL_Context *main_ctx;
-
-&nbsp;&nbsp;&nbsp;// Render thread data
-&nbsp;&nbsp;&nbsp;struct 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Ecore_Thread *thread;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_GL_Context *ctx;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_GL_Surface *sfc;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GLfloat c1, c2, c3, c4;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Eina_Bool cancelled;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Eina_Bool finished;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Eina_Bool ready;
-&nbsp;&nbsp;&nbsp;} th;
-
-&nbsp;&nbsp;&nbsp;// Pool of Target_Buffer: empty, ready (locked access)
-&nbsp;&nbsp;&nbsp;Eina_Inlist *buffers_empty;
-&nbsp;&nbsp;&nbsp;Eina_Inlist *buffers_ready;
-&nbsp;&nbsp;&nbsp;Target_Buffer *last_buffer;
-} App_Data;
-
-static bool 
-app_create(void *data)
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *win, *glview;
-&nbsp;&nbsp;&nbsp;App_Data *ad = data;
-
-&nbsp;&nbsp;&nbsp;// Request OpenGL hardware acceleration
- 
-&nbsp;&nbsp;&nbsp;elm_config_accel_preference_set(&quot;gl&quot;);
-&nbsp;&nbsp;&nbsp;elm_config_accel_preference_override_set(EINA_TRUE);
-&nbsp;&nbsp;&nbsp;// Create a basic window  
-&nbsp;&nbsp;&nbsp;win = elm_win_util_standard_add(&quot;win&quot;, &quot;Multi-thread OpenGL ES demo&quot;);
-&nbsp;&nbsp;&nbsp;evas_object_show(win);
-&nbsp;&nbsp;&nbsp;// On window deletion, exit the render thread  
-&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;delete,request&quot;, delete_cb, &amp;ad);
-&nbsp;&nbsp;&nbsp;// Create a basic OpenGL ES surface with GLView  
-&nbsp;&nbsp;&nbsp;glview = elm_glview_version_add(win, EVAS_GL_GLES_2_X);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_min_set(glview, 240, 240);
-&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, glview);
-&nbsp;&nbsp;&nbsp;ELEMENTARY_GLVIEW_GLOBAL_USE(glview);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(glview, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(glview, EVAS_HINT_FILL, EVAS_HINT_FILL);
-&nbsp;&nbsp;&nbsp;evas_object_show(glview);
-
-&nbsp;&nbsp;&nbsp;elm_glview_mode_set(glview, ELM_GLVIEW_ALPHA);
-&nbsp;&nbsp;&nbsp;elm_glview_render_policy_set(glview, ELM_GLVIEW_RENDER_POLICY_ON_DEMAND);
-&nbsp;&nbsp;&nbsp;elm_glview_resize_policy_set(glview, ELM_GLVIEW_RESIZE_POLICY_RECREATE);
-&nbsp;&nbsp;&nbsp;elm_glview_init_func_set(glview, init);
-&nbsp;&nbsp;&nbsp;elm_glview_render_func_set(glview, render);
-
-&nbsp;&nbsp;&nbsp;evas_object_data_set(glview, &quot;ad&quot;, &amp;ad);
-&nbsp;&nbsp;&nbsp;ad-&gt;glview = glview;
-}
 </pre>
-</li>
-
-<li>Initialize the gl status. The main thread render function acts as a compositor thread.
-<pre class="prettyprint">
-static void
-init(Evas_Object *obj)
-{
-&nbsp;&nbsp;&nbsp;App_Data *ad = evas_object_data_get(obj, &quot;ad&quot;);
-&nbsp;&nbsp;&nbsp;const char *p;
-&nbsp;&nbsp;&nbsp;static const char vertex_texture[] =
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;attribute vec4 vPosition;\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;attribute vec2 vTexCoord;\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;varying vec2 texcoord;\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;void main()\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;{\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;   gl_Position = vPosition;\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;   texcoord = vTexCoord;\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;}\n&quot;;
-&nbsp;&nbsp;&nbsp;static const char fragment_texture[] =
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;#ifdef GL_ES\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;precision mediump float;\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;#endif\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;uniform sampler2D tex;\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;varying vec2 texcoord;\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;void main()\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;{\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;   gl_FragColor = texture2D(tex, texcoord);\n&quot;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;}\n&quot;;
-&nbsp;&nbsp;&nbsp;const float rectangle_fullscreen_vertices[] =
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0,  1.0,  0.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1.0, -1.0,  0.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0, -1.0,  0.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0,  1.0,  0.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1.0,  1.0,  0.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-1.0, -1.0,  0.0
-&nbsp;&nbsp;&nbsp;};
-&nbsp;&nbsp;&nbsp;const float texture_vertices[] =
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0,  1.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0,  0.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0,  0.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.0,  1.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0,  1.0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0.0,  0.0,
-&nbsp;&nbsp;&nbsp;};
-&nbsp;&nbsp;&nbsp;// Init main data
-&nbsp;&nbsp;&nbsp;ad-&gt;main_ctx = evas_gl_current_context_get(elm_glview_evas_gl_get(obj));
-&nbsp;&nbsp;&nbsp;// Create vertex data
-&nbsp;&nbsp;&nbsp;glGenBuffers(2, ad-&gt;vbo);
-&nbsp;&nbsp;&nbsp;glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vbo[0]);
-&nbsp;&nbsp;&nbsp;glBufferData(GL_ARRAY_BUFFER, 3 * 6 * 4, rectangle_fullscreen_vertices, GL_STATIC_DRAW);
-&nbsp;&nbsp;&nbsp;glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vbo[1]);
-&nbsp;&nbsp;&nbsp;glBufferData(GL_ARRAY_BUFFER, 2 * 6 * 4, texture_vertices, GL_STATIC_DRAW);
-&nbsp;&nbsp;&nbsp;// Texture draw
-&nbsp;&nbsp;&nbsp;p = vertex_texture;
-&nbsp;&nbsp;&nbsp;ad-&gt;vtx_shader[0] = glCreateShader(GL_VERTEX_SHADER);
-&nbsp;&nbsp;&nbsp;glShaderSource(ad-&gt;vtx_shader[0], 1, &amp;p, NULL);
-&nbsp;&nbsp;&nbsp;glCompileShader(ad-&gt;vtx_shader[0]);
-&nbsp;&nbsp;&nbsp;p = fragment_texture;
-&nbsp;&nbsp;&nbsp;ad-&gt;fgmt_shader[0] = glCreateShader(GL_FRAGMENT_SHADER);
-&nbsp;&nbsp;&nbsp;glShaderSource(ad-&gt;fgmt_shader[0], 1, &amp;p, NULL);
-&nbsp;&nbsp;&nbsp;glCompileShader(ad-&gt;fgmt_shader[0]);
-&nbsp;&nbsp;&nbsp;ad-&gt;program[0] = glCreateProgram();
-&nbsp;&nbsp;&nbsp;glAttachShader(ad-&gt;program[0], ad-&gt;vtx_shader[0]);
-&nbsp;&nbsp;&nbsp;glAttachShader(ad-&gt;program[0], ad-&gt;fgmt_shader[0]);
-</pre>
-</li>
-</ol>
-</li>
-
-<li>Create Ecore threads.
-<p>To easily create threads with EFL, use the <span style="font-family: Courier New,Courier,monospace;">ecore_thread()</span> infrastructure, which provides a high level abstraction over system threads, along with callbacks in the main loop to signal that a thread has finished running or has been canceled.</p>
-<p>When the main OpenGL ES context is properly set up, spawn the render thread and start setting up its OpenGL ES context:</p>
-<pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;glBindAttribLocation(ad-&gt;program[0], 0, &quot;vPosition&quot;);
-&nbsp;&nbsp;&nbsp;glBindAttribLocation(ad-&gt;program[0], 1, &quot;vTexCoord&quot;);
-&nbsp;&nbsp;&nbsp;glLinkProgram(ad-&gt;program[0]);
-
-&nbsp;&nbsp;&nbsp;ad-&gt;th.thread = ecore_thread_run(thread_run, thread_end, thread_cancel, ad);
-}
-</pre>
-
-<p>The <span style="font-family: Courier New,Courier,monospace;">thread_run()</span>, <span style="font-family: Courier New,Courier,monospace;">thread_end()</span>, and <span style="font-family: Courier New,Courier,monospace;">thread_cancel()</span> callback functions are called when the thread runs, returns successfully, or is canceled prematurely. In this application, the thread always returns and must never be forcefully canceled because it never returns from the <span style="font-family: Courier New,Courier,monospace;">thread_run()</span> function. To run again, trigger a cancel callback if the thread is calling the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_reschedule()</span> function.</p>
-</li>
-</ol>
-
-	<h3>Managing Inter-thread Communication Channels</h3>
-			
-<p>To establish safe communication channels between threads:</p>
-<ol>
-<li>Since most of EFL is not thread-safe, certain operations cannot be executed from another thread and you must use the main loop instead. 
-<p>Establish a communication channel from the render thread to the main loop.</p>
-<ol type="a">
-<li>Create an <span style="font-family: Courier New,Courier,monospace;">ecore_pipe</span> channel.
-<p>EFL provides a simple tool to send messages to the main thread using pipes. Ecore Pipe is the abstraction layer around pipe objects, and is the easiest way to send a message from any thread back to the main thread.</p>
-<pre class="prettyprint">
-// In the app_create() function, create pipe for messaging  
-ad.pipe = ecore_pipe_add(pipe_handler, &amp;ad);
-eina_lock_new(&amp;ad.lck);
-</pre>
-
-<p><span style="font-family: Courier New,Courier,monospace;">eina_lock_new()</span> creates a new <span style="font-family: Courier New,Courier,monospace;">Eina_Lock</span>. It protects access to shared variables.</p>
-</li>
-<li>Send messages with <span style="font-family: Courier New,Courier,monospace;">ecore_pipe</span>.
-<p>The following code passes <span style="font-family: Courier New,Courier,monospace;">Message_Data</span> structures, which are copied by <span style="font-family: Courier New,Courier,monospace;">ecore_pipe</span> and sent over to the <span style="font-family: Courier New,Courier,monospace;">pipe_handler</span> callback. <span style="font-family: Courier New,Courier,monospace;">Message_Data</span> structures have to be defined by the application.</p>
-<pre class="prettyprint">
-// Render thread to main loop  
-static void
-message_send(App_Data *ad, Message_Type type, ...)
-{
-&nbsp;&nbsp;&nbsp;Message_Data msg = {0};
-&nbsp;&nbsp;&nbsp;msg.type = type;
-&nbsp;&nbsp;&nbsp;if (type == MSG_NEWFRAME)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;va_list args;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;va_start(args, type);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;msg.newframe.target = va_arg(args, Target_Buffer *);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;va_end(args);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;// The pipe copies the passed data
-&nbsp;&nbsp;&nbsp;ecore_pipe_write(ad-&gt;pipe, &amp;msg, sizeof(msg));
-}
-</pre>
-</li>
-
-<li>Receive messages through the <span style="font-family: Courier New,Courier,monospace;">ecore_pipe</span>.
-<p>The <span style="font-family: Courier New,Courier,monospace;">ecore_pipe</span> has a callback running in the main thread, and receives data sent over by any thread.</p>
-<pre class="prettyprint">
-static void
-pipe_handler(void *data, void *buf, unsigned int len EINA_UNUSED)
-{
-&nbsp;&nbsp;&nbsp;Message_Data *msg = buf;
-&nbsp;&nbsp;&nbsp;App_Data *ad = data;
-&nbsp;&nbsp;&nbsp;switch (msg-&gt;type)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case MSG_HELLO:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Render thread has started  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;The render thread is saying hello.\n&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case MSG_GOODBYE:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is now safe to request exit from the main loop  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Thread has cleanly terminated.\n&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_exit();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-<p>You do not need to use the <span style="font-family: Courier New,Courier,monospace;">free()</span> function to free data since the data belongs to the <span style="font-family: Courier New,Courier,monospace;">ecore_pipe</span>.</p>
-</li>
-</ol>
-</li>
-
-<li><p>Sending messages to the render thread from the main thread covers input event passing handling. The following example passes input event messages and regular ticks to the render thread.</p>
-
-<p>Establish a communication channel from the main thread to the render thread:</p>
-
-<ol type="a">
-<li>Create a pipe.
-<p>The easiest way to send a simple message in EFL in Tizen is to rely on a POSIX pipe file handle.</p>
-<pre class="prettyprint">
-// Create a pipe for messaging  
-int fds[2];
-pipe(fds);
-ad.rt_rpipefd = fds[0];
-ad.rt_wpipefd = fds[1];
-</pre>
-</li>
-
-<li>Send messages to a thread. Write data to the pipe created above, from the main loop.
-<pre class="prettyprint">
-// Main loop to render thread  
-static void
-event_send(App_Data *ad, Event_Type type, ...)
-{
-&nbsp;&nbsp;&nbsp;// Event Data is defined by application
-&nbsp;&nbsp;&nbsp;Event_Data *ed = calloc(1, sizeof(Event_Data));
-&nbsp;&nbsp;&nbsp;ed-&gt;type = type;
-&nbsp;&nbsp;&nbsp;if (type == EVENT_MOUSE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;va_list args;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;va_start(args, type);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ed-&gt;mouse.down = (va_arg(args, int) != 0);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;va_end(args);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;// Manually send this over the pipe fd (only the pointer)  
-&nbsp;&nbsp;&nbsp;write(ad-&gt;rt_wpipefd, &amp;ed, sizeof(ed));
-}
-</pre>
-</li>
-
-<li>Receive messages in a thread.
-<p>In the render thread, use the event handling code.</p>
-<pre class="prettyprint">
-while (!ecore_thread_check(ad-&gt;th.thread))
-{
-&nbsp;&nbsp;&nbsp;Event_Data *ev = NULL;
-&nbsp;&nbsp;&nbsp;int r;
-
-&nbsp;&nbsp;&nbsp;// Render
-
-&nbsp;&nbsp;&nbsp;r = read(ad-&gt;rt_rpipefd, &amp;ev, sizeof(ev));
-&nbsp;&nbsp;&nbsp;if ((r == sizeof(ev)) &amp;&amp; ev)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Handle message
-&nbsp;&nbsp;&nbsp;}
-}
-</pre></li>
-
-<li>Use a simple pipe file descriptor to use the <span style="font-family: Courier New,Courier,monospace;">poll()</span> or <span style="font-family: Courier New,Courier,monospace;">select()</span> function to wait for events for a pre-determined period of time, or to wait for events on more than a single file descriptor. In this example, the main loop is responsible for the render thread life-cycle.
-<pre class="prettyprint">
-thread_run(void *data, Ecore_Thread *th EINA_UNUSED)
-{
-&nbsp;&nbsp;&nbsp;evas_gl_make_current(evgl, ad-&gt;th.sfc, ad-&gt;th.ctx);
-&nbsp;&nbsp;&nbsp;while (!ecore_thread_check(ad-&gt;th.thread))
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Prepare new frame
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glViewport(0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glBindFramebuffer(GL_FRAMEBUFFER, target-&gt;fbo);
-	  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (((r = read(ad-&gt;rt_rpipefd, &amp;ev, sizeof(ev))) == sizeof(ev)) &amp;&amp; ev)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ev-&gt;type == EVENT_QUIT)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(ev);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-
-<p>The <span style="font-family: Courier New,Courier,monospace;">ecore_thread_check()</span> function returns true when the thread is canceled using the <span style="font-family: Courier New,Courier,monospace;">ecore_thread_cancel()</span> function.</p>
-</li>
-</ol>
-</li>
-
-<li>Handle input events:
-<p>With the above setup environment, pass input events from the main thread to any thread.</p>
-<ol type="a">
-<li>Add the following code to the <span style="font-family: Courier New,Courier,monospace;">app_create()</span> function to catch mouse up or down events on the GLView object:
-<pre class="prettyprint">
-evas_object_event_callback_add(glview, EVAS_CALLBACK_MOUSE_DOWN, mouse_down_cb, &amp;ad);
-evas_object_event_callback_add(glview, EVAS_CALLBACK_MOUSE_UP, mouse_up_cb, &amp;ad);
-</pre>
-</li>
-
-<li>
-<p>Add a handle to the callbacks.</p>
-<p>The mouse down callback sends a mouse down event to render thread.</p>
-<pre class="prettyprint">
-static void
-mouse_down_cb(void *data, Evas *e EINA_UNUSED,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *obj EINA_UNUSED, void *event_info)
-{
-&nbsp;&nbsp;&nbsp;Evas_Event_Mouse_Down *event = event_info;
-&nbsp;&nbsp;&nbsp;App_Data *ad = data;
-&nbsp;&nbsp;&nbsp;if (event-&gt;button != 1)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-
-&nbsp;&nbsp;&nbsp;event_send(ad, EVENT_MOUSE, EINA_TRUE);
-}
-</pre>
-</li>
-<li>
-<p>The mouse up callback sends a mouse up event to render thread:</p>
-<pre class="prettyprint">
-static void
-mouse_up_cb(void *data, Evas *e EINA_UNUSED,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *obj EINA_UNUSED, void *event_info)
-{
-&nbsp;&nbsp;&nbsp;Evas_Event_Mouse_Up *event = event_info;
-&nbsp;&nbsp;&nbsp;App_Data *ad = data;
-
-&nbsp;&nbsp;&nbsp;if (event-&gt;button != 1)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-
-&nbsp;&nbsp;&nbsp;event_send(ad, EVENT_MOUSE, EINA_FALSE);
-}
-</pre>
-
-<p>The render thread receives these events calling the <span style="font-family: Courier New,Courier,monospace;">read()</span> function:</p>
-<pre class="prettyprint">
-thread_run(void *data, Ecore_Thread *th EINA_UNUSED)
-{
-&nbsp;&nbsp;&nbsp;// Prepare new frame
-&nbsp;&nbsp;&nbsp;glViewport(0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);
-&nbsp;&nbsp;&nbsp;glBindFramebuffer(GL_FRAMEBUFFER, target-&gt;fbo);
-&nbsp;&nbsp;&nbsp;evas_gl_make_current(evgl, ad-&gt;th.sfc, ad-&gt;th.ctx);
-&nbsp;&nbsp;&nbsp;while (!ecore_thread_check(ad-&gt;th.thread))
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Check for events from the main thread (one event at a time)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (((r = read(ad-&gt;rt_rpipefd, &amp;ev, sizeof(ev))) == sizeof(ev)) &amp;&amp; ev)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ev-&gt;type == EVENT_MOUSE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ev-&gt;mouse.down)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Do something
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-</li>
-</ol>
-</li>
-</ol>
-
-<h3>Managing Multi-thread OpenGL ES</h3>
-			
-<p>To deliver the result of OpenGL ES rendering to the main thread for compositing, render the thread:</p>
-<ol>
-<li>
-<p>The easiest way to share data between threads in OpenGL ES is to use shared contexts. However, all objects ID&#39;s, such as texture IDs and FBOs, are shared between contexts. In addition, it is not always allowed to bind the same object from different contexts at the same time.</p>
-
-<p>The example shows that the render thread uses EvasGL directly to create a dummy PBuffer surface and its render context. The PBuffer surface is necessary for the <span style="font-family: Courier New,Courier,monospace;">evas_gl_make_current()</span> function:</p>
-<pre class="prettyprint">
-Evas_GL *evgl = elm_glview_evas_gl_get(ad-&gt;glview);
-
-cfg = evas_gl_config_new();
-cfg-&gt;color_format = EVAS_GL_NO_FBO;
-cfg-&gt;depth_bits = EVAS_GL_DEPTH_NONE;
-cfg-&gt;stencil_bits = EVAS_GL_STENCIL_NONE;
-cfg-&gt;options_bits = EVAS_GL_OPTIONS_NONE;
-ad-&gt;th.sfc = evas_gl_pbuffer_surface_create(evgl, cfg, 1, 1, NULL);
-evas_gl_config_free(cfg);
-ad-&gt;th.ctx = evas_gl_context_create(evgl, ad-&gt;main_ctx);
-evas_gl_make_current(evgl, ad-&gt;th.sfc, ad-&gt;th.ctx);
-</pre>
-</li>
-
-<li>
-<p>Deliver images from one context to another using a shared FBO. The following example uses a pool of at least 2 buffers: texture and FBO. This works as double or triple buffering. At all times, one buffer is used for drawing (rendering in the render thread) and the other for compositing (reading in the main thread).</p>
-<pre class="prettyprint">
-// Create targets (needs at least 2)  
-eina_lock_take(&amp;ad-&gt;lck);
-for (i = 0; i &lt; BUFFER_COUNT; i++)
-{
-&nbsp;&nbsp;&nbsp;target = target_create(ad);
-&nbsp;&nbsp;&nbsp;if (!target) break;
-&nbsp;&nbsp;&nbsp;target-&gt;id = i;
-&nbsp;&nbsp;&nbsp;ad-&gt;buffers_empty = eina_inlist_append(ad-&gt;buffers_empty,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EINA_INLIST_GET(target));
-}
-eina_lock_release(&amp;ad-&gt;lck);
-message_send(ad, MSG_READY);
-</pre>
-</li>
-<li>
-<p>Use the <span style="font-family: Courier New,Courier,monospace;">target_create()</span> function to create a texture and an attached FBO, and package them together:</p>
-<pre class="prettyprint">
-typedef struct 
-{
-&nbsp;&nbsp;&nbsp;EINA_INLIST;
-&nbsp;&nbsp;&nbsp;GLuint fbo, tex;
-&nbsp;&nbsp;&nbsp;EvasGLSync sync;
-&nbsp;&nbsp;&nbsp;int id;
-} 
-Target_Buffer;
-
-static Target_Buffer *
-target_create(App_Data *ad EINA_UNUSED)
-{
-&nbsp;&nbsp;&nbsp;Target_Buffer *target = calloc(1, sizeof(Target_Buffer));
-&nbsp;&nbsp;&nbsp;GLenum err;
-&nbsp;&nbsp;&nbsp;if (!target)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
-&nbsp;&nbsp;&nbsp;glGenFramebuffers(1, &amp;target-&gt;fbo);
-&nbsp;&nbsp;&nbsp;glBindFramebuffer(GL_FRAMEBUFFER, target-&gt;fbo);
-&nbsp;&nbsp;&nbsp;glGenTextures(1, &amp;target-&gt;tex);
-&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, target-&gt;tex);
-&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-&nbsp;&nbsp;&nbsp;glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, BUFFER_WIDTH, BUFFER_HEIGHT, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-&nbsp;&nbsp;&nbsp;glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target-&gt;tex, 0);
-&nbsp;&nbsp;&nbsp;err = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-&nbsp;&nbsp;&nbsp;if (err != GL_FRAMEBUFFER_COMPLETE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;FBO could not be set: 0x%x\n&quot;, (int) err);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glDeleteTextures(1, &amp;target-&gt;tex);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glDeleteFramebuffers(1, &amp;target-&gt;fbo);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(target);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;return target;
-}
-</pre>
-</li>
-
-<li>
-<p>Use the shared buffers in the render thread as target surfaces:</p>
-<pre class="prettyprint">
-thread_run(void *data, Ecore_Thread *th EINA_UNUSED)
-{
-&nbsp;&nbsp;&nbsp;evas_gl_make_current(evgl, ad-&gt;th.sfc, ad-&gt;th.ctx);
-&nbsp;&nbsp;&nbsp;while (!ecore_thread_check(ad-&gt;th.thread))
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Get an empty buffer  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eina_lock_take(&amp;ad-&gt;lck);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!ad-&gt;buffers_empty)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Wait
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eina_lock_release(&amp;ad-&gt;lck);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;usleep(1000);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target = EINA_INLIST_CONTAINER_GET(ad-&gt;buffers_empty, Target_Buffer);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;buffers_empty = eina_inlist_remove(ad-&gt;buffers_empty, ad-&gt;buffers_empty);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eina_lock_release(&amp;ad-&gt;lck);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Prepare new frame  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glViewport(0, 0, BUFFER_WIDTH, BUFFER_HEIGHT);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glBindFramebuffer(GL_FRAMEBUFFER, target-&gt;fbo);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Draw a new frame  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thread_draw(ad);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Release FBO; some drivers complain if it is bound by a different thread
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glBindFramebuffer(GL_FRAMEBUFFER, 0);
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-</li>
-<li>
-<p>To render in a thread, use the <span style="font-family: Courier New,Courier,monospace;">thread_draw()</span> function. The following example draws with a color.</p>
-<pre class="prettyprint">
-static void
-thread_draw(App_Data *ad, Evas_GL_API *gl)
-{
-&nbsp;&nbsp;&nbsp;// Draw function  
-&nbsp;&nbsp;&nbsp;glClearColor(ad-&gt;th.c1, ad-&gt;th.c2, ad-&gt;th.c3, ad-&gt;th.c4);
-&nbsp;&nbsp;&nbsp;glClear(GL_COLOR_BUFFER_BIT);
-}
-</pre>
-</li>
-
-<li>Render the FBO to the screen. The following example uses the <span style="font-family: Courier New,Courier,monospace;">ecore_pipe</span>.
-<pre class="prettyprint">
-// Signal the main thread that a new frame is now available  
-message_send(ad, MSG_NEWFRAME, target);
-</pre>
-</li>
-<li>
-<p>The pipe handler receives this message in <span style="font-family: Courier New,Courier,monospace;">pipe_handler</span>. The following example adds the target buffer to a queue.</p>
-<pre class="prettyprint">
-case MSG_NEWFRAME:
-&nbsp;&nbsp;&nbsp;// Queue a new frame description  
-&nbsp;&nbsp;&nbsp;printf(&quot;Got a new frame with buffer %d\n&quot;, msg-&gt;newframe.target-&gt;id);
-&nbsp;&nbsp;&nbsp;eina_lock_take(&amp;ad-&gt;lck);
-&nbsp;&nbsp;&nbsp;ad-&gt;buffers_ready = eina_inlist_append(ad-&gt;buffers_ready, EINA_INLIST_GET(msg-&gt;newframe.target));
-&nbsp;&nbsp;&nbsp;eina_lock_release(&amp;ad-&gt;lck);
-&nbsp;&nbsp;&nbsp;elm_glview_changed_set(ad-&gt;glview);
-&nbsp;&nbsp;&nbsp;break;
-</pre>
-</li>
-<li>
-<p>The GLView <span style="font-family: Courier New,Courier,monospace;">render()</span> function is called from the main loop, and draws the texture to the screen:</p>
-<pre class="prettyprint">
-// Draw the texture on the screen  
-evas_object_geometry_get(ad-&gt;glview, 0, 0, &amp;w, &amp;h);
-draw_rectangle(ad, w, h, target-&gt;tex);
-</pre>
-
-<p>Draw the texture:</p>
-<pre class="prettyprint">
-void
-draw_rectangle(App_Data *ad, int w, int h, int tex)
-{
-&nbsp;&nbsp;&nbsp;GLuint u;
-&nbsp;&nbsp;&nbsp;glViewport(0, 0, w, h);
-&nbsp;&nbsp;&nbsp;glClearColor(0.2, 0.2, 0.2, 1.0);
-&nbsp;&nbsp;&nbsp;glClear(GL_COLOR_BUFFER_BIT);
-&nbsp;&nbsp;&nbsp;glEnable(GL_BLEND);
-&nbsp;&nbsp;&nbsp;glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-&nbsp;&nbsp;&nbsp;glUseProgram(ad-&gt;program[0]);
-&nbsp;&nbsp;&nbsp;glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vbo[0]);
-&nbsp;&nbsp;&nbsp;glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-&nbsp;&nbsp;&nbsp;glEnableVertexAttribArray(0);
-&nbsp;&nbsp;&nbsp;glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vbo[1]);
-&nbsp;&nbsp;&nbsp;glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, 0);
-&nbsp;&nbsp;&nbsp;glEnableVertexAttribArray(1);
-&nbsp;&nbsp;&nbsp;u = glGetUniformLocation(ad-&gt;program[0], &quot;tex&quot;);
-&nbsp;&nbsp;&nbsp;glUniform1i(u, 0);
-&nbsp;&nbsp;&nbsp;glActiveTexture(GL_TEXTURE0);
-&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, tex);
-&nbsp;&nbsp;&nbsp;glDrawArrays(GL_TRIANGLES, 0, 6);
-}
-</pre>
-</li>
-
-<li>
-<p>The above code works in some cases but depending on the GPU and driver, there can be synchronization issues between the 2 threads, as one is drawing and the other is reading from the same object. Remember that most GL commands are asynchronous.</p>
-
-<p>You can synchronize data between threads:</p>
-<ul>
-<li>Using fence sync objects
-<p>Use the <span style="font-family: Courier New,Courier,monospace;">fence_sync</span> extension:</p>
-<pre class="prettyprint">
-// Create fence sync  
-if (evasglCreateSync)
-&nbsp;&nbsp;&nbsp;target-&gt;sync = evasglCreateSync(evgl, EVAS_GL_SYNC_FENCE, NULL);
-else
-{
-&nbsp;&nbsp;&nbsp;target-&gt;sync = EVAS_GL_NO_SYNC;
-&nbsp;&nbsp;&nbsp;glFinish();
-}
-</pre>
-<p>The <span style="font-family: Courier New,Courier,monospace;">evasglCreateSync</span> function pointer is <span style="font-family: Courier New,Courier,monospace;">NULL</span> if the extension is not supported. In that case, call the <span style="font-family: Courier New,Courier,monospace;">glFinish()</span> function, because the lock is not used.</p>
-</li>
-
-<li>Waiting on a fence
-<p>The main thread now waits on this sync before drawing the texture on the screen. This yields a better performance than the <span style="font-family: Courier New,Courier,monospace;">glFinish()</span> function:</p>
-<pre class="prettyprint">
-// Wait for the render thread to complete rendering, if fence_sync is available  
-if (target-&gt;sync)
-{
-&nbsp;&nbsp;&nbsp;evasglClientWaitSync(evgl, target-&gt;sync,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; EVAS_GL_SYNC_FLUSH_COMMANDS_BIT,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; EVAS_GL_FOREVER);
-&nbsp;&nbsp;&nbsp;evasglDestroySync(evgl, target-&gt;sync);
-&nbsp;&nbsp;&nbsp;target-&gt;sync = EVAS_GL_NO_SYNC;
-}
-
-// Draw the texture on the screen  
-</pre>
-
-
-<p>Instead of passing <span style="font-family: Courier New,Courier,monospace;">EVAS_GL_FOREVER</span>, it is also possible to pass a timeout, so that the wait function never dead locks.</p>
-</li>
-</ul>
-</li>
-</ol>
-
-<h3>Using EvasGL Images</h3>
-		
-<p>You can deliver the result of rendering from one OpenGL ES thread to another to use EvasGLImage objects. This requires an underlying EGL image extension (or equivalent if the backend is not EGL), and might not be fully supported on all platforms.</p>
-<ol>
-<li>
-<p>To check for the presence of this extension, check the function pointers in Evas_GL_API:</p>
-<pre class="prettyprint">
-if (evasglCreateImageForContext)
-{
-&nbsp;&nbsp;&nbsp;// Create an image
-}
-</pre>
-</li>
-
-<li>
-<p>Create the image with a texture ID or a renderbuffer ID. Since EFL abstracts the underlying display system, such as X or Wayland, a portable application limits itself to the most portable options, such as pure OpenGL ES objects:</p>
-<pre class="prettyprint">
-if (evasglCreateImageForContext)
-{
-&nbsp;&nbsp;&nbsp;// Create an image
-&nbsp;&nbsp;&nbsp;evasglCreateImageForContext(evgl, ctx, EVAS_GL_TEXTURE_2D,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void*)(intptr_t)texid, NULL);
-}
-</pre>
-<p>Tizen also provides specific buffers created with TBM that can be passed to this function. Unfortunately the image extension is more device-dependent, and may not even work in the Tizen emulator.</p>
-</li>
-</ol>			
-			
 
 <h2 id="ext" name="ext">Using OpenGL ES Extensions</h2>
 
@@ -2338,14 +1560,15 @@ if (gl-&gt;glGetProgramBinaryOES)
 
 <p>Image and sync support are the most commonly used EvasGL extensions. Both can be used for multi-thread rendering, but EvasGL images can also be used to share images between contexts.</p>
 
-<ul>
-<li>To use the image extension:
+<h3>EvasGLImage</h3>
 
-<p>There are 2 versions of the <span style="font-family: Courier New,Courier,monospace;">evasglCreateImage()</span> function, out of which extra <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Context</span> is taken as a parameter. It is recommended to call the  <span style="font-family: Courier New,Courier,monospace;">evasglCreateImageForContext()</span> function if you are dealing with multiple contexts, otherwise calling the <span style="font-family: Courier New,Courier,monospace;">evasglCreateImage()</span> function is sufficient.</p>
+<p>There are 2 versions of the <span style="font-family: Courier New,Courier,monospace;">evasglCreateImage</span> function, out of which extra <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Context</span> is taken as an argument. It is recommended to call <span style="font-family: Courier New,Courier,monospace;">evasglCreateImageForContext</span> if you are dealing with multiple contexts, otherwise calling the <span style="font-family: Courier New,Courier,monospace;">evasglCreateImage</span> function is sufficient.</p>
+
+<p>The code below is just an example.</p>
 
 <ol>
 	<li>Check for support.
-	<p>Before using this extension, check whether it is supported.</p>
+	<p>Before using this extension, check whether it is supported:</p>
 
 	<pre class="prettyprint">
 if (gl-&gt;evasglCreateImageForContext &amp;&amp; gl-&gt;evasglDestroyImage)
@@ -2355,7 +1578,7 @@ if (gl-&gt;evasglCreateImageForContext &amp;&amp; gl-&gt;evasglDestroyImage)
 </pre>
 	</li>
 	<li>Create an image.
-	<p>Create a render buffer and bind it to an EvasGL image.</p>
+	<p>Create a render buffer and bind it to an EvasGL image:</p>
 
 	<pre class="prettyprint">
 const int width = 64, height = 64;
@@ -2383,7 +1606,7 @@ image = gl-&gt;evasglCreateImageForContext(evgl, ctx, EVAS_GL_TEXTURE_2D,
 	<p>The EvasGL image is now created and available for use from another context.</p>
 	</li>
 	<li>Use an image.
-	<p>To draw something in the texture and render that texture to the screen. The following example shows how to skip the draw function.</p>
+	<p>To draw something in the texture and render that texture to the screen. To skip the draw function:</p>
 
 	<pre class="prettyprint">
 gl-&gt;glBindFramebuffer(GL_FRAMEBUFFER_EXT, fbo);
@@ -2398,7 +1621,7 @@ gl-&gt;glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
 gl-&gt;glGenTextures(1, &amp;tex);
 gl-&gt;glBindTexture(GL_TEXTURE_2D, tex);
 gl-&gt;glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
-// Draw the contents of the texture on the screen
+//And do the actual draw operation (draw the contents of the texture on screen):
 static const GLint verts[12] = { -5, -6, -10,  5, -6, -10,  -5, 4, 10,  5, 4, 10 };
 static const GLint tex_coords[8] = { 0, 0,  1, 0,  0, 1,  1, 1 };
 
@@ -2425,36 +1648,32 @@ gl-&gt;glDisable(GL_TEXTURE_2D);
 	<p>The image content can be shared between different contexts.</p>
 	</li>
 	<li>Destroy an image.
-	<p>After releasing all the associated resources, such as FBO and textures, release the image object itself.</p>
+	<p>After releasing all the associated resources, such as FBO and textures, release the image object itself:</p>
 
 	<pre class="prettyprint">
 gl-&gt;evasglDestroyImage(image);</pre>
 	</li>
 </ol>
-</li>
-<li>To use the sync extension:
+
+<h3>Sync</h3>
 
 <p>Another commonly used extension is the fence sync extension along with the reusable sync and wait sync. This allows creating a semaphore-style object that is released as soon as all the previous render operations have been completed.</p>
 
-<p>This guide does not explain the details of these extensions, as they must behave in a similar way to their EGL implementations.</p>
+<p>This guide does not explain the details of these extensions, as they should behave in a similar way to their EGL implementations.</p>
 
 <p>As usual with extensions, check the support:</p>
 
 <pre class="prettyprint">
 if (gl-&gt;evasglCreateSync)
-&nbsp;&nbsp;&nbsp;// fence_sync must be supported
+  // fence_sync must be supported
 </pre>
-</li>
-</ul>
 
 <h2 id="direct" name="direct">Using Direct Rendering</h2>
 
 <p>To enhance rendering performance, the Direct Rendering option is supported.</p>
-<ul>
-<li>
-<p>To use direct rendering in GLView:</p>
 
-<p>In GLView, the <span style="font-family: Courier New,Courier,monospace;">ELM_GLVIEW_DIRECT</span> option is one of GLView mode&#39;s enums and the option can be enabled using the <span style="font-family: Courier New,Courier,monospace;">elm_glview_mode_set()</span> function.</p>
+<h3>GLView</h3>
+
 <pre class="prettyprint">
 // Tizen 2.3
 // elm_config_accel_preference_set(&quot;opengl&quot;);
@@ -2467,12 +1686,12 @@ Evas_Object *glview = elm_glview_add(win);
 elm_glview_mode_set(glview, ELM_GLVIEW_DEPTH_24 | ELM_GLVIEW_STENCIL_8 | ELM_GLVIEW_MULTISAMPLE_HIGH);
 </pre>
 
-<p>To use the Direct Rendering mode since Tizen 2.3.1, set the same option values (depth, stencil, and MSAA) to a rendering engine and a GLView object. You can set the option values to a rendering engine using the <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set()</span> function and to a GLView object using the <span style="font-family: Courier New,Courier,monospace">elm_glview_mode_set()</span> function. If the GLView object option values are bigger or higher than the rendering engine&#39;s, the Direct Rendering mode is disabled.</p>
-</li>
-<li>
-<p>To use direct rendering in EvasGL:</p>
+<p>In GLView, the <span style="font-family: Courier New,Courier,monospace;">ELM_GLVIEW_DIRECT</span> option is one of GLView mode&#39;s enums and the option can be enabled using the <span style="font-family: Courier New,Courier,monospace;">elm_glview_mode_set()</span> function.</p>
 
-<p>In EvasGL, the <span style="font-family: Courier New,Courier,monospace;">EVAS_GL_OPTIONS_DIRECT</span> is one of EvasGL&#39;s config options and the option can be enabled by setting the <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Config</span> option.</p>
+<p>To use the Direct Rendering mode since Tizen 2.3.1, set the same option values (depth, stencil, and MSAA) to a rendering engine and a GLView object. You can set the option values to a rendering engine using the <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set()</span> function and to a GLView object using the <span style="font-family: Courier New,Courier,monospace">elm_glview_mode_set()</span> function. If the GLView object option values are bigger or higher than the rendering engine&#39;s, the Direct Rendering mode is disabled.</p>
+
+<h3>EvasGL</h3>
+
 <pre class="prettyprint">
 // Tizen 2.3
 // elm_config_accel_preference_set(&quot;opengl&quot;);
@@ -2491,7 +1710,7 @@ cfg-&gt;options_bits = EVAS_GL_OPTIONS_DIRECT;
 cfg-&gt;multisample_bits = EVAS_GL_MULTISAMPLE_HIGH;
 </pre>
 
-<p>To use the Direct Rendering mode since Tizen 2.3.1, set the same option values (depth, stencil, and MSAA) to a rendering engine and an <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Config</span> object. You can set the option values to a rendering engine using the <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set()</span> function. If the <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Config</span> object option values are bigger or higher than the rendering engine&#39;s, the Direct Rendering mode is disabled.</p>
+<p>In EvasGL, the <span style="font-family: Courier New,Courier,monospace;">EVAS_GL_OPTIONS_DIRECT</span> is one of EvasGL&#39;s config options and the option can be enabled by setting the <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Config</span> option. To use the Direct Rendering mode since Tizen 2.3.1, set the same option values (depth, stencil, and MSAA) to a rendering engine and an <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Config</span> object. You can set the option values to a rendering engine using the <span style="font-family: Courier New,Courier,monospace">elm_config_accel_preference_set()</span> function. If the <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Config</span> object option values are bigger or higher than the rendering engine&#39;s, the Direct Rendering mode is disabled.</p>
 
   <table class="note"> 
    <tbody> 
@@ -2499,17 +1718,17 @@ cfg-&gt;multisample_bits = EVAS_GL_MULTISAMPLE_HIGH;
      <th class="note">Note</th> 
     </tr> 
     <tr> 
-     <td class="note">If direct rendering is enabled, EvasGL rendersdirectly to the back buffer of the window. Otherwise, EvasGL renders to the off screen buffer, then composited to the back buffer of the window.
+     <td class="note">If direct rendering is enabled, EvasGL will render directly to the back buffer of the window. Otherwise, EvasGL will render to the off screen buffer, then composited to the back buffer of the window.
 
-<p>Although direct rendering is enabled, EvasGL not always renders directly to the back buffer. The following conditions disable direct rendering and force a fallback to indirect rendering in a frame buffer:</p>
+<p>Although direct rendering is enabled, EvasGL will not always render directly to the back buffer. Here are some conditions that will disable direct rendering and force a fallback to indirect rendering in a frame buffer.</p>
 
-<ul>
+<ol>
 	<li>If the object&#39;s color is not 255,255,255,255.</li>
 	<li>If the object has an Evas map.</li>
 	<li>If the object size is different from the viewport, (<span style="font-family: Courier New,Courier,monospace;">RESIZE_POLICY_SCALE</span>).</li>
 	<li>If the window is rotated and <span style="font-family: Courier New,Courier,monospace;">CLIENT_SIDE_ROTATION</span> is not set.</li>
 	<li>If the GLView policy is set to <span style="font-family: Courier New,Courier,monospace;">ALWAYS</span> render or the EvasGL does not use pixel getter callback.</li>
-</ul></td> 
+</ol></td> 
     </tr> 
    </tbody> 
   </table> 
@@ -2523,40 +1742,40 @@ cfg-&gt;multisample_bits = EVAS_GL_MULTISAMPLE_HIGH;
      <td class="note">In the render callback function, call only GL functions.
 <p>In case the GL functions are called outside the render callback function, you must call the <span style="font-family: Courier New,Courier,monospace;">evas_gl_make_current()</span> function before the GL function calls. However, this results in a performance degradation due to context switching, and only works if the target surface is not an <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Surface</span> with Direct Rendering enabled.</p>	 
 
-<p>If the target buffer is an <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Surface</span> with Direct Rendering enabled, all GL functions must be called from the render callback function only. All other operations can break the rendering order and the unexpected rendering occurs.</p></td> 
+<p>If the target buffer is an <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Surface</span> with Direct Rendering enabled, all GL functions must be called from the render callback function only. All other operations can break the rendering order and the unexpected rendering will occur.</p></td> 
     </tr> 
    </tbody> 
   </table> 
-  </li>
-  </ul>
 
   <h2 id="client" name="client">Using Client-side Rotation</h2>
 
-<p>The Client Side Rotation is a special value that indicates to EFL that the application  handles the view rotation when the device is rotated. This is needed only when the application requests Direct Rendering.</p>
+
+<p>The Client Side Rotation is a special value that indicates to EFL that the application will handle the view rotation when the device is rotated. This is needed only when the application requests Direct Rendering.</p>
 
 <p>If the window is rotated and the Direct Rendering flag is set, Client Side Rotation can be used to avoid falling back to a frame buffer.</p>
 
-<ul>
-<li>To use GLView rotation:
+<h3>GLView</h3>
 
-<p>In GLView, the <span style="font-family: Courier New,Courier,monospace;">ELM_GLVIEW_CLIENT_SIDE_ROTATION</span> option is one of GLView mode&#39;s enums and the option can be enabled by using the <span style="font-family: Courier New,Courier,monospace;">elm_glview_mode_set()</span> function. This option is needed only when Direct Rendering is enabled.</p>
 <pre class="prettyprint">
 Evas_Object *gl;
 gl = elm_glview_add(win);
  
 elm_glview_mode_set(gl, ELM_GLVIEW_DEPTH | ELM_GLVIEW_DIRECT | ELM_GLVIEW_CLIENT_SIDE_ROTATION);</pre>
-</li>
 
-<li>To use EvasGL rotation:
+<p>In GLView, the <span style="font-family: Courier New,Courier,monospace;">ELM_GLVIEW_CLIENT_SIDE_ROTATION</span> option is one of GLView mode&#39;s enums and the option can be enabled by using the <span style="font-family: Courier New,Courier,monospace;">elm_glview_mode_set()</span> function. This option is needed only when Direct Rendering is enabled.</p>
 
-<p>In EvasGL, the <span style="font-family: Courier New,Courier,monospace;">EVAS_GL_OPTIONS_CLIENT_SIDE_ROTATION</span> is one of EvasGL&#39;s config options and this option can be enabled by setting the <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Config</span> option.</p>
+<h3>EvasGL</h3>
+
 <pre class="prettyprint">
 Evas_GL_Config *cfg;
 cfg = evas_gl_config_new();
  
 cfg-&gt;options_bits = EVAS_GL_OPTIONS_DIRECT | EVAS_GL_OPTIONS_CLIENT_SIDE_ROTATION;</pre>
 
+<p>In EvasGL, the <span style="font-family: Courier New,Courier,monospace;">EVAS_GL_OPTIONS_CLIENT_SIDE_ROTATION</span> is one of EvasGL&#39;s config options and this option can be enabled by setting the <span style="font-family: Courier New,Courier,monospace;">Evas_GL_Config</span> option.</p>
+
 <p>Get the current rotation value:</p>
+
 <pre class="prettyprint">
 static void _draw_gl(Evas_Object *obj) 
 {
@@ -2570,9 +1789,7 @@ static void _draw_gl(Evas_Object *obj)
 &nbsp;&nbsp;&nbsp;} 
 }</pre>
 
-<p>To get the current rotation of the view, in degrees, call the <span style="font-family: Courier New,Courier,monospace;">evas_gl_rotation_get()</span> function to properly handle the current rotation of the view. It always returns 0 unless the option <span style="font-family: Courier New,Courier,monospace;">EVAS_GL_OPTIONS_CLIENT_SIDE_ROTATION</span> has been set. Indeed, in case of Direct Rendering to the back buffer, the client application is responsible for properly rotating its view. This can generally be done by applying a rotation to a view matrix.</p>	
-</li>
-</ul>		
+<p>To get the current rotation of the view, in degrees, call the <span style="font-family: Courier New,Courier,monospace;">evas_gl_rotation_get()</span> in order to properly handle the current rotation of the view. It will always return 0 unless the option <span style="font-family: Courier New,Courier,monospace;">EVAS_GL_OPTIONS_CLIENT_SIDE_ROTATION</span> has been set. Indeed, in case of Direct Rendering to the back buffer, the client application is responsible for properly rotating its view. This can generally be done by applying a rotation to a view matrix.</p>			
 		
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
