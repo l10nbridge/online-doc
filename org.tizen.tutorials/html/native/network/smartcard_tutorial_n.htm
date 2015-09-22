@@ -63,13 +63,33 @@
 
 <p>To use the SE service:</p>
 <ol><li>
+<p>To use the functions and data types of the Smartcard API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__SMARTCARD__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__SMARTCARD__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;smartcard.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;smartcard.h&gt;
+</pre></li>
+<p>The <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/secureelement</span> privilege is required for the Smartcard API. Add the privilege to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file.</p>
+
+<pre class="prettyprint">
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;manifest xmlns=&quot;http://tizen.org/ns/packages&quot; api-version=&quot;2.3.1&quot; package=&quot;org.tizen.basicuiapplication&quot; version=&quot;1.0.0&quot;&gt;
+&nbsp;&nbsp;&nbsp;&lt;profile name=&quot;wearable&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&lt;ui-application appid=&quot;org.tizen.basicuiapplication&quot; exec=&quot;basicuiapplication&quot; type=&quot;capp&quot; multiple=&quot;false&quot; taskmanage=&quot;true&quot; nodisplay=&quot;false&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;icon&gt;basicuiapplication.png&lt;/icon&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;label&gt;basicuiapplication&lt;/label&gt;
+&nbsp;&nbsp;&nbsp;&lt;/ui-application&gt;
+&nbsp;&nbsp;&nbsp;&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/secureelement&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;/privileges&gt;
+&lt;/manifest&gt;
+</pre>
+
 <p>Initialize the smart card service for use:</p>
 <pre class="prettyprint">
 int ret;
 ret = smartcard_initialize();
 
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard initialize success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard initialize successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard initialize failed&quot;);
 </pre>
@@ -79,7 +99,7 @@ int ret;
 ret = smartcard_deinitialize();
 
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard deinitialize success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard deinitialize successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard deinitialize failed&quot;);
 </pre>
@@ -94,14 +114,19 @@ ret = smartcard_get_readers(&amp;phReaders, &amp;pLength);
 
 if (ret == SMARTCARD_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_get_readers is success&quot;);
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;reader handle : %d&quot;, phReaders[0]);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_get_readers successful&quot;);
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;readers length : %d&quot;, pLength);
+&nbsp;&nbsp;&nbsp;if (pLength &gt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;reader handle : %d&quot;, phReaders[0]);
+&nbsp;&nbsp;&nbsp;}
 }
 else
 {
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_get_readers failed : %d&quot;, ret);
 }
+
+if(phReaders != NULL)
+&nbsp;&nbsp;&nbsp;free(phReaders);
 </pre></li>
 </ol>
 
@@ -113,12 +138,13 @@ else
 <p>Retrieve the name of the reader with the <span style="font-family: Courier New,Courier,monospace;">smartcard_reader_get_name()</span> function:</p>
 <pre class="prettyprint">
 int ret;
+int reader = phReaders[0]; //get reader using smartcard_get_readers()
 char * pReader = NULL;
 
 ret = smartcard_reader_get_name(reader, &amp;pReader);
 if (ret == SMARTCARD_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_reader_get_name success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_reader_get_name successful&quot;);
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;reader name : %s&quot;, pReader);
 }
 else
@@ -137,7 +163,7 @@ bool is_present = false;
 ret = smartcard_reader_is_secure_element_present(reader, &amp;is_present);
 if (ret == SMARTCARD_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_reader_is_secure_element_present is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_reader_is_secure_element_present successful&quot;);
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;reader secure element present : %d&quot;, is_present);
 }
 else
@@ -160,7 +186,7 @@ if (ret == SMARTCARD_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;ret = smartcard_reader_close_sessions(reader);
 &nbsp;&nbsp;&nbsp;if (ret == SMARTCARD_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_reader_close_sessions success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_reader_close_sessions successful&quot;);
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;else
 &nbsp;&nbsp;&nbsp;{
@@ -189,7 +215,7 @@ ret = smartcard_session_get_reader(session, &amp;reader);
 ret = smartcard_reader_get_name(reader, &amp;pReader);
 if (ret == SMARTCARD_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_get_reader success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_get_reader successful&quot;);
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;reader name : %s&quot;, pReader);
 }
 else
@@ -199,6 +225,7 @@ else
 </pre></li>
 <li>Retrieve the answer to reset (ATR) of the SE:
 <pre class="prettyprint">
+int i;
 int ret;
 unsigned char *pAtr;
 int pLength;
@@ -207,7 +234,7 @@ ret = smartcard_session_get_atr(session, &amp;pAtr, &amp;pLength);
 
 if (ret == SMARTCARD_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_get_atr success : %d&quot;, pLength);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_get_atr successful : %d&quot;, pLength);
 &nbsp;&nbsp;&nbsp;for (i = 0; i &lt; pLength; i++)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;%x &quot;, (int)pAtr[i]);
 }
@@ -227,7 +254,7 @@ int channel;
 ret = smartcard_session_open_basic_channel(session, aid, 4, 0x00, &amp;channel);
 
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_open_basic_channel is success : %d&quot;, channel);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_open_basic_channel successful : %d&quot;, channel);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_open_basic_channel failed&quot;);
 
@@ -235,9 +262,9 @@ else
 ret = smartcard_session_open_logical_channel(session, aid, 12, 0x04, &amp;channel);
 
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_open_basic_channel is success : %d&quot;, (channel);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_open_logical_channel successful : %d&quot;, (channel);
 else
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_open_basic_channel failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_open_logical_channel failed : %d&quot;, ret);
 </pre>
 </li>
 <li>Close all channels opened for a specific session:
@@ -247,7 +274,7 @@ int ret;
 ret = smartcard_session_close_channels(session);
 
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_close_channels is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_close_channels successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_close_channels failed&quot;);
 </pre>
@@ -261,14 +288,14 @@ bool is_closed;
 ret = smartcard_session_close(session);
 
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_close is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_close successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_close failed&quot;);
 
 ret = smartcard_session_is_closed(session, &amp;is_closed);
 
 if (ret == SMARTCARD_ERROR_NONE &amp;&amp; is_closed == true)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_is_closed is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_is_closed successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_session_is_closed failed&quot;);
 </pre>
@@ -291,7 +318,7 @@ if (ret == SMARTCARD_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;ret = smartcard_channel_get_session(channel, &amp;session_handle);
 
 &nbsp;&nbsp;&nbsp;if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_get_session is success: %d&quot;, session_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_get_session successful: %d&quot;, session_handle);
 &nbsp;&nbsp;&nbsp;else
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_get_session failed&quot;);
 }
@@ -305,7 +332,7 @@ bool is_basic;
 ret = smartcard_channel_is_basic_channel(channel, &amp;is_basic);
 
 if (ret == SMARTCARD_ERROR_NONE &amp;&amp; is_basic == false)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_is_basic_channel is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_is_basic_channel successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_is_basic_channel failed&quot;);
 </pre></li>
@@ -318,7 +345,7 @@ if (ret == SMARTCARD_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;bool is_next = true;
 &nbsp;&nbsp;&nbsp;ret = smartcard_channel_select_next(channel, &amp;is_next);
 &nbsp;&nbsp;&nbsp;if (ret == SMARTCARD_ERROR_NONE &amp;&amp; is_next == false)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_select_next is success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_select_next successful&quot;);
 &nbsp;&nbsp;&nbsp;else
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_select_next failed&quot;);
 }
@@ -333,7 +360,7 @@ ret = smartcard_channel_get_select_response(channel, &amp;pSelectResponse, &amp;
 
 if (ret == SMARTCARD_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_get_select_response is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_get_select_response successful&quot;);
 &nbsp;&nbsp;&nbsp;for (i = 0; i &lt; pLength; i++)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_print(&quot;%x &quot;, (int)pSelectResponse[i]);
 }
@@ -354,7 +381,7 @@ ret = smartcard_channel_close(channel);
 ret = smartcard_channel_is_closed(channel, &amp;is_close);
 
 if (ret == SMARTCARD_ERROR_NONE &amp;&amp; is_close == true)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_is_closed is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_is_closed successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_is_closed failed&quot;);
 </pre>
@@ -367,7 +394,7 @@ int ret;
 ret = smartcard_channel_close(channel);
                         
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_close is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_close successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_close failed : %d&quot;, ret);
 </pre>
@@ -375,11 +402,17 @@ else
 <li>Transmit an APDU command (as per ISO/IEC 7816-4) to the SE:
 
 <pre class="prettyprint">
+int i;
+int ret;
+int resp_len;
+unsigned char *response = NULL;
+unsigned char command[] = {0x00, 0x01, 0x02, 0x03};
+
 ret = smartcard_channel_transmit(channel, command, 4, &amp;response, &amp;resp_len);
 
 if (ret == SMARTCARD_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_transmit is success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_transmit successful&quot;);
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;response is &quot;);
 &nbsp;&nbsp;&nbsp;for (i = 0; i &lt; resp_len; i++)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;%x &quot;, (int)response[i]);
@@ -403,7 +436,7 @@ if (ret == SMARTCARD_ERROR_NONE)
 
 &nbsp;&nbsp;&nbsp;if (ret == SMARTCARD_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_transmit_get_response is success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_transmit_get_response successful&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;response is &quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; pLength; i++)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;%x &quot;, (int)ptransmitResponse[i]);
@@ -437,7 +470,7 @@ int resp_len = 50;
 
 ret = smartcard_initialize();
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard initialize success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard initialize successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard initialize failed&quot;);</pre>
 </li>
@@ -468,7 +501,7 @@ if (ret == SMARTCARD_ERROR_NONE &amp;&amp; pLength != 0)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = smartcard_channel_transmit(channel, command, 4, &amp;response, &amp;resp_len);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret == SMARTCARD_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_transmit is success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard_channel_transmit successful&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;response is &quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; resp_len; i++)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;%x &quot;, (int)response[i]);
@@ -492,7 +525,7 @@ if (ret == SMARTCARD_ERROR_NONE &amp;&amp; pLength != 0)
 ret = smartcard_deinitialize();
 
 if (ret == SMARTCARD_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard deinitialize success&quot;);
+&nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard deinitialize successful&quot;);
 else
 &nbsp;&nbsp;&nbsp;TC_PRT(&quot;smartcard deinitialize failed&quot;);
 </pre>
