@@ -25,6 +25,7 @@
 			<li><a href="#options">Handling the Launch Options</a></li>
 			<li><a href="#controls">Managing Application Controls</a></li>
 			<li><a href="#export_appcontrol">Exporting AppControl Functionality</a></li>
+			<li><a href="#resolution">Resolving Application Controls</a></li>
 			<li><a href="#group">Managing Application Groups</a></li>
         </ul>
 		<p class="toc-title">Related Info</p>
@@ -191,18 +192,13 @@ app_control_destroy(app_control);
 <h3 id="implicit" name="implicit">Implicit Launch</h3>
 
 <p>When you request an implicit launch:</p>
-
 <ul>
-<li>Only 3 data categories are used to determine which application can be launched: Operation, URI scheme, and MIME type.</li>
-<li>The application launcher framework iterates the desktop files of installed applications on the device to find applications where the 3 categories are exactly matched.</li>
-<li>If only one application is matched for the given categories, that application is launched. If multiple matching  applications are found, the application selector is shown and the user can select the proper application.</li>
-<li>Each app control requires a different combination of the 3 categories. For some, only one category is necessary (for example, URI), for others, all 3 can be needed. Check the app control list and required data in the <a href="../../../../org.tizen.native.mobile.apireference/index.html">API Reference</a> to determine the needed categories.</li>
-<li>If no match is found, an error is returned.</li>
+<li>To determine which application can be launched, the application launcher framework compares the following conditions: operation, URI (or scheme), and MIME type.</li>
+<li>The application launcher framework iterates the app controls of all applications on the device to <a href="#resolution">find the applications that match</a> the given conditions.</li>
+<li>If only one application is matched for the given conditions, that application is launched. If multiple matching applications are found, the application selector is shown and the user can select the proper application.</li>
 </ul>
 <p>To allow the application launcher framework to find and select matching applications, each application must describe its operation, URI, or MIME type correctly.</p>
-
 <p>The following code example launches a camera application with the operation and MIME type:</p>
-
 <pre class="prettyprint">
 #include &lt;app.h&gt;
 #include &lt;dlog.h&gt;
@@ -365,25 +361,24 @@ static void app_control(app_control_h app_control, void *user_data)
 
 <p>The following common application controls are available:</p>
 <ul>
-			<li><a href="common_appcontrol_n.htm#browser">Browser</a></li>
-			<li><a href="common_appcontrol_n.htm#calendar">Calendar</a></li>
-			<li><a href="common_appcontrol_n.htm#call">Call</a></li>
-			<li><a href="common_appcontrol_n.htm#camera">Camera</a></li>
-			<li><a href="common_appcontrol_n.htm#contact">Contact</a></li>
-			<li><a href="common_appcontrol_n.htm#email">Email</a></li>
-			<li><a href="common_appcontrol_n.htm#file">File Storage</a></li>
-			<li><a href="common_appcontrol_n.htm#map">Map</a></li>
-			<li><a href="common_appcontrol_n.htm#message">Message</a></li>
-			<li><a href="common_appcontrol_n.htm#multimedia">Multimedia</a></li>
-			<li><a href="common_appcontrol_n.htm#settings_main">System Settings</a></li>
-			<ul>
-				<li><a href="common_appcontrol_n.htm#settings_bluetooth">System Settings for Bluetooth</a></li>
-				<li><a href="common_appcontrol_n.htm#settings_location">System Settings for Location</a></li>
-				<li><a href="common_appcontrol_n.htm#settings_nfc">System Settings for NFC</a></li>
-				<li><a href="common_appcontrol_n.htm#settings_wifi">System Settings for Wi-Fi</a></li>
-			</ul>
-			<li><a href="common_appcontrol_n.htm#voice">Voice Recorder</a></li>
-			
+	<li><a href="common_appcontrol_n.htm#browser">Browser</a></li>
+	<li><a href="common_appcontrol_n.htm#calendar">Calendar</a></li>
+	<li><a href="common_appcontrol_n.htm#call">Call</a></li>
+	<li><a href="common_appcontrol_n.htm#camera">Camera</a></li>
+	<li><a href="common_appcontrol_n.htm#contact">Contact</a></li>
+	<li><a href="common_appcontrol_n.htm#email">Email</a></li>
+	<li><a href="common_appcontrol_n.htm#file">File Storage</a></li>
+	<li><a href="common_appcontrol_n.htm#map">Map</a></li>
+	<li><a href="common_appcontrol_n.htm#message">Message</a></li>
+	<li><a href="common_appcontrol_n.htm#multimedia">Multimedia</a></li>
+	<li><a href="common_appcontrol_n.htm#settings_main">System Settings</a></li>
+	<ul>
+		<li><a href="common_appcontrol_n.htm#settings_bluetooth">Settings for Bluetooth</a></li>
+		<li><a href="common_appcontrol_n.htm#settings_location">Settings for Location</a></li>
+		<li><a href="common_appcontrol_n.htm#settings_nfc">Settings for NFC</a></li>
+		<li><a href="common_appcontrol_n.htm#settings_wifi">Settings for Wi-Fi</a></li>
+	</ul>
+	<li><a href="common_appcontrol_n.htm#voice">Voice Recorder</a></li>
 </ul>
 
 
@@ -404,10 +399,331 @@ static void app_control(app_control_h app_control, void *user_data)
 		element and forms an application resolution unit. The additional URI or MIME type information must contain the associated operation ID, and the retrieved application control must have the specified
 		application ID and operation ID when resolving the application control.
 	</p>
+	<table class="note">
+<tbody>
+    <tr>
+        <th class="note">Note</th>
+    </tr>
+    <tr>
+        <td class="note">The additional URI or MIME type can contain wildcards, such as &#39;*&#39;, to match against given conditions in the app control:
+		<ul><li>In the MIME type, you can use 2 types of wildcards: <span style="font-family: Courier New, Courier, monospace">image/*</span> and <span style="font-family: Courier New, Courier, monospace">*/*</span>.</li>
+<li>In the additional URI, a more complex pattern of wildcards with similar semantics as the standard <span style="font-family: Courier New, Courier, monospace">glob()</span> function is available: &#39;*&#39; matches an arbitrary, possibly empty, string, and &#39;?&#39; matches an arbitrary character. Unlike in the <span style="font-family: Courier New, Courier, monospace">glob()</span> function, the &#39;/&#39; character can be matched by the wildcards. There are no [...] character ranges, and the wildcards &#39;*&#39; and &#39;?&#39; cannot be escaped to include them literally in a pattern.</li></ul></td>
+    </tr>
+</tbody>
+</table>
 	<p>
 		You can specify the application control information of your application in the <a href="../../../../org.tizen.gettingstarted/html/native/process/setting_properties_n.htm#manifest">application project settings</a> in the IDE; an
 		operation ID must be specified for the application control.
 	</p>  
+	
+	<h2 id="resolution" name="resolution">Resolving Application Controls</h2>
+	
+<p>In case of an <a href="#implicit">implicit launch</a>, the platform resolves the application control with given conditions in the request by searching the filters (available application controls) in the device. The application control references the following conditions in its description:</p>
+<ul>
+<li>Operation: exact match required for the value in both the request and the filters.</li>
+<li>URI: exact, partial (scheme), and pattern matches are allowed according to the value in the filters.</li>
+<li>MIME type: exact and pattern matches are allowed according to the value in the filters. </li>
+</ul>
+<p>Each application control request has an operation value by default. In an application that is selected by the application control, the value in the request and the filters are always the same. Among the filters with identical operations, the URI and MIME types in the filters are compared with the following rules:</p>
+<ul>
+	<li>If the request has URI or MIME types as a condition, the comparison is done only among the filters that have URI or MIME types. For example, if the request has a URI, but a filter does not, that filter is not added to the result even if the operations are the same. Similarly, if the request has MIME types, it is not compared to the filters that have no MIME types.
+	
+	<p>An exception is applied to the URIs with a &quot;file&quot; scheme for the value. If the URI of the request contains an existing file path and no MIME types are supplied, the filters that have the MIME type of the given file path are also added to the results.</p>
+	</li>
+	<li>Unlike the operation, the URI and MIME types support wildcards on the filters. Detailed conditions for matches are:
+	<ul>
+		<li>URI filters are matched if:
+			<ul>
+				<li>Both URIs are exactly the same.</li>
+				<li>URI in the request passes the test with a <span style="font-family: Courier New, Courier, monospace">glob()</span>-like function with the URI in the filters.</li>
+				<li>Scheme and host part of the URI in the request and the URI in the filters are the same.</li>
+				<li>Scheme part of the URI in the request and the URI in the filters are the same.</li>
+			</ul>
+		</li>
+		<li>MIME type filters are matched if:
+			<ul>
+				<li>Both MIME types are exactly the same.</li>
+				<li>MIME type in the request and the filters have the same type and &#39;*&#39; for the subtype.</li>
+				<li>The filters have <span style="font-family: Courier New, Courier, monospace">*/*</span> for the MIME type.</li>
+			</ul>
+		</li>
+	</ul>
+	</li>
+</ul>
+	<table class="note">
+<tbody>
+    <tr>
+        <th class="note">Note</th>
+    </tr>
+    <tr>
+        <td class="note">
+		An application that expects to match with any form of URI and any type of MIME must use <span style="font-family: Courier New, Courier, monospace">&#39;*&#39;</span> and <span style="font-family: Courier New, Courier, monospace">*/*</span> in the resolution filter instead of leaving the value to <span style="font-family: Courier New, Courier, monospace">NULL</span>. Otherwise, the application is discarded by the application control.</td>
+    </tr>
+</tbody>
+</table>
+
+<p>The following examples show different scenarios for the results of resolving the application control:</p>
+<ul>
+<li>
+<p>Operation only provided:</p>
+<ul>
+<li>Request:
+<ul>
+<li>Operation: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></li>
+<li>URI: <span style="font-family: Courier New,Courier,monospace">NULL</span></li>
+<li>MIME: <span style="font-family: Courier New,Courier,monospace">NULL</span></li>
+</ul>
+</li>
+<li>Result (the reason for the failure is marked in <strong>bold</strong>):</li>
+</ul>
+
+<table>
+<tbody>
+	<tr>
+		<th>Filter ID</th>
+		<th>Operation</th>
+		<th>URI</th>
+		<th>MIME</th>
+		<th>Result</th>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/default</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>3</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">file</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Fail</td>
+	</tr>
+	</tbody>
+</table>
+</li>
+<li>
+<p>Operation and URI provided:</p>
+<ul>
+<li>Request:
+<ul>
+<li>Operation: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></li>
+<li>URI: <span style="font-family: Courier New,Courier,monospace">file:///usr/share/icons/calendar.png</span></li>
+<li>MIME: <span style="font-family: Courier New,Courier,monospace">NULL</span></li>
+</ul>
+</li>
+<li>Result (the reason for the failure is marked in <strong>bold</strong>):</li>
+</ul>
+<table>
+<tbody>
+	<tr>
+		<th>Filter ID</th>
+		<th>Operation</th>
+		<th>URI</th>
+		<th>MIME</th>
+		<th>Result</th>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">NULL</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">file:///usr/share/icons/calendar.png</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>3</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">file:///*</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>4</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">file</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>5</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">http</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>6</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>7</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">image/jpg</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	</tbody>
+</table>
+</li>
+<li>
+<p>Operation and MIME type provided:</p>
+<ul>
+<li>Request:
+	<ul>
+	<li>Operation: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></li>
+	<li>URI: <span style="font-family: Courier New,Courier,monospace">NULL</span></li>
+	<li>MIME: <span style="font-family: Courier New,Courier,monospace">image/png</span></li>
+	</ul>
+</li>
+<li>Result (the reason for the failure is marked in <strong>bold</strong>):</li>
+</ul>
+<table>
+<tbody>
+	<tr>
+		<th>Filter ID</th>
+		<th>Operation</th>
+		<th>URI</th>
+		<th>MIME</th>
+		<th>Result</th>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/*</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>3</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*/*</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>4</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">file:///usr/share/icons/calendar.png</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>5</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">image/jpg</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>6</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">video/*</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>7</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">http://tizen.org/favorites.png</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Fail</td>
+	</tr>
+	</tbody>
+</table>
+</li>
+<li>
+<p>Operation, URI, and MIME type provided:</p>
+<ul>
+<li>Request:
+	<ul>
+	<li>Operation: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></li>
+	<li>URI: <span style="font-family: Courier New,Courier,monospace">http://www.tizen.org/favorites.png</span></li>
+	<li>MIME: <span style="font-family: Courier New,Courier,monospace">image/png</span></li>
+	</ul>
+</li>
+<li>Result (the reason for the failure is marked in <strong>bold</strong>):</li>
+</ul>
+<table>
+<tbody>
+	<tr>
+		<th>Filter ID</th>
+		<th>Operation</th>
+		<th>URI</th>
+		<th>MIME</th>
+		<th>Result</th>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://www.tizen.org/favorites.png</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://www.tizen.org/favorites.png</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">NULL</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>3</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://www.tizen.org/*</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>4</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">http</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>5</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">NULL</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>6</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*/*</span></td>
+		<td>Pass</td>
+	</tr>
+	</tbody>
+</table>
+</li>
+</ul>
+
 
 <h2 id="group" name="group">Managing Application Groups</h2>
 <p>You can define the application launch mode and group your applications into entities that can be managed together.</p>
