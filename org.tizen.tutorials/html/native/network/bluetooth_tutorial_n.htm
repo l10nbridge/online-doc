@@ -871,7 +871,7 @@ break;
 <pre class="prettyprint">
 int ret = 0;
 
-ret = bt_gatt_client_foreach_services(client, __bt_gatt_client_foreach_svc_cb, (void *)test_id);
+ret = bt_gatt_client_foreach_services(client, __bt_gatt_client_foreach_svc_cb, NULL);
 if (ret != BT_ERROR_NONE) 
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;fail&quot;);
@@ -884,7 +884,6 @@ break;
 bool 
 __bt_gatt_client_foreach_svc_cb(int total, int index, bt_gatt_h svc_handle, void *data)
 {
-&nbsp;&nbsp;&nbsp;int test_id = (int)data;
 &nbsp;&nbsp;&nbsp;int ret;
 &nbsp;&nbsp;&nbsp;char *uuid = NULL;
 
@@ -892,18 +891,14 @@ __bt_gatt_client_foreach_svc_cb(int total, int index, bt_gatt_h svc_handle, void
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[%d / %d] uuid : (%s)&quot;, index, total, uuid);
 
 &nbsp;&nbsp;&nbsp;g_free(uuid);
-
-&nbsp;&nbsp;&nbsp;if (test_id == BT_UNIT_TEST_FUNCTION_GATT_CLIENT_PRINT_ALL) 
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_foreach_characteristics(svc_handle,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_foreach_chr_cb, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_foreach_characteristics(svc_handle,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_foreach_chr_cb, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)test_id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_foreach_characteristics is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_foreach_characteristics is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
 </li>
@@ -918,7 +913,6 @@ __bt_gatt_client_foreach_chr_cb(int total, int index, bt_gatt_h chr_handle, void
 &nbsp;&nbsp;&nbsp;bt_gatt_get_uuid(chr_handle, &amp;uuid);
 
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;\t[%d / %d] uuid : (%s)&quot;, index, total, uuid);
-&nbsp;&nbsp;&nbsp;__bt_gatt_client_print_value(chr_handle);
 
 &nbsp;&nbsp;&nbsp;g_free(uuid);
 
@@ -941,7 +935,6 @@ __bt_gatt_client_foreach_desc_cb(int total, int index, bt_gatt_h desc_handle, vo
 &nbsp;&nbsp;&nbsp;bt_gatt_get_uuid(desc_handle, &amp;uuid);
 
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;\t\t[%d / %d] uuid : (%s)&quot;, index, total, uuid);
-&nbsp;&nbsp;&nbsp;__bt_gatt_client_print_value(desc_handle);
 
 &nbsp;&nbsp;&nbsp;g_free(uuid);
 
@@ -953,64 +946,46 @@ __bt_gatt_client_foreach_desc_cb(int total, int index, bt_gatt_h desc_handle, vo
 </li>
 <li>Read the value of the given attribute handle:
 <pre class="prettyprint">
-{
-&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *desc_uuid = NULL;
-&nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
-&nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
-&nbsp;&nbsp;&nbsp;bt_gatt_h desc = NULL;
+&nbsp;&nbsp;char *svc_uuid = "0000180f-0000-1000-8000-00805f9b34fb"; /* Battery Service */
+&nbsp;&nbsp;char *chr_uuid = "00002a19-0000-1000-8000-00805f9b34fb"; /* Battery Level */
+&nbsp;&nbsp;char *desc_uuid = "00002902-0000-1000-8000-00805f9b34fb"; /* Client Characteristic Configuration */
+&nbsp;&nbsp;bt_gatt_h svc = NULL;
+&nbsp;&nbsp;bt_gatt_h chr = NULL;
+&nbsp;&nbsp;bt_gatt_h desc = NULL;
 
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
+&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
-&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
+&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
+&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
-&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_read_value(desc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_read_complete_cb, NULL);
+&nbsp;&nbsp;}
+&nbsp;&nbsp;else
+&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_read_value(chr,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_read_complete_cb, NULL);
+&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
-&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &gt; 2) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;desc_uuid = g_test_param.params[2];
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_read_value(desc,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_read_complete_cb, NULL);
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_client_read_value(chr,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_read_complete_cb, NULL);
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_read_value is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
-}
+&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_read_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;}
 </pre> 
 <p>After the reading operation is complete, use the <span style="font-family: Courier New,Courier,monospace;">bt_gatt_client_read_complete_cb()</span> callback to handle values:</p>
 <pre class="prettyprint">
@@ -1027,10 +1002,8 @@ __bt_gatt_client_read_complete_cb(int result, bt_gatt_h gatt_handle, void *data)
 &nbsp;&nbsp;&nbsp;g_free(uuid);
 
 &nbsp;&nbsp;&nbsp;if (result != BT_ERROR_NONE)
-
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 
-&nbsp;&nbsp;&nbsp;__bt_gatt_client_print_value(gatt_handle);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1039,28 +1012,17 @@ __bt_gatt_client_read_complete_cb(int result, bt_gatt_h gatt_handle, void *data)
 <li>Set a value for the given attribute handle:
 
 <pre class="prettyprint">
-{
-&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *desc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *svc_uuid = "0000180f-0000-1000-8000-00805f9b34fb"; /* Battery Service */
+&nbsp;&nbsp;&nbsp;char *chr_uuid = "00002a19-0000-1000-8000-00805f9b34fb"; /* Battery Level */
+&nbsp;&nbsp;&nbsp;char *desc_uuid = "00002902-0000-1000-8000-00805f9b34fb"; /* Client Characteristic Configuration */
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h desc = NULL;
-
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
-&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
@@ -1068,27 +1030,21 @@ __bt_gatt_client_read_complete_cb(int result, bt_gatt_h gatt_handle, void *data)
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &gt; 2) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;desc_uuid = g_test_param.params[2];
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = __bt_gatt_client_set_value(g_test_param.params[3],
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_test_param.params[4], desc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = __bt_gatt_client_set_value("int32",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"1234", desc);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_set_value is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 
@@ -1097,12 +1053,11 @@ __bt_gatt_client_read_complete_cb(int result, bt_gatt_h gatt_handle, void *data)
 &nbsp;&nbsp;&nbsp;} 
 &nbsp;&nbsp;&nbsp;else 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = __bt_gatt_client_set_value(g_test_param.params[2], 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_test_param.params[3], chr);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = __bt_gatt_client_set_value(desc_uuid, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"int32", chr);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_set_value is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 
@@ -1114,8 +1069,6 @@ __bt_gatt_client_read_complete_cb(int result, bt_gatt_h gatt_handle, void *data)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_write_value is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
-}
 </pre>
 <p>After the writing operation is complete, use the <span style="font-family: Courier New,Courier,monospace;">bt_gatt_client_write_complete_cb()</span> callback to finish the task:</p>
 <pre class="prettyprint">
@@ -1138,26 +1091,15 @@ __bt_gatt_client_write_complete_cb(int result, bt_gatt_h gatt_handle, void *data
 <li>Register a callback function to be invoked when the characteristic value changes on the remote device:
 
 <pre class="prettyprint">
-{
-&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *svc_uuid = "0000180f-0000-1000-8000-00805f9b34fb";
+&nbsp;&nbsp;&nbsp;char *chr_uuid = "00002a19-0000-1000-8000-00805f9b34fb";
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
-
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
-&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
@@ -1165,7 +1107,6 @@ __bt_gatt_client_write_complete_cb(int result, bt_gatt_h gatt_handle, void *data
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
@@ -1173,9 +1114,7 @@ __bt_gatt_client_write_complete_cb(int result, bt_gatt_h gatt_handle, void *data
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_set_characteristic_value_changed_cb is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre>
 <p>After registering the callback operation, use the <span style="font-family: Courier New,Courier,monospace;">__bt_gatt_client_value_changed_cb()</span> callback to display the changed value:</p>
 <pre class="prettyprint">
@@ -1204,25 +1143,15 @@ __bt_gatt_client_value_changed_cb(bt_gatt_h chr, char *value, int len, void *use
 
 <pre class="prettyprint">
 {
-&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *svc_uuid = "0000180f-0000-1000-8000-00805f9b34fb"; /* Battery Service */
+&nbsp;&nbsp;&nbsp;char *chr_uuid = "00002a19-0000-1000-8000-00805f9b34fb"; /* Battery Level */
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
-
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
-&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
@@ -1230,7 +1159,6 @@ __bt_gatt_client_value_changed_cb(bt_gatt_h chr, char *value, int len, void *use
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
@@ -1238,7 +1166,6 @@ __bt_gatt_client_value_changed_cb(bt_gatt_h chr, char *value, int len, void *use
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_unset_characteristic_value_changed_cb is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
@@ -1263,7 +1190,6 @@ break;
 <ul>
 <li>Get the type of a service, characteristic, or descriptor handle:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;int ret = 0;
 &nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_type_e gatt_type;
@@ -1275,12 +1201,10 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_type is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get the UUID of a service, characteristic, or descriptor handle:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;int ret = 0;
 &nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
 &nbsp;&nbsp;&nbsp;char *uuid = NULL;
@@ -1292,12 +1216,10 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_uuid is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get the value of a characteristic or descriptor handle:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;int ret = 0;
 &nbsp;&nbsp;&nbsp;int len = 0;
 &nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
@@ -1310,15 +1232,13 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_value is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get the value of a characteristic or descriptor handle as an <span style="font-family: Courier New,Courier,monospace;">integer</span> type:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;int ret = 0;
 &nbsp;&nbsp;&nbsp;int offset = 0;
-&nbsp;&nbsp;&nbsp;bt_data_type_int_e type,;
+&nbsp;&nbsp;&nbsp;bt_data_type_int_e type;
 &nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
 &nbsp;&nbsp;&nbsp;int value;
 
@@ -1329,15 +1249,13 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_int_value is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get the value of a characteristic or descriptor handle as a <span style="font-family: Courier New,Courier,monospace;">float</span> type:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;int ret = 0;
 &nbsp;&nbsp;&nbsp;int offset = 0;
-&nbsp;&nbsp;&nbsp;bt_data_type_float_e type,;
+&nbsp;&nbsp;&nbsp;bt_data_type_float_e type;
 &nbsp;&nbsp;&nbsp;bt_gatt_h gatt_handle = NULL;
 &nbsp;&nbsp;&nbsp;float value;
 
@@ -1348,54 +1266,31 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_float_value is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get a service handle with a specific UUID:
 <pre class="prettyprint">
-{
-&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *svc_uuid = "0000180f-0000-1000-8000-00805f9b34fb"; /* Battery Service */
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
-
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get a characteristic handle with a specific UUID:
 <pre class="prettyprint">
-{
-&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *svc_uuid = "0000180f-0000-1000-8000-00805f9b34fb"; /* Battery Service */
+&nbsp;&nbsp;&nbsp;char *chr_uuid = "00002a19-0000-1000-8000-00805f9b34fb"; /* Battery Level */
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
-
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
-&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
@@ -1403,35 +1298,22 @@ break;
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get a descriptor handle with a specific UUID:
 <pre class="prettyprint">
-{
-&nbsp;&nbsp;&nbsp;char *svc_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *chr_uuid = NULL;
-&nbsp;&nbsp;&nbsp;char *desc_uuid = NULL;
+&nbsp;&nbsp;&nbsp;char *svc_uuid = "0000180f-0000-1000-8000-00805f9b34fb"; /* Battery Service */
+&nbsp;&nbsp;&nbsp;char *chr_uuid = "00002a19-0000-1000-8000-00805f9b34fb"; /* Battery Level */
+&nbsp;&nbsp;&nbsp;char *desc_uuid = "00002902-0000-1000-8000-00805f9b34fb"; /* Client Characteristic Configuration */
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h desc = NULL;
-
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &lt; 2)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Input parameters first&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;svc_uuid = g_test_param.params[0];
-&nbsp;&nbsp;&nbsp;chr_uuid = g_test_param.params[1];
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
@@ -1439,25 +1321,18 @@ break;
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &gt; 2)
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;desc_uuid = g_test_param.params[2];
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
 </pre></li>
 
 <li>Get the properties using the characteristic handle:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
 &nbsp;&nbsp;&nbsp;int properties;
 
@@ -1468,12 +1343,10 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_properties is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get the service handle to which the specified characteristic belongs:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
 &nbsp;&nbsp;&nbsp;// chr = Assuming characteristic handle is already available
@@ -1483,12 +1356,10 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_service is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get the characteristic handle to which the specified descriptor belongs:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h dsc = NULL;
 &nbsp;&nbsp;&nbsp;// dsc = Assuming descriptor handle is already available
@@ -1498,12 +1369,10 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_descriptor_get_characteristic is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get the client handle to which the specified service belongs:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_client_h client = NULL;
 &nbsp;&nbsp;&nbsp;// svc = Assuming service handle is already available
@@ -1513,12 +1382,10 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_client is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get the write type of the specified characteristic:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_write_type_e write_type = NULL;
 &nbsp;&nbsp;&nbsp;// svc = Assuming characteristic handle is already available
@@ -1528,12 +1395,10 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_write_type is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 <li>Get an included service&#39;s handle with a specific UUID:
 <pre class="prettyprint">
-{
 &nbsp;&nbsp;&nbsp;bt_gatt_h svc = NULL;
 &nbsp;&nbsp;&nbsp;bt_gatt_h included_svc = NULL;
 &nbsp;&nbsp;&nbsp;char *uuid = NULL;
@@ -1545,7 +1410,6 @@ break;
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_included_service is failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
-}
 </pre></li>
 
 </ul>
@@ -1561,6 +1425,7 @@ break;
 <pre class="prettyprint">
 int ret = 0;
 char char_value[1] = {1 + (rand()%100)};
+bt_gatt_h characteristic_handle = NULL;
 
 // For client, the characteristic handle is retrieved from the client created using gatt_client_create()
 // by using bt_gatt_service_get_characteristic()
@@ -1574,6 +1439,7 @@ if (ret == BT_ERROR_NONE)
 <pre class="prettyprint">
 int ret = 0;
 int char_value = 60 + (rand()%60);
+bt_gatt_h characteristic_handle = NULL;
 
 // For client, the characteristic handle is retrieved from the client created using gatt_client_create()
 // by using bt_gatt_service_get_characteristic()
@@ -1586,6 +1452,7 @@ if (ret == BT_ERROR_NONE)
 <li>Set or update the characteristic value (<span style="font-family: Courier New,Courier,monospace">float</span> type value):
 <pre class="prettyprint">
 int ret = 0;
+bt_gatt_h characteristic_handle = NULL;
 
 // For client, the characteristic handle is retrieved from the client created using gatt_client_create()
 // by using bt_gatt_service_get_characteristic()
@@ -1598,37 +1465,43 @@ if (ret == BT_ERROR_NONE)
 
 <li>Set the characteristic write type:
 <pre class="prettyprint">
-int ret = 0;
-bt_gatt_h svc = NULL;
-bt_gatt_h control_point = NULL;
-char *svc_uuid = &quot;000018f2-0000-1000-8000-00805f9b34fb&quot;;
-char *chr_uuid = &quot;00002af6-0000-1000-8000-00805f9b34fb&quot;;
+void __write_completed_cb(int result, bt_gatt_h request_handle, void *user_data)
+{
 
-ret = bt_gatt_client_get_service(client, svc_uuid, &amp;ancs_svc);
-if (ret == BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+}
 
-ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;control_point);
-if (ret == BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+int main()
+{
+    int ret = 0;
+    bt_gatt_h svc = NULL;
+    bt_gatt_h battery_svc = NULL;
+    bt_gatt_h control_point = NULL;
+    char *svc_uuid = &quot;0000180f-0000-1000-8000-00805f9b34fb&quot;; /* Battery Service */
+    char *chr_uuid = &quot;00002a19-0000-1000-8000-00805f9b34fb&quot;; /* Battery Level */
 
-ret = bt_gatt_characteristic_set_write_type(control_point,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BT_GATT_WRITE_TYPE_WRITE);
-if (ret == BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+    ret = bt_gatt_client_get_service(client, svc_uuid, &amp;battery_svc);
+    if (ret == BT_ERROR_NONE)
+    &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
 
-ret = bt_gatt_set_value(control_point, value, len);
-if (ret == BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+    ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;control_point);
+    if (ret == BT_ERROR_NONE)
+    &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
 
-ret = bt_gatt_client_write_value(control_point, __write_completed_cb, NULL);
-if (ret == BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+    ret = bt_gatt_characteristic_set_write_type(control_point,
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BT_GATT_WRITE_TYPE_WRITE);
+    if (ret == BT_ERROR_NONE)
+    &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
 
-return ret;
+    ret = bt_gatt_set_value(control_point, value, len);
+    if (ret == BT_ERROR_NONE)
+    &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
 
-if (ret == BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+    ret = bt_gatt_client_write_value(control_point, __write_completed_cb, NULL);
+    if (ret == BT_ERROR_NONE)
+    &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+
+    return ret;
+}
 </pre></li>
 </ol>
 
@@ -1840,7 +1713,7 @@ main()
 	<p>To handle the scan result:</p>
 	
 	<pre class="prettyprint">
-int ret;
+int ret, i;
 
 void 
 __bt_adapter_le_scan_result_cb(int result,
@@ -1851,7 +1724,7 @@ __bt_adapter_le_scan_result_cb(int result,
 
 &nbsp;&nbsp;&nbsp;if (info == NULL) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print T(DLOG_INFO, LOG_TAG, &quot;No discovery_info!&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print (DLOG_INFO, LOG_TAG, &quot;No discovery_info!&quot;);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
@@ -1886,26 +1759,26 @@ __bt_adapter_le_scan_result_cb(int result,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; count; i++) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DLOG_PRINT(DLOG_INFO, LOG_TAG, &quot;UUID[%d] = %s&quot;, i + 1, uuids[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;UUID[%d] = %s&quot;, i + 1, uuids[i]);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(uuids[i]);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(uuids);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_adapter_le_get_scan_result_device_name(info, pkt_type, &amp;device_name) == BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DLOG_PRINT(DLOG_INFO, LOG_TAG, &quot;Device name = %s&quot;, device_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Device name = %s&quot;, device_name);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(device_name);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_adapter_le_get_scan_result_tx_power_level(info, pkt_type, &amp;tx_power_level) == BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DLOG_PRINT(DLOG_INFO, LOG_TAG, &quot;TX Power level = %d&quot;, tx_power_level);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;TX Power level = %d&quot;, tx_power_level);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_adapter_le_get_scan_result_service_solicitation_uuids(info, pkt_type, &amp;uuids, &amp;count) == BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; count; i++) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DLOG_PRINT(DLOG_INFO, LOG_TAG, &quot;Solicitation UUID[%d] = %s&quot;, i + 1, uuids[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Solicitation UUID[%d] = %s&quot;, i + 1, uuids[i]);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(uuids[i]);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(uuids);
@@ -1914,18 +1787,18 @@ __bt_adapter_le_scan_result_cb(int result,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; count; i++)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DLOG_PRINT(DLOG_INFO, LOG_TAG, &quot;Service Data[%d] = [0x%2.2X%2.2X:0x%.2X...]&quot;, i + 1, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Service Data[%d] = [0x%2.2X%2.2X:0x%.2X...]&quot;, i + 1, 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_list[i].service_uuid[0], data_list[i].service_uuid[1], data_list[i].service_data[0]);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_adapter_le_free_service_data_list(data_list, count);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_adapter_le_get_scan_result_appearance(info, pkt_type, &amp;appearance) == BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DLOG_PRINT(DLOG_INFO, LOG_TAG, &quot;Appearance = %d&quot;, appearance);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Appearance = %d&quot;, appearance);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_adapter_le_get_scan_result_manufacturer_data(info, pkt_type, &amp;manufacturer_id, 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;manufacturer_data, &amp;manufacturer_data_len) == BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DLOG_PRINT(DLOG_INFO, LOG_TAG, &quot;Manufacturer data[ID:%.4X, 0x%.2X%.2X...(len:%d)]&quot;, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Manufacturer data[ID:%.4X, 0x%.2X%.2X...(len:%d)]&quot;, 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id, manufacturer_data[0], manufacturer_data[1], manufacturer_data_len);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(manufacturer_data);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
@@ -1972,12 +1845,16 @@ main()
 <p>To start the BLE discovery operation:</p>
 
 <pre class="prettyprint">
-int 
-main()
+static void __bt_adapter_le_device_discovery_state_changed_cb(int result, bt_adapter_le_device_discovery_state_e discovery_state, bt_adapter_le_device_discovery_info_s *discovery_info, void *user_data);
+{
+
+}
+
+int main()
 {
 &nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
 
-&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_device_discovery_state_changed_cb(bt_adapter_le_device_discovery_state_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_device_discovery_state_changed_cb(__bt_adapter_le_device_discovery_state_changed_cb, NULL);
 
 &nbsp;&nbsp;&nbsp;ret = bt_adapter_le_start_device_discovery();
 
@@ -1986,7 +1863,7 @@ main()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_device_discovery] Failed.&quot;);
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;// To unset the LE device discovery state change callback
-&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_unset_device_discovery_state_changed_cb
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_unset_device_discovery_state_changed_cb()
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -2039,12 +1916,6 @@ le_add_advertising_data()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_clear_advertising_data(advertiser, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;clear scan response data [0x%04x]&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;if (g_test_param.param_count &gt; 0) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;adv_data_type = atoi(g_test_param.params[0]);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;switch (adv_data_type) 
@@ -2124,7 +1995,7 @@ le_add_advertising_data()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacture = manufacture_3;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 4: // ANCS
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 4: // ANCS {
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_svc_uuid_16);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
@@ -2138,9 +2009,8 @@ le_add_advertising_data()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_advertising_device_name(advertiser, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, true);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print (DLOG_INFO, LOG_TAG, &quot;set device name [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 0;
-
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;No adv data&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
@@ -2157,7 +2027,7 @@ le_add_advertising_data()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;set device name [0x%04x]&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_manufacturer_data(advertiser, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id, ;manufacture, sizeof(manufacture_0));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id, manufacture, sizeof(manufacture_0));
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add manufacturer data [0x%04x]&quot;, ret);
 }
@@ -2199,12 +2069,6 @@ if (advertiser == NULL)
 &nbsp;&nbsp;&nbsp;advertiser_list[advertiser_index] = advertiser;
 }
 
-if (g_test_param.param_count &gt; 0) 
-{
-&nbsp;&nbsp;&nbsp;type = atoi(g_test_param.params[0]);
-&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
-}
-
 ret = bt_adapter_le_set_advertising_connectable(advertiser, type);
 if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add scan response data [0x%04x]&quot;, ret);
@@ -2233,12 +2097,6 @@ if (advertiser == NULL)
 &nbsp;&nbsp;&nbsp;advertiser_list[advertiser_index] = advertiser;
 }
 
-if (g_test_param.param_count &gt; 0) 
-{
-&nbsp;&nbsp;&nbsp;mode = atoi(g_test_param.params[0]);
-&nbsp;&nbsp;&nbsp;__bt_free_test_param(&amp;g_test_param);
-}
-
 ret = bt_adapter_le_set_advertising_mode(advertiser, mode);
 if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add scan response data [0x%04x]&quot;, ret);
@@ -2249,6 +2107,36 @@ if (ret != BT_ERROR_NONE)
 <ol>
 <li>
 <p>To start advertising with the given advertiser and advertising parameters information, use the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_start_advertising_new()</span> function:</p>
+
+<pre class="prettyprint">
+static void __bt_adapter_le_advertising_state_changed_cb(int result,
+                bt_advertiser_h advertiser, bt_adapter_le_advertising_state_e adv_state, void *user_data)
+{
+        dlog_print(DLOG_INFO, LOG_TAG, "Result : %d", result);
+            dlog_print(DLOG_INFO, LOG_TAG, "Advertiser : %p", advertiser);
+                dlog_print(DLOG_INFO, LOG_TAG, "Advertising %s [%d]", adv_state == BT_ADAPTER_LE_ADVERTISING_STARTED ?
+                                        "started" : "stopped", adv_state);
+}
+
+static void __bt_adapter_le_advertising_state_changed_cb_2(int result,
+                bt_advertiser_h advertiser, bt_adapter_le_advertising_state_e adv_state, void *user_data)
+{
+        dlog_print(DLOG_INFO, LOG_TAG, "Result : %d", result);
+            dlog_print(DLOG_INFO, LOG_TAG, "Advertiser : %p", advertiser);
+                dlog_print(DLOG_INFO, LOG_TAG, "Advertising %s [%d]", adv_state == BT_ADAPTER_LE_ADVERTISING_STARTED ?
+                                        "started" : "stopped", adv_state);
+}
+
+static void __bt_adapter_le_advertising_state_changed_cb_3(int result,
+                bt_advertiser_h advertiser, bt_adapter_le_advertising_state_e adv_state, void *user_data)
+{
+        dlog_print(DLOG_INFO, LOG_TAG, "Result : %d", result);
+            dlog_print(DLOG_INFO, LOG_TAG, "Advertiser : %p", advertiser);
+                dlog_print(DLOG_INFO, LOG_TAG, "Advertising %s [%d]", adv_state == BT_ADAPTER_LE_ADVERTISING_STARTED ?
+                                        "started" : "stopped", adv_state);
+}
+
+</pre>
 
 <pre class="prettyprint">
 bt_adapter_le_advertising_state_changed_cb cb;
