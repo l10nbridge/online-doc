@@ -36,7 +36,7 @@
 
 <p>The application can broadcast its own events to all listeners, and subscribe to events. The events can be either predefined system events from the platform (only platform modules can broadcast system events) or user-defined events (broadcast by UI and service applications).</p>
 
-<p>The main features of the Event API are:</p>
+<p><b>The main features of the Event API are:</b></p>
 <ul>
 <li>Event publication
 <p>To publish an event, use the <span style="font-family: Courier New,Courier,monospace">event_publish_app_event()</span> and <span style="font-family: Courier New,Courier,monospace">event_publish_trusted_app_event()</span> functions. The <span style="font-family: Courier New,Courier,monospace">event_publish_trusted_app_event()</span> function publishes a trusted event which can only be received by the application that has the same signature as the publishing application.</p>
@@ -82,7 +82,15 @@
 </li>
 </ul>
 
-<p>The following table lists the platform event types.</p>
+	<p><b>Managing event handler with suspended state changes :</b><br><br>
+		The application'state can be changed to suspended state in the background.
+		In the suspended state, the application can not receive the event anymore, and the application will be received all the events which is occurred in the suspended_state in series after exit from suspended state.
+		If the application wants to handle the event in the background without suspended state, the application should declare background-category. (Refer to "Allowing Applications to Run on the Background" section of the application guide.)
+		Or, If the application does not want to get the events in series after exit from suspended state, remove the event handler before the suspended state and re-add the event handler after exit from suspended state.
+		The application can do this with adding the callback which is called before/after suspended state. (Refer to APP_EVENT_SUSPENDED_STATE_CHANGED) <br><br>
+	</p>
+
+<p><b>The following table lists the platform event types.</b></p>
 <table>
 	   <caption>
 			   Table: Platform event types
@@ -118,6 +126,14 @@
 					   <p>"charging" - Charging is enabled</p>
 					   <p>"discharging" - Charging is disabled (ex, 100% full state etc) </p>
 				   </li>
+				   <li>
+					   If there is earlier occurrence regarding this event,
+
+					   you will receive the event as soon as you register event handler for this event.
+
+					   You can use this earlier event-data as initial value <br>
+
+				   </li>
 			   </td>
 	   </tr>
 	   <tr>
@@ -143,6 +159,9 @@
 
 
 			   </li>
+			   <li>Reference API
+				   <p>device_battery_get_level_status()</p>
+			   </li>
 		   </td>
 	   </tr>
 	   <tr>
@@ -164,6 +183,11 @@
 				   <p>"available" - usb service is available (ex. mtp, sdb, ...)</p>
 
 			   </li>
+			   <li>
+				   RUNTIME_INFO_KEY_USB_CONNECTED
+				   <br>
+
+			   </li>
 		   </td>
 	   </tr>
 	   <tr>
@@ -180,6 +204,9 @@
 			   <li>value description
 				   <p>"disconnected": ear-jack is not connected</p>
 				   <p>"connected": ear-jack is connected</p>
+			   </li>
+			   <li>RUNTIME_INFO_KEY_AUDIO_JACK_STATUS
+
 			   </li>
 		   </td>
 		</tr>
@@ -200,6 +227,9 @@
 					<p>"dim" - display on, dim brightness</p>
 					<p>"off" - display off</p>
 				</li>
+				<li>Reference API
+					<p>device_display_get_state()</p>
+				</li>
 			</td>
 		</tr>
 		<tr>
@@ -207,30 +237,33 @@
 			   <td rowspan="2">system</td>
 			   <td><span style="font-family: Courier New,Courier,monospace">tizen.system.event.boot_completed</span></td>
 			   <td><span style="font-family: Courier New,Courier,monospace">boot_completed</span></td>
-			   <td><span style="font-family: Courier New,Courier,monospace">&quot;true&quot;</span>
-				<p>=&gt; send <span style="font-family: Courier New,Courier,monospace">&quot;true&quot;</span> only</p>
-				</td>
+			   <td><span style="font-family: Courier New,Courier,monospace">N/A</span></td>
 			<td>
 				<li>Condition
 					<p>when platform booting has been completed</p>
 				</li>
 				<li>value description
-					<p>"true" - boot completed</p>
+					<p>There is no corresponding key/value.
+						You can treat the initial value as "false" before you receive this event.
+						If it's already boot-completed state before you regiser event handler,
+						you can receive the event as soon as you register the event handler.</p>
 				</li>
 			</td>
 	   </tr>
 	   <tr>
 				<td><span style="font-family: Courier New,Courier,monospace">tizen.system.event.system_shutdown</span></td>
 			   <td><span style="font-family: Courier New,Courier,monospace">system_shutdown</span></td>
-			   <td><span style="font-family: Courier New,Courier,monospace">&quot;true&quot;</span>
-				<p>=&gt; send <span style="font-family: Courier New,Courier,monospace">&quot;true&quot;</span> only</p>
-				</td>
+			   <td><span style="font-family: Courier New,Courier,monospace">N/A</span></td>
 		   <td>
 			   <li>Condition
 				   <p>when the system power-off has been started</p>
 			   </li>
 			   <li>value description
-				   <p>"true": system power-off start now or started</p>
+				   <p>There is no corresponding key/value.
+					   You can treat the inital value as "false" before you receive this event.
+					   If it's already shutting-down state before you regiser event handler,
+					   you can receive the event as soon as you register the event handler.
+				   </p>
 			   </li>
 		   </td>
 		</tr>
@@ -255,6 +288,14 @@
 				<li>Note
 					<p>Above numbers can be different according to total ram size of target device</p>
 				</li>
+				<li>If there is earlier occurrence regarding this event,
+
+					you will receive the event as soon as you register event handler for this event.
+
+					You can use this earlier event-data as initial value<br>
+
+
+				</li>
 			</td>
 	   </tr>
 	   <tr>
@@ -275,6 +316,9 @@
 				   <p>"off" - wi-fi off</p>
 				   <p>"connected" - wi-fi connection established</p>
 			   </li>
+			   <li>Reference API
+				   <p>connection_get_wifi_state()</p>
+			   </li>
 		   </td>
 	   </tr>
 	   <tr>
@@ -291,6 +335,9 @@
 				   <p>"off" - legacy bluetooth off</p>
 				   <p>"on" - legacy bluetooth on</p>
 
+			   </li>
+			   <li>Reference API
+				   <p>bt_adapter_get_state()</p>
 			   </li>
 		   </td>
 		</tr>
@@ -347,6 +394,9 @@
 					<p>"enabled"  - location enabled</p>
 
 				</li>
+				<li>Reference API
+					<p>location_manager_is_enabled_method()</p>
+				</li>
 			</td>
 		</tr>
 		<tr>
@@ -363,6 +413,9 @@
 					<p>"disabled" - gbs disabled</p>
 					<p>"enabled"  - gbs enabled</p>
 
+				</li>
+				<li>Reference API
+					<p>location_manager_is_enabled_method()</p>
 				</li>
 			</td>
 		</tr>
@@ -381,6 +434,9 @@
 					<p>"disabled" - nps disabled</p>
 					<p>"enabled"  - nps enabled</p>
 
+				</li>
+				<li>Reference API
+					<p>location_manager_is_enabled_method()</p>
 				</li>
 			</td>
 		</tr>
@@ -446,6 +502,9 @@
 				<li>Condition
 					<p>when the time-zone has been changed</p>
 				</li>
+				<li>SYSTEM_SETTINGS_KEY_LOCALE_TIMEZONE<br>
+
+				</li>
 
 			</td>
 		</tr>
@@ -459,6 +518,10 @@
 			<td>
 				<li>Condition
 					<p>When the hour_format has been changed, for example, by the user toggling the date and time settings. “ON” stands for 24-hour clock, and “OFF” stands for 12-hour clock.</p>
+				</li>
+				<li>SYSTEM_SETTINGS_KEY_LOCALE_TIMEFORMAT_24HOUR
+					<br>
+
 				</li>
 
 			</td>
@@ -481,6 +544,10 @@
 
 
 				</li>
+				<li>SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE
+					<br>
+
+				</li>
 			</td>
 		</tr>
 		<tr>
@@ -501,6 +568,12 @@
 
 
 				</li>
+				<li>SYSTEM_SETTINGS_KEY_LOCALE_COUNTRY
+
+
+					<br>
+
+				</li>
 			</td>
 		</tr>
 		<tr>
@@ -515,6 +588,13 @@
 					<p>when the Ringtone has been changed to 0 or to others</p>
 					<p>ex) Setting > Sound > Call slider, if the call slider has been changed to 0 then silent_mode is "on", else silent_mode is "off"</p>
 				</li>
+				<li>SYSTEM_SETTINGS_KEY_SOUND_SILENT_MODE
+
+
+
+					<br>
+
+				</li>
 
 			</td>
 		</tr>
@@ -528,6 +608,14 @@
 			<td>
 				<li>Condition
 					<p>when the vibration state has been changed</p>
+				</li>
+				<li>RUNTIME_INFO_KEY_VIBRATION_ENABLED
+
+
+
+
+					<br>
+
 				</li>
 
 			</td>
@@ -544,6 +632,15 @@
 					<p>when the screen-auto-rotate state has been changed</p>
 					<p>ex) Setting > Display > Auto rotation on/off toggle</p>
 				</li>
+				<li>SYSTEM_SETTINGS_KEY_DISPLAY_SCREEN_ROTATION_AUTO
+
+
+
+
+
+					<br>
+
+				</li>
 
 			</td>
 		</tr>
@@ -559,6 +656,15 @@
 					<p>when the mobile-data state has been changed</p>
 					<p>ex) Setting > network > mobile data on/off toggle</p>
 				</li>
+				<li>SYSTEM_SETTINGS_KEY_3G_DATA_NETWORK_ENABLED
+
+
+
+
+
+					<br>
+
+				</li>
 
 			</td>
 		</tr>
@@ -572,6 +678,16 @@
 				<li>Condition
 					<p>when the data-roaming state has been changed</p>
 					<p>ex) Setting > network > data roaming on/off toggle</p>
+				</li>
+				<li>RUNTIME_INFO_KEY_DATA_ROAMING_ENABLED
+
+
+
+
+
+
+					<br>
+
 				</li>
 
 			</td>
@@ -590,6 +706,18 @@
 				<li>value description
 
 					<p>the value is font name of string type by font-config.</p>
+
+				</li>
+				<li>SYSTEM_SETTINGS_KEY_FONT_TYPE
+
+
+
+
+
+
+
+
+					<br>
 
 				</li>
 			</td>
