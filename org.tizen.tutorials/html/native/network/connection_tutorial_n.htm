@@ -30,8 +30,11 @@
 		   <li>IP sockets
 		   <ul class="toc">
 		   		<li><a href="#socket_init">Initializing a Socket</a></li>
-				<li><a href="#socket_family">Retrieving the Address Family</a></li>
-				<li><a href="#socket_create">Creating the Socket and Managing the Remote Host Connection</a></li>
+				<li><a href="#socket_family">Retrieving the Address Family for a Client-side Socket</a></li>
+				<li><a href="#socket_familyserver">Retrieving the Address Family for a Server-side Socket</a></li>
+				<li><a href="#socket_create">Creating the Client-side Socket and Managing the Remote Host Connection</a></li>
+				<li><a href="#socket_createserver">Creating the Server-side Socket and Managing the Connection</a></li>
+				<li><a href="#socket_close">Closing the Socket</a></li>
 			</ul></li>	
 		</ul>
         <p class="toc-title">Related Info</p>
@@ -64,10 +67,16 @@
 		  	<ul>
 				<li><a href="#socket_init">Initializing a Socket</a>
 				<p>Initialize a socket for use and check the default connection.</p></li>
-				<li><a href="#socket_family">Retrieving the Address Family</a>
+				<li><a href="#socket_family">Retrieving the Address Family for a Client-side Socket</a>
 				<p>Get the IP addresses for the hostname.</p></li>
-				<li><a href="#socket_create">Creating the Socket and Managing the Remote Host Connection</a>
+				<li><a href="#socket_familyserver">Retrieving the Address Family for a Server-side Socket</a>
+				<p>Get the IP addresses for the hostname.</p></li>
+				<li><a href="#socket_create">Creating the Client-side Socket and Managing the Remote Host Connection</a>
 				<p>Create the socket, and communicate with the remote host.</p></li>
+				<li><a href="#socket_createserver">Creating the Server-side Socket and Managing the Connection</a>
+				<p>Create the socket, and communicate with the client.</p></li>
+				<li><a href="#socket_close">Closing the Socket</a>
+				<p>Close the socket and release resources.</p></li>
 			</ul>
 		</li>
 	  </ul>
@@ -75,24 +84,30 @@
 
  <h2 id="init" name="init">Initializing Connections</h2>
  
- 
+ <p>To initialize connections:</p>
+ <ol>
+<li> 
 <p>To use the functions and data types of the Connection API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;net_connection.h&gt;</span> header file in your application:</p>
 <pre class="prettyprint">
 #include &lt;net_connection.h&gt;
 </pre>
+</li>
+<li>
  <p>To be able to use all connection functions, you must create a handle that contains information about the connection. Use the <span style="font-family: Courier New,Courier,monospace;">connection</span> static variable that stores the connection handle.</p>
    <pre class="prettyprint">static connection_h connection;</pre>
    
-    <p>Create the connection handle using the <span style="font-family: Courier New,Courier,monospace;">connection_create()</span> function that allows you to obtain the connection state and data transfer information.</p>
+    <p>Create the connection handle using the <span style="font-family: Courier New,Courier,monospace;">connection_create()</span> function that allows you to obtain the connection state and data transfer information:</p>
    <pre class="prettyprint">int error_code;
  
 error_code = connection_create(&amp;connection);
 if (error_code != CONNECTION_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;return;</pre>
-   
-    <p>Destroy the created connection handle when you do not need it anymore. </p>
+   </li>
+   <li>
+    <p>Destroy the created connection handle when you do not need it anymore:</p>
    <pre class="prettyprint">connection_destroy(connection);</pre>
-
+</li>
+</ol>
  <h2 id="detail" name="detail">Getting the Network Connection Details</h2>
 
 <p>To get the type of the current connection, IP address, and proxy information, the Connection API supports the following network types:</p>
@@ -128,13 +143,14 @@ connection_set_type_changed_cb(connection, __connection_changed_cb, NULL);
 <p>When the connection type changes, the <span style="font-family: Courier New,Courier,monospace;">__connection_changed_cb()</span> function is invoked.</p>
 
 <pre class="prettyprint">
-static void __connection_changed_cb(connection_type_e type, void* user_data)
+static void 
+__connection_changed_cb(connection_type_e type, void* user_data)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Type changed callback, connection type : %d", type);
 }</pre></li>
 
 <li>To get the connection IPv4 address, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_ip_address()</span> function. The IP address is printed using dlog util, or shown to the user in another way. 
-<p>Finally, free the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">ip_addr</span> temporary variable.</p>
+<p>Free the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">ip_addr</span> temporary variable.</p>
 
 <pre class="prettyprint">
 char *ip_addr = NULL;
@@ -146,7 +162,7 @@ if (error_code == CONNECTION_ERROR_NONE)
 }</pre></li>
 
 <li>To get the connection proxy information, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_proxy()</span> function. The proxy address is printed. 
-<p>Finally, free the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">proxy_addr</span> variable.</p>
+<p>Free the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">proxy_addr</span> variable.</p>
 
 <pre class="prettyprint">error_code = connection_get_proxy(connection, address_family, &amp;proxy_addr);
 if (error_code == CONNECTION_ERROR_NONE) 
@@ -287,12 +303,15 @@ error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI, CONNECT
 
 <p>In this tutorial, the callbacks registered are the <span style="font-family: Courier New,Courier,monospace;">__ip_changed_cb()</span> and <span style="font-family: Courier New,Courier,monospace;">__proxy_changed_cb()</span> functions, used for address changes. In case of an address change, an information message is printed in the file (or shown to the user in another way). The message contains information on which address has been changed and what the new value is.</p>
 
-<pre class="prettyprint">static void __ip_changed_cb(const char* ipv4_address, const char* ipv6_address, void* user_data) 
+<pre class="prettyprint">
+static void 
+__ip_changed_cb(const char* ipv4_address, const char* ipv6_address, void* user_data) 
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%s callback, IPv4 address : %s, IPv6 address : %s&quot;, (char *)user_data, ipv4_address, (ipv6_address ? ipv6_address : &quot;NULL&quot;));
 }
  
-static void __proxy_changed_cb(const char* ipv4_address, const char* ipv6_address, void* user_data) 
+static void 
+__proxy_changed_cb(const char* ipv4_address, const char* ipv6_address, void* user_data) 
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%s callback, IPv4 address : %s, IPv6 address : %s&quot;, (char *)user_data, ipv4_address, (ipv6_address ? ipv6_address : &quot;NULL&quot;));
 }
@@ -333,7 +352,7 @@ if (error_code != CONNECTION_ERROR_NONE)
 
 <h2 id="socket_init" name="socket_init">Initializing a Socket</h2>
 
-<p>To initialize a socket for use:</p>
+<p>To initialize a client or server-side socket for use:</p>
 <ol>
 <li>To use the functions and data types of the Socket API, include the following header files in your application:
 <pre class="prettyprint">
@@ -346,7 +365,8 @@ if (error_code != CONNECTION_ERROR_NONE)
 
 <li>Declare the necessary variables:
 <pre class="prettyprint">
-int main(int argc, char **argv)
+int 
+main(int argc, char **argv)
 {
 &nbsp;&nbsp;&nbsp;int rv = 0;
 &nbsp;&nbsp;&nbsp;int ip_type = -1;
@@ -424,13 +444,14 @@ int main(int argc, char **argv)
 </li>
 </ol>
 
-<h2 id="socket_family" name="socket_family">Retrieving the Address Family</h2>
+<h2 id="socket_family" name="socket_family">Retrieving the Address Family for a Client-side Socket</h2>
 
 <p>To get the IP addresses for the hostname to connect:</p>
 <ol>
 <li>Define the user URL and message to be sent.</li>
 <li>Retrieve the IP addresses:
 <pre class="prettyprint">
+{
 &nbsp;&nbsp;&nbsp;struct sockaddr_in6 *addr6;
 &nbsp;&nbsp;&nbsp;struct addrinfo hints;
 &nbsp;&nbsp;&nbsp;struct addrinfo *result;
@@ -453,7 +474,33 @@ int main(int argc, char **argv)
 </li>
 </ol>
 
-<h2 id="socket_create" name="socket_create">Creating the Socket and Managing the Remote Host Connection</h2>
+<h2 id="socket_familyserver" name="socket_familyserver">Retrieving the Address Family for a Server-side Socket</h2>
+
+<p>To get the IP addresses for the hostname to connect:</p>
+<pre class="prettyprint">
+struct addrinfo hints;
+struct addrinfo *result, *rp;
+
+char buf[257];
+int sockfd = -1;
+int csockfd = -1;
+int count = 0;
+int rwcount = 0;
+
+memset(&amp;hints, 0x00, sizeof(struct addrinfo));
+
+hints.ai_flags = AI_PASSIVE;
+hints.ai_family = PF_UNSPEC;
+hints.ai_socktype = SOCK_STREAM;
+
+if (getaddrinfo(default_ip, argv[1], &amp;hints, &amp;result) != 0) 
+{
+&nbsp;&nbsp;&nbsp;printf(&quot;getaddrinfo() error\n&quot;);
+&nbsp;&nbsp;&nbsp;goto done;
+}
+</pre>
+
+<h2 id="socket_create" name="socket_create">Creating the Client-side Socket and Managing the Remote Host Connection</h2>
 
 <p>To create the socket and connect to a remote host:</p>
 <ol>
@@ -468,7 +515,7 @@ for (rp = result; rp != NULL; rp = rp-&gt;ai_next)
 {
 &nbsp;&nbsp;&nbsp;if (rp-&gt;ai_family == AF_INET &amp;&amp; ip_type == CONNECTION_ADDRESS_FAMILY_IPV4) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) &lt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) &lt; 0) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;socket error\n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
@@ -549,8 +596,115 @@ if ((count = read(sockfd, buf, 256)) &lt; 0)
 buf[count] = &#39;\0&#39;;
 dlog_print(DLOG_INFO, LOG_TAG, &quot;\nRead: %s\n&quot;, buf);
 </pre>
-</li></ul></li>
-<li>Close the socket and release the resources: 
+</li></ul></li></ol>
+
+<h2 id="socket_createserver" name="socket_createserver">Creating the Server-side Socket and Managing the Connection</h2>
+
+<p>To create the socket and manage the connect to a client:</p>
+<ol>
+<li>Find the proper address family and create the socket: 
+<pre class="prettyprint">
+int sockfd = -1;
+struct addrinfo *rp;
+
+rp = result;
+
+for (rp = result; rp != NULL; rp = rp-&gt;ai_next) 
+{
+&nbsp;&nbsp;&nbsp;if (rp-&gt;ai_family == AF_INET &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ip_type == CONNECTION_ADDRESS_FAMILY_IPV4) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) &lt; 0) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;socket error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPv4\n&quot;);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (rp-&gt;ai_family == AF_INET6 &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ip_type == CONNECTION_ADDRESS_FAMILY_IPV6) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) &lt; 0) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;socket error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPv6\n&quot;);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>Bind the found address:
+<pre class="prettyprint">
+if (bind(sockfd, rp-&gt;ai_addr, rp-&gt;ai_addrlen) != 0) 
+{ 
+&nbsp;&nbsp;&nbsp;printf(&quot;bind() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;close(sockfd);
+
+&nbsp;&nbsp;&nbsp;goto done;
+}
+</pre>
+</li>
+<li>Listen for client-side connections.
+<p>Mark the <span style="font-family: Courier New,Courier,monospace;">sockfd</span> socket as a passive socket.</p>
+<pre class="prettyprint">
+if (listen(sockfd, 5) != 0) 
+{ 
+&nbsp;&nbsp;&nbsp;printf(&quot;listen() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;close(sockfd);
+
+&nbsp;&nbsp;&nbsp;goto done;
+}
+</pre>
+</li>
+<li>Manage messages:
+<ul>
+<li>Read a message from the client:
+<pre class="prettyprint">
+char buf[257];
+memset(buf, 0x00, 257);
+
+if ((count = read(csockfd, buf, 256)) &lt; 0) 
+{
+&nbsp;&nbsp;&nbsp;printf(&quot;read() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;close(sockfd);
+&nbsp;&nbsp;&nbsp;close(csockfd);
+&nbsp;&nbsp;&nbsp;goto done;
+}
+buf[count] = &#39;\0&#39;;
+printf(&quot;\nRead: %s\n&quot;, buf);
+</pre>
+</li>
+<li>Echo the received message back to the client:
+<pre class="prettyprint">
+if ((count = write(csockfd, buf, 256)) &lt; 0) 
+{
+&nbsp;&nbsp;&nbsp;printf(&quot;write() error: %s\n&quot;, strerror(errno));
+	
+&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;close(sockfd);
+&nbsp;&nbsp;&nbsp;close(csockfd);
+
+&nbsp;&nbsp;&nbsp;goto done;
+}
+
+printf(&quot;sent count: %d, msg: %s\n&quot;, count, buf);
+close(csockfd);
+</pre>
+</li>
+</ul></li></ol>
+
+<h2 id="socket_close" name="socket_close">Closing the Socket</h2>
+
+<p>To close the client or server-side socket and release the resources:</p> 
 <pre class="prettyprint">
 freeaddrinfo(result);
 close(sockfd);
@@ -565,8 +719,7 @@ done:
 
 &nbsp;&nbsp;&nbsp;return 0;
 </pre>
-</li>
-</ol>
+
 
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
