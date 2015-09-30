@@ -832,7 +832,7 @@ int ret = 0;
 ret = bt_gatt_client_create(remote_addr, &amp;client);
 if (ret == BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
-break;
+return;
 </pre>
 </li>
 
@@ -850,7 +850,7 @@ int ret = 0;
 ret = bt_gatt_client_destroy(client);
 if (ret == BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
-break;
+return;
 </pre>
 </li>
 
@@ -862,7 +862,7 @@ char *addr = NULL;
 ret = bt_gatt_client_get_remote_address(client, &amp;addr);
 if (ret == BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
-break;
+return;
 </pre>
 </li>
 
@@ -876,7 +876,7 @@ if (ret != BT_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;fail&quot;);
 }
-break;
+return;
 </pre>
 </li>
 <li>Use the <span style="font-family: Courier New,Courier,monospace;">bt_gatt_client_foreach_svc_cb()</span> callback to initiate the service characteristics discovery:
@@ -957,26 +957,28 @@ __bt_gatt_client_foreach_desc_cb(int total, int index, bt_gatt_h desc_handle, vo
 &nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;}
 
 &nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 &nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
+&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;}
+
 &nbsp;&nbsp;ret = bt_gatt_client_read_value(desc, __bt_gatt_client_read_complete_cb, NULL);
 &nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_read_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;}
 </pre> 
 <p>After the reading operation is complete, use the <span style="font-family: Courier New,Courier,monospace;">bt_gatt_client_read_complete_cb()</span> callback to handle values:</p>
@@ -1015,21 +1017,21 @@ __bt_gatt_client_read_complete_cb(int result, bt_gatt_h gatt_handle, void *data)
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;ret = __bt_gatt_client_set_value("int32",
@@ -1037,10 +1039,65 @@ __bt_gatt_client_read_complete_cb(int result, bt_gatt_h gatt_handle, void *data)
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_set_value is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_write_value(desc, __bt_gatt_client_write_complete_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_write_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+</pre>
+<p>__bt_gatt_client_set_value is defined below:</p>
+<pre class="prettyprint">
+int __bt_gatt_client_set_value(char *type, char *value, bt_gatt_h h)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;int s_val;
+&nbsp;&nbsp;&nbsp;unsigned int u_val;
+&nbsp;&nbsp;&nbsp;char *buf;
+&nbsp;&nbsp;&nbsp;int len;
+
+&nbsp;&nbsp;&nbsp;if (strcasecmp(type, "int8") == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_val = atoi(value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buf = (char *)&s_val;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = 1;
+&nbsp;&nbsp;&nbsp;} else if (strcasecmp(type, "int16") == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_val = atoi(value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buf = (char *)&s_val;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = 2;
+&nbsp;&nbsp;&nbsp;} else if (strcasecmp(type, "int32") == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_val = atoi(value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buf = (char *)&s_val;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = 4;
+&nbsp;&nbsp;&nbsp;} else if (strcasecmp(type, "uint8") == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;u_val = strtoul(value, NULL, 10);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buf = (char *)&u_val;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = 1;
+&nbsp;&nbsp;&nbsp;} else if (strcasecmp(type, "uint16") == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;u_val = strtoul(value, NULL, 10);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buf = (char *)&u_val;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = 2;
+&nbsp;&nbsp;&nbsp;} else if (strcasecmp(type, "uint32") == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;u_val = strtoul(value, NULL, 10);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buf = (char *)&u_val;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = 4;
+&nbsp;&nbsp;&nbsp;} else if (strcasecmp(type, "str") == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buf = value;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;len = strlen(buf);
+&nbsp;&nbsp;&nbsp;} else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return BT_ERROR_INVALID_PARAMETER;
+
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_set_value(h, buf, len);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT("bt_gatt_set_value is failed : %d", ret);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+</li>
 
 </pre>
 <p>After the writing operation is complete, use the <span style="font-family: Courier New,Courier,monospace;">bt_gatt_client_write_complete_cb()</span> callback to finish the task:</p>
@@ -1073,20 +1130,21 @@ __bt_gatt_client_write_complete_cb(int result, bt_gatt_h gatt_handle, void *data
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_set_characteristic_value_changed_cb(chr, __bt_gatt_client_value_changed_cb, NULL);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_set_characteristic_value_changed_cb is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 </pre>
 <p>After registering the callback operation, use the <span style="font-family: Courier New,Courier,monospace;">__bt_gatt_client_value_changed_cb()</span> callback to display the changed value:</p>
@@ -1125,20 +1183,21 @@ __bt_gatt_client_value_changed_cb(bt_gatt_h chr, char *value, int len, void *use
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_client_unset_characteristic_value_changed_cb(chr);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_unset_characteristic_value_changed_cb is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
@@ -1151,8 +1210,9 @@ int ret = 0;
 ret = bt_gatt_client_destroy(client);
 if (ret == BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Success&quot;);
+
 client = NULL;
-break;
+return;
 </pre></li>
 </ol>
 
@@ -1337,7 +1397,7 @@ break;
 &nbsp;&nbsp;&nbsp;bt_gatt_h dsc = NULL;
 &nbsp;&nbsp;&nbsp;// dsc = Assuming descriptor handle is already available
 
-&nbsp;&nbsp;&nbsp;ret = bt_gatt_descriptor_get_characteristic(des, &amp;chr);
+&nbsp;&nbsp;&nbsp;ret = bt_gatt_descriptor_get_characteristic(dsc, &amp;chr);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_descriptor_get_characteristic is failed : %d&quot;, ret);
@@ -1360,7 +1420,7 @@ break;
 <li>Get the write type of the specified characteristic:
 <pre class="prettyprint">
 &nbsp;&nbsp;&nbsp;bt_gatt_h chr = NULL;
-&nbsp;&nbsp;&nbsp;bt_gatt_write_type_e write_type = NULL;
+&nbsp;&nbsp;&nbsp;bt_gatt_write_type_e write_type;
 &nbsp;&nbsp;&nbsp;// svc = Assuming characteristic handle is already available
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_get_write_type(chr, &amp;write_type);
@@ -1440,7 +1500,8 @@ if (ret == BT_ERROR_NONE)
 <pre class="prettyprint">
 void __write_completed_cb(int result, bt_gatt_h request_handle, void *user_data)
 {
-
+&nbsp;&nbsp;if (result != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Write request failed&quot;);
 }
 
 int main()
@@ -1820,7 +1881,21 @@ main()
 <pre class="prettyprint">
 static void __bt_adapter_le_device_discovery_state_changed_cb(int result, bt_adapter_le_device_discovery_state_e discovery_state, bt_adapter_le_device_discovery_info_s *discovery_info, void *user_data);
 {
+&nbsp;&nbsp;&nbsp;if (discovery_info == NULL && discovery_state == BT_ADAPTER_LE_DEVICE_DISCOVERY_FOUND)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;No discovery_info!.&quot;);
+&nbsp;&nbsp;&nbsp;return;
 
+&nbsp;&nbsp;&nbsp;if (discovery_state != BT_ADAPTER_LE_DEVICE_DISCOVERY_FOUND) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "LE discovery %s", discovery_state == BT_ADAPTER_LE_DEVICE_DISCOVERY_STARTED? "Started" : "Finished");
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG,"%s Adv %d Scan resp %d RSSI %d Addr_type %d", discovery_info->remote_address,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;discovery_info->adv_data_len, discovery_info->scan_data_len, discovery_info->rssi,discovery_info->address_type);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (discovery_info->adv_data_len > 31 || discovery_info->scan_data_len > 31)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_adapter_le_stop_device_discovery();
+&nbsp;&nbsp;&nbsp;}
 }
 
 int main()
@@ -1836,7 +1911,7 @@ int main()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_device_discovery] Failed.&quot;);
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;// To unset the LE device discovery state change callback
-&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_unset_device_discovery_state_changed_cb()
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_unset_device_discovery_state_changed_cb();
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1851,14 +1926,10 @@ int main()
 <p>Add the advertising data:</p>
 
 <pre class="prettyprint">
-static bt_advertiser_h advertiser = NULL;
-static bt_advertiser_h advertiser_list[3] = {NULL, };
-static int advertiser_index = 0;
+&nbsp;&nbsp;&nbsp;static bt_advertiser_h advertiser = NULL;
+&nbsp;&nbsp;&nbsp;static bt_advertiser_h advertiser_list[3] = {NULL, };
+&nbsp;&nbsp;&nbsp;static int advertiser_index = 0;
 
-int 
-le_add_advertising_data()
-{
-&nbsp;&nbsp;&nbsp;int adv_data_type = 3; // Default all
 &nbsp;&nbsp;&nbsp;int manufacturer_id = 117;
 &nbsp;&nbsp;&nbsp;char *manufacture = NULL;
 &nbsp;&nbsp;&nbsp;char manufacture_0[] = {0x0, 0x0, 0x0, 0x0};
@@ -1891,107 +1962,39 @@ le_add_advertising_data()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;clear scan response data [0x%04x]&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;switch (adv_data_type) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 0: // Service UUID
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING,  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_uuid [0x%04x]&quot;, ret);
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_svc_uuid_16);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_uuid [0x%04x]&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;battery_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_uuid [0x%04x]&quot;, ret);
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;battery_svc_uuid_16);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_uuid [0x%04x]&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacture = manufacture_0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;heart_rate_svc_uuid_16);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_solicitation_uuid [0x%04x]&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 1: // Service solicitation
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;heart_rate_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;dd service_solicitation_uuid [0x%04x]&quot;, ret);
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;immediate_alert_svc_uuid_16);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_solicitation_uuid [0x%04x]&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;immediate_alert_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_solicitation_uuid [0x%04x]&quot;, ret);
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_advertising_appearance(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING,appearance);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add appearance data [0x%04x]&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacture = manufacture_1;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_advertising_tx_power_level(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING,true);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add tx_power_level [0x%04x]&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 2: // Appearance &amp; TX power level
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_advertising_appearance(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;appearance);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add appearance data [0x%04x]&quot;, ret);
+&nbsp;&nbsp;&nbsp;manufacture = manufacture_3;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_advertising_tx_power_level(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, true);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print (DLOG_INFO, LOG_TAG, &quot;add appearance data [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacture = manufacture_2;		
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 3: // All
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_uuid [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;battery_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_uuid [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;heart_rate_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_solicitation_uuid [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;immediate_alert_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_solicitation_uuid [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_advertising_appearance(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;appearance);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add appearance data [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_advertising_tx_power_level(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;true);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add tx_power_level [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacture = manufacture_3;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case 4: // ANCS {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_svc_uuid_16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_solicitation_uuid [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_solicitation_uuid(advertiser, BT_ADAPTER_LE_PACKET_ADVERTISING, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ancs_uuid_128);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_solicitation_uuid [0x%04x]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_set_advertising_device_name(advertiser, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, true);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print (DLOG_INFO, LOG_TAG, &quot;set device name [0x%04x]&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;No adv data&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;// Default scan response data 
 &nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_service_data(advertiser, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_svc_uuid_16, service_data, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(service_data));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_svc_uuid_16, service_data, sizeof(service_data));
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add service_data [0x%04x]&quot;, ret);
 
@@ -2000,10 +2003,10 @@ le_add_advertising_data()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;set device name [0x%04x]&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;ret = bt_adapter_le_add_advertising_manufacturer_data(advertiser, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id, manufacture, sizeof(manufacture_0));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id, manufacture, sizeof(manufacture_0));
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add manufacturer data [0x%04x]&quot;, ret);
-}
+
 </pre>
 </li>
 <li>
@@ -2115,7 +2118,7 @@ static void __bt_adapter_le_advertising_state_changed_cb_3(int result,
 bt_adapter_le_advertising_state_changed_cb cb;
 
 if (advertiser_index == 0) cb = __bt_adapter_le_advertising_state_changed_cb;
-else if (advertiser_index == 0) cb = __bt_adapter_le_advertising_state_changed_cb_2;
+else if (advertiser_index == 1) cb = __bt_adapter_le_advertising_state_changed_cb_2;
 else cb = __bt_adapter_le_advertising_state_changed_cb_3;
 
 advertiser = advertiser_list[advertiser_index];
