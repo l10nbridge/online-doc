@@ -145,77 +145,47 @@ void remove_rules(void)
 
 <p>To create the genlist:</p>
 <ol><li>
-<p>The genlist is created using the <span style="font-family: Courier New,Courier,monospace">elm_genlist_add()</span> function. For the genlist to be displayed properly, genlist item classes have to be created and defined with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_class_new()</span> function. The following code snippet demonstrates how to set the item class properties. A <span style="font-family: Courier New,Courier,monospace">text_get</span> and a <span style="font-family: Courier New,Courier,monospace">content_get</span> callback function are defined to create item text and layout creation.</p>
+<p>The genlist is created using the <span style="font-family: Courier New,Courier,monospace">elm_genlist_add()</span> function. For the genlist to be displayed properly, a genlist item class has to be created and defined with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_class_new()</span> function. The following code snippet demonstrates how to set the item class properties. A <span style="font-family: Courier New,Courier,monospace">text_get</span> and a <span style="font-family: Courier New,Courier,monospace">content_get</span> callback function are defined to create item text and layout creation.</p>
 
 <pre class="prettyprint">
 Evas_Object *genlist;
-Elm_Genlist_Item_Class *itc_name, *itc_description;
+Elm_Genlist_Item_Class *itc;
 int index;
 
 /* Create item class */
-itc_name = elm_genlist_item_class_new();
-itc_name-&gt;item_style = &quot;default&quot;;
-itc_name-&gt;func.text_get = gl_text_name_get_cb;
-itc_name-&gt;func.content_get = gl_content_get_cb;
-
-itc_description = elm_genlist_item_class_new();
-itc_description-&gt;item_style = &quot;multiline&quot;;
-itc_description-&gt;func.text_get = gl_text_description_get_cb;
+itc = elm_genlist_item_class_new();
+itc->item_style = "multiline";
+itc->func.text_get = gl_text_get_cb;
+itc->func.content_get = gl_content_get_cb;
 
 /* Genlist */
-genlist = elm_genlist_add(ad-&gt;nf);
-Evas_Object *genlist = elm_genlist_add(viewdata.win);
-
-// Error handling
-
-viewdata.item_class = elm_genlist_item_class_new();
-
-// Error handling
-
-viewdata.item_class-&gt;item_style = &quot;full&quot;;
-viewdata.item_class-&gt;func.text_get = NULL;
-viewdata.item_class-&gt;func.content_get = __get_item_content;
-viewdata.item_class-&gt;func.state_get = NULL;
-viewdata.item_class-&gt;func.del = NULL;
+genlist = elm_genlist_add(ad->nf);
+elm_genlist_mode_set(genlist, ELM_LIST_COMPRESS);
+evas_object_size_hint_weight_set(genlist, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+evas_object_size_hint_align_set(genlist, EVAS_HINT_FILL, EVAS_HINT_FILL);
 </pre></li>
 
 <li>
-<p>The genlist is filled with rule items and its descriptions. To append items to the genlist, the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function is invoked for each <span style="font-family: Courier New,Courier,monospace">Eina_List</span> item.</p>
+<p>The genlist is filled with rule items. To append items to the genlist, the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function is invoked for each <span style="font-family: Courier New,Courier,monospace">Eina_List</span> item.</p>
 
 <pre class="prettyprint">
 // For each rule
 for (index = RULE_FIRST; index < RULE_LAST; index++) {
-&nbsp;&nbsp;&nbsp;/* Rule name item */
-&nbsp;&nbsp;&nbsp;if (ruleinfo_arr[index].result == CONTEXT_TRIGGER_ERROR_NONE) {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, itc_name, (void *) &ruleinfo_arr[index], NULL, ELM_GENLIST_ITEM_NONE, gl_selected_cb, NULL);
-&nbsp;&nbsp;&nbsp;} else {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, itc_name, (void *) &ruleinfo_arr[index], NULL, ELM_GENLIST_ITEM_NONE, gl_disabled_selected_cb, ad);
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;/* Rule description item */
-&nbsp;&nbsp;&nbsp;Elm_Object_Item *item = elm_genlist_item_append(genlist, itc_description, (void *) &ruleinfo_arr[index], NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
-&nbsp;&nbsp;&nbsp;elm_genlist_item_select_mode_set(item, ELM_OBJECT_SELECT_MODE_DISPLAY_ONLY);
+&nbsp;&nbsp;&nbsp;/* Rule item */
+&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, itc, (void *)&amp;ruleinfo_arr[index], NULL, ELM_GENLIST_ITEM_NONE, gl_selected_cb, ad);
 }
 </pre></li>
 
 <li>
-<p>The application&#39;s <span style="font-family: Courier New,Courier,monospace">rule_info</span> structure containing its rule information such as name, description, and so on. It is later passed on to the previously defined callback function. The following example shows the <span style="font-family: Courier New,Courier,monospace">gl_text_name_get_cb</span>, the <span style="font-family: Courier New,Courier,monospace">gl_text_description_get_cb</span>, the <span style="font-family: Courier New,Courier,monospace">gl_content_get_cb</span> callback function. Rule information is retrieved from the parameter and used to create the item layout.</p>
+<p>The application&#39;s <span style="font-family: Courier New,Courier,monospace">rule_info</span> structure containing its rule information such as name, description, and so on. It is later passed on to the previously defined callback function. The following example shows the <span style="font-family: Courier New,Courier,monospace">gl_text_get_cb</span>, and the <span style="font-family: Courier New,Courier,monospace">gl_content_get_cb</span> callback function. Rule information is retrieved from the parameter and used to create the item layout.</p>
 <pre class="prettyprint">
-static char *gl_text_name_get_cb(void *data, Evas_Object * obj, const char *part)
+static char *gl_text_get_cb(void *data, Evas_Object * obj, const char *part)
 {
 &nbsp;&nbsp;&nbsp;rule_info_s *info = (rule_info_s *) data;
 
 &nbsp;&nbsp;&nbsp;if (!strcmp(part, "elm.text"))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(info->name);
-
-&nbsp;&nbsp;&nbsp;return NULL;
-}
-
-static char *gl_text_description_get_cb(void *data, Evas_Object * obj, const char *part)
-{
-&nbsp;&nbsp;&nbsp;rule_info_s *info = (rule_info_s *) data;
-
-&nbsp;&nbsp;&nbsp;if (!strcmp(part, "elm.text.multiline"))
+&nbsp;&nbsp;&nbsp;else if (!strcmp(part, "elm.text.multiline"))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(info->description);
 
 &nbsp;&nbsp;&nbsp;return NULL;
@@ -247,26 +217,30 @@ static Evas_Object *gl_content_get_cb(void *data, Evas_Object * obj, const char 
 </pre></li>
 </ol>
 
-<p>When a genlist item or a check button is clicked, corresponding rule will be enabled or disabled.</p>
+<p>When a genlist item or a check button is clicked, corresponding rule will be enabled or disabled. If the user taps an rule item which fails to be added for some reasons, an error popup will be shown to indicate the reasons.</p>
 <pre class="prettyprint">
-static void gl_selected_cb(void *data EINA_UNUSED, Evas_Object * obj EINA_UNUSED, void *event_info)
+static void gl_selected_cb(void *data, Evas_Object * obj EINA_UNUSED, void *event_info)
 {
 &nbsp;&nbsp;&nbsp;Elm_Object_Item *it = (Elm_Object_Item *) event_info;
-&nbsp;&nbsp;&nbsp;int error = CONTEXT_TRIGGER_ERROR_NONE;
-
-&nbsp;&nbsp;&nbsp;rule_info_s *info = elm_object_item_data_get(it);
 &nbsp;&nbsp;&nbsp;elm_genlist_item_selected_set(it, false);
 
-&nbsp;&nbsp;&nbsp;Evas_Object *check = elm_object_item_part_content_get(it, "elm.swallow.end");
+&nbsp;&nbsp;&nbsp;rule_info_s *info = elm_object_item_data_get(it);
 
-&nbsp;&nbsp;&nbsp;if (elm_check_state_get(check)) {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = disable_rule(info->id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error == CONTEXT_TRIGGER_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(check, !info->enabled);
+&nbsp;&nbsp;&nbsp;if (info->result == CONTEXT_TRIGGER_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int error = CONTEXT_TRIGGER_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *check = elm_object_item_part_content_get(it, "elm.swallow.end");
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (elm_check_state_get(check)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = disable_rule(info->id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error == CONTEXT_TRIGGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(check, !info->enabled);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = enable_rule(info->id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error == CONTEXT_TRIGGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(check, !info->enabled);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;} else {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error = enable_rule(info->id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error == CONTEXT_TRIGGER_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(check, !info->enabled);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create_error_popup(data, info);
 &nbsp;&nbsp;&nbsp;}
 }
 
@@ -284,6 +258,42 @@ static void check_changed_cb(void *data, Evas_Object * obj, void *event_info EIN
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error != CONTEXT_TRIGGER_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_check_state_set(obj, !info->enabled);
 &nbsp;&nbsp;&nbsp;}
+}
+
+static void create_error_popup(appdata_s * ad, void *data)
+{
+&nbsp;&nbsp;&nbsp;rule_info_s *info = (rule_info_s *) data;
+
+&nbsp;&nbsp;&nbsp;char *err_msg = NULL;
+
+&nbsp;&nbsp;&nbsp;switch (info->result) {
+&nbsp;&nbsp;&nbsp;case CONTEXT_TRIGGER_ERROR_PERMISSION_DENIED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;err_msg = ERR_MSG_PERMISSION_DENIED;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONTEXT_TRIGGER_ERROR_NOT_SUPPORTED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;err_msg = ERR_MSG_NOT_SUPPORTED;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;case CONTEXT_TRIGGER_ERROR_INVALID_RULE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;err_msg = ERR_MSG_INVALID_RULE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;err_msg = ERR_MSG_DEFAULT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;Evas_Object *popup = elm_popup_add(ad->win);
+&nbsp;&nbsp;&nbsp;elm_popup_align_set(popup, ELM_NOTIFY_ALIGN_FILL, 1.0);
+&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(popup, EEXT_CALLBACK_BACK, eext_popup_back_cb, NULL);
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(popup, "title,text", info->name);
+
+&nbsp;&nbsp;&nbsp;elm_object_text_set(popup, err_msg);
+
+&nbsp;&nbsp;&nbsp;Evas_Object *btn = elm_button_add(popup);
+&nbsp;&nbsp;&nbsp;elm_object_style_set(btn, "popup");
+&nbsp;&nbsp;&nbsp;elm_object_text_set(btn, "OK");
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(popup, "button1", btn);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(btn, "clicked", popup_btn_clicked_cb, popup);
+&nbsp;&nbsp;&nbsp;evas_object_show(popup);
 }
 </pre>
 
