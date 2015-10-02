@@ -1,0 +1,263 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>The (Circle) Circular Camera Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<div id="profile">
+	<p><img alt="Wearable native" src="../images/wearable_s_n.png"/></p>
+</div>
+
+<h1>The (Circle) Circular Camera Sample Overview</h1>
+
+<p>The (Circle) Circular Camera sample application demonstrates how you can handle Camera API, among others how to start camera preview and capture images.</p>
+
+<p>The following figure illustrates two screens of the (Circle) Circular Camera sample application: the camera preview window and the camera attributes menu views.</p>
+
+<p class="figure">Figure 1: (Circle) Circular camera views</p>
+  <p align="center"><img alt="(Circle) Circular camera views" src="../images/circlecircular_camera_wn0.png" /> <img alt="(Circle) Circular camera views" src="../images/circlecircular_camera_wn1.png" /></p>
+
+<p>Click the red camera button to capture a picture or press the preview to enter the camera attributes list.</p>
+<p>From there you can set any camera attributes this application makes available for you.</p>
+
+<p class="figure">Figure 2: (Circle) Circular camera UI structure</p>
+  <p align="center"><img alt="(Circle) Circular camera UI structure" src="../images/circlecircular_camera_wn2.png"/>
+  </p>
+
+<h2>Prerequisites</h2>
+<p>To ensure proper application execution, the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/mediastorage</span> and
+the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/camera</span> privileges
+must be set. Also, there should be the camera device installed on your device.</p>
+
+<h2>Implementation</h2>
+
+<h3 id="mainview">View module</h3>
+<p>The most important part of the view module is the camera preview surface creation. For this purpose you can use the
+<span style="font-family: Courier New,Courier,monospace">evas filled image</span>.</p>
+
+<pre class="prettyprint">
+Evas_Object *preview_surface_create(Evas_Object *parent, previev_surface_long_press_cb cb)
+{
+&nbsp;&nbsp;Evas_Object *surface = evas_object_image_filled_add(evas_object_evas_get(parent));
+	// Common initialization code
+&nbsp;&nbsp;return surface;
+}
+</pre>
+
+<h3 id="mainview">Controller module</h3>
+<p>The cam module is the essential part of this application. It allows for the various camera attributes to be set.</p>
+<p>The initialization function takes the preview surface (shown in view section) as a parameter. It creates a camera handle and
+adds callbacks for the following events:
+<ul>
+ <li>state change,</li>
+ <li>operation interruption,</li>
+ <li>error.</li>
+</ul>
+</p>
+
+<pre class="prettyprint">
+bool cam_init(const void *evas_display_surface)
+{
+	// Common initialization code
+
+&nbsp;&nbsp;cmd.evas_display_surface = (void *)evas_display_surface;
+
+&nbsp;&nbsp;ok = (CAMERA_ERROR_NONE == camera_create(CAMERA_DEVICE_CAMERA0, &amp;cmd.camera));
+&nbsp;&nbsp;ok &amp;= (CAMERA_ERROR_NONE == camera_set_state_changed_cb(cmd.camera, __camera_state_changed_cb, NULL));
+&nbsp;&nbsp;ok &amp;= (CAMERA_ERROR_NONE == camera_set_interrupted_cb(cmd.camera, __camera_interrupted_cb, NULL));
+&nbsp;&nbsp;ok &amp;= (CAMERA_ERROR_NONE == camera_set_error_cb(cmd.camera, __camera_error_cb, NULL));
+
+&nbsp;&nbsp;camera_get_capture_format(cmd.camera, &amp;cmd.pixel_format);
+
+&nbsp;&nbsp;return ok;
+}
+</pre>
+<pre class="prettyprint">
+static void __camera_state_changed_cb(camera_state_e previous, camera_state_e current,
+											bool by_policy, void *user_data)
+{
+&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Camera state has changed from: %d to: %d by policy: %d", previous, current, by_policy);
+}
+</pre>
+<pre class="prettyprint">
+static void __camera_interrupted_cb(camera_policy_e policy, camera_state_e previous,
+										camera_state_e current, void *user_data)
+{
+&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Camera state interrupted. State has changed from: %d to: %d by policy: %d",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;previous, current, policy);
+}
+</pre>
+<p>It is important to free the camera handle and release its resources when an error occurs.</p>
+<pre class="prettyprint">
+static void __camera_error_cb(camera_error_e error, camera_state_e current_state, void *user_data)
+{
+&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Camera error: %s has occurred; current state: %d, deinitializing",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;get_error_message(error), current_state);
+&nbsp;&nbsp;cam_deinit();
+}
+</pre>
+<p>Once the initialization is succesfully finished, the preview function can be called. Please note that
+the camera state is always checked at the beginning. Starting the preview will fail unless the camera is in one of the following states:
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">CAMERA_STATE_CREATED,</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CAMERA_STATE_CAPTURED.</span></li>
+</ul>
+You might also notice how the preview surface (previously passed as an argument to the initialization function) is used in
+<span style="font-family: Courier New,Courier,monospace">camera_set_display()</span>
+function. The <span style="font-family: Courier New,Courier,monospace">GET_DISPLAY()</span> API macro has to be used as it is a portable way to convert the
+<span style="font-family: Courier New,Courier,monospace">Evas_Object *</span>
+to the
+<span style="font-family: Courier New,Courier,monospace">camera_display_h</span>
+.</p>
+<pre class="prettyprint">
+bool cam_start_preview(void)
+{
+&nbsp;&nbsp;camera_state_e state = CAMERA_STATE_NONE;
+&nbsp;&nbsp;int width = 0;
+&nbsp;&nbsp;int height = 0;
+
+&nbsp;&nbsp;camera_get_state(cmd.camera, &amp;state);
+
+&nbsp;&nbsp;if (state == CAMERA_STATE_PREVIEW)
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+
+&nbsp;&nbsp;if (state != CAMERA_STATE_CREATED &amp;&amp; state != CAMERA_STATE_CAPTURED)
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;if (CAMERA_ERROR_NONE == camera_get_recommended_preview_resolution(cmd.camera, &amp;width, &amp;height)) {
+&nbsp;&nbsp;&nbsp;&nbsp;camera_set_preview_resolution(cmd.camera, width, height);
+&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;camera_set_display(cmd.camera, CAMERA_DISPLAY_TYPE_EVAS, GET_DISPLAY(cmd.evas_display_surface));
+&nbsp;&nbsp;camera_set_display_mode(cmd.camera, CAMERA_DISPLAY_MODE_FULL);
+&nbsp;&nbsp;camera_set_display_visible(cmd.camera, true);
+&nbsp;&nbsp;camera_start_focusing(cmd.camera, true);
+
+&nbsp;&nbsp;return (CAMERA_ERROR_NONE == camera_start_preview(cmd.camera));
+}
+</pre>
+
+<p>Once the preview is successfully set up, the camera view is visible on the screen and it is possible to capture photos.</p>
+<p>Photo taking is implemented in <span style="font-family: Courier New,Courier,monospace">cam_start_capturing()</span>,
+<span style="font-family: Courier New,Courier,monospace">__camera_capturing_cb()</span> and
+<span style="font-family: Courier New,Courier,monospace">__camera_capture_completed_cb()</span> functions.</p>
+
+<pre class="prettyprint">
+bool cam_start_capturing(void)
+{
+&nbsp;&nbsp;camera_state_e state = CAMERA_STATE_NONE;
+
+&nbsp;&nbsp;if (CAMERA_PIXEL_FORMAT_INVALID == cmd.pixel_format) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Error - capture format hasn't been selected");
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;camera_get_state(cmd.camera, &amp;state);
+
+&nbsp;&nbsp;if (state == CAMERA_STATE_CAPTURING)
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+
+&nbsp;&nbsp;if (state == CAMERA_STATE_NONE || (state != CAMERA_STATE_PREVIEW &amp;&amp; !cam_start_preview()))
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;if (!max_width || !max_height)
+&nbsp;&nbsp;&nbsp;&nbsp;camera_foreach_supported_capture_resolution(cmd.camera, __supported_capture_resolution_cb, NULL);
+
+&nbsp;&nbsp;if (max_width &amp;&amp; max_height)
+&nbsp;&nbsp;&nbsp;&nbsp;camera_set_capture_resolution(cmd.camera, max_width, max_height);
+
+&nbsp;&nbsp;return (CAMERA_ERROR_NONE == camera_start_capture(cmd.camera, __camera_capturing_cb, __camera_capture_completed_cb, NULL));
+}
+</pre>
+<p>Once the camera device has filled the image buffer, the
+<span style="font-family: Courier New,Courier,monospace">__camera_capturing_cb()</span>
+callback is called. This is the place to save the captured photo. The
+<span style="font-family: Courier New,Courier,monospace">camera_image_data_s</span>
+structure contains a raw image data buffer and information about its dimensions and buffer length.
+This application allows the user to select between different types of camera images format. One of them is
+<span style="font-family: Courier New,Courier,monospace">CAMERA_PIXEL_FORMAT_JPEG</span> which is already encoded.
+The rest of the formats are raw types. This is why jpeg format is distinguished in the following code.</p>
+<pre class="prettyprint">
+static void __camera_capturing_cb(camera_image_data_s *image, camera_image_data_s *postview,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;camera_image_data_s *thumbnail, void *user_data)
+{
+&nbsp;&nbsp;FILE *f = NULL;
+&nbsp;&nbsp;int w = 0;
+&nbsp;&nbsp;char currently_saved_file[PATH_MAX] = {0,};
+
+&nbsp;&nbsp;if (cmd.pixel_format == CAMERA_PIXEL_FORMAT_INVALID || !image)
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;if (image->format == CAMERA_PIXEL_FORMAT_JPEG) {
+&nbsp;&nbsp;&nbsp;&nbsp;snprintf(currently_saved_file, PATH_MAX, SAVE_FILE_PATH_PATTERN, time(NULL));
+&nbsp;&nbsp;&nbsp;&nbsp;f = fopen(currently_saved_file, "w+");
+&nbsp;&nbsp;&nbsp;&nbsp;if (!f) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Could not obtain handle for file %s ", currently_saved_file);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;do {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;w += fwrite(image->data + w, sizeof(unsigned char), image->size - w, f);
+&nbsp;&nbsp;&nbsp;&nbsp;} while (w &lt; image->size);
+
+&nbsp;&nbsp;&nbsp;&nbsp;fclose(f);
+&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;__encode_to_jpeg(image->data, image->width, image->height, currently_saved_file);
+&nbsp;&nbsp;}
+}
+</pre>
+
+<p>When the capture callback returns and the camera's internal state is updated, another callback is invoked -
+<span style="font-family: Courier New,Courier,monospace">__camera_capture_completed_cb()</span>. This
+gives the developer a chance to change the camera state from <span style="font-family: Courier New,Courier,monospace">CAMERA_STATE_CAPTURED</span>
+to
+<span style="font-family: Courier New,Courier,monospace">CAMERA_STATE_PREVIEW</span> and allows the camera
+view to be continuously displayed again.</p>
+<pre class="prettyprint">
+static void __camera_capture_completed_cb(void *user_data)
+{
+&nbsp;&nbsp;cam_start_preview();
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
