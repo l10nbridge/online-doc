@@ -1,0 +1,303 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Service Adaptor Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+
+<h1>Service Adaptor Sample Overview</h1>
+<p>The Service Adaptor sample demonstrates how to download files from cloud storage using Service Adaptor APIs.</p>
+<p>The following figure illustrates the main views of the Service Adaptor application.</p>
+
+<p class="figure">Figure : Service Adaptor main views</p>
+<p align="center"><img alt="Service Adaptor main views" src="../images/service_adaptor_main.png" /></p>
+
+<p>There are 10 dummy plugins in the sample application. If you install a cloud storage plugin (eg, dropbox), it will be added in the top of the plugins.</p>
+
+<h2>Implementation</h2>
+<p>To connect service adaptor:</p>
+<ol>
+<li>Connect to service adaptor and search any plugin is installed.
+
+<pre class="prettyprint">
+static void foreach_plugin()
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *list = ad.main_list;
+
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;service_adaptor_h service_adaptor = NULL;
+&nbsp;&nbsp;&nbsp;ret = service_adaptor_create(&service_adaptor);
+&nbsp;&nbsp;&nbsp;if (SERVICE_ADAPTOR_ERROR_NONE != ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log_error("Service adaptor create failed");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = service_adaptor_foreach_plugin(service_adaptor, _plugin_iterator_cb, (void *)list);
+&nbsp;&nbsp;&nbsp;if (SERVICE_ADAPTOR_ERROR_NO_DATA == ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log_info("There is no available plugin");
+&nbsp;&nbsp;&nbsp;} else if (SERVICE_ADAPTOR_ERROR_NONE != ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log_error("Plugin foreach failed");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = service_adaptor_destroy(service_adaptor);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_adaptor = NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;g_service_adaptor = service_adaptor;
+
+&nbsp;&nbsp;&nbsp;int i = 0;
+
+&nbsp;&nbsp;&nbsp;while (NULL != fake_plugins[i]) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_list_item_append(list, fake_plugins[i], NULL, NULL, _show_plugin_view, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++i;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>If there are any installed plugins, <span style="font-family: Courier New,Courier,monospace;">_plugin_iterator_cb</span> callback is called and the plugin is added in the list:</p>
+<pre class="prettyprint">
+static bool _plugin_iterator_cb(char *plugin_uri, int service_mask, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *list = (Evas_Object *)user_data;
+&nbsp;&nbsp;&nbsp;log_debug("plugin uri : %s, masked : <auth(%d), storage(%d)>", plugin_uri,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(SERVICE_PLUGIN_SERVICE_AUTH & service_mask), (SERVICE_PLUGIN_SERVICE_STORAGE & service_mask));
+&nbsp;&nbsp;&nbsp;if ((service_mask & SERVICE_PLUGIN_SERVICE_AUTH) && (service_mask & SERVICE_PLUGIN_SERVICE_STORAGE)) {
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_list_item_append(list, strdup(plugin_uri), NULL, NULL, _show_plugin_view, strdup(plugin_uri));
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+
+<li>Select plugin (cloud storage).
+<p>When any plugin is clicked on the list, the file list of cloud storage will be shown in the next screen:</p>
+<p class="figure">Figure : File list</p>
+<p align="center"><img alt="Service Adaptor File list" src="../images/service_adaptor_file_list.png" /></p>
+<pre class="prettyprint">
+static void _show_plugin_view(void* data, Evas_Object* obj, void* event_info)
+{
+&nbsp;&nbsp;&nbsp;char *plugin_uri = (char *)data;
+
+&nbsp;&nbsp;&nbsp;Evas_Object *glist = elm_genlist_add(ad.win);
+&nbsp;&nbsp;&nbsp;ad.file_list = glist;
+
+&nbsp;&nbsp;&nbsp;if (plugin_uri) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* get files list from this plugin */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (NULL != ad.plugin)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_plugin_destroy(ad.plugin);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad.plugin = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_adaptor_create_plugin(g_service_adaptor, plugin_uri, &ad.plugin);
+
+&nbsp;&nbsp;&nbsp;/* TODO It must be hide using config file or User input. Because it is security information */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_plugin_add_property(ad.plugin, SERVICE_PLUGIN_PROPERTY_APP_KEY, "enasvv4l8hdbmhn");
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* TODO It must be hide using config file or User input. Because it is security information */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_plugin_add_property(ad.plugin, SERVICE_PLUGIN_PROPERTY_APP_SECRET, "uqhl4pp8mo7hmgn");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_plugin_start(ad.plugin, (SERVICE_PLUGIN_SERVICE_AUTH | SERVICE_PLUGIN_SERVICE_STORAGE));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_storage_get_file_list(ad.plugin, "/", _service_storage_result_cb, NULL);
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;while (NULL != fake_files[i].filename) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file_data_t *m_file = (file_data_t *)calloc(1, sizeof(file_data_t));
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->filename = strdup(fake_files[i].filename);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->type = fake_files[i].type;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->size = fake_files[i].size;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->fake = 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->list_item = elm_genlist_item_append(glist,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad.list_class,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)&fake_files[i],
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_show_file_details_view,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(const void *)m_file);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++i;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(glist, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_show(glist);
+
+&nbsp;&nbsp;&nbsp;ad.current_plugin_navi_item = elm_naviframe_item_push(ad.navi, "File list", NULL, NULL, glist, NULL);
+
+&nbsp;&nbsp;&nbsp;elm_list_item_selected_set(elm_list_selected_item_get(ad.main_list), EINA_FALSE);
+}
+
+</pre>
+</li>
+
+<li>File details.
+<p>When selecting a file, you can get file details including filename, file path and file size by <span style="font-family: Courier New,Courier,monospace;">__file_iterator_cb</span> .</p>
+
+<p class="figure">Figure: file details</p>
+<p align="center"><img alt="file details" src="../images/service_adaptor_file_details.png" /></p>
+
+<pre class="prettyprint">
+static bool __file_iterator_cb(service_storage_file_h file, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* TODO change logic for defend memory leak. */
+
+&nbsp;&nbsp;&nbsp;file_data_t *m_file = (file_data_t *)calloc(1, sizeof(file_data_t));
+
+&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;unsigned long long size = 0;
+&nbsp;&nbsp;&nbsp;bool is_dir = false;
+
+&nbsp;&nbsp;&nbsp;service_storage_file_is_dir(file, &is_dir);
+&nbsp;&nbsp;&nbsp;service_storage_file_get_size(file, &size);
+&nbsp;&nbsp;&nbsp;service_storage_file_get_logical_path(file, &name);
+
+&nbsp;&nbsp;&nbsp;m_file->filename = strdup(name);
+&nbsp;&nbsp;&nbsp;m_file->type = is_dir ? "directory" : "file";
+&nbsp;&nbsp;&nbsp;m_file->size = (int)size;
+&nbsp;&nbsp;&nbsp;m_file->fake = 0;
+&nbsp;&nbsp;&nbsp;m_file->list_item = NULL;
+
+&nbsp;&nbsp;&nbsp;log_info("\nfilename: \"%s\"\ntype: \"%s\"\nsize: %i\nfake: %i\nlist_item: %p\n",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->filename ? m_file->filename : "",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->type,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->size,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->fake,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;m_file->list_item ? m_file->list_item : 0);
+
+&nbsp;&nbsp;&nbsp;ecore_event_add(ad.event_file_info_received, m_file, event_file_info_received_cleanup_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+
+<li>Download a file.
+<p>You can download file when you select download and start.</p>
+<p class="figure">Figure : File Download</p>
+<p align="center"><img alt="Service Adaptor Download" src="../images/service_adaptor_file_download.png" />
+&nbsp;&nbsp;<img alt="Service Adaptor Download Progress" src="../images/service_adaptor_download_progress.png" />
+&nbsp;&nbsp;<img alt="Service Adaptor Download Complete" src="../images/service_adaptor_download_complete.png" /></p>
+<pre class="prettyprint">
+static void start_download(void *data)
+{
+&nbsp;&nbsp;&nbsp;if (NULL == data) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Null pointer: data");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;file_data_t *file_data = data;
+&nbsp;&nbsp;&nbsp;service_storage_task_h download_task;
+&nbsp;&nbsp;&nbsp;int err = SERVICE_ADAPTOR_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Download file path: %s", file_data->filename);
+
+&nbsp;&nbsp;&nbsp;GString *dest_file = g_string_new("/tmp/");
+&nbsp;&nbsp;&nbsp;g_string_append(dest_file, file_data->filename);
+
+&nbsp;&nbsp;&nbsp;if (SERVICE_ADAPTOR_ERROR_NONE !=
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(err = service_storage_create_download_task(ad.plugin, file_data->filename, dest_file->str, &download_task))) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Download task creation failed.");
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (err) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_PERMISSION_DENIED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Permission denied");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_INVALID_STATE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "The handle's state is invalid");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_INVALID_PARAMETER:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Invalid parameter");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_NO_DATA:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "There is no files");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_TIMED_OUT:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Timed out");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_IPC_UNSTABLE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "IPC failed with Service Adaptor Daemon");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_NOT_SUPPORTED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Not supported API in this plugin");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_PLUGIN_FAILED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed in Plugin internal");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SERVICE_ADAPTOR_ERROR_UNKNOWN:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Unknown error");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *msg = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_adaptor_get_last_error_message(&msg);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "error msg: %s", msg);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(msg);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_string_free(dest_file, TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;g_string_free(dest_file, TRUE);
+
+&nbsp;&nbsp;&nbsp;if (SERVICE_ADAPTOR_ERROR_NONE != service_storage_set_task_progress_cb(download_task, download_task_progress_cb, NULL)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Setting callback for download task failed.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_storage_destroy_task(download_task);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (SERVICE_ADAPTOR_ERROR_NONE != service_storage_set_task_state_changed_cb(download_task, download_task_state_cb, NULL)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Setting callback for download task failed.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_storage_destroy_task(download_task);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (SERVICE_ADAPTOR_ERROR_NONE != service_storage_start_task(download_task)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Starting download task failed.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_storage_destroy_task(download_task);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</ol>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
