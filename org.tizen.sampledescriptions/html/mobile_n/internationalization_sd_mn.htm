@@ -223,9 +223,143 @@ static bool __get_available_locale_cb(const char *locale, void *data)
   The view related source code is not listed here, as it is not a subject of this document.
   </p>
 
-<h3 id="app-finit">Application termination</h3>
+<h3>Text translation</h3>
 
-<h3>Text translation files handling</h3>
+  <p>
+  The application demonstrates two different approaches to the text strings translation:
+    <ul>
+      <li>
+      the first one is based on hooking the application's <span style="font-family: Courier New,Courier,monospace">APP_EVENT_LANGUAGE_CHANGED</span> event. The event's relevant callback
+      function is invoked on the display language change via the Settings &#10140; Language and input &#10140; Display language. This is a procedure of global language change. It affects the entire mobile platform
+	  and all of its applications.
+	  </li>
+	  <li>
+	  The second one does not listen to any external notifications (like <span style="font-family: Courier New,Courier,monospace">APP_EVENT_LANGUAGE_CHANGED</span> event above), but it is based
+	  on language selection from drop-down list. Once the language change is confirmed using the "Apply" button, the desigated text strings will be translated. This is a procedure of local language change, as
+	  it affects only this application and does not influence any other component on the mobile platform.
+	  </li>
+    </ul>
+  Both methods require that the strings translation files are available (see the <a href="#lang-exp">Language Explorer</a> section for more details).
+  </p>
+
+<h4 id="global-lang-ch">Hangling global language change</h4>
+
+  <p>
+  Once the display language is changed via the Settings &#10140; Language and input &#10140; Display language, the <span style="font-family: Courier New,Courier,monospace">__ui_app_lang_changed()</span>
+  callback function is invoked (see the <a href="#app-init">Application initialization</a> section for details of event hooking with the
+  <span style="font-family: Courier New,Courier,monospace">__ui_app_lang_changed()</span> callback function).
+  </p>
+
+<pre class="prettyprint">
+static void __ui_app_lang_changed(app_event_info_h event_info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)user_data;
+
+&nbsp;&nbsp;&nbsp;char *language = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!model_get_locale_language(&language))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;view_set_language(&ad->view, language);
+&nbsp;&nbsp;&nbsp;free(language);
+
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+  <p>
+  When the <span style="font-family: Courier New,Courier,monospace">__ui_app_lang_changed()</span> callback function is invoked, the current language has to be obtained from the system settings,
+  where the Settings application stores the user's selection regarding the display language. This operation is wrapped by the
+  <span style="font-family: Courier New,Courier,monospace">model_get_locale_language()</span> function (see the code snippet below for more details). The display language setting is stored
+  as a key-value pair, where the valid key is identified as the <span style="font-family: Courier New,Courier,monospace">SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE</span> constant value. As a result,
+  the valid localization code is returned, ex. "en_US" for English (United States) language, "ko_KR" for Korean (Republic of) language, etc.
+  </p>
+
+<pre class="prettyprint">
+bool model_get_locale_language(char **language)
+{
+&nbsp;&nbsp;&nbsp;int ret = system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, language);
+&nbsp;&nbsp;&nbsp;if (ret != SYSTEM_SETTINGS_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Function system_settings_get_value_string() failed with error %d.", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  Once the valid localization code is obtained, it is passed to the <span style="font-family: Courier New,Courier,monospace">view_set_language()</span> function, where the
+  <span style="font-family: Courier New,Courier,monospace">elm_language_set()</span> function applies the language to the application's text strings.
+  </p>
+
+<pre class="prettyprint">
+bool view_set_language(viewdata_s *vd, const char *locale)
+{
+&nbsp;&nbsp;&nbsp;if (!locale) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;controller_log(DLOG_ERROR, "Invalid input arguments.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* This portion of code appends the ".UTF-8" string to the localization code which is required by the elm_language_set() function. */
+&nbsp;&nbsp;&nbsp;int str_len = strlen(locale) + strlen(".UTF-8") + 1;
+&nbsp;&nbsp;&nbsp;char *localization_string = (char *)calloc(str_len, sizeof(char));
+&nbsp;&nbsp;&nbsp;snprintf(localization_string, str_len, "%s.UTF-8", locale);
+
+&nbsp;&nbsp;&nbsp;controller_log(DLOG_INFO, "Language changed to: %s (%s)", locale, localization_string);
+
+&nbsp;&nbsp;&nbsp;elm_language_set(localization_string);
+&nbsp;&nbsp;&nbsp;free(localization_string);
+
+&nbsp;&nbsp;&nbsp;/* The text strings are translated using the i18n functions. */
+&nbsp;&nbsp;&nbsp;__view_display_text_translation(vd);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+  <p>
+  The final texts' translation and display is performed by the <span style="font-family: Courier New,Courier,monospace">__view_display_text_translation()</span> function, where the
+  texts' IDs are used (<span style="font-family: Courier New,Courier,monospace">IDS_BODY_EXAMPLE_TEXT</span>,
+  <span style="font-family: Courier New,Courier,monospace">IDS_BODY_HELLO_WORLD</span>) together with the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function.
+  </p>
+
+<pre class="prettyprint">
+static void __view_display_text_translation(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(vd->layout_text_middle, PART_TEXT_MIDDLE_LABEL_TOP, i18n_get_text("IDS_BODY_EXAMPLE_TEXT"));
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(vd->layout_text_middle, PART_TEXT_MIDDLE_LABEL_BOTTOM, i18n_get_text("IDS_BODY_HELLO_WORLD"));
+}
+</pre>
+
+  <p>
+  The <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function is responsible for proper text string selection from the po files according to the current language
+  setting.
+  </p>
+
+<h4>Handling local language change</h4>
+
+  <p>
+  In order to change the language locally, the user is requested to select desired language from the drop-down list of localization codes and confirm using the "Apply" button. Once the "Apply" button is pressed,
+  the <span style="font-family: Courier New,Courier,monospace">__view_apply_button_click_cb()</span> callback function is called within the View module.
+  </p>
+
+<pre class="prettyprint">
+static void __view_apply_button_click_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;/* The localization code is obtained from the language selection widget. */
+&nbsp;&nbsp;&nbsp;const char *locale = elm_object_text_get(__viewdata->hoversel);
+&nbsp;&nbsp;&nbsp;viewdata_s *vd = (viewdata_s *)data;
+
+&nbsp;&nbsp;&nbsp;if (locale)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_set_language(vd, locale);
+}
+</pre>
+
+  <p>
+  Localization code obtained from the language selection widget is passed to the <span style="font-family: Courier New,Courier,monospace">view_set_language()</span> function as an
+  argument. Further processing is strictly the same as described in the global language change procedure (for reference, see the <a href="#global-lang-ch">Hangling global language change</a> section).
+  </p>
 
 <h3 id="model">Model</h3>
 
