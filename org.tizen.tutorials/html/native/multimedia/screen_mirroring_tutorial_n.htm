@@ -52,7 +52,7 @@
    <p>Initialize the screen mirroring sink for use.</p>
  </li>
  <li><a href="#prepare">Preparing the Screen Mirroring Sink</a>
-   <p>Set specific information, and prepare the screen mirroring sink.</p>
+   <p>Set specific information, Set display object, and prepare the screen mirroring sink.</p>
  </li>
  <li><a href="#connect">Connecting and Starting the Screen Mirroring Sink</a>
   <p>Connect and start the screen mirroring sink.</p>
@@ -130,7 +130,7 @@ static void scmirroring_state_callback(scmirroring_error_e error_code, scmirrori
 &nbsp;&nbsp;&nbsp;return;
 }
 
-static int prepare_scmirroring_sink(scmirroring_display_type_e display_type, Evas_Object* display_object)
+static int prepare_scmirroring_sink(scmirroring_display_type_e display_type)
 {
 &nbsp;&nbsp;&nbsp;ret = scmirroring_sink_set_state_changed_cb(g_scmirroring, scmirroring_state_callback, NULL);
 &nbsp;&nbsp;&nbsp;if (ret != SCMIRRORING_ERROR_NONE)
@@ -142,14 +142,86 @@ static int prepare_scmirroring_sink(scmirroring_display_type_e display_type, Eva
 </pre>
  </li>
  <li>Set a display object using the <span style="font-family: Courier New,Courier,monospace">scmirroring_sink_set_display()</span> function before calling the <span style="font-family: Courier New,Courier,monospace">scmirroring_sink_prepare()</span> function.
- <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;ret = scmirroring_sink_set_display(g_scmirroring, display_type, display_object);
-&nbsp;&nbsp;&nbsp;if (ret != SCMIRRORING_ERROR_NONE)
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;switch (display_type)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;scmirroring_sink_set_display fail [%d]&quot;, ret);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SCMIRRORING_DISPLAY_TYPE_EVAS:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (g_eo == NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;g_eo is NULL&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = scmirroring_sink_set_display(g_scmirroring, SCMIRRORING_DISPLAY_TYPE_EVAS, (void*)g_eo);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SCMIRRORING_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;scmirroring_sink_set_display fail [%d], display type [%d]&quot;, ret, display_type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SCMIRRORING_DISPLAY_TYPE_OVERLAY:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (g_win == NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;g_win is NULL&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = scmirroring_sink_set_display(g_scmirroring, SCMIRRORING_DISPLAY_TYPE_OVERLAY, (void*)g_win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SCMIRRORING_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;scmirroring_sink_set_display fail [%d], display type [%d]&quot;, ret, display_type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Invalid display type [%d].&quot;, display_type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
 &nbsp;&nbsp;&nbsp;}</pre>
+<ul><li>Example: Create the display object according to <span style="font-family: Courier New,Courier,monospace">scmirroring_display_type_e</span> :</ul>
+<pre class="prettyprint">
+#define PACKAGE_NAME &quot;SCREEN_MIRRORING_SINK_APP&quot;
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 1200
+
+static Evas_Object *g_win = NULL;
+static Evas_Object *g_evas = NULL;
+static Evas_Object *g_eo = NULL;
+static Evas_Object *g_rect = NULL;
+
+static void create_base_gui (scmirroring_display_type_e display_type)
+{
+&nbsp;&nbsp;&nbsp;g_win = elm_win_add(NULL, PACKAGE_NAME, ELM_WIN_BASIC);
+
+&nbsp;&nbsp;&nbsp;evas_object_resize(g_win, WINDOW_WIDTH, WINDOW_HEIGHT);
+&nbsp;&nbsp;&nbsp;evas_object_move(g_win, 0, 0);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(g_win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;switch (display_type)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SCMIRRORING_DISPLAY_TYPE_EVAS:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_evas = evas_object_evas_get(g_win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Set Evas image object for drawing
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_eo = evas_object_image_add(g_evas);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_size_set(g_eo, WINDOW_WIDTH, WINDOW_HEIGHT);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_fill_set(g_eo, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(g_eo, WINDOW_WIDTH, WINDOW_HEIGHT);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(g_eo);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(g_win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case SCMIRRORING_DISPLAY_TYPE_OVERLAY:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_rect = evas_object_rectangle_add(g_evas);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(g_rect, WINDOW_WIDTH, WINDOW_HEIGHT);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(g_rect, 0, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(g_rect, 0, 0, 0, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_render_op_set(g_rect, EVAS_RENDER_COPY);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(g_rect, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(g_win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+}</pre>
  </li>
  <li>Prepare the screen mirroring sink using the <span style="font-family: Courier New,Courier,monospace">scmirroring_sink_prepare()</span> function. The screen mirroring state immediately becomes <span style="font-family: Courier New,Courier,monospace">SCMIRRORING_STATE_PREPARED</span>.
 
