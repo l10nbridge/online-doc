@@ -31,115 +31,69 @@
 <ol>
 <li>To ensure proper application execution, the following privileges must be set:
 <ul>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/contact.read</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/datasharing</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.get</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/appmanager.launch</span></li>
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.read</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.profile</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/internet</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.set</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/download</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/contact.read</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.write</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/appmanager.launch</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/content.write</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.info</span></li>
 </ul>
 </li>
-<li>Register the service application as a sync adapter by passiong the sync callback functions to the following sync adapter API.
+<li>Register the service application as a sync adapter by passing the sync callback functions to the following sync adapter API.
 <pre class="prettyprint">
 bool service_app_create(void *data)
 {
-	LOGI("service_app_create called");
+	dlog_print(DLOG_INFO, LOG_TAG, "service_app_create called");
 
 	sync_adapter_set_callbacks(handleStartSync, handleStopSync);
 	...
 	...
+
 	return true;
 }</pre>
-</li>
-<li>Create a database and intialize data_control handle for writing data into database.
-<pre class="prettyprint">
-#define DB_PATH "/opt/usr/apps/org.tizen.syncadapterapp/data/sync.db"
-...
-...
-
-int create_database()
-{
-	LOGI("create database, %s", DB_PATH);
-	remove(DB_PATH);
-
-	char* sql_command = "CREATE TABLE IF NOT EXISTS sync_data ( TITLE TEXT)";
-	int open_flags = (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
-
-	int ret = sqlite3_open_v2(DB_PATH, &amp;db, open_flags, NULL);
-	if (ret != SQLITE_OK)
-	{
-		LOGE("database creation failed with error: %d",ret);
-		return ret;
-	}
-
-	ret = sqlite3_exec(db, sql_command, NULL, NULL, NULL);
-	if (ret != SQLITE_OK)
-	{
-		LOGE("database table creation failed with error: %d",ret);
-	}
-
-	return ret;
-}
-</pre>
 </li>
 </ol>
 
 <h2>Start Sync</h2>
 <h3>Handle Start Sync</h3>
 <li>Whenever sync manager schedules a sync job for Sync Adapter App, the following callback function will be tirgger to perform the sync job.
-The Sync Adapter Service App will download the content from server and communicates to Sync Adapter App by using app_control.
+The Sync Adapter Service App will communicates to Sync Adapter App by using app_control.
 <pre class="prettyprint">
 static bool handleStartSync(account_h account, const char *sync_job_name, const char *sync_capability, bundle *sync_job_user_data)
 {
-	bool is_data_sync_cb = sync_capability ? true : false;
-	LOGI("HandleStartSync called in service app");
-	LOGI("Sync parameters:");
-	if (sync_job_name)
-	{
-		LOGI("Syncjob Name [%s]", sync_job_name);
-	}
-	else
-		LOGE("Error Syncjob Name is must");
+	dlog_print(DLOG_INFO, LOG_TAG, "HandleStartSync called in service app");
 
-	if (account)
-	{
+	bool is_data_change = sync_capability ? true : false;
+
+	if (sync_job_name)
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync Job Name [%s]", sync_job_name);
+	else
+		dlog_print(DLOG_INFO, LOG_TAG, "Data Change Sync Job Capability [%s]", sync_capability);
+
+	if (account) {
 		int id;
 		account_get_account_id(account, &amp;id);
-		LOGI("account [%d] ", id);
-	}
-	else
-		LOGI("account is NULL");
-
-	if (is_data_sync_cb)
-	{
-		LOGI("Data change sync capability [%s]", sync_capability);
-	}
+		dlog_print(DLOG_INFO, LOG_TAG, "account [%d] ", id);
+	} else
+		dlog_print(DLOG_INFO, LOG_TAG, "accountless case");
 
 	app_control_h app_control;
 	int ret = app_control_create(&amp;app_control);
-	ret = app_control_set_app_id(app_control, "org.tizen.syncadapterapp");
+	ret = app_control_set_app_id(app_control, SYNC_ADAPTER_APP_ID);
+	if (ret == APP_CONTROL_ERROR_NONE)
+		dlog_print(DLOG_INFO, LOG_TAG, "Launching sync UI app successfully [%s]", SYNC_ADAPTER_APP_ID);
+	else
+		dlog_print(DLOG_INFO, LOG_TAG, "Launching sync UI app failed [%s]", get_error_message(ret));
 
-	char* pURL = NULL;
-	ret = bundle_get_str(sync_job_user_data, "URL", &amp;pURL);
-	if (pURL != NULL)
-	{
-		if (is_data_sync_cb)
-		{
-			start_upload_to_server(pURL);
-			ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/upload_sync_complete");
-			LOGI("upload sync completed");
-		}
+	if (is_data_change) {
+		ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/data_change_sync_complete");
+	} else {
+		bool is_periodic = !strcmp(sync_job_name, "Periodic") ? true : false;
+		if (is_periodic)
+			ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/periodic_sync_complete");
 		else
-		{
-			start_download_from_server(pURL);
-			ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/sync_complete");
-			LOGI("Download sync completed");
-		}
+			ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/on_demand_sync_complete");
 	}
+	dlog_print(DLOG_INFO, LOG_TAG, "sync operation is completed");
 
 	app_control_send_launch_request(app_control, NULL, NULL);
 
@@ -152,12 +106,14 @@ static bool handleStartSync(account_h account, const char *sync_job_name, const 
 <h3>Handle Cancel Sync</h3>
 <li>This callback function is a notification to inform Sync Adapter Service App to safely cancel ongoing sync job (if any).
 <pre class="prettyprint">
-static void handleStopSync(account_h account, const char* capability)
+static void handleStopSync(account_h account, const char *capability)
 {
+	dlog_print(DLOG_INFO, LOG_TAG, "HandleStopSync called in service app");
+
 	int id;
 	account_get_account_id(account, &amp;id);
-	LOGI("details %d, %s ", id, capability);
-	LOGI("HandleStopSync called in client");
+	dlog_print(DLOG_INFO, LOG_TAG, "details %d, %s ", id, capability);
+	dlog_print(DLOG_INFO, LOG_TAG, "HandleStopSync called in client");
 }</pre>
 </li>
 
