@@ -181,9 +181,9 @@ typedef struct
 /*Base view's layout structure*/
 typedef struct _uib_view_context
 {
-&nbsp;&nbsp;&nbsp;Evas_Object* 	parent;
-&nbsp;&nbsp;&nbsp;Evas_Object* 	root_container;
-&nbsp;&nbsp;&nbsp;const char*  	view_name;
+&nbsp;&nbsp;&nbsp;Evas_Object* parent;
+&nbsp;&nbsp;&nbsp;Evas_Object* root_container;
+&nbsp;&nbsp;&nbsp;const char*  view_name;
 } uib_view_context;
 </pre>
 
@@ -453,6 +453,131 @@ static void __map_remove_response_cb(int request_id, data_control_h provider, bo
 </pre>
 
 <p>The set, add and remove callbacks all work in the same way. They are used to inform if a given operation was successfull (<span style="font-family: Courier New,Courier,monospace">provider_ret == true</span>) or not. If an error in the communication occured, the <span style="font-family: Courier New,Courier,monospace">error</span> parameter should contain the error message. Note that in every callback except for the get one the get request is invoked. This way the UI can be updated with the modified hash map. Note that when error information is received, the function pointed by <span style="font-family: Courier New,Courier,monospace"><a href="#map_structure">error_recived_cb()</a></span> is invoked and a popup with the error message will be displayed.</p>
+
+
+<!-- ********************************************************************************** -->
+<h4>Sql</h4>
+
+<p>Initialization:</p>
+The sql consumer's initialization is similar to the map consumer's initialization. First of all, a provider handler has to be created.</p>
+<pre class="prettyprint">
+data_control_sql_create(&s_info.provider);
+</pre>
+
+<p>A valid provider_id and data_id have to to be set.</p>
+<pre class="prettyprint">
+data_control_sql_set_provider_id(s_info.provider, provider_id);
+data_control_sql_set_data_id(s_info.provider, data_id);
+</pre>
+<p>Then, like in the map consumer's case, four request functions and four response callbacks have to be implemented.</p>
+
+<pre class="prettyprint">
+/* Setting the callback pointers */
+&nbsp;&nbsp;&nbsp;s_info.sql_callback.delete_cb = __sql_delete_response_cb;
+&nbsp;&nbsp;&nbsp;s_info.sql_callback.insert_cb = __sql_insert_response_cb;
+&nbsp;&nbsp;&nbsp;s_info.sql_callback.select_cb = __sql_select_response_cb;
+&nbsp;&nbsp;&nbsp;s_info.sql_callback.update_cb = __sql_update_response_cb;
+
+/* Registering the callbacks */
+&nbsp;&nbsp;&nbsp;ret = data_control_sql_register_response_cb(s_info.provider, &s_info.sql_callback, NULL);
+
+</pre>
+
+<p>Select request</p>
+<p>The data_control_sql_select function is used to read data from the database.
+<pre class="prettyprint">
+data_control_sql_select(data_control_h provider, char **column_list, int column_count, const char *where, const char *order, int *request_id);
+</pre>
+should be used. The <span style="font-family: Courier New,Courier,monospace">select_array</span> parameter is used as the text after the SELECT keyword in a sql query. The <span style="font-family: Courier New,Courier,monospace">select_array</span> is an array of strings. The <span style="font-family: Courier New,Courier,monospace"><a href = "#ui-struct-sql">column_name_entry</a></span> entry field in the sql view can be used as the input for the <span style="font-family: Courier New,Courier,monospace">select_array</span>. Note however that the string from the entry has to be converted (using the <span style="font-family: Courier New,Courier,monospace">elm_entry_markup_to_utf8()</span>) from markup to utf8 format. If not, some characters, e.g '&lt;', cannot be used. After the conversion, '\n' can be used as a delimiter when the text from the entry field is transformed into the array of strings. The <span style="font-family: Courier New,Courier,monospace">select_array_count</span> variable is the count of <span style="font-family: Courier New,Courier,monospace">select_array</span> elements. The <span style="font-family: Courier New,Courier,monospace">final_where</span> parameter is a string. It can contain any correct sql WHERE entry. The <span style="font-family: Courier New,Courier,monospace"><a href = "#ui-struct-sql">where_entry</a></span> entry field is used to provide an input for this parameter. Of course this text (like any text from an entry widget) has to be converted to utf8 as well. If one of the sort methods is chosen using the radiobuttons, a column name has to be provided using the <span style="font-family: Courier New,Courier,monospace"><a href = "#ui-struct-sql">sort_column_entry</a></span> field. The <span style="font-family: Courier New,Courier,monospace">order_text</span> parameter is a concatenation of the <span style="font-family: Courier New,Courier,monospace">order_text</span> string and an appropriate sort text, e.g. 'Num ASC'.
+</p>
+
+<p>Insert request</p>
+<p>Insert request uses a <span style="font-family: Courier New,Courier,monospace">bundle</span> structure to generate an sql query. The <span style="font-family: Courier New,Courier,monospace"><a href = "#ui-struct-sql">column_name_entry</a></span> and <span style="font-family: Courier New,Courier,monospace"><a href = "#ui-struct-sql">column_value_entry</a></span> entries are used to provide input. The obtained strings are then tokenized and added to the bundle as a key value pair. The first line of the <span style="font-family: Courier New,Courier,monospace"><a href = "#ui-struct-sql">column_name_entry</a></span> and  the first line of the <span style="font-family: Courier New,Courier,monospace"><a href = "#ui-struct-sql">value_name_entry</a></span> are used as the first pair and so on.</p>
+
+<p>Delete request</p>
+<p>The delete request uses only the 'where' string described earlier. Every line in the database which meets the provided condition will be removed.</p>
+
+<p>Update request</p>
+<p>The update allows the user to modify a set of rows. Every row that meets the 'where' condition will be updated. To update given fields of a row a bundle is used in the same way as in the 'insert' request.</p>
+
+<p>Callbacks definitions:</p>
+
+<p>The function below is a helper function used in the 'SELECT' response. The row pointed at the result cursor is taken as the argument. The function returns a string containing the row's values. The values are formatted based on their type.</p>
+
+<pre class="prettyprint">
+static const char *__sql_row_get(result_set_cursor cursor)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;column_count = data_control_sql_get_column_count(cursor); /* Get the current row's column count */
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i < column_count; ++i) {
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Get the column type (types available: DATA_CONTROL_SQL_COLUMN_TYPE_INT64,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATA_CONTROL_SQL_COLUMN_TYPE_DOUBLE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATA_CONTROL_SQL_COLUMN_TYPE_TEXT,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DATA_CONTROL_SQL_COLUMN_TYPE_BLOB) */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_get_column_item_type(cursor, i, &type);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Based on the column type the given field's data is appended to the output string*/
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__sql_select_response_cb()</span> is used when the SELECT response was invoked. This function uses the <span style="font-family: Courier New,Courier,monospace">cursor</span> to pass the response. The <span style="font-family: Courier New,Courier,monospace">cursor</span> is an <span style="font-family: Courier New,Courier,monospace">result_set_cursor</span> structure used to represent a sql result set. It can be enumerated to obtain every row in the result. The result is then transformed to an array of strings and sent to the view module so that the UI can be updated. The <span style="font-family: Courier New,Courier,monospace">provider_result</span> boolean value is used to inform whether the data was successfully processed.</p>
+
+<pre class="prettyprint">
+static void __sql_select_response_cb(int request_id, data_control_h provider, result_set_cursor cursor, bool provider_result, const char *error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* Iterate through all rows recived from the provider*/
+&nbsp;&nbsp;&nbsp;while (data_control_sql_step_next(cursor) == DATA_CONTROL_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!columns)
+
+&nbsp;&nbsp;&nbsp;/* Gets the columns names for the current row. It is assumed that columns names are the same in every row so this function is invoked only once.
+&nbsp;&nbsp;&nbsp;The __column_list_get() function returns the names in one properly formatted string */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;columns = __column_list_get(cursor);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;row = __sql_row_get(cursor); /* The __sql_row_get() function returns the content of the row as one properly formatted string. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;response = eina_list_append(response, row);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The received data is sent to the view module */
+&nbsp;&nbsp;&nbsp;if (s_info.new_data_recived)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.new_data_recived(columns, response);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__sql_delete_response_cb</span>, <span style="font-family: Courier New,Courier,monospace">__sql_insert_response_cb</span> and <span style="font-family: Courier New,Courier,monospace">__sql_update_response_cb</span> functions are used only to inform about the result of respective requests.</p>
+
+<pre class="prettyprint">
+static void __sql_delete_response_cb(int request_id, data_control_h provider, bool provider_result, const char *error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<pre class="prettyprint">
+static void __sql_insert_response_cb(int request_id, data_control_h provider, long long inserted_row_id, bool provider_result, const char *error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<pre class="prettyprint">
+static void __sql_update_response_cb(int request_id, data_control_h provider, bool provider_result, const char *error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>Note that every callback uses the <span style="font-family: Courier New,Courier,monospace">provider_result</span> argument to inform about any erroneous situation (e.g. wrong WHERE filter used). In such a case the variable will equal <span style="font-family: Courier New,Courier,monospace">false</span> and the <span style="font-family: Courier New,Courier,monospace">error</span> argument will contain the error information. In case of an error the <span style="font-family: Courier New,Courier,monospace">s_info.info_received</span> function pointer will be invoked. This call is used to display a popup with the error message.</p>
+
 
 <!-- ********************************************************************************** -->
 
