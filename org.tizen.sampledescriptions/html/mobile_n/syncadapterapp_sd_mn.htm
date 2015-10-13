@@ -10,7 +10,6 @@
 	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
 	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
 	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
-
 	<title>Sync Adapter App Sample Overview</title>
 </head>
 
@@ -24,132 +23,170 @@
 		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
 </div>
 
+
+
 <h1>Sync Adapter App Sample Overview</h1>
-<p>The application opens with the <strong>Sync Adapter App</strong> screen, which displays a list of sync manager features.</p>
+<p>The application opens with the <strong>Sync Adapter App</strong> screen, which displays a list of Sync Adapter App features.</p>
 <p>The following figure illustrates the home screen of the application.</p>
 	<p class="figure">Figure: Sync Adapter App home screen view</p>
 	<p align="center"><img alt="sync adapter home screen view" src="../images/syncadapterapp_mainscreen.png" />
 </p>
 <ul>
-	<li>To request one time/on demand sync click <strong>On Demand Sync</strong></li>
-	<li>To schedule sync periodically click <strong>Periodic Sync</strong></li>
-	<li>To perform sync upon device data change click <strong>Data Change Sync</strong></li>
-	<li>To get all the sync jobs requested by application click <strong> Get all sync jobs</strong></li>
-	<li>To remove all sync jobs requested by application <strong>Remove all sync jobs</strong>.</li>
+	<li>To create an account, click <strong>Create an account</strong></li>
+	<li>To set as accountless mode, click <strong>Set as accountless</strong></li>
+	<li>To request all sync jobs with corresponding settings, click <strong>Start sync with settings</strong></li>
+	<li>To get and remove all registered sync jobs, click <strong>Manage sync jobs</strong></li>
 </ul>
-
-
 <p>The application uses the <span style="font-family: Courier New,Courier,monospace">libaccounts-svc</span> module to work with the accounts database and the <span style="font-family: Courier New,Courier,monospace">elementary</span> module to support the UI requirements.</p>
+
+
 
 <h2>Prerequisites</h2>
 <ol>
 <li>To ensure proper application execution, the following privileges must be set:
 <ul>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.set</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/contact.read</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/datasharing</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.get</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/appmanager.launch</span></li>
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.read</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.profile</span></li>
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.write</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/internet</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/network.set</span></li>
-	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/download</span></li>
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.set</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/appmanager.launch</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/calendar.read</span></li>
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/contact.read</span></li>
 </ul>
 </li>
-<li>Launch the Sync Adapter Service App which acts as a sync adapter to this UI application. The service application must be built and included along with Sync Adapter App into the package.
-Please refer <a href="./syncadapterserviceapp_sd_mn.htm">Sync Adapter Service App</a> for reference.
+<li>Launch the Sync Adapter Service App which acts as a sync adapter to this UI application. The service application must be built and included along with Sync Adapter App into the package. SYNC_ADAPTER_SERVICE_APP_ID must be assigned as the app id of service application which acts as sync adapter.
+<br>Please refer <a href="./syncadapterserviceapp_sd_mn.htm">Sync Adapter Service App</a> for reference.
 <pre class="prettyprint">
-#define SYNC_ADAPTER_SERVICE_APP_ID "org.tizen.syncadapterserviceapp"
+#define SYNC_ADAPTER_SERVICE_APP_ID "org.tizen.syncadapterapp.service"
 
 static void
 create_sync_main_menu(appdata_s *ad)
 {
 	app_control_h app_control;
 	int ret = app_control_create(&amp;app_control);
-	ret = app_control_set_app_id(app_control, SYNC_ADAPTER_SERVICE_APP_ID);
+	if (ret != APP_CONTROL_ERROR_NONE) {
+		dlog_print(DLOG_INFO, LOG_TAG, "Creating app_control handle is failed [%s]", get_error_message(ret));
+		return;
+	}
 
-	app_control_send_launch_request(app_control, NULL, NULL);
-	...
+	ret = app_control_set_app_id(app_control, SYNC_ADAPTER_SERVICE_APP_ID);
+	if (ret != APP_CONTROL_ERROR_NONE) {
+		dlog_print(DLOG_INFO, LOG_TAG, "Setting app id is failed [%s]", get_error_message(ret));
+		return;
+	}
+
+	ret = app_control_send_launch_request(app_control, NULL, NULL);
+	if (ret == APP_CONTROL_ERROR_NONE)
+		dlog_print(DLOG_INFO, LOG_TAG, "Launching sync service app successfully [%s]", SYNC_ADAPTER_SERVICE_APP_ID);
+	else {
+		dlog_print(DLOG_INFO, LOG_TAG, "Launching sync service app is failed [%s]", get_error_message(ret));
+		return;
+	}
 	...
 	...
 }</pre>
 </li>
-<li>Create a dummy account for passing it to sync manager API. Enable sync support on the account.
+<li>If starting any sync jobs without setting account mode, sync request API can not be delivered. So, first of all, create an account or set as accountless.
+<p class="figure">Figure: Choice account mode</p>
+<p align="center"><img alt="Choice Account" src="../images/syncadapterapp_choice_account.png"/> <img alt="Create Account" src="../images/syncadapterapp_create_account.png"/> <img alt="Set Accountless" src="../images/syncadapterapp_set_accountless.png"/></p>
+<p>If you clicked "Create an account", you can create a dummy account for passing it to sync manager API. Enable sync support on the account.</p>
 <pre class="prettyprint">
 static void
 create_account()
 {
-	LOGI("creating dummy account");
-
-	sa_account_id = 10;
-	account_h account;
+	account_id = 10;
 
 	int ret = account_create(&amp;account);
-	LOGI("account_create = %d", ret);
+	dlog_print(DLOG_INFO, LOG_TAG, "account_create = %d", ret);
 
 	ret = account_set_user_name(account, "dummy_user");
-	LOGI("account_set_user_name = %d", ret);
+	dlog_print(DLOG_INFO, LOG_TAG, "account_set_user_name = %d", ret);
 
 	ret = account_set_email_address(account, "dummy_user@syncadapterapp.com");
-	LOGI("account_set_email_address = %d", ret);
+	dlog_print(DLOG_INFO, LOG_TAG, "account_set_email_address = %d", ret);
+
+	ret = account_set_capability(account, ACCOUNT_SUPPORTS_CAPABILITY_CALENDAR, ACCOUNT_CAPABILITY_ENABLED);
+	dlog_print(DLOG_INFO, LOG_TAG, "account_set_capability = %d", ret);
 
 	ret = account_set_capability(account, ACCOUNT_SUPPORTS_CAPABILITY_CONTACT, ACCOUNT_CAPABILITY_ENABLED);
-	LOGI("account_set_capability = %d", ret);
+	dlog_print(DLOG_INFO, LOG_TAG, "account_set_capability = %d", ret);
 
 	ret = account_set_sync_support(account, ACCOUNT_SYNC_STATUS_IDLE);
-	LOGI("account_set_sync_support = %d", ret);
+	dlog_print(DLOG_INFO, LOG_TAG, "account_set_sync_support = %d", ret);
 
-	ret = account_insert_to_db(account, &amp;sa_account_id);
-	LOGI("Account id is = %d", sa_account_id);
-	account_destroy(account);
+	ret = account_insert_to_db(account, &amp;account_id);
+	dlog_print(DLOG_INFO, LOG_TAG, "Account id is = %d", account_id);
 
-	LOGI("Dummy account is created = %d", sa_account_id);
+	is_accountless = false;
 }</pre>
+</li>
+<li>If you clicked "Set as accountless", you can set as accountless without an account to sync manager API.
+<pre class="prettyprint">
+static void
+set_accountless()
+{
+	int ret = ACCOUNT_ERROR_NONE;
+
+	ret = account_delete_from_db_by_package_name(PKG_NAME);
+	if (ret == ACCOUNT_ERROR_NONE) {
+		dlog_print(DLOG_INFO, LOG_TAG, "account delete success");
+		if (account) {
+			ret = account_destroy(account);
+			if (ret == ACCOUNT_ERROR_NONE)
+			dlog_print(DLOG_INFO, LOG_TAG, "account handle is removed successfully");
+		}
+	}
+
+	account_id = -1;
+	is_accountless = true;
+
+	dlog_print(DLOG_INFO, LOG_TAG, "Dummy account is set again as = %d", account_id);
+}
 </li>
 </ol>
 
+
+
 <h2>On Demand Sync</h2>
 <p class="figure">Figure: On Demand Sync</p>
-<p align="center"> <img alt="On Demand Sync" src="../images/syncadapterapp_ondemand.png"/> <img alt="On Demand sync" src="../images/syncadapterapp_ondemand_sync.png"/></p>
+<p align="center"><img alt="On Demand" src="../images/syncadapterapp_ondemand.png"/> <img alt="On Demand Sync" src="../images/syncadapterapp_ondemand_sync.png"/></p>
 
 <h3>Request On Demand Sync</h3>
 <ol>
-<li>To perform On Demand Sync select <strong>On Demand Sync</strong> from home screen view. Click on <strong>Sync</strong> button which will trigger corresponding sync manager API as shown below.
+<li>To perform On Demand Sync, select <strong>On Demand Sync</strong> from <strong>Start sync with settings</strong>. Click on <strong>Start Sync</strong> button which will trigger corresponding sync manager API as shown below.
 <pre class="prettyprint">
 static void
 cb_add_on_demand_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 {
-	LOGI("Request manual sync");
 	viewdata_s* viewData = pData;
 
-	account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
+	int ret = SYNC_ERROR_NONE;
+	if (is_accountless) {
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync Adapter App: request accountless On Demand Sync");
+		ret = sync_manager_on_demand_sync_job(NULL, "OnDemand", sync_option, NULL, &amp;on_demand_sync_job_id);
+	} else {
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync Adapter App: request On Demand Sync with an account");
+		account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
 
-	account_h account;
-	account_create(&amp;account);
-	account_query_account_by_account_id(sa_account_id, &amp;account);
+		account_h account;
+		account_create(&amp;account);
+		account_query_account_by_account_id(account_id, &amp;account);
 
-	bundle *extra = bundle_create();
-	bundle_add_str(extra, "URL", "http://android-developers.blogspot.com/atom.xml");
-	viewData-&gt;account_id = sa_account_id;
+		viewData-&gt;account_id = account_id;
 
-	int ret = sync_manager_on_demand_sync_job(account, "OnDemand", SYNC_OPTION_NO_RETRY, extra, &amp;on_demand_sync_job_id);
+		ret = sync_manager_on_demand_sync_job(account, "OnDemand", sync_option, NULL, &amp;on_demand_sync_job_id);
+
+		account_destroy(account);
+	}
+
 	if (ret != SYNC_ERROR_NONE)
-		LOGE("Sync manager failed with error code %d", ret);
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync manager failed with error code %d", ret);
 	else
-		LOGI("sync manager added on demand sync id %d", on_demand_sync_job_id);
-
-	bundle_free(extra);
-	account_destroy(account);
-	LOGI("Exit");
+		dlog_print(DLOG_INFO, LOG_TAG, "sync manager added on demand sync id %d", on_demand_sync_job_id);
 }</pre>
 </li>
 
-<li>When the sync manager schedules a sync job for this request, sync callback functions in Sync Adapter Service App will be invoked. The Sync Adapter Service App will download the titles from the URL parameter sent along with the API and writes it into a database.
-Upon completion of the sync job, the service application will communicate the same to Sync Adapter App by using app_control.
+
+<li>Once, the sync manager schedules a sync job for this request, sync callback functions in Sync Adapter Service App will be invoked. Upon completion of the sync job, the service application will communicate the same to Sync Adapter App by using app_control with its operation. Also, the Sync Adapter App will show a popup to notify the user about the status.
 <pre class="prettyprint">
 static void
 app_control(app_control_h app_control, void *data)
@@ -157,270 +194,14 @@ app_control(app_control_h app_control, void *data)
 	char *operation;
 	int ret = app_control_get_operation(app_control, &amp;operation);
 	if (ret != APP_CONTROL_ERROR_NONE) {
-		LOGE("failed to get operation");
+		dlog_print(DLOG_INFO, LOG_TAG, "failed to get operation");
 		return;
-	}
+	} else
+		dlog_print(DLOG_INFO, LOG_TAG, "get operation: [%s]", operation);
 
-	if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/sync_complete")) {
-		LOGE("Sync completed by service app. Loading ..");
+	dlog_print(DLOG_INFO, LOG_TAG, "Sync Job completed by sync-service");
 
-		char* collist[5];
-		collist[0] = "TITLE";
-
-		int req_id;
-		int result = data_control_sql_select_with_page(sql_provider, collist, 1, NULL, "TITLE DESC", 1, 5, &amp;req_id);
-		if (result != DATA_CONTROL_ERROR_NONE)
-			LOGE("data_control_sql_select() is failed: ");
-		return;
-	}
-	....
-	....
-}</pre>
-</li>
-
-
-<li>Display the contents from database using data_control.
-<p>Use a data control to read the contents of the database and dislay it as a list view</p>
-<pre class="prettyprint">
-static void
-create_list_view(Evas_Object *object)
-{
-	Evas_Object *btn;
-	Elm_Object_Item *nf_it;
-
-	/* List */
-	if (list == NULL || clear_flag == 1) {
-		list = elm_list_add(object);
-		elm_list_mode_set(list, ELM_LIST_EXPAND);
-		/* evas_object_smart_callback_add(list, "selected", list_selected_cb, NULL); */
-		elm_object_part_content_set(object, "list", list);
-	}
-	/* Main Menu Items Here */
-	if (clear_flag != 1)
-		elm_list_item_append(list, pageContents, NULL, NULL, page_cb, object);
-
-	elm_list_go(list);
-
-	/* This button is set for devices which doesn't have H/W back key. */
-	btn = elm_button_add(object);
-	elm_object_style_set(btn, "naviframe/end_btn/default");
-	nf_it = elm_naviframe_item_push(object, "Client App", btn, NULL, list, NULL);
-	elm_naviframe_item_pop_cb_set(nf_it, naviframe_pop_cb, object);
-
-	clear_flag = 0;
-}
-
-
-static void select_response_cb(int request_id, data_control_h provider, result_set_cursor enumerator, bool provider_result, const char *error, void *user_data)
-{
-	LOGI("Enter");
-	if (provider_result) {
-		if (enumerator) {
-			char col_name[1024] = {0};
-			char word[1024] = {0};
-			char word_desc[1024] = {0};
-			int count = 0;
-			while (data_control_sql_step_next(enumerator) == DATA_CONTROL_ERROR_NONE &amp;&amp; ++count < 10) {
-				memset(word, 0, 1024);
-				memset(word_desc, 0, 1024);
-				data_control_sql_get_column_name(enumerator, 0, col_name);
-				if (!strcmp(col_name, "TITLE")) {
-					data_control_sql_get_text_data(enumerator, 0, word);
-					pageContents = word;
-					LOGI("TITLE %s", word);
-					create_list_view(manualObject);
-				}
-			}
-		}
-	} else {
-		LOGE("select_response_cb() is failed: %s", error);
-	}
-
-	LOGI("Exit");
-}
-</pre>
-</li>
-</ol>
-
-<h2>Periodic Sync</h2>
-<p class="figure">Figure: Periodic Sync</p>
-<p align="center"> <img alt="Periodic Sync" src="../images/syncadapterapp_periodic.png"/> <img alt="Periodic sync" src="../images/syncadapterapp_periodic_sync.png"/></p>
-
-<h3>Request Periodic Sync</h3>
-<ol>
-<li>To perform Periodic Sync select <strong>Periodic Sync</strong> from home screen view. Click on <strong>Sync</strong> button which will trigger corresponding sync manager API as shown below.
-<pre class="prettyprint">
-static void
-cb_add_periodic_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
-{
-	LOGI("Request periodic sync");
-	viewdata_s* viewData = pData;
-	elm_object_text_set(viewData-&gt;syncBtn, "Wait for 30 Min");
-	evas_object_smart_callback_del(viewData-&gt;syncBtn, "clicked", cb_add_periodic_sync);
-
-	account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
-
-	account_h account;
-	account_create(&amp;account);
-	account_query_account_by_account_id(sa_account_id, &amp;account);
-
-	bundle *extra = bundle_create();
-	bundle_add_str(extra, "URL", "http://android-developers.blogspot.com/atom.xml");
-
-	viewData-&gt;account_id = sa_account_id;
-	int job_id;
-	int ret = sync_manager_add_periodic_sync_job(account, "Periodic", SYNC_PERIOD_INTERVAL_30MIN, SYNC_OPTION_EXPEDITED, extra, &amp;periodic_sync_job_id);
-	if (ret == SYNC_ERROR_NONE)
-		LOGI("sync manager added periodic sync job id %d", ret, periodic_sync_job_id);
-	else
-		LOGE("sync manager error %d", ret);
-
-	bundle_free(extra);
-	account_destroy(account);
-	LOGI("Exit");
-}</pre>
-</li>
-
-<li>When the sync manager schedules a sync job for this request, sync callback functions in Sync Adapter Service App will be invoked periodically. The Sync Adapter Service App will download the titles from the URL parameter sent along with the API and writes it into a database.
-Upon completion of the sync job, the service application will communicate the same to Sync Adapter App by using app_control.
-<pre class="prettyprint">
-static void
-app_control(app_control_h app_control, void *data)
-{
-	char *operation;
-	int ret = app_control_get_operation(app_control, &amp;operation);
-	if (ret != APP_CONTROL_ERROR_NONE) {
-		LOGE("failed to get operation");
-		return;
-	}
-
-	if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/sync_complete")) {
-		LOGE("Sync completed by service app. Loading ..");
-
-		char* collist[5];
-		collist[0] = "TITLE";
-
-		int req_id;
-		int result = data_control_sql_select_with_page(sql_provider, collist, 1, NULL, "TITLE DESC", 1, 5, &amp;req_id);
-		if (result != DATA_CONTROL_ERROR_NONE)
-			LOGE("data_control_sql_select() is failed: ");
-		return;
-	}
-	....
-	....
-}</pre>
-</li>
-
-
-<li>Display the contents from database using data_control.
-<p>Use a data control to read the contents of the database and dislay it as a list view</p>
-<pre class="prettyprint">
-static void
-create_list_view(Evas_Object *object)
-{
-	Evas_Object *btn;
-	Elm_Object_Item *nf_it;
-
-	/* List */
-	if (list == NULL || clear_flag == 1) {
-		list = elm_list_add(object);
-		elm_list_mode_set(list, ELM_LIST_EXPAND);
-		/* evas_object_smart_callback_add(list, "selected", list_selected_cb, NULL); */
-		elm_object_part_content_set(object, "list", list);
-	}
-	/* Main Menu Items Here */
-	if (clear_flag != 1)
-		elm_list_item_append(list, pageContents, NULL, NULL, page_cb, object);
-
-	elm_list_go(list);
-
-	/* This button is set for devices which doesn't have H/W back key. */
-	btn = elm_button_add(object);
-	elm_object_style_set(btn, "naviframe/end_btn/default");
-	nf_it = elm_naviframe_item_push(object, "Client App", btn, NULL, list, NULL);
-	elm_naviframe_item_pop_cb_set(nf_it, naviframe_pop_cb, object);
-
-	clear_flag = 0;
-}
-
-
-static void select_response_cb(int request_id, data_control_h provider, result_set_cursor enumerator, bool provider_result, const char *error, void *user_data)
-{
-	LOGI("Enter");
-	if (provider_result) {
-		if (enumerator) {
-			char col_name[1024] = {0};
-			char word[1024] = {0};
-			char word_desc[1024] = {0};
-			int count = 0;
-			while (data_control_sql_step_next(enumerator) == DATA_CONTROL_ERROR_NONE &amp;&amp; ++count < 10) {
-				memset(word, 0, 1024);
-				memset(word_desc, 0, 1024);
-				data_control_sql_get_column_name(enumerator, 0, col_name);
-				if (!strcmp(col_name, "TITLE")) {
-					data_control_sql_get_text_data(enumerator, 0, word);
-					pageContents = word;
-					LOGI("TITLE %s", word);
-					create_list_view(manualObject);
-				}
-			}
-		}
-	} else {
-		LOGE("select_response_cb() is failed: %s", error);
-	}
-
-	LOGI("Exit");
-}
-</pre>
-</li>
-</ol>
-
-<h2>Data Change Sync</h2>
-<p class="figure">Figure: Data Change Sync</p>
-<p align="center"> <img alt="Data Change Sync" src="../images/syncadapterapp_datachange.png"/></p>
-
-<h3>Request Data Change Sync</h3>
-<ol>
-<li>To perform Data Change Sync select <strong>Data Change Sync</strong> from home screen view. Click on <strong>ContactSync</strong> button which will trigger corresponding sync manager API as shown below.
-<pre class="prettyprint">
-static void
-cb_add_data_change_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
-{
-	LOGI("Request data change sync");
-	viewdata_s* viewData = pData;
-
-	account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
-
-	account_h account;
-	account_create(&amp;account);
-	account_query_account_by_account_id(sa_account_id, &amp;account);
-
-	bundle *extra = bundle_create();
-	bundle_add_str(extra, "URL", "http://posttestserver.com/post.php?dir=MyContacts");
-	viewData-&gt;account_id = sa_account_id;
-	int ret = sync_manager_add_data_change_sync_job(account, SYNC_SUPPORTS_CAPABILITY_CONTACT, SYNC_OPTION_NONE, extra, &amp;data_change_sync_job_id);
-	if (ret == SYNC_ERROR_NONE)
-		LOGI("sync manager added data change sync job id %d", ret, data_change_sync_job_id);
-	else
-		LOGE("sync manager error %d", ret);
-
-	bundle_free(extra);
-	account_destroy(account);
-	LOGI("Exit");
-}</pre>
-</li>
-
-<li>The sync manager stores the data change sync request. Whenever there is a change in contacts db of the device, sync manager schedules a sync job for contacts data. Sync callback functions in Sync Adapter Service App will be invoked accordingly.
-The Sync Adapter Service App will upload the contact details to the server given along with the request. Upon completion of the upload sync job, the service application will communicate the same to Sync Adapter App by using app_control. Also, the Sync Adapter App will show a popup to notify the user about the status.
-<pre class="prettyprint">
-
-static void
-app_control(app_control_h app_control, void *data)
-{
-	...
-	...
-	if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/upload_sync_complete")) {
-		LOGE("upload sync");
+	if (strcmp(operation, "http://tizen.org/appcontrol/operation/default")) {
 		Evas_Object *popup;
 		Evas_Object *win = NF;
 
@@ -428,88 +209,373 @@ app_control(app_control_h app_control, void *data)
 		elm_popup_align_set(popup, ELM_NOTIFY_ALIGN_FILL, 1.0);
 		eext_object_event_callback_add(popup, EEXT_CALLBACK_BACK, eext_popup_back_cb, NULL);
 		evas_object_size_hint_weight_set(popup, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-		elm_object_text_set(popup, "Upload Sync completed at\n http://posttestserver.com/data/YYYY/MM/DD/MyContacts/");
 
-		elm_popup_timeout_set(popup, 3.0);
+		if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/on_demand_sync_complete")) {
+			dlog_print(DLOG_INFO, LOG_TAG, "On Demand Sync is completed");
+			elm_object_text_set(popup, "On Demand Sync is completed");
+		}
+		...
+		...
+
+		elm_popup_timeout_set(popup, TIME_FOR_POPUP);
 		evas_object_show(popup);
-		return;
 	}
+
+	return;
 }</pre>
 </li>
 </ol>
 
 
-<h2>Get all sync jobs</h2>
-<p class="figure">Figure: Get all sync jobs</p>
-<p align="center"> <img alt="Get all sync jobs" src="../images/syncadapterapp_getsyncjobs.png"/></p>
 
-<h3>Request to get sync jobs</h3>
-<li>To query the sync jobs requested by the Sync Adapter App, select <strong>Get all sync jobs</strong> from home screen view. The corresponding sync manager API will be called as shown below.
+<h2>Periodic Sync</h2>
+<p class="figure">Figure: Periodic Sync</p>
+<p align="center"><img alt="Periodic" src="../images/syncadapterapp_periodic.png"/> <img alt="Periodic Sync" src="../images/syncadapterapp_periodic_sync.png"/></p>
+
+<h3>Request Periodic Sync</h3>
+<ol>
+<li>To perform Periodic Sync, select <strong>Periodic Sync</strong> from <strong>Start sync with settings</strong>. Click on <strong>Sync</strong> button which will trigger corresponding sync manager API as shown below.
+<pre class="prettyprint">
+static void
+cb_add_periodic_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
+{
+	viewdata_s* viewData = pData;
+	int ret = SYNC_ERROR_NONE;
+
+	if (is_accountless) {
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync Adapter App: request accountless Periodic Sync");
+		ret = sync_manager_add_periodic_sync_job(NULL, "Periodic", sync_interval, sync_option, NULL, &amp;periodic_sync_job_id);
+	} else {
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync Adapter App: request Periodic Sync with an account");
+		account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
+
+		account_h account;
+		account_create(&amp;account);
+		account_query_account_by_account_id(account_id, &amp;account);
+
+		viewData-&gt;account_id = account_id;
+
+		ret = sync_manager_add_periodic_sync_job(account, "Periodic", sync_interval, sync_option, NULL, &amp;periodic_sync_job_id);
+
+		account_destroy(account);
+	}
+
+	if ((sync_option == SYNC_OPTION_NONE) | (sync_option == SYNC_OPTION_NO_RETRY)) {
+		Evas_Object *popup;
+		Evas_Object *win = NF;
+
+		popup = elm_popup_add(win);
+		elm_popup_align_set(popup, ELM_NOTIFY_ALIGN_FILL, 1.0);
+		eext_object_event_callback_add(popup, EEXT_CALLBACK_BACK, eext_popup_back_cb, NULL);
+		evas_object_size_hint_weight_set(popup, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+		if (sync_interval == SYNC_PERIOD_INTERVAL_30MIN)
+			elm_object_text_set(popup, "It is expected in 30mins");
+		...
+		...
+
+		elm_popup_timeout_set(popup, TIME_FOR_POPUP);
+		evas_object_show(popup);
+	}
+
+	if (ret != SYNC_ERROR_NONE)
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync manager failed with error code %d", ret);
+	else
+		dlog_print(DLOG_INFO, LOG_TAG, "sync manager added periodic sync id %d", periodic_sync_job_id);
+}</pre>
+</li>
+
+
+<li>Once, the sync manager schedules a sync job for this request, sync callback functions in Sync Adapter Service App will be invoked periodically. Upon completion of the sync job, the service application will communicate the same to Sync Adapter App by using app_control with its operation. Also, the Sync Adapter App will show a popup to notify the user about the status.
+<pre class="prettyprint">
+static void
+app_control(app_control_h app_control, void *data)
+{
+	char *operation;
+	int ret = app_control_get_operation(app_control, &amp;operation);
+	if (ret != APP_CONTROL_ERROR_NONE) {
+		dlog_print(DLOG_INFO, LOG_TAG, "failed to get operation");
+		return;
+	} else
+		dlog_print(DLOG_INFO, LOG_TAG, "get operation: [%s]", operation);
+
+	dlog_print(DLOG_INFO, LOG_TAG, "Sync Job completed by sync-service");
+
+	if (strcmp(operation, "http://tizen.org/appcontrol/operation/default")) {
+		Evas_Object *popup;
+		Evas_Object *win = NF;
+
+		popup = elm_popup_add(win);
+		elm_popup_align_set(popup, ELM_NOTIFY_ALIGN_FILL, 1.0);
+		eext_object_event_callback_add(popup, EEXT_CALLBACK_BACK, eext_popup_back_cb, NULL);
+		evas_object_size_hint_weight_set(popup, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+		...
+		else if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/periodic_sync_complete")) {
+			dlog_print(DLOG_INFO, LOG_TAG, "Periodic Sync is completed");
+			elm_object_text_set(popup, "Periodic Sync is completed");
+		}
+		...
+
+		elm_popup_timeout_set(popup, TIME_FOR_POPUP);
+		evas_object_show(popup);
+	}
+
+	return;
+}</pre>
+</li>
+</ol>
+
+
+
+<h2>Data Change Sync</h2>
+<p class="figure">Figure: Data Change Sync</p>
+<p align="center"><img alt="Data Change" src="../images/syncadapterapp_datachange.png"/> <img alt="Data Change Sync" src="../images/syncadapterapp_datachange_sync.png"/> <img alt="Data Change Event" src="../images/syncadapterapp_datachange_event.png"/></p>
+
+<h3>Request Data Change Sync</h3>
+<ol>
+<li>To perform Data Change Sync, select <strong>Data Change Sync</strong> from <strong>Start sync with settings</strong>. Click on <strong>ContactSync</strong> button which will trigger corresponding sync manager API as shown below.
+<pre class="prettyprint">
+static void
+cb_add_data_change_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
+{
+	viewdata_s* viewData = pData;
+	int ret = SYNC_ERROR_NONE;
+	int idx = 0;
+
+	if (is_accountless) {
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync Adapter App: request accountless Data Change Sync");
+
+		for (idx = 0; idx &lt; NUM_OF_CAPABILITY; idx++) {
+			if (data_change_id[idx] == -1) {
+				ret = sync_manager_add_data_change_sync_job(NULL, sync_capability, sync_option, NULL, &data_change_sync_job_id);
+				data_change_id[idx] = data_change_sync_job_id;
+				dlog_print(DLOG_INFO, LOG_TAG, "[accountless] restored data_change_id[%d] = %d", idx, data_change_id[idx]);
+				break;
+			} else {
+				if (idx == NUM_OF_CAPABILITY-1) {
+					dlog_print(DLOG_INFO, LOG_TAG, "data_change_id[idx] is full");
+					break;
+				}
+				continue;
+			}
+		}
+	} else {
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync Adapter App: request Data Change Sync with an account");
+		account_query_account_by_user_name(query_account_cb, "dummy_user", NULL);
+
+		account_h account;
+		account_create(&amp;account);
+		account_query_account_by_account_id(account_id, &amp;account);
+
+		viewData-&gt;account_id = account_id;
+
+		for (idx = 0; idx &lt; NUM_OF_CAPABILITY; idx++) {
+			if (data_change_id[idx] == -1) {
+				ret = sync_manager_add_data_change_sync_job(account, sync_capability, sync_option, NULL, &amp;data_change_sync_job_id);
+				data_change_id[idx] = data_change_sync_job_id;
+				dlog_print(DLOG_INFO, LOG_TAG, "[account] restored data_change_id[%d] = %d", idx, data_change_id[idx]);
+				break;
+			} else {
+				if (idx == NUM_OF_CAPABILITY-1) {
+					dlog_print(DLOG_INFO, LOG_TAG, "data_change_id[idx] is full");
+					break;
+				}
+				continue;
+			}
+		}
+		account_destroy(account);
+	}
+
+	if (ret != SYNC_ERROR_NONE)
+		dlog_print(DLOG_INFO, LOG_TAG, "Sync manager failed with error code %d", ret);
+	else {
+		if (data_change_sync_job_id != -1)
+			dlog_print(DLOG_INFO, LOG_TAG, "sync manager added data change sync id %d", data_change_sync_job_id);
+	}
+}</pre>
+</li>
+
+
+<li>The sync manager stores the data change sync request. Whenever there is a change in corresponding db which is selected through <strong>Capability types</strong>, sync manager schedules a sync job for the data. Sync callback functions in Sync Adapter Service App will be invoked accordingly. Upon completion of the upload sync job, the service application will communicate the same to Sync Adapter App by using app_control with its operation. Also, the Sync Adapter App will show a popup to notify the user about the status.
+<pre class="prettyprint">
+static void
+app_control(app_control_h app_control, void *data)
+{
+	char *operation;
+	int ret = app_control_get_operation(app_control, &amp;operation);
+	if (ret != APP_CONTROL_ERROR_NONE) {
+		dlog_print(DLOG_INFO, LOG_TAG, "failed to get operation");
+		return;
+	} else
+		dlog_print(DLOG_INFO, LOG_TAG, "get operation: [%s]", operation);
+
+	dlog_print(DLOG_INFO, LOG_TAG, "Sync Job completed by sync-service");
+
+	if (strcmp(operation, "http://tizen.org/appcontrol/operation/default")) {
+		Evas_Object *popup;
+		Evas_Object *win = NF;
+
+		popup = elm_popup_add(win);
+		elm_popup_align_set(popup, ELM_NOTIFY_ALIGN_FILL, 1.0);
+		eext_object_event_callback_add(popup, EEXT_CALLBACK_BACK, eext_popup_back_cb, NULL);
+		evas_object_size_hint_weight_set(popup, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+		...
+		...
+		else if (operation &amp;&amp; !strcmp(operation, "http://tizen.org/appcontrol/operation/data_change_sync_complete")) {
+			dlog_print(DLOG_INFO, LOG_TAG, "Data Change Sync is completed");
+			elm_object_text_set(popup, "Data Change Sync is completed");
+		}
+
+		elm_popup_timeout_set(popup, TIME_FOR_POPUP);
+		evas_object_show(popup);
+	}
+
+	return;
+}</pre>
+</li>
+</ol>
+
+
+
+<h2>Foreach sync jobs</h2>
+<p class="figure">Figure: Foreach sync jobs</p>
+<p align="center"><img alt="Foreach Sync Jobs" src="../images/syncadapterapp_manage_sync_jobs.png"/></p>
+
+<h3>Request to get all sync jobs</h3>
+<li>To query the sync jobs requested by the Sync Adapter App, select <strong>Manage sync jobs</strong> from home screen view. The corresponding sync manager API will be called as shown below.
 <pre class="prettyprint">
 bool
 sync_adapter_sample_foreach_sync_job_cb(account_h account, const char *sync_job_name, const char *sync_capability, int sync_job_id, bundle* sync_job_user_data, void *user_data)
 {
-	Evas_Object* list = (Evas_Object*) (user_data);
-	char sync_job_info[1024];
-	memset(sync_job_info, 0, 1024);
+	char sync_job_info[MAX_SIZE];
+	memset(sync_job_info, 0, sizeof(sync_job_info));
 
 	if (sync_job_name) {
-		if (!strcmp(sync_job_name, "OnDemand"))
+		if (!strcmp(sync_job_name, "OnDemand")) {
 			on_demand_sync_job_id = sync_job_id;
-		else if (!strcmp(sync_job_name, "Periodic"))
+			sprintf(sync_job_info, "[%d] %s %s", sync_job_id, strdup(sync_job_name), strdup(displayed_option));
+			dlog_print(DLOG_INFO, LOG_TAG, "[%d] %s %s", sync_job_id, sync_job_name, displayed_option);
+		} else if (!strcmp(sync_job_name, "Periodic")) {
 			periodic_sync_job_id = sync_job_id;
+			sprintf(sync_job_info, "[%d] %s %s", sync_job_id, strdup(sync_job_name), strdup(displayed_interval));
+			dlog_print(DLOG_INFO, LOG_TAG, "[%d] %s %s", sync_job_id, sync_job_name, displayed_interval);
+		}
+		on_demand_sync_job_id = -1;
+	} else if (sync_capability) {
+		if (!strcmp(sync_capability, SYNC_SUPPORTS_CAPABILITY_CALENDAR))
+			sprintf(sync_job_info, "[%d] Data Change for %s", sync_job_id, strdup("Calendar"));
+		...
+		...
+		dlog_print(DLOG_INFO, LOG_TAG, "[%d] DataChange", sync_job_id);
+	} else if (cnt_sync_jobs == 0)
+		return true;
 
-		sprintf(sync_job_info, "job_id[%d] job_name[%s]", sync_job_id, strdup(sync_job_name));
-	}
-	if (sync_capability) {
-		data_change_sync_job_id = sync_job_id;
-		sprintf(sync_job_info, "job_id[%d] capability[%s]", sync_job_id, strdup(sync_capability));
-	}
+	int idx, temp_idx = 0;
 
-	elm_list_item_append(list, sync_job_info, NULL, NULL, NULL, NULL);
+	for (idx = 0; idx &lt; MAX_NUM; idx++) {
+		if (list_of_sync_jobs[idx][0] == '\0') {
+			remove_sync_job[idx] = sync_job_id;
+			temp_idx = idx;
+			break;
+		}
+	}
+	strcpy(list_of_sync_jobs[temp_idx], sync_job_info);
+	dlog_print(DLOG_INFO, LOG_TAG, "copy to list_of_sync_jobs[%d] : %s", temp_idx, list_of_sync_jobs[temp_idx]);
+
+	cnt_sync_jobs ++;
+
 	return true;
 }
 
+...
+...
+
 void
-on_get_all_sync_jobs_cb(void *data, Evas_Object *obj, void *event_info)
+on_manage_sync_jobs_cb(void *data, Evas_Object *obj, void *event_info)
 {
 	...
 	...
-	int ret = sync_manager_foreach_sync_job(sync_adapter_sample_foreach_sync_job_cb, lst);
-	if (ret == SYNC_ERROR_NONE) {
-		elm_list_go(lst);
-		evas_object_show(lst);
-	} else
-		LOGI("Error %d", ret);
+
+	int ret = sync_manager_foreach_sync_job(sync_adapter_sample_foreach_sync_job_cb, NULL);
+
+	for (idx = 0; idx &lt; MAX_NUM; idx++) {
+		if (list_of_sync_jobs[idx][0] != '\0')
+			dlog_print(DLOG_INFO, LOG_TAG, "after copying to list_of_sync_jobs[%d] : %s", idx, list_of_sync_jobs[idx]);
+	}
+
+	itc = elm_genlist_item_class_new();
+	itc-&gt;item_style = "type1";
+	itc-&gt;func.content_get = get_content_registered_sync_jobs;
+	itc-&gt;func.text_get = get_text_registered_sync_jobs;
+	itc-&gt;func.del = gl_del_cb;
+
+	n_items = cnt_sync_jobs;
+
+	for (idx = 0; idx &lt; n_items; idx++) {
+		foreach_id = calloc(sizeof(list_item_data_s), 1);
+		foreach_id-&gt;type = 6;
+		foreach_id-&gt;index = idx;
+
+		it = elm_genlist_item_append(genlist, itc, foreach_id, NULL, ELM_GENLIST_ITEM_TREE, NULL, nf);
+
+		foreach_id-&gt;item = it;
+	}
+
+	evas_object_smart_callback_add(genlist, "selected", genlist_selected_cb, NULL);
+	elm_genlist_item_class_free(itc);
+
+	NF = nf;
+
+	if (ret == SYNC_ERROR_NONE)
+		evas_object_show(genlist);
+	else
+		dlog_print(DLOG_INFO, LOG_TAG, "Error %d", ret);
+
+	...
 	...
 }</pre>
 </li>
 
-<h2>Remove all sync jobs</h2>
 
-<h3>Request to remove all sync jobs</h3>
-<li>To remove all the sync jobs requested by the Sync Adapter App, select <strong>Remove all sync jobs</strong> from home screen view. The corresponding sync manager API will be called as shown below.
+
+<h2>Remove sync jobs</h2>
+<p class="figure">Figure: Remove sync jobs</p>
+<p align="center"><img alt="Remove Sync Jobs" src="../images/syncadapterapp_manage_sync_jobs_select.png"/></p>
+
+<h3>Request to remove sync jobs</h3>
+<li>To remove registered sync jobs requested by the Sync Adapter App, select check of each sync job from <strong>Manage sync jobs</strong>. Once clicking <strong>Remove</strong> button, checked sync job will be removed. The corresponding sync manager API will be called as shown below.
 <pre class="prettyprint">
 void
-on_remove_all_sync_jobs_cb(void *data, Evas_Object *obj, void *event_info)
+on_remove_selected_sync_jobs_cb(void *data, Evas_Object *obj, void *event_info)
 {
-	LOGI("Enter");
-	int ret = SYNC_ERROR_NONE;
+	int idx, idx2;
 
-	/* Its not necessary to free On demand sync job. The sync job will be freed when sync is complete */
-	/* Removing other sync requests */
-
-	if (data_change_sync_job_id != -1) {
-		ret = sync_manager_remove_sync_job(data_change_sync_job_id);
-		LOGI("Remove data sync request. ret = %d", ret);
-		data_change_sync_job_id = -1;
+	for (idx = 0; idx &lt; cnt_sync_jobs; idx++) {
+		if (list_of_remove_sync_job[idx]) {
+			sync_manager_remove_sync_job(remove_sync_job[idx]);
+			list_of_remove_sync_job[idx] = false;
+			for (idx2 = 0; idx2 &lt; NUM_OF_CAPABILITY; idx2++) {
+				if (data_change_id[idx2] == remove_sync_job[idx]) {
+					data_change_id[idx2] = -1;
+					break;
+				}
+			}
+			remove_sync_job[idx] = -1;
+		}
 	}
 
-	if (periodic_sync_job_id != -1) {
-		ret = sync_manager_remove_sync_job(periodic_sync_job_id);
-		LOGI("Remove periodic sync request. ret = %d", ret);
-		periodic_sync_job_id = -1;
+	on_demand_sync_job_id = -1;
+	periodic_sync_job_id = -1;
+
+	if (is_all_checked) {
+		memset(data_change_id, -1, sizeof(data_change_id));
 	}
+
+	Evas_Object *nf = data;
+	elm_naviframe_item_pop(nf);
+	on_manage_sync_jobs_cb(data, obj, event_info);
 }</pre>
 </li>
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
