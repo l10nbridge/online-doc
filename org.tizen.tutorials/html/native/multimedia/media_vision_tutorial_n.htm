@@ -10,7 +10,6 @@
     <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
-
     <title>Media Vision: Generating and Detecting Barcodes</title>
 </head>
 
@@ -18,59 +17,75 @@
 
 <div id="toc-navigation">
     <div id="profile">
-        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/></p>
     </div>
     <div id="toc_border"><div id="toc">
- 		<p class="toc-title">Content</p>
-		<ul class="toc">
-				<li><a href="#init">Initializing Media Vision</a></li>
-				<li><a href="#generate">Generating Barcodes</a></li>
-				<li><a href="#detect">Detecting Barcodes</a></li>
-		</ul>  
+         <p class="toc-title">Content</p>
+        <ul class="toc">
+                <li><a href="#init">Initializing the Barcode Engines</a></li>
+                <li><a href="#generate">Generating Barcodes</a></li>
+                <li><a href="#detect">Detecting Barcodes</a></li>
+        </ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
             <li><a href="../../../../org.tizen.guides/html/native/multimedia/media_vision_n.htm">Media Vision Guide</a></li>
-			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VISION__MODULE.html">Media Vision API for Mobile Native</a></li>
-			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__VISION__MODULE.html">Media Vision API for Wearable Native</a></li>
+            <li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VISION__MODULE.html">Media Vision API for Mobile Native</a></li>
         </ul>
     </div></div>
 </div>
 
 <div id="container"><div id="contents"><div class="content">
+
 <h1>Media Vision: Generating and Detecting Barcodes</h1>
-  
-<p>This tutorial demonstrates how you can generate and detect barcodes.</p>
+
+<p>This tutorial demonstrates how you can generate and detect barcodes in the camera preview.</p>
+
+<p>This feature is supported in mobile applications only.</p>
 
 <h2>Warm-up</h2>
 
 <p>Become familiar with the Media Vision API basics by learning about:</p>
 
-	<ul>
-			<li><a href="#init">Initializing Media Vision</a>
-			<p>Initialize the bar code reader and generator for use.</p></li>
-			<li><a href="#generate">Generating Barcodes</a>
-			<p>Create barcodes into memory and a PNG file.</p></li>
-			<li><a href="#detect">Detecting Barcodes</a>
-			<p>Detect barcodes from the device camera preview.</p></li>
-	</ul>
-        
-<h2 id="init" name="init">Initializing Media Vision</h2>
-<p>To initialize Media Vision:</p>
+<ul>
+    <li><a href="#init">Initializing the Barcode Engines</a>
+        <p>Initialize the barcode generation and detection engines for use.</p></li>
+    <li><a href="#generate">Generating Barcodes</a>
+        <p>Generate a barcode into memory or a file.</p></li>
+    <li><a href="#detect">Detecting Barcodes</a>
+        <p>Detect barcodes in the camera preview.</p></li>
+</ul>
+
+<h2 id="init" name="init">Initializing the Barcode Engines</h2>
+
+<p>To initialize the barcode generation and detection engines for use:</p>
+
 <ol>
-<li>To use the barcode-related functions and data types of the Media Vision API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;mv_barcode.h&gt;</span> header file in your application:
+
+<li>
+
+<p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VISION__MODULE.html">Media Vision</a> API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;mv_barcode.h&gt;</span> header file in your application:</p>
+
 <pre class="prettyprint">
 #include &lt;mv_barcode.h&gt;
 </pre>
+
 </li>
-<li>For barcode generation:
+
+<li>
+
+<p>For barcode generation:</p>
+
 <ol type="a">
-<li>Create a structure to store the global data with the <span style="font-family: Courier New,Courier,monospace;">bargendata_s</span> structure:
+
+<li>
+
+<p>Create a structure for storing the data required for barcode generation engine configuration:</p>
 
 <pre class="prettyprint">
-typedef struct 
+typedef struct
 _bargendata_s
 {
-&nbsp;&nbsp;&nbsp;// Generate the variables to store barcode information
+&nbsp;&nbsp;&nbsp;// Barcode information variables
 &nbsp;&nbsp;&nbsp;mv_barcode_type_e type;
 &nbsp;&nbsp;&nbsp;mv_barcode_qr_ecc_e ecc;
 &nbsp;&nbsp;&nbsp;mv_barcode_qr_mode_e mode;
@@ -81,40 +96,64 @@ _bargendata_s
 
 &nbsp;&nbsp;&nbsp;mv_barcode_image_format_e image_format;
 
+&nbsp;&nbsp;&nbsp;// Media source handle
 &nbsp;&nbsp;&nbsp;mv_source_h g_source;
+&nbsp;&nbsp;&nbsp;// Barcode generation engine handle
 &nbsp;&nbsp;&nbsp;mv_engine_config_h g_engine_cfg;
 } bargendata_s;
 
 static bargendata_s bargendata;
 </pre>
+
 </li>
-<li>Configure the barcode generation engine with the <span style="font-family: Courier New,Courier,monospace;">mv_create_engine_config()</span> function. The function configures an engine attribute with default values.
+
+<li>
+
+<p>Configure the barcode generation engine using the <span style="font-family: Courier New,Courier,monospace;">mv_create_engine_config()</span> function. The function configures the engine with default attribute values.</p>
+
 <pre class="prettyprint">
 int error_code = 0;
- 
+
 error_code = mv_create_engine_config(&amp;bargendata.g_engine_cfg);
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
-<p>For example, use the <span style="font-family: Courier New,Courier,monospace;">MV_BARCODE_GENERATE_ATTR_TEXT</span> attribute to define whether the barcode is generated with text. The possible values are listed in the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_generate_attr_text_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VISION__BARCODE__MODULE.html#xxxx">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__VISION__BARCODE__MODULE.html#xxxx">wearable</a> applications). The default value is <span style="font-family: Courier New,Courier,monospace;">MV_BARCODE_GENERATE_ATTR_TEXT_INVISIBLE</span>.</p>
+
+<p>For example, to define whether the barcode is generated with text, use the <span style="font-family: Courier New,Courier,monospace;">mv_engine_config_set_int_attribute()</span> function with the <span style="font-family: Courier New,Courier,monospace;">MV_BARCODE_GENERATE_ATTR_TEXT</span> attribute. The possible values for the attribute are defined in the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VISION__BARCODE__MODULE.html#gaff049431f2259d00cfd0fdc7ee721858">mv_barcode_generate_attr_text_e</a> enumeration. The default value is <span style="font-family: Courier New,Courier,monospace;">MV_BARCODE_GENERATE_ATTR_TEXT_INVISIBLE</span>.</p>
+
 </li>
+
 </ol>
+
 </li>
-<li>For barcode detection:
+
+<li>
+
+<p>For barcode detection:</p>
+
 <ol type="a">
-<li>Include the <span style="font-family: Courier New,Courier,monospace;">&lt;camera.h&gt;</span> header file to handle camera preview images:
+
+<li>
+
+<p>To handle camera preview images, include the <span style="font-family: Courier New,Courier,monospace;">&lt;camera.h&gt;</span> header file:</p>
+
 <pre class="prettyprint">
 #include &lt;camera.h&gt;
 </pre>
+
 </li>
-<li>Create a structure to store the global data with the <span style="font-family: Courier New,Courier,monospace;">bardetdata_s</span> structure:
+
+<li>
+
+<p>Create a structure for storing the data required for barcode detection engine configuration:</p>
+
 <pre class="prettyprint">
-typedef struct 
+typedef struct
 _bardetdata_s
 {
-&nbsp;&nbsp;&nbsp;// Generate the variables for the camera display
+&nbsp;&nbsp;&nbsp;// Camera display variables
 &nbsp;&nbsp;&nbsp;Evas_Object *win;
 &nbsp;&nbsp;&nbsp;Evas_Object *rect;
 &nbsp;&nbsp;&nbsp;Evas *evas;
@@ -122,17 +161,24 @@ _bardetdata_s
 &nbsp;&nbsp;&nbsp;int preview_width;
 &nbsp;&nbsp;&nbsp;int preview_height;
 
+&nbsp;&nbsp;&nbsp;// Media source handle
 &nbsp;&nbsp;&nbsp;mv_source_h g_source;
+&nbsp;&nbsp;&nbsp;// Barcode detection engine handle
 &nbsp;&nbsp;&nbsp;mv_engine_config_h g_engine_cfg;
 
+&nbsp;&nbsp;&nbsp;// Camera handle
 &nbsp;&nbsp;&nbsp;camera_h g_camera;
 } bargendata_s;
 
 static bardetdata_s bardetdata;
 </pre>
+
 </li>
-<li>Create a <span style="font-family: Courier New,Courier,monospace;">g_source</span> source handle using the <span style="font-family: Courier New,Courier,monospace;">mv_create_source()</span> function.
-<p>The data, including the barcode to be detected, is handled through the source handle.</p> 
+
+<li>
+
+<p>Create a source handle using the <span style="font-family: Courier New,Courier,monospace;">mv_create_source()</span> function with the <span style="font-family: Courier New,Courier,monospace;">mv_source_h</span> member of the detection data structure as the out parameter:</p>
+
 <pre class="prettyprint">
 int error_code = 0;
 
@@ -142,8 +188,15 @@ if (error_code != MEDIA_VISION_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
+
+<p>The source stores the barcode to be detected and all related data. You manage the source through the source handle.</p>
+
 </li>
-<li>Configure the barcode detection engine with the <span style="font-family: Courier New,Courier,monospace;">mv_create_engine_config()</span> function. The function configures an engine attribute with default values.
+
+<li>
+
+<p>Configure the barcode detection engine using the <span style="font-family: Courier New,Courier,monospace;">mv_create_engine_config()</span> function. The function configures the engine with default attribute values.</p>
+
 <pre class="prettyprint">
 int error_code = 0;
 
@@ -153,9 +206,15 @@ if (error_code != MEDIA_VISION_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
-<p>For example, use the <span style="font-family: Courier New,Courier,monospace;">MV_BARCODE_DETECT_ATTR_TARGET</span> attribute to define the detection target. The possible values are listed in the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_detect_attr_target_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VISION__BARCODE__MODULE.html#ga47aaef5d40653352c5bee73b227062a6">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__VISION__BARCODE__MODULE.html#ga47aaef5d40653352c5bee73b227062a6">wearable</a> applications). The default value is <span style="font-family: Courier New,Courier,monospace;">MV_BARCODE_DETECT_ATTR_TARGET_ALL</span>.</p>
+
+<p>For example, to define the detection target, use the <span style="font-family: Courier New,Courier,monospace;">mv_engine_config_set_int_attribute()</span> function with the <span style="font-family: Courier New,Courier,monospace;">MV_BARCODE_DETECT_ATTR_TARGET</span> attribute. The possible values are defined in the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VISION__BARCODE__MODULE.html#ga47aaef5d40653352c5bee73b227062a6">mv_barcode_detect_attr_target_e</a> enumeration. The default value is <span style="font-family: Courier New,Courier,monospace;">MV_BARCODE_DETECT_ATTR_TARGET_ALL</span>.</p>
+
 </li>
-<li>To provide camera preview images, create the camera handle, set the display and preview callback, and start the camera preview:
+
+<li>
+
+<p>To provide camera preview images, create the camera handle, set the camera display and the camera preview callback, and start the camera preview:</p>
+
 <pre class="prettyprint">
 // Create the camera handle
 error_code = camera_create(CAMERA_DEVICE_CAMERA0, &amp;bardetdata.g_camera);
@@ -165,21 +224,25 @@ if (error_code != CAMERA_ERROR_NONE)
 }
 
 // Set the camera display
-error_code = camera_set_display(bardetdata.g_camera, CAMERA_DISPLAY_TYPE_OVERLAY, GET_DISPLAY(bardetdata.win);
+error_code = camera_set_display(bardetdata.g_camera, CAMERA_DISPLAY_TYPE_OVERLAY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GET_DISPLAY(bardetdata.win));
 if (error_code != CAMERA_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 
 // Get the camera preview resolution
-error_code = camera_get_preview_resolution(bardetdata.g_camera, &amp; bardetdata.width, &amp; bardetdata.height);
+error_code = camera_get_preview_resolution(bardetdata.g_camera, &amp;bardetdata.width,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;bardetdata.height);
 if (error_code != CAMERA_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code %d&quot;, error_code);
 }
 
 // Set the camera preview callback
-error_code = camera_set_media_packet_preview_cb(bardetdata.g_camera, _camera_media_packet_preview_cb, NULL);l
+error_code = camera_set_media_packet_preview_cb(bardetdata.g_camera,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_camera_media_packet_preview_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
 if (error_code != CAMERA_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
@@ -192,33 +255,46 @@ if (error_code != CAMERA_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
+
 <p>For more information about the <span style="font-family: Courier New,Courier,monospace;">camera_set_display()</span> function, see <a href="camera_tutorial_n.htm#init">Initializing the Camera</a> in the Camera tutorial.</p>
+
 </li>
+
 </ol>
+
 </li>
+
 </ol>
-
-
-
 
 <h2 id="generate" name="generate">Generating Barcodes</h2>
 
-<p>To generate barcodes:</p>
+<p>To generate a barcode:</p>
+
 <ol>
-<li>To generate barcodes, define the barcode type. In case of the QR code type, additional error correction level, encoding mode, and its version must be set.
+
+<li>
+
+<p>Set the barcode type. In case of the QR type, also set the error correction level, encoding mode, and version.</p>
+
 <pre class="prettyprint">
 bargendata.type = MV_BARCODE_QR;
 bargendata.ecc = MV_BARCODE_QR_ECC_LOW;
 bargendata.mode = MV_BARCODE_QR_MODE_BYTE;
 bargendata.version = 20;
 </pre>
+
 </li>
-<li>Execute the generation process:
-<ul>
-<li>To generate a barcode into memory:
+
+<li>
+
+<p>To generate the barcode into memory:</p>
+
 <ol type="a">
-<li>Create the <span style="font-family: Courier New,Courier,monospace;">g_source</span> source handle using the <span style="font-family: Courier New,Courier,monospace;">mv_create_source()</span> function. 
-<p>The <span style="font-family: Courier New,Courier,monospace;">g_source</span> handle is used to save the generated barcode information and the memory address.</p>
+
+<li>
+
+<p>Create a source handle using the <span style="font-family: Courier New,Courier,monospace;">mv_create_source()</span> function with the <span style="font-family: Courier New,Courier,monospace;">mv_source_h</span> member of the generation data structure as the out parameter:</p>
+
 <pre class="prettyprint">
 int error_code = 0;
 
@@ -228,19 +304,34 @@ if (error_code != MEDIA_VISION_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code= %d&quot;, error_code);
 }
 </pre>
+
+<p>The source handle is used to save the generated barcode and related data into the source, and to access the barcode and related data from the source.</p>
+
 </li>
-<li>Generate the barcode using the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_generate_source()</span> function:
+
+<li>
+
+<p>Generate the barcode using the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_generate_source()</span> function:</p>
+
 <pre class="prettyprint">
-error_code = mv_barcode_generate_source(bargendata.g_engine_cfg, &quot;MediaVision-Tutorial-QRcode&quot;, bargendata.type, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.mode, bargendata.ecc, bargendata.version, bargendata.g_source);
+error_code = mv_barcode_generate_source(bargendata.g_engine_cfg,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;MediaVision-Tutorial-QRcode&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.type, bargendata.mode,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.ecc, bargendata.version,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.g_source);
 
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
+
 </li>
-<li>To get the width, height, color space, and memory address of the barcode, use the <span style="font-family: Courier New,Courier,monospace;">mv_source_get_width()</span>, <span style="font-family: Courier New,Courier,monospace;">mv_source_get_height()</span>, <span style="font-family: Courier New,Courier,monospace;">mv_source_get_colorspace()</span>, and <span style="font-family: Courier New,Courier,monospace;">mv_source_get_buffer()</span> functions:
+
+<li>
+
+<p>Retrieve the width, height, color space, and memory address of the barcode using the <span style="font-family: Courier New,Courier,monospace;">mv_source_get_width()</span>, <span style="font-family: Courier New,Courier,monospace;">mv_source_get_height()</span>, <span style="font-family: Courier New,Courier,monospace;">mv_source_get_colorspace()</span>, and <span style="font-family: Courier New,Courier,monospace;">mv_source_get_buffer()</span> functions:</p>
+
 <pre class="prettyprint">
 mv_colorspace_e image_colorspace = MEDIA_VISION_COLORSPACE_INVALID;
 unsigned int image_width = 0;
@@ -248,93 +339,147 @@ unsigned int height_height = 0;
 unsigned char *image_buffer_ptr = NULL;
 unsigned int image_buffer_size = 0;
 
-error_code = mv_source_get_width(bargendata.source, &amp;image_width);
+error_code = mv_source_get_width(bargendata.g_source, &amp;image_width);
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 
-error_code = mv_source_get_height(bargendata.source, &amp;image_height);
+error_code = mv_source_get_height(bargendata.g_source, &amp;image_height);
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 
-error_code = mv_source_get_colorspace(bargendata.source, &amp;image_colorspace);
+error_code = mv_source_get_colorspace(bargendata.g_source, &amp;image_colorspace);
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 
-error_code = mv_source_get_buffer(bargendata.source, &amp;image_buffer_ptr, &amp;image_buffer_size);
+error_code = mv_source_get_buffer(bargendata.g_source, &amp;image_buffer_ptr,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;image_buffer_size);
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
+
 </li>
-<li>When the barcode generation is complete, release the <span style="font-family: Courier New,Courier,monospace;">g_source</span> handle:
+
+<li>
+
+<p>After the barcode generation is complete, destroy the source handle using the <span style="font-family: Courier New,Courier,monospace;">mv_destroy_source()</span> function:</p>
+
 <pre class="prettyprint">
-error_code = mv_source_destroy(bargendata.source);
+error_code = mv_destroy_source(bargendata.g_source);
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
+
 </li>
+
 </ol>
+
 </li>
-<li>To generate a barcode into a file: 
+
+<li>
+
+<p>To generate the barcode into a file:</p>
+
 <ol type="a">
-<li>Define the file format and image resolution:
+
+<li>
+
+<p>Define the file format and image resolution:</p>
+
 <pre class="prettyprint">
 bargendata.width = 800;
 bargendata.height = 800;
 
 bargendata.image_format = MV_BARCODE_IMAGE_FORMAT_PNG;
 </pre>
+
 </li>
-<li>Generate the barcode using the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_generate_image()</span> function. 
-<p>In the following example, the generated file is saved in the <span style="font-family: Courier New,Courier,monospace;">/opt/usr/media</span> directory with the file name <span style="font-family: Courier New,Courier,monospace;">mv_barcode_qrcode.png</span>.</p>
+
+<li>
+
+<p>Generate the barcode using the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_generate_image()</span> function.</p>
+
+<p>The following example code saves the generated file in the <span style="font-family: Courier New,Courier,monospace;">/opt/usr/media</span> directory with the file name <span style="font-family: Courier New,Courier,monospace;">mv_barcode_qrcode.png</span>:</p>
+
 <pre class="prettyprint">
-error_code = mv_barcode_generate_image(bargendata.g_engine_cfg, &quot;MediaVision-Tutorial-QRcode&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.width, bargendata.height, bargendata.type, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.mode, bargendata.ecc, bargendata.version,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;/opt/usr/media/mv_barcode_qrcode.png&quot;, bargendata.image_format);
+error_code = mv_barcode_generate_image(bargendata.g_engine_cfg,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;MediaVision-Tutorial-QRcode&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.width, bargendata.height,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.type, bargendata.mode,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.ecc, bargendata.version,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;/opt/usr/media/mv_barcode_qrcode.png&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bargendata.image_format);
 
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
+
 </li>
+
 </ol>
+
 </li>
-</ul>
-</li>
-<li>To release the <span style="font-family: Courier New,Courier,monospace;">g_engine_cfg</span> handle, use the <span style="font-family: Courier New,Courier,monospace;">mv_destroy_engine_config()</span> function:
+
+<li>
+
+<p>Destroy the barcode generation engine handle using the <span style="font-family: Courier New,Courier,monospace;">mv_destroy_engine_config()</span> function:</p>
+
 <pre class="prettyprint">
-error_code = mv_destroy_engine_cfg(bargendata.g_engine_cfg);
+error_code = mv_destroy_engine_config(bargendata.g_engine_cfg);
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
-</li>
-</ol>
 
+</li>
+
+</ol>
 
 <h2 id="detect" name="detect">Detecting Barcodes</h2>
 
 <p>To detect barcodes:</p>
+
 <ol>
-<li>Fill the <span style="font-family: Courier New,Courier,monospace;">g_source</span> source handle with the media packet using the <span style="font-family: Courier New,Courier,monospace;">mv_source_fill_by_media_packet()</span> function. 
-<p>Use the media packet, because the camera preview images can be received through the <span style="font-family: Courier New,Courier,monospace;">_camera_media_packet_preview_cb()</span> callback function as a media packet handle. </p>
+
+<li>
+
+<p>To access the camera preview images in which to detect barcodes:</p>
+
+<ol type="a">
+
+<li>
+
+<p>Implement the <span style="font-family: Courier New,Courier,monospace;">_camera_media_packet_preview_cb()</span> callback. This callback is invoked by the <span style="font-family: Courier New,Courier,monospace;">camera_start_preview()</span> function after each captured preview image and returns a handle for the media packet containing the image.</p>
+
+</li>
+
+<li>
+
+<p>In the callback, fill the source with the media packet using the <span style="font-family: Courier New,Courier,monospace;">mv_source_fill_by_media_packet()</span> function. This function takes as parameters the source handle and the media packet handle.</p>
+
+<p>The image is now stored in the source, and you can access the image through the source handle.</p>
+
+</li>
+
+</ol>
+
 <pre class="prettyprint">
-static void 
-_camera_media_packet_preview_cb (media_packet_h pkt, void *user_data)
+static void
+_camera_media_packet_preview_cb(media_packet_h pkt, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;mv_rectangle_s mv_roi = { {0,0}, bardetdata.width, bardetdata.height};
+&nbsp;&nbsp;&nbsp;mv_rectangle_s mv_roi = {{0,0}, bardetdata.width, bardetdata.height};
 
 &nbsp;&nbsp;&nbsp;if (pkt == NULL)
 &nbsp;&nbsp;&nbsp;{
@@ -353,45 +498,66 @@ _camera_media_packet_preview_cb (media_packet_h pkt, void *user_data)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;pkt = NULL;
 &nbsp;&nbsp;&nbsp;}
 </pre>
+
 </li>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_detect()</span> function to detect barcodes.
-<p>The ROI (Region of Interest) feature is supported to set the region to detect barcode on a whole image resolution. In this example, the whole image resolution is set to the ROI.</p>
+
+<li>
+
+<p>In the <span style="font-family: Courier New,Courier,monospace;">_camera_media_packet_preview_cb()</span> callback, detect barcodes in the image using the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_detect()</span> function:</p>
+
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;error_code = mv_barcode_detect(bardetdata.g_source, bardetdata.g_engine_cfg, mv_roi, _barcode_detected_cb, NULL);
+&nbsp;&nbsp;&nbsp;error_code = mv_barcode_detect(bardetdata.g_source, bardetdata.g_engine_cfg,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mv_roi, _barcode_detected_cb, NULL);
 &nbsp;&nbsp;&nbsp;if (error_code != MEDIA_VISION_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
+
+<p>The ROI (region of interest) feature allows you to define a rectangular region of the image in which to detect barcodes. In the above example code, the whole image is set as the ROI.</p>
+
 </li>
 
-<li>Implement the <span style="font-family: Courier New,Courier,monospace;">_barcode_detected_cb()</span> callback function, which is triggered when  a barcode is detected.
-<p>In the callback, when the number of detected barcodes is more than zero, print the number of detected barcodes and their messages. The used source must be cleared to use the next preview image.</p>
+<li>
+
+<p>Implement a callback that is invoked by the <span style="font-family: Courier New,Courier,monospace;">mv_barcode_detect()</span> function after it has finished processing the image for barcodes.</p>
+
+<p>Use the callback to handle the detection results, and to clear the source for the next image. To clear the source, use the <span style="font-family: Courier New,Courier,monospace;">mv_source_clear()</span> function.</p>
+
+<p>The following example code implements a callback that prints the number of detected barcodes and their messages, if the number is greater than zero. The code also clears the source of the image data.</p>
+
 <pre class="prettyprint">
-static void 
-_barcode_detected_cb(mv_source_h source, mv_engine_config_h engine_cfg, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const mv_quadrangle_s *barcode_locations, const char *message[], 
+static void
+_barcode_detected_cb(mv_source_h source, mv_engine_config_h engine_cfg,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const mv_quadrangle_s *barcode_locations, const char *message[],
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const mv_barcode_type_e *types, int number_of_barcodes, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;int i = 0;
 &nbsp;&nbsp;&nbsp;char type[50] = {‘\0};
 
+&nbsp;&nbsp;&nbsp;// Clear the source for the next preview image
 &nbsp;&nbsp;&nbsp;mv_source_clear(mv_source);
+
 &nbsp;&nbsp;&nbsp;if (number_of_barcode > 0)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;the number of barcodes: %d&quot;, number_of barcode);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i=0; i&lt;number_of_barcodes; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; number_of_barcodes; i++)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%d &gt;&gt; message: %s\n&quot;, I, messages[i]);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
+
 </li>
-<li>After barcode detection is complete, stop the camera preview, unset the preview callback function, and destroy the camera resource:
+
+<li>
+
+<p>After the barcode detection is complete, stop the camera preview, unset the camera preview callback function, and destroy the camera handle:</p>
+
 <pre class="prettyprint">
-error_code = camera_unset_media_packet_preview_cb (bardetdata.g_camera);
+error_code = camera_unset_media_packet_preview_cb(bardetdata.g_camera);
 if (error_code != CAMERA_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
@@ -409,11 +575,17 @@ if (error_code != CAMERA_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
+
 <p>For more information, see <a href="camera_tutorial_n.htm#release">Releasing Resources</a> in the Camera tutorial.</p>
+
 </li>
-<li>To release the <span style="font-family: Courier New,Courier,monospace;">g_source</span> and <span style="font-family: Courier New,Courier,monospace;">g_engine_cfg</span> handles, use the <span style="font-family: Courier New,Courier,monospace;">mv_destroy_source()</span> and <span style="font-family: Courier New,Courier,monospace;">mv_destroy_engine_config()</span> functions:
+
+<li>
+
+<p>Destroy the source and barcode detection engine handles using the <span style="font-family: Courier New,Courier,monospace;">mv_destroy_source()</span> and <span style="font-family: Courier New,Courier,monospace;">mv_destroy_engine_config()</span> functions:</p>
+
 <pre class="prettyprint">
-error_code = mv_destroy_engine_cfg(bardetdata.g_engine_cfg);
+error_code = mv_destroy_engine_config(bardetdata.g_engine_cfg);
 if (error_code != MEDIA_VISION_ERROR_NONE)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
@@ -425,9 +597,10 @@ if (error_code != MEDIA_VISION_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
 }
 </pre>
-</li>
-</ol>
 
+</li>
+
+</ol>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>

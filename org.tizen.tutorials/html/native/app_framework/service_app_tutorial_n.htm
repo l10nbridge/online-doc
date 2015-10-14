@@ -23,7 +23,7 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#callback">Listening to Events</a></li>
+			<li><a href="#callback">Monitoring Events</a></li>
 		</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
@@ -44,12 +44,12 @@
 <p>Become familiar with the Service Application API basics by learning about:</p>
 
 <ul>
-	<li><a href="#callback">Listening to Events</a> <p>Register and set callbacks for application state change events and system events.</p></li> 
+	<li><a href="#callback">Monitoring Events</a> <p>Register and set callbacks for application state change events and system events.</p></li> 
 </ul>
 
-<h2 id="callback" name="callback">Listening to Events</h2>
+<h2 id="callback" name="callback">Monitoring Events</h2>
 
-<p>To listen to events:</p>
+<p>To monitor application state change and system events:</p>
 
 <ol>
 <li><p>To use the functions and data types of the Service Application API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SERVICE__APP__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SERVICE__APP__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;service_app.h&gt;</span> header file in your application:</p>
@@ -62,9 +62,9 @@
 
 <ul>
 
-<li>
-<p>Add a callback for initializing the service application. This callback is called when the application is launched. Use the callback to write the necessary initialization code, such as setting up the dbus connection.</p>
-<p>The callback returns a Boolean value. If there is a critical error during the launch, the return is <span style="font-family: Courier New,Courier,monospace">false</span>, thereby cancelling the launch. Otherwise, the return is <span style="font-family: Courier New,Courier,monospace">true</span>. The callback receives user data.</p>
+<li>Service application initialization callback
+<p>This callback is called when the application is launched. Use the callback to write the necessary initialization code, such as setting up the dbus connection.</p>
+<p>The callback returns a Boolean value. If there is a critical error during the launch, the return is <span style="font-family: Courier New,Courier,monospace">false</span>, thereby cancelling the launch. Otherwise, the return is <span style="font-family: Courier New,Courier,monospace">true</span>.</p>
 <pre class="prettyprint">
 bool 
 service_app_create(void *data)
@@ -76,12 +76,12 @@ service_app_create(void *data)
 </pre>
 </li>
 
-<li>
-<p>Add a callback for terminating the service application. This callback is called when the application terminates. Use the callback to release all resources, especially any allocations and shared resources used by other applications.</p>
-<p>The callback returns nothing: Its return type is <span style="font-family: Courier New,Courier,monospace">void</span>. The <span style="font-family: Courier New,Courier,monospace">service_app_exit()</span> function quits the application&#39;s main loop internally.</p>
+<li>Service application termination callback
+<p>This callback is called when the application terminates. Use the callback to release all resources, especially any allocations and shared resources used by other applications.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">service_app_exit()</span> function quits the application main loop internally.</p>
 <pre class="prettyprint">
 void
-__service_app_terminate(void *data)
+service_app_terminate(void *data)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s&quot;, __func__);
 &nbsp;&nbsp;&nbsp;service_app_exit();
@@ -91,11 +91,11 @@ __service_app_terminate(void *data)
 </pre>
 </li>
 
-<li>
-<p>Add a control callback for handling service requests from other applications. This callback is called when the service application receives an <span style="font-family: Courier New,Courier,monospace">app_control</span> request from another application.</p>
+<li>Service request callback
+<p>This callback is called when the service application receives an <span style="font-family: Courier New,Courier,monospace">app_control</span> service request from another application.</p>
 <pre class="prettyprint">
 void
-__service_app_control(app_control_h app_control, void *data)
+service_app_control(app_control_h app_control, void *data)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s&quot;, __func__);
 &nbsp;&nbsp;&nbsp;service_app_exit();
@@ -104,19 +104,13 @@ __service_app_control(app_control_h app_control, void *data)
 }
 </pre>
 </li>
-
 </ul>
-
 </li>
-
 <li>
-
 <p>Add callbacks for system events:</p>
-
 <ul>
-
-<li>
-<p>Add the low memory callback for handling the low memory event. This callback is called when the device is low on memory.</p>
+<li>Low memory callback
+<p>This callback is called when the device is low on memory.</p>
 <pre class="prettyprint">
 void 
 service_app_low_memory_callback(void *data)
@@ -129,8 +123,8 @@ service_app_low_memory_callback(void *data)
 </pre>
 </li>
 
-<li>
-<p>Add the low battery callback for handling the low battery event. This callback is called when the device is low on battery power.</p>
+<li>Low battery callback
+<p>This callback is called when the device is low on battery power.</p>
 <pre class="prettyprint">
 void 
 service_app_low_battery_callback(void *data)
@@ -142,15 +136,12 @@ service_app_low_battery_callback(void *data)
 }
 </pre>
 </li>
-
 </ul>
-
 </li>
 
 <li>
-
-<p>Set the callbacks in the <span style="font-family: Courier New,Courier,monospace">service_app_event_callback_s</span> structure. This structure is passed to the function that starts the service application.</p>
-
+<p>Set the application state change event callbacks in the <span style="font-family: Courier New,Courier,monospace">service_app_event_callback_s</span> structure. The structure is passed to the function that starts the service application.</p>
+<p>You can register the system event callbacks with the <span style="font-family: Courier New,Courier,monospace">service_app_add_event_handler()</span> function.</p>
 <pre class="prettyprint">
 int 
 main(int argc, char* argv[])

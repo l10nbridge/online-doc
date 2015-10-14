@@ -34,200 +34,171 @@
 <div id="container"><div id="contents"><div class="content">
 <h1>Creating a Naviframe for Navigation</h1>
 
-<p>Naviframes are containers useful for implementing interfaces where several screens have a previous/next relationship.</p>
+<p>The naviframe container is useful for implementing interfaces where several screens have a previous/next relationship.</p>
+<p>The following example shows how to create an application with a simple naviframe. This naviframe has 2 views (screens):</p>
+<ul><li>The first view only contains a title with 2 buttons in the header area, and some text in the content area. The <strong>Prev</strong> button is used to terminate the application, and the <strong>Next</strong> button opens the second view.</li>
+<li>The second view contains a title with a back button in the header area, a tabbar below the title, and some text in the content area. The back button is used to move back to the first view.</li></ul>
 
-<p>This tutorial shows a UI with 3 naviframes. Each naviframe is made of 20 screens, each made up of a label with the text <strong>label&lt;n&gt;</strong>, a title with the same text, and the <strong>Previous</strong> and <strong>Next</strong> buttons, which are used to navigate between the screens.</p>
-<p>The naviframe is &quot;one-way&quot;. This means that elements are added, and when the <strong>Previous</strong> button is clicked, they are removed, and there is no <strong>Next</strong> button by default. To add the <strong>Next</strong> button, define a structure that holds the naviframe object along with a stack of the elements that the user has popped by using the <strong>Previous</strong> button.</p>
-<p>You can also create the elements on the fly each time the <strong>Next</strong> button is pressed. Both approaches are valid.</p>
+<p class="figure">Figure: Naviframe views</p> 
+<p align="center"><img src="../../images/naviframe.png" alt="Naviframe views" /> <img src="../../images/naviframe2.png" alt="Naviframe views" /></p>
 
-<p>To create a naviframe:</p>
+
+<p>To create an application with a naviframe:</p>
 <ol>
-<li><p>Create a <span style="font-family: Courier New,Courier,monospace;">naviframe_zipper</span> structure:</p>
-<pre class="prettyprint">
-// NOTE: A zipper is a data structure for an ordered set of elements and a
-// cursor in this set, meaning there are elements before the cursor (which are
-// stored inside the naviframe) and after (which are stored in the &quot;popped&quot; list
-struct 
-naviframe_zipper 
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *naviframe;
-&nbsp;&nbsp;&nbsp;Eina_List *popped;
-};
-</pre>
-</li>
-<li><p>Create a function that factors the creation of several naviframes and initializes the <span style="font-family: Courier New,Courier,monospace;">naviframe_zipper</span> structure:</p>
-<pre class="prettyprint">
-static struct naviframe_zipper *
-_naviframe_add(Evas_Object *parent)
-{
-&nbsp;&nbsp;&nbsp;struct naviframe_zipper *z = malloc(sizeof(struct naviframe_zipper));
-&nbsp;&nbsp;&nbsp;z-&gt;naviframe = elm_naviframe_add(parent);
-&nbsp;&nbsp;&nbsp;z-&gt;popped = NULL;
-
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(z-&gt;naviframe, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(z-&gt;naviframe, EVAS_HINT_FILL, EVAS_HINT_FILL);
-&nbsp;&nbsp;&nbsp;evas_object_show(z-&gt;naviframe);
-&nbsp;&nbsp;&nbsp;// By default, objects are destroyed when they are popped from the naviframe
-&nbsp;&nbsp;&nbsp;// To save and reuse them, enable &quot;preserve_on_pop&quot;
-&nbsp;&nbsp;&nbsp;elm_naviframe_content_preserve_on_pop_set(z-&gt;naviframe, EINA_TRUE);
-
-&nbsp;&nbsp;&nbsp;return z;
-}
-</pre>
-</li>
 <li>
-<p>Create the buttons that are at the top of the naviframe and allow the user to go back and forth between the screens. The naviframe component builds a <strong>Previous</strong> button by default, but you can create your own buttons as well. The naviframe has a specific slot for the <strong>Next</strong> button.</p>
+<p>Create the application based on the <a href="../../../../org.tizen.gettingstarted/html/native/first_app/first_app_n.htm">BasicUIApplication</a> template in the SDK.</p>
+<p>The application UI is created with the <span style="font-family: Courier New,Courier,monospace;">create_base_gui()</span> function, which calls the necessary functions to create the naviframe (<span style="font-family: Courier New,Courier,monospace;">create_naviframe()</span>), set the naviframe on the conformant (<span style="font-family: Courier New,Courier,monospace;">elm_object_content_set()</span>), and create the first view (<span style="font-family: Courier New,Courier,monospace;">first_page()</span>):</p>
 <pre class="prettyprint">
-// Save the element that is popped from the naviframe
 static void
-_naviframe_prev(void *data, Evas_Object *o __UNUSED__, void *event_info __UNUSED__)
+create_base_gui(appdata_s *ad)
 {
-&nbsp;&nbsp;&nbsp;struct naviframe_zipper *z = data;
-&nbsp;&nbsp;&nbsp;z-&gt;popped = eina_list_prepend(z-&gt;popped, elm_naviframe_item_pop(z-&gt;naviframe));
-}
+&nbsp;&nbsp;&nbsp;// Window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
 
-// Set the first element after the current one available and push it to the naviframe
+&nbsp;&nbsp;&nbsp;// Conformant
+&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(ad-&gt;win, ELM_WIN_INDICATOR_SHOW);
+&nbsp;&nbsp;&nbsp;elm_win_indicator_opacity_set(ad-&gt;win, ELM_WIN_INDICATOR_OPAQUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;// Add the naviframe
+&nbsp;&nbsp;&nbsp;ad-&gt;nf = create_naviframe(ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;elm_object_content_set(ad-&gt;conform, ad-&gt;nf);
+
+&nbsp;&nbsp;&nbsp;// Create the first view 
+&nbsp;&nbsp;&nbsp;first_page(ad-&gt;nf);
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre></li>
+
+<li>
+<p>Create the naviframe with the <span style="font-family: Courier New,Courier,monospace;">elm_naviframe_add()</span> function.</p>
+<p>In Tizen 2.4, you can use the <span style="font-family: Courier New,Courier,monospace;">elm_naviframe_prev_btn_auto_pushed_set()</span> function to automatically create a back button for all views except the first. When you call this function when creating the naviframe, you do not need to manually add a back button to the second view to allow the user to return to the first view.</p> 
+<pre class="prettyprint">
+static Evas_Object *
+create_naviframe(Evas_Object *parent)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *nf;
+&nbsp;&nbsp;&nbsp;nf = elm_naviframe_add(parent);
+
+&nbsp;&nbsp;&nbsp;// Add back button automatically on naviframe views when created
+&nbsp;&nbsp;&nbsp;// This API cannot affect naviframe views already created
+&nbsp;&nbsp;&nbsp;elm_naviframe_prev_btn_auto_pushed_set(nf, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;return nf;
+}
+</pre></li>
+
+<li>
+<p>Create the first view with the <span style="font-family: Courier New,Courier,monospace;">first_page()</span> function and push the view to show it on the screen.</p>
+<p>Create 2 buttons for the view with callbacks for the <span style="font-family: Courier New,Courier,monospace;">clicked</span> event. The buttons are added on both sides of the naviframe title area. When clicked, the left <strong>Prev</strong> button terminates the application, and the right <strong>Next</strong> button pushes the second view to show it on the screen. For the content area, set a layout with simple text in it.</p>
+<pre class="prettyprint">
 static void
-_naviframe_next(void *data, Evas_Object *o __UNUSED__, void *event_info __UNUSED__)
+first_page(Evas_Object *nf)
 {
-&nbsp;&nbsp;&nbsp;struct naviframe_zipper *z = data;
-&nbsp;&nbsp;&nbsp;Evas_Object *label, *prev, *next;
-&nbsp;&nbsp;&nbsp;const char *text;
-&nbsp;&nbsp;&nbsp;Elm_Object_Item *it;
+&nbsp;&nbsp;&nbsp;Evas_Object *content, *btn;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it;
 
-&nbsp;&nbsp;&nbsp;label = eina_list_data_get(z-&gt;popped);
-&nbsp;&nbsp;&nbsp;z-&gt;popped = eina_list_remove_list(z-&gt;popped, z-&gt;popped);
-&nbsp;&nbsp;&nbsp;if (label != NULL) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// UI component is saved inside the naviframe but nothing more 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// You need to create new buttons and set the title text again 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// (copy the one from the label that is saved)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text = elm_object_text_get(label);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// _button function creates a button which is
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// either Previous (-1) or Next (1)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;prev = _button(z, -1);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;next = _button(z, 1);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;it = elm_naviframe_item_push(z-&gt;naviframe, text, prev, next, label, NULL);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Set nocontents layout
+&nbsp;&nbsp;&nbsp;content = elm_layout_add(nf);
+&nbsp;&nbsp;&nbsp;elm_layout_theme_set(content, &quot;layout&quot;, &quot;nocontents&quot;, &quot;default&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(content, &quot;elm.text&quot;, &quot;First view on Naviframe&quot;);
+
+&nbsp;&nbsp;&nbsp;// Push the first view
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(nf, &quot;Naviframe with Button&quot;, NULL, NULL, content, NULL);
+
+&nbsp;&nbsp;&nbsp;// Set left button on the title
+&nbsp;&nbsp;&nbsp;btn = elm_button_add(nf);
+&nbsp;&nbsp;&nbsp;elm_object_style_set(btn, &quot;naviframe/title_left&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_item_part_content_set(nf_it, &quot;title_left_btn&quot;, btn);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(btn, &quot;Prev&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(btn, &quot;clicked&quot;, prev_btn_clicked_cb, nf);
+
+&nbsp;&nbsp;&nbsp;// Set right button on the title
+&nbsp;&nbsp;&nbsp;btn = elm_button_add(nf);
+&nbsp;&nbsp;&nbsp;elm_object_style_set(btn, &quot;naviframe/title_right&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_item_part_content_set(nf_it, &quot;title_right_btn&quot;, btn);
+&nbsp;&nbsp;&nbsp;elm_object_text_set(btn, &quot;Next&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(btn, &quot;clicked&quot;, second_page_cb, nf);
+
+&nbsp;&nbsp;&nbsp;// Set a callback for when a naviframe view is popped (hidden from the screen)
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(nf_it, naviframe_pop_cb, nf);
+}
+</pre> 
+</li>
+
+<li>
+<p>When the left <strong>Prev</strong> button is clicked, the <span style="font-family: Courier New,Courier,monospace;">prev_btn_clicked_cb()</span> callback pops the current view. When the view is popped, the <span style="font-family: Courier New,Courier,monospace;">naviframe_pop_cb()</span> callback is triggered with the popped item and terminates the application.</p>
+<pre class="prettyprint">
+// Left button click callback
+static void
+prev_btn_clicked_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *nf = data;
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop(nf);
+}
+
+// View pop callback
+// If the callback returns EINA_FALSE, item popping is canceled and item is not deleted
+static Eina_Bool
+naviframe_pop_cb(void *data, Elm_Object_Item *it)
+{
+&nbsp;&nbsp;&nbsp;ui_app_exit();
+
+&nbsp;&nbsp;&nbsp;// EINA_FALSE is returned, since the application is terminated anyway
+&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+}
+</pre>
+</li>
+
+<li>
+<p>When the right <strong>Next</strong> button is clicked, the <span style="font-family: Courier New,Courier,monospace;">second_page_cb()</span> callback creates the second view and pushes it to the screen.</p>
+
+<p>Create a toolbar below the title area, and for the content area, set a layout with simple text in it. Since you used the <span style="font-family: Courier New,Courier,monospace;">elm_naviframe_prev_btn_auto_pushed_set()</span> function when creating the naviframe, a back button is automatically added to this view. When you push the view, use the <span style="font-family: Courier New,Courier,monospace;">tabbar</span> style.</p>
+
+<pre class="prettyprint">
+static void
+second_page_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *content, *tabbar, *nf = data;
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it;
+
+&nbsp;&nbsp;&nbsp;// Set nocontents layout
+&nbsp;&nbsp;&nbsp;content = elm_layout_add(nf);
+&nbsp;&nbsp;&nbsp;elm_layout_theme_set(content, &quot;layout&quot;, &quot;nocontents&quot;, &quot;default&quot;);
+&nbsp;&nbsp;&nbsp;elm_object_part_text_set(content, &quot;elm.text&quot;, &quot;Second view on Naviframe&quot;);
+
+&nbsp;&nbsp;&nbsp;// Push the second view with tabbar style
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(nf, &quot;Title with tabbar&quot;, NULL, NULL, content, &quot;tabbar&quot;);
+
+&nbsp;&nbsp;&nbsp;// Create and set a toolbar into the tabbar part
+&nbsp;&nbsp;&nbsp;tabbar = create_tabbar_with_title(nf);
+&nbsp;&nbsp;&nbsp;elm_object_item_part_content_set(nf_it, &quot;tabbar&quot;, tabbar);
 }
 </pre>
 </li>
 <li>
-<p>Populate the naviframe when the naviframe and the pages that go inside it are built.</p>
-<p>Remember that 3 naviframes are created, each populated in a different way. The common bits have been factored out as a function and the specific parts are executed through a callback. The generic function is shown in the following example.</p>
+<p>Create the toolbar and append 2 items into it using the <span style="font-family: Courier New,Courier,monospace;">create_tabbar_with_title()</span> function. When the toolbar is located under the naviframe title area, the <span style="font-family: Courier New,Courier,monospace;">tabbar_with_title</span> style can be used.</p>
 <pre class="prettyprint">
-// Generic naviframe-populate function:
-// Its third (and last) parameter is a callback for customization. It pushes
-// the new items to a specific position and returns a &quot;context&quot; value that is
-// used between its calls and enables behaviors such as &quot;push after the
-// previously pushed item&quot; 
-static struct naviframe_zipper*
-_naviframe_populate_gen(Evas_Object *parent, const char *id,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;void * (*populate_cb) (Evas_Object *nav, const char *title, Evas_Object
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*prev, Evas_Object *next, Evas_Object *label, Elm_Object_Item *context))
+static Evas_Object*
+create_tabbar_with_title(Evas_Object *parent)
 {
-&nbsp;&nbsp;&nbsp;struct naviframe_zipper *z;
-&nbsp;&nbsp;&nbsp;Evas_Object *label, *prev, *next;
-&nbsp;&nbsp;&nbsp;Elm_Object_Item *context = NULL;
-&nbsp;&nbsp;&nbsp;char buf[256];
-&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;Evas_Object *toolbar;
+&nbsp;&nbsp;&nbsp;toolbar = elm_toolbar_add(parent);
+&nbsp;&nbsp;&nbsp;elm_object_style_set(toolbar, &quot;tabbar_with_title&quot;);
+&nbsp;&nbsp;&nbsp;elm_toolbar_shrink_mode_set(toolbar, ELM_TOOLBAR_SHRINK_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_toolbar_transverse_expanded_set(toolbar, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(toolbar, NULL, &quot;Tab1&quot;, NULL, parent);
+&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(toolbar, NULL, &quot;Tab2&quot;, NULL, parent);
+&nbsp;&nbsp;&nbsp;elm_toolbar_select_mode_set(toolbar, ELM_OBJECT_SELECT_MODE_ALWAYS);
 
-&nbsp;&nbsp;&nbsp;z = _naviframe_add(parent);
-
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 20; i++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;label = elm_label_add(z-&gt;naviframe);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;%s [%d]&quot;, id, i);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(label, buf);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(label);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(label, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(label, EVAS_HINT_FILL, EVAS_HINT_FILL);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// _button function creates a button which is
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// either Previous (-1) or Next (1)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;prev = _button(z, -1);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;next = _button(z, 1);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Use the populate_cb callback to provide the customization of the way the
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// elements are added inside the naviframe
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context = populate_cb(z-&gt;naviframe, buf, prev, next, label, context);
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;return z;
-}
-</pre>
-<p>The prototype of the callbacks is fairly large, but that is because of the syntax for callbacks in C.</p>
-<pre class="prettyprint">
-// Push items one after the other
-static Elm_Object_Item *
-_populate_cb__push(Evas_Object *nav, const char *title,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *prev, Evas_Object *next, Evas_Object *label,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *context)
-{
-&nbsp;&nbsp;&nbsp;return elm_naviframe_item_push(nav, title, prev, next, label, NULL);
-}
-
-// Push items one after the other but use insert_after
-static Elm_Object_Item *
-_populate_cb__push_then_insert_after(Evas_Object *nav, const char *title,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *prev, Evas_Object *next, Evas_Object *label,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *context)
-{
-&nbsp;&nbsp;&nbsp;if (context == NULL) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return elm_naviframe_item_push(nav, title, prev, next, label, NULL);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return elm_naviframe_item_insert_after(nav, context, title, prev, next, label, NULL);
-&nbsp;&nbsp;&nbsp;}
-}
-
-// Push one item and repeatedly insert new items before the last inserted item
-static Elm_Object_Item *
-_populate_cb__push_then_insert_before(Evas_Object *nav, const char *title,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *prev, Evas_Object *next, Evas_Object *label,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *context)
-{
-&nbsp;&nbsp;&nbsp;if (context == NULL) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return elm_naviframe_item_push(nav, title, prev, next, label, NULL);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return elm_naviframe_item_insert_before(nav, context, title, prev, next, label, NULL);
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-</li>
-<li>
-<p>Create a window with a vertical box, which holds the 3 naviframes from the Appcore&#39;s <span style="font-family: Courier New,Courier,monospace">app_create</span> callback.</p>
-
-<pre class="prettyprint">
-static bool
-_app_create(void *data)
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *w, *box;
-&nbsp;&nbsp;&nbsp;struct naviframe_zipper *z;
-
-&nbsp;&nbsp;&nbsp;w = elm_win_util_standard_add(&quot;Naviframe Test&quot;, &quot;Naviframe Test&quot;);
-
-&nbsp;&nbsp;&nbsp;box = elm_box_add(w);
-&nbsp;&nbsp;&nbsp;elm_box_horizontal_set(box, EINA_FALSE);
-&nbsp;&nbsp;&nbsp;elm_box_homogeneous_set(box, EINA_TRUE);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
-&nbsp;&nbsp;&nbsp;evas_object_show(box);
-&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(w, box);
-
-&nbsp;&nbsp;&nbsp;z = _naviframe_populate_gen(w, &quot;Before&quot;, _populate_cb__push_then_insert_before);
-&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, z-&gt;naviframe);
-
-&nbsp;&nbsp;&nbsp;z = _naviframe_populate_gen(w, &quot;After&quot;, _populate_cb__push_then_insert_after);
-&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, z-&gt;naviframe);
-
-&nbsp;&nbsp;&nbsp;z = _naviframe_populate_gen(w, &quot;Push&quot;, _populate_cb__push);
-&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, z-&gt;naviframe);
-
-&nbsp;&nbsp;&nbsp;evas_object_show(w);
+&nbsp;&nbsp;&nbsp;return toolbar;
 }
 </pre>
 </li>

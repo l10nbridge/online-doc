@@ -10,7 +10,6 @@
     <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
-
     <title>Media Codec: Encoding and Decoding Media Files</title>
 </head>
 
@@ -21,97 +20,140 @@
         <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
     </div>
     <div id="toc_border"><div id="toc">
-		<p class="toc-title">Content</p>
-		<ul class="toc">
-			<li><a href="#init">Initializing Media Codecs</a></li>
-			<li><a href="#manage">Managing Media Codecs</a></li>
-			<li><a href="#release">Releasing Resources</a></li>
-		</ul>       
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#init">Initializing Media Codecs</a></li>
+            <li><a href="#packet">Filling the Media Packet with Data</a></li>
+            <li><a href="#management">Running the Media Codec</a></li>
+        </ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
             <li><a href="../../../../org.tizen.guides/html/native/multimedia/media_codecs_n.htm">Media Codec Guide</a></li>
-			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">Media Codec API for Mobile Native</a></li>
-			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">Media Codec API for Wearable Native</a></li>
+            <li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">Media Codec API for Mobile Native</a></li>
+            <li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">Media Codec API for Wearable Native</a></li>
         </ul>
     </div></div>
 </div>
 
 <div id="container"><div id="contents"><div class="content">
+
 <h1>Media Codec: Encoding and Decoding Media Files</h1>
 
-  
-<p>This tutorial demonstrates how you can encode and decode media files.</p>
+<p>This tutorial demonstrates how you can encode and decode media files using media codecs.</p>
 
 <h2>Warm-up</h2>
 
 <p>Become familiar with the Media Codec API basics by learning about:</p>
 
-<ul><li>
-<a href="#init">Initializing Media Codecs</a>
-<p>Initialize the media codecs for use.</p></li>
+<ul>
+    <li><a href="#init">Initializing Media Codecs</a>
+        <p>Initialize a media codec for use.</p></li>
+    <li><a href="#packet">Filling the Media Packet with Data</a>
+        <p>Fill the <span style="font-family: Courier New,Courier,monospace">media_packet</span> with data.</p></li>
+    <li><a href="#management">Running the Media Codec</a>
+        <p>Run the media codec in a loop.</p></li>
+</ul>
 
-<li><a href="#manage">Managing Media Codecs</a>
-<p>Prepare and start the codec.</p></li>
+<h2 id="init" name="init">Initializing Media Codecs</h2>
 
-<li><a href="#release">Releasing Resources</a>
-<p>Reset the codec and destroy the handle.</p></li></ul>
- 
+<p>To initialize a media codec for use:</p>
 
- <h2 id="init" name="init">Initializing Media Codecs</h2>
-<h3 name="configure" id="configure">Creating and Configuring Media Codecs</h3>
-<p>Before using the Media codec:</p>
 <ol>
-<li><p>To use the functions and data types of the Media Codec API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;media_codec.h&gt;</span> header file in your application:</p>
+
+<li>
+
+<p>To use the functions and data types of the Media Codec API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;media_codec.h&gt;</span> header file in your application:</p>
+
 <pre class="prettyprint">
 #include &lt;media_codec.h&gt;
-</pre></li>
-<li>Define a handle for the media codec and pass it to the <span style="font-family: Courier New,Courier,monospace">mediacodec_create()</span> function. The handle must be passed to all other Media Codec APIs.
+</pre>
+
+</li>
+
+<li>
+
+<p>Create a handle for the media codec using the <span style="font-family: Courier New,Courier,monospace">mediacodec_create()</span> function:</p>
+
 <pre class="prettyprint">
 mediacodec_h *mediacodec;
-ret = mediacodec_create(&amp;mediacodec);</pre>
-</li>
-<li>If the handle is created normally, set the codec and configuration using the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_codec()</span> function.
-<p>The enumerations <span style="font-family: Courier New,Courier,monospace">mediacodec_codec_type_e</span> (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#ga2e7775fb3609e4349c742b1d9eb5febc">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#ga2e7775fb3609e4349c742b1d9eb5febc">wearable</a> applications) and <span style="font-family: Courier New,Courier,monospace">mediacodec_support_type_e</span> (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#gab01ad3dbb4989537108a5c9f2062447a">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#gab01ad3dbb4989537108a5c9f2062447a">wearable</a> applications) define the media codec type and support type.</p>
-<pre class="prettyprint">ret = mediacodec_set_codec(mediacodec, (mediacodec_codec_type_e)codecid, flag); </pre>
-</li>
-<li>To configure the video encoder and decoder:
-<pre class="prettyprint">ret = mediacodec_set_venc_info(mediacodec, width, height, fps, target_bits);
-
-ret = mediacodec_set_vdec_info(mediacodec, width, height);
+ret = mediacodec_create(&amp;mediacodec);
 </pre>
 
-<p>To configure the audio encoder and decoder:</p>
-<pre class="prettyprint">ret = mediacodec_set_aenc_info(mediacodec, samplerate, channel, bit, bitrate);
+<p>The handle must be passed to all other Media Codec APIs.</p>
 
+</li>
+
+<li>
+
+<p>Set the codec using the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_codec()</span> function:</p>
+
+<pre class="prettyprint">
+ret = mediacodec_set_codec(mediacodec, (mediacodec_codec_type_e)codecid, flag);
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">mediacodec_codec_type_e</span> (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#ga2e7775fb3609e4349c742b1d9eb5febc">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#ga2e7775fb3609e4349c742b1d9eb5febc">wearable</a> applications) and <span style="font-family: Courier New,Courier,monospace">mediacodec_support_type_e</span> (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#gab01ad3dbb4989537108a5c9f2062447a">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#gab01ad3dbb4989537108a5c9f2062447a">wearable</a> applications) enumerations define the media codec type and support type (second and third parameters).</p>
+
+</li>
+
+<li>
+
+<p>To configure the video and audio encoder and decoder:</p>
+
+<pre class="prettyprint">
+// Video encoder
+ret = mediacodec_set_venc_info(mediacodec, width, height, fps, target_bits);
+// Video decoder
+ret = mediacodec_set_vdec_info(mediacodec, width, height);
+// Audio encoder
+ret = mediacodec_set_aenc_info(mediacodec, samplerate, channel, bit, bitrate);
+// Audio decoder
 ret = mediacodec_set_adec_info(mediacodec, samplerate, channel, bit);
 </pre>
+
 </li>
-</ol>
 
-<h3 name="callbacks" id="callbacks">Setting Callbacks</h3>
-
-<p>To set callbacks:</p>
-
-<ol>
 <li>
+
+<p>To set callbacks for the input and output buffers:</p>
+
+<ol type="a">
+
+<li>
+
 <p>To receive notifications when the input buffers are used, register a callback using the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_input_buffer_used_cb()</span> function. The callback is invoked when the input buffers are queued to the codec.</p>
-<pre class="prettyprint">ret = mediacodec_set_input_buffer_used_cb(mediacodec, _input_buffer_used_cb, NULL);</pre>
+
+<pre class="prettyprint">
+ret = mediacodec_set_input_buffer_used_cb(mediacodec, _input_buffer_used_cb, NULL);
+</pre>
 
 <p>If a <span style="font-family: Courier New,Courier,monospace">media_packet</span> is used, it must be destroyed when the callback is invoked:</p>
-<pre class="prettyprint">static void 
+
+<pre class="prettyprint">
+static void
 _input_buffer_used_cb(media_packet_h pkt, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;media_packet_destroy(pkt);
-   
+
 &nbsp;&nbsp;&nbsp;return;
 }
-</pre></li>
+</pre>
+
+</li>
+
 <li>
+
 <p>To receive notifications when the output buffers are dequeued, register a callback using the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_output_buffer_available_cb()</span> function. The callback is invoked when the output buffers are dequeued.</p>
-<pre class="prettyprint">ret = mediacodec_set_output_buffer_available_cb(mediacodec, _output_buffer_available_cb, mediacodec);</pre>
+
+<pre class="prettyprint">
+ret = mediacodec_set_output_buffer_available_cb(mediacodec, _output_buffer_available_cb, mediacodec);
+</pre>
+
 <p>If the <span style="font-family: Courier New,Courier,monospace">media_packet</span> is dequeued from the codec, this callback is invoked.</p>
-<p>You can get the output packet through the <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> function when the callback is invoked:</p>
-<pre class="prettyprint">static void 
+
+<p>Retrieve the output packet using the <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> function inside the callback:</p>
+
+<pre class="prettyprint">
+static void
 _output_buffer_available_cb(media_packet_h pkt, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;media_packet_h out_pkt;
@@ -125,16 +167,28 @@ _output_buffer_available_cb(media_packet_h pkt, void *user_data)
 
 &nbsp;&nbsp;&nbsp;return;
 }
-</pre></li>
+</pre>
+
+</li>
+
 </ol>
 
- <h2 id="manage" name="manage">Managing Media Codecs</h2>
-<h3 name="packet" id="packet">Filling the Packet with Data</h3>
-<p>Once the <span style="font-family: Courier New,Courier,monospace">media_packet</span> is allocated with corresponding codec MIME types, you can fill it with data:</p>
+</li>
+
+</ol>
+
+<h2 name="packet" id="packet">Filling the Media Packet with Data</h2>
+
+<p>After the <span style="font-family: Courier New,Courier,monospace">media_packet</span> is allocated with corresponding codec MIME types, fill it with data:</p>
 
 <ol>
-<li>Get the data pointer from the <span style="font-family: Courier New,Courier,monospace">media_packet</span> and set the buffer size on the preallocated packet:
-<pre class="prettyprint">unsigned char nal[48] = {0x00, 0x00, 0x00, 0x01, 0x67, 0x4D, 0x40, 0x33,
+
+<li>
+
+<p>Retrieve the data pointer from the <span style="font-family: Courier New,Courier,monospace">media_packet</span>, and set the buffer size on the preallocated packet:</p>
+
+<pre class="prettyprint">
+unsigned char nal[48] = {0x00, 0x00, 0x00, 0x01, 0x67, 0x4D, 0x40, 0x33,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0x9A, 0x73, 0x80, 0xA0, 0x08, 0xB4, 0x20, 0x00,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0x32, 0xE9, 0xE0, 0x09, 0x89, 0x68, 0x11, 0xE3,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0x06, 0x23, 0xC0, 0x00, 0x00, 0x00, 0x01, 0x68,
@@ -145,18 +199,24 @@ media_format_h fmt;
 media_packet_h pkt;
 void *data;
 
-ret = media_format_set_video_mime (fmt, MEDIA_FORMAT_H264_SP);
+ret = media_format_set_video_mime(fmt, MEDIA_FORMAT_H264_SP);
 ret = media_format_set_video_width(fmt, 1280);
 ret = media_format_set_video_height(fmt, 544);
 ret = media_packet_create_alloc(fmt, NULL, NULL, &amp;pkt);
 
-ret = media_packet_get_buffer_data_ptr (pkt, &amp;data);
+ret = media_packet_get_buffer_data_ptr(pkt, &amp;data);
 memcpy(data, nal, 48);
-ret = media_packet_set_buffer_size (pkt, 48);
+ret = media_packet_set_buffer_size(pkt, 48);
 </pre>
+
 </li>
-<li>If the memory buffer can contain extra padding bytes after each pixel roe, you can check whether the stride in the uncompressed video frame is not the same as the video width. In that case, the strided copy is needed:
-<pre class="prettyprint">void 
+
+<li>
+
+<p>If the memory buffer contains extra padding bytes after each pixel row, check whether the stride in the uncompressed video frame is the same as the video width. If it is not, make a strided copy:</p>
+
+<pre class="prettyprint">
+void
 _fill_buffer(media_packet_h pkt, unsigned char *yuv, int width, int height)
 {
 &nbsp;&nbsp;&nbsp;int i;
@@ -165,69 +225,131 @@ _fill_buffer(media_packet_h pkt, unsigned char *yuv, int width, int height)
 &nbsp;&nbsp;&nbsp;media_packet_get_video_stride_width(pkt, 0, &amp;stride);
 &nbsp;&nbsp;&nbsp;media_packet_get_video_plane_data_ptr(pkt, 0, &amp;data);
 
-&nbsp;&nbsp;&nbsp;for (i = 0 ; i &lt; height; i++) 
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; height; i++)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(data, yuv, width);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data += stride;
-&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;}
 }</pre>
+
 </li>
- </ol>
-<h3 name="management" id="management">Managing Mediacodec</h3>
 
-<p>The Media Codec usage follows a basic pattern:</p>
-<ol><li>Create and configure the Media Codec handle.</li>
-<li>Loop until done:
-<ul><li>If an input buffer is ready, read a chunk of input and copy it into the buffer.</li> 
-<li>If an output buffer is ready, copy the output from the buffer.</li></ul></li>
-<li>Release the Media Codec handle.</li></ol> 
+</ol>
 
+<h2 name="management" id="management">Running the Media Codec</h2>
 
-<p>To manage the codec process loop:</p>
+<p>After <a href="#init">initializing the medic codec</a> and <a href="#packet">filling the <span style="font-family: Courier New,Courier,monospace">media_packet</span> with data</a>, run the media codec in the following loop:</p>
 
 <ol>
-<li>If the prerequisites are set normally, prepare the media codec using the <span style="font-family: Courier New,Courier,monospace">mediacodec_prepare()</span> function.
 
-<pre class="prettyprint">ret = mediacodec_prepare(mediacodec);
+<li><p>When an input buffer is ready, read a chunk of input and copy it into the buffer to be encoded or decoded.</p></li>
+
+<li><p>When an output buffer is ready, copy the encoded or decoded output from the buffer.</p></li>
+
+</ol>
+
+<p>To run the media codec loop:</p>
+
+<ol>
+
+<li>
+
+<p>Prepare the media codec using the <span style="font-family: Courier New,Courier,monospace">mediacodec_prepare()</span> function:</p>
+
+<pre class="prettyprint">
+ret = mediacodec_prepare(mediacodec);
 </pre>
+
 </li>
-<li>Before calling the <span style="font-family: Courier New,Courier,monospace">mediacodec_process_input()</span> function, set the flag in the <span style="font-family: Courier New,Courier,monospace">media_packet</span>.
-<p>If the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains codec data, such as SPS or PPS in case of H.264, you must set the codec config flag using the <span style="font-family: Courier New,Courier,monospace">media_packet_set_flags()</span> function:</p>
-<pre class="prettyprint">ret = media_packet_set_flags(pkt, MEDIA_PACKET_CODEC_CONFIG);
+
+<li>
+
+<p>Set the <span style="font-family: Courier New,Courier,monospace">media_packet</span> flags using the <span style="font-family: Courier New,Courier,monospace">media_packet_set_flags()</span> function:</p>
+
+<ul>
+
+<li>
+
+<p>If the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains codec data, such as SPS or PPS in case of H.264, set the codec config flag:</p>
+
+<pre class="prettyprint">
+ret = media_packet_set_flags(pkt, MEDIA_PACKET_CODEC_CONFIG);
 </pre>
 
-<p>If the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains the end of stream, you must set the end of stream (eos) flag. The eos callback is invoked if the eos packet is decoded or encoded and the eos callback is set.</p>
-<pre class="prettyprint">ret = media_packet_set_flags(pkt, MEDIA_PACKET_END_OF_STREAM);
-</pre></li>
+</li>
 
+<li>
 
-<li>Start the media codec using the <span style="font-family: Courier New,Courier,monospace">mediacodec_process_input()</span> and <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> functions.
-<pre class="prettyprint">media_packet_h in_buf = NULL;
+<p>If the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains the end of the stream, set the end-of-stream (eos) flag:</p>
+
+<pre class="prettyprint">
+ret = media_packet_set_flags(pkt, MEDIA_PACKET_END_OF_STREAM);
+</pre>
+
+<p>The eos callback is invoked if the eos packet is decoded or encoded and the eos callback is registered with the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_eos_cb()</span> function.</p>
+
+</li>
+
+</ul>
+
+<table class="note">
+ <tbody>
+  <tr>
+  <th class="note">Note</th>
+  </tr>
+  <tr>
+   <td class="note">You must set the flags before calling the <span style="font-family: Courier New,Courier,monospace">mediacodec_process_input()</span> function.</td>
+  </tr>
+ </tbody>
+</table>
+
+</li>
+
+<li>
+
+<p>Start the media codec loop using the <span style="font-family: Courier New,Courier,monospace">mediacodec_process_input()</span> and <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> functions:</p>
+
+<pre class="prettyprint">
+media_packet_h in_buf = NULL;
 ret = mediacodec_process_input(mediacodec, in_buf, 0);
 
 media_packet_h output_buf = NULL;
 ret = mediacodec_get_output(mediacodec, &amp;output_buf, 0);
 </pre>
+
 </li>
-<li>After calling the <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> function, you can check the frame using the <span style="font-family: Courier New,Courier,monospace">media_packet</span>. You can check whether the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains key frame or codec data:
-<pre class="prettyprint">bool keyframe;
+
+<li>
+
+<p>After calling the <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> function, check the frame using the <span style="font-family: Courier New,Courier,monospace">media_packet</span>.</p>
+
+<p>To check whether the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains key frame or codec data:</p>
+
+<pre class="prettyprint">
+bool keyframe;
 bool codec_config;
 
 ret = media_packet_is_sync_frame(pkt, &amp;keyframe);
 ret = media_packet_is_codec_config(pkt, &amp;codec_config);
 </pre>
+
 </li>
-</ol>
 
- <h2 id="release" name="release">Releasing Resources</h2>
+<li>
 
-<p>After you have finished work with the media codec, reset the codec and destroy the handle using the <span style="font-family: Courier New,Courier,monospace">mediacodec_unprepare()</span> and <span style="font-family: Courier New,Courier,monospace">mediacodec_destroy()</span> functions:</p>
+<p>After the loop is over and you have finished working with the media codec, reset the codec and destroy the codec handle using the <span style="font-family: Courier New,Courier,monospace">mediacodec_unprepare()</span> and <span style="font-family: Courier New,Courier,monospace">mediacodec_destroy()</span> functions:</p>
+
 <pre class="prettyprint">ret = mediacodec_unprepare(mediacodec);
 
 ret = mediacodec_destroy(mediacodec);
 </pre>
-<p>Afterwards, the media codec state is changed to <span style="font-family: Courier New,Courier,monospace">MEDIACODEC_STATE_NONE</span>.</p>
- 
+
+<p>The media codec state changes to <span style="font-family: Courier New,Courier,monospace">MEDIACODEC_STATE_NONE</span>.</p>
+
+</li>
+
+</ol>
+
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
 

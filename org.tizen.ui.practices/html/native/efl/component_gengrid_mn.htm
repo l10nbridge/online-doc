@@ -24,7 +24,7 @@
 		<p class="toc-title">Content</p>
 		<ul class="toc">
 			<li><a href="#add">Adding a Gengrid Component</a></li>
-			<li><a href="#items">Gengrid Items</a></li>
+			<li><a href="#style">Using Gengrid and Item Styles</a></li>
 			<li><a href="#create">Creating and Deleting Items</a></li>
 			<li><a href="#manage">Managing Items</a></li>
 			<li><a href="#callback">Using Gengrid Callbacks</a></li>
@@ -63,23 +63,107 @@ Evas_Object *gengrid, *parent;
 gengrid = elm_gengrid_add(parent);
 </pre>
 
-<h2 id="items">Gengrid Items</h2>
+<h2 id="style">Using Gengrid and Item Styles</h2>
 
-<p>A gengrid item is composed of 0 or more texts, 0 or more contents and 0 or more boolean states. The number of the text and content depends on the theme used for gengrid items. In the default Tizen gengrid item theme, items can have two content parts that can be set with the <span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span> and <span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span> part names.</p>
+<p>The following gengrid styles and related item styles are supported:</p>
+
+<ul><li><span style="font-family: Courier New,Courier,monospace">default</span>
+<ul><li><span style="font-family: Courier New,Courier,monospace">default</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">type1</span> (identical to the <span style="font-family: Courier New,Courier,monospace">default</span> style in Tizen 2.4)</li>
+<li><span style="font-family: Courier New,Courier,monospace">type2</span></li>
+</ul></li>
+<li><span style="font-family: Courier New,Courier,monospace">popup</span>
+<ul><li><span style="font-family: Courier New,Courier,monospace">default</span></li>
+</ul></li></ul>
+
+<p>The following example shows how to use the <span style="font-family: Courier New,Courier,monospace">popup</span> gengrid style with the <span style="font-family: Courier New,Courier,monospace">default</span> item style:</p>
+<pre class="prettyprint">
+elm_object_style_set(gengrid, &quot;popup&quot;);
+gic-&gt;item_style = &quot;default&quot;;
+</pre>
+
+<p>The following figure shows examples of the <span style="font-family: Courier New,Courier,monospace">default</span> (<span style="font-family: Courier New,Courier,monospace">type1</span>), <span style="font-family: Courier New,Courier,monospace">type2</span>, and <span style="font-family: Courier New,Courier,monospace">popup</span> styles.</p>
+
+<p class="figure">Figure: Gengrid styles</p> 
+<p align="center"> <img alt="Gengrid styles" src="../../images/gengrid_styles.png" /> </p> 
 
 <h2 id="create">Creating and Deleting Items</h2>
 
-<p>As with genlists, the items are allocated and deleted on the go, while the user is scrolling the gengrid. The following example shows how to declare a <span style="font-family: Courier New,Courier,monospace">Elm_Gengrid_Item_Class</span> structure to inform the gengrid how to manage items.</p>
+<p>A gengrid item is composed of 0 or more texts, 0 or more contents, and 0 or more boolean states. The number of texts and contents depends on the theme used for the gengrid items. In the default Tizen gengrid item theme, the items can have 2 content parts that can be set with the <span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span> and <span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span> part names.</p>
+
+<p>As in the genlist, to save up memory and speed up processing when many items exist, the gengrid has the concept of realization when managing items. It means that a gengrid item creates its text and content when the item shows up on the display (realize), and frees them when the item is scrolled out of the screen (unrealize). Text and content are retrieved by calling the <span style="font-family: Courier New,Courier,monospace">text_get</span> and <span style="font-family: Courier New,Courier,monospace">content_get</span> functions defined in the gengrid item class.</p>
+
+<p>You can use the <span style="font-family: Courier New,Courier,monospace">Elm_Gengrid_Item_Class</span> for the following purposes:</p>
+<ul><li>Setting the item style</li>
+<li>Registering callback functions for item realization</li>
+<li>Registering a callback function for item deletion</li></ul>
+
 <pre class="prettyprint">
 static Elm_Gengrid_Item_Class *gic = elm_gengrid_item_class_new();
-gic-&gt;item_style = &quot;default&quot;;
-gic-&gt;func.text_get = _grid_label_get;
-gic-&gt;func.content_get = _grid_content_get;
-gic-&gt;func.state_get = _grid_state_get;
-gic-&gt;func.del = _grid_del;
+int i;
+
+gic-&gt;item_style = &quot;default&quot;; 
+gic-&gt;func.text_get = _item_label_get;
+gic-&gt;func.content_get = _item_content_get;
+gic-&gt;func.del = _item_del;
+
+for (i = 0; i &lt; 10; i++)
+{
+&nbsp;&nbsp;&nbsp;elm_gengrid_item_append(gengrid, // Gengrid object
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gic, // Gengrid item class
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)i, // Item data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_item_select, // Select callback
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)i); // Callback data
+}
+elm_gengrid_item_class_free(gic);
 </pre>
 
-<p>The parameters of this structure are not be detailed here, because they are very similar to that of the genlist. Please refer to the genlist component page for more detailed information.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">func</span> structure in the gengrid item class contains pointers to functions that are called when an item is going to be realized or deleted. All of them receive item data (third parameter of the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_append()</span> function) as their first parameter and the gengrid object itself as the second parameter.</p>
+
+<p>The gengrid item class must be freed manually with the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_class_free()</span> function after appending items is finished. To delete a gengrid item, use the <span style="font-family: Courier New,Courier,monospace">elm_object_item_del()</span> function. You can also use the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_clear()</span> function to clear all items. If a gengrid object is deleted by the <span style="font-family: Courier New,Courier,monospace">evas_object_del()</span> function, all items are deleted automatically. On item deletion, the <span style="font-family: Courier New,Courier,monospace">del</span> function in the item class is called.</p>
+
+  <ul>
+   <li><span style="font-family: Courier New,Courier,monospace">text_get</span>
+   <p>When a gengrid item becomes realized, the <span style="font-family: Courier New,Courier,monospace">text_get</span> function is called repeatedly for all text parts in that item. This function can return text with the <span style="font-family: Courier New,Courier,monospace">strdup()</span> function when the desired part is found. After the text is set to the part, it is freed automatically (do not free it manually).</p>
+
+<pre class="prettyprint">
+static char *
+_item_label_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;if (!strcmp(part, &quot;elm.text&quot;))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(&quot;text&quot;);
+&nbsp;&nbsp;&nbsp;else return NULL;
+}
+</pre></li>
+
+<li><span style="font-family: Courier New,Courier,monospace">content_get</span>
+<p>As the <span style="font-family: Courier New,Courier,monospace">text_get</span> function, the <span style="font-family: Courier New,Courier,monospace">content_get</span> function is also called repeatedly for all swallow parts in the item. When no content is desired, it must return <span style="font-family: Courier New,Courier,monospace">NULL</span>, or a valid object handle to be set. The object is deleted by the gengrid on its deletion or when the item is unrealized.</p>
+
+<pre class="prettyprint">
+static Evas_Object *
+_item_content_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;if (!strcmp(part, &quot;elm.swallow.icon&quot;))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *img = elm_image_add(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_image_file_Set(img, &quot;sample.png&quot;, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return img;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else return NULL;
+} 
+</pre></li>
+   <li><span style="font-family: Courier New,Courier,monospace">del</span>
+<p>This function is called when the gengrid item is deleted. It deletes any data which were allocated at the item creation.</p>
+
+<pre class="prettyprint">
+static void
+_item_del(void *data, Evas_Object *obj)
+{
+&nbsp;&nbsp;&nbsp;printf(&quot;item(%d) is now deleted&quot;, (int) data);
+}
+</pre></li>
+</ul>
 
 <h2 id="manage">Managing Items</h2>
 
@@ -92,7 +176,12 @@ elm_gengrid_multi_select_set(gengrid, EINA_TRUE);
 
 <p>When the multiselection mode is on, the selected items are retrieved with the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_selected_items_get()</span> function. The function returns a list of all the selected items.</p>
 
-<p>When the content of an item changes, you can call <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_update()</span> to ask the gengrid to update this item&#39;s content.</p>
+<p>When the content of an item changes, you can call the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_update()</span> function to ask the gengrid to update this item. The gengrid re-realizes the item and calls the functions in the <span style="font-family: Courier New,Courier,monospace">_Elm_Gengrid_Item_Class</span> for it.</p>
+<p>If you want to change some parts of the items, you can also use the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_fields_update()</span> function for the specific parts:</p>
+<ul><li><span style="font-family: Courier New,Courier,monospace">ELM_GENGRID_ITEM_FEILD_TEXT</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_GENGRID_ITEM_FEILD_CONTENT</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_GENGRID_ITEM_FEILD_STATE</span></li></ul>
+
 
 <p>It is also possible to select or disable some items manually with the <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_selected_set()</span> and <span style="font-family: Courier New,Courier,monospace">elm_object_item_disabled_set()</span> functions.</p>
 
@@ -102,11 +191,12 @@ elm_gengrid_multi_select_set(gengrid, EINA_TRUE);
   <ul>
    <li><span style="font-family: Courier New,Courier,monospace">activated</span>: The user has double-clicked or pressed (enter | return | spacebar) on an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter is the gengrid item that is activated.</li>
    <li><span style="font-family: Courier New,Courier,monospace">clicked,double</span>: The user has double-clicked an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter is the gengrid item that is double-clicked.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">clicked,right</span>: The user has right-clicked an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter is the gengrid item that is right-clicked.</li>
    <li><span style="font-family: Courier New,Courier,monospace">longpressed</span>: The item is pressed for a certain amount of time. By default it is one second.</li>
    <li><span style="font-family: Courier New,Courier,monospace">selected</span>: The user has selected an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter is the gengrid item that is selected.</li>
    <li><span style="font-family: Courier New,Courier,monospace">unselected</span>: The user has unselected an item. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter is the gengrid item that is unselected.</li>
-   <li><span style="font-family: Courier New,Courier,monospace">realized</span>: The item in the gengrid has its implementing Evas object instantiated, de facto. <span style="font-family: Courier New,Courier,monospace">event_info</span> is the gengrid item that is created. The object can be deleted at any time, so it is strongly advisable not to use the object pointer returned from <span style="font-family: Courier New,Courier,monospace">elm_gengrid_item_object_get()</span>, because it can point to freed objects.</li>
-   <li><span style="font-family: Courier New,Courier,monospace">unrealized</span>: The implementing Evas object for this item is deleted. <span style="font-family: Courier New,Courier,monospace">event_info</span> is the gengrid item that is deleted.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">realized</span>: The item is created as a real evas object. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter in the callback function points at an object of the type <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> that contains the activated item.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">unrealized</span>: The item is going to be unrealized. Content objects provided are deleted and the item object is deleted or put into a floating cache. The <span style="font-family: Courier New,Courier,monospace">event_info</span> parameter in the callback function points at an object of the type <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> that contains the activated item.</li>
    <li><span style="font-family: Courier New,Courier,monospace">changed</span>: An item is added, removed, resized or moved and the gengrid is resized or has <span style="font-family: Courier New,Courier,monospace">horizontal</span> property changes.</li>
    <li><span style="font-family: Courier New,Courier,monospace">scroll,anim,start</span>: Scrolling animation starts.</li>
    <li><span style="font-family: Courier New,Courier,monospace">scroll,anim,stop</span>: Scrolling animation stops.</li>
@@ -119,10 +209,16 @@ elm_gengrid_multi_select_set(gengrid, EINA_TRUE);
    <li><span style="font-family: Courier New,Courier,monospace">scroll</span>: The content is scrolled (moved).</li>
    <li><span style="font-family: Courier New,Courier,monospace">scroll,drag,start</span>: Dragging the content starts.</li>
    <li><span style="font-family: Courier New,Courier,monospace">scroll,drag,stop</span>: Dragging the content stops.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">scroll,page,changed</span>: Dragging changes the page.</li>
    <li><span style="font-family: Courier New,Courier,monospace">edge,top</span>: The gengrid is scrolled to the top edge.</li>
    <li><span style="font-family: Courier New,Courier,monospace">edge,bottom</span>: The gengrid is scrolled to the bottom edge.</li>
    <li><span style="font-family: Courier New,Courier,monospace">edge,left</span>: The gengrid is scrolled to the left edge.</li>
    <li><span style="font-family: Courier New,Courier,monospace">edge,right</span>: The gengrid is scrolled to the right edge.</li>
+   <li><span style="font-family: Courier New,Courier,monospace">moved</span>: The item in the gengrid is moved.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">pressed</span>: The item in the gengrid is pressed by the action pressing the mouse.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">released</span>: The item in the gengrid is released by the action releasing the mouse.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">item,reorder,anim,start</span>: When the reorder animation starts.</li>
+	<li><span style="font-family: Courier New,Courier,monospace">item,reorder,anim,stop</span>: When the reorder animation stops.</li>
   </ul>
 
 <table class="note">

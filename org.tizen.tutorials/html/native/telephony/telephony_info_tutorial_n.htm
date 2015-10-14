@@ -77,12 +77,12 @@
 <p>To create a telephony handle, use the <span style="font-family: Courier New,Courier,monospace">telephony_handle_list_s</span> structure that holds the handles for all the subscriptions defined in <span style="font-family: Courier New,Courier,monospace">telephony_common.h</span>.</p>
 
 <pre class="prettyprint">
-typedef struct
+typedef 
+struct
 {
 &nbsp;&nbsp;&nbsp;unsigned int count;
 &nbsp;&nbsp;&nbsp;telephony_h *handle;
-}
-telephony_handle_list_s;
+} telephony_handle_list_s;
 </pre>
 <p>Pass the <span style="font-family: Courier New,Courier,monospace">telephony_handle_list_s</span> structure pointer to get the telephony handles for all subscriptions.</p>
 <p>For example, there are 2 handles in a dual SIM device. In this case, <span style="font-family: Courier New,Courier,monospace">handle[0]</span> means the primary SIM and <span style="font-family: Courier New,Courier,monospace">handle[1]</span> means the secondary SIM.</p>
@@ -92,11 +92,13 @@ telephony_handle_list_s;
 <pre class="prettyprint">
 #include &lt;telephony.h&gt;
 telephony_handle_list_s handle_list;
-int main()
+
+int 
+main()
 {
 &nbsp;&nbsp;&nbsp;int i;
 
-&nbsp;&nbsp;&nbsp;ret = telephony_init(&amp;handle_list); // In case of single SIM, we get only one handle
+&nbsp;&nbsp;&nbsp;ret = telephony_init(&amp;handle_list); // In case of single SIM, you get only one handle
 &nbsp;&nbsp;&nbsp;if (ret != TELEPHONY_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
@@ -112,10 +114,11 @@ int main()
  }
 </pre></li>
 
-<li><p>When the telephony handle is no longer needed, the <span style="font-family: Courier New,Courier,monospace">telephony_deinit()</span> function must be called to free the handle.</p>
+<li><p>When the telephony handle is no longer needed, free the handle with the <span style="font-family: Courier New,Courier,monospace">telephony_deinit()</span> function.</p>
 
 <pre class="prettyprint">
-void tutorial_telephony_deinit()
+void 
+tutorial_telephony_deinit()
 {
 &nbsp;&nbsp;&nbsp;ret = telephony_deinit(&amp;handle_list);
 }
@@ -123,9 +126,15 @@ void tutorial_telephony_deinit()
 
  <h2 id="call" name="call">Getting Call Information</h2>
  
-<p>To get the voice and video call status and be notified when the user makes a voice or video call or hangs up the phone, use the Telephony Call API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__CALL.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__CALL.html">wearable</a> applications) in call-related actions:</p>
+ <p>Getting call information involves:</p>
+ <ul>
+	<li><a href="#call_list">Getting the current call list</a></li>
+	<li><a href="#change_noti">Receiving change notifications for the call status</a></li>
+</ul>
+ 
+<p>To get the voice and video call status and be notified when the user makes a voice or video call or hangs up the phone, use the Telephony Call API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__CALL.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__CALL.html">wearable</a> applications) in call-related actions.</p>
 
-<h3>Getting the Current Call List</h3>
+<h3 name="call_list" id="call_list">Getting the Current Call List</h3>
 
 <p>To get the current call list:</p>
 <ol><li><p>Get the current call handle by using the <span style="font-family: Courier New,Courier,monospace">telephony_call_get_call_list()</span> function:</p>
@@ -133,7 +142,9 @@ void tutorial_telephony_deinit()
 <pre class="prettyprint">
 unsigned int count;
 telephony_call_h *call_list;
-void tutorial_telephony_call_get_call_list()
+
+void 
+tutorial_telephony_call_get_call_list()
 {
 &nbsp;&nbsp;&nbsp;telephony_error_e ret;
 
@@ -155,7 +166,7 @@ void tutorial_telephony_call_get_call_list()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (count == 0) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;count[%d], No calls&quot;, count);
-         
+
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 
@@ -169,17 +180,17 @@ void tutorial_telephony_call_get_call_list()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;telephony_call_get_conference_status(call_list[i], &amp;conf_status);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;id[%d] number[%s] type[%s] status[%s] direction[%s] conference_status[%s]&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handle_id, number,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == TELEPHONY_CALL_TYPE_VOICE ? &quot;VOICE&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == TELEPHONY_CALL_TYPE_VIDEO ? &quot;VIDEO&quot; : &quot;E911&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_IDLE ? &quot;IDLE&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_ACTIVE ? &quot;ACTIVE&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_HELD ? &quot;HELD&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_DIALING ? &quot;DIALING&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_ALERTING ? &quot;ALERTING&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_INCOMING ? &quot;INCOMING&quot; : &quot;UNKNOWN&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;direction == TELEPHONY_CALL_DIRECTION_MO ? &quot;MO&quot; : &quot;MT&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conf_status ? &quot;TRUE&quot; : &quot;FALSE&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handle_id, number,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == TELEPHONY_CALL_TYPE_VOICE ? &quot;VOICE&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == TELEPHONY_CALL_TYPE_VIDEO ? &quot;VIDEO&quot; : &quot;E911&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_IDLE ? &quot;IDLE&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_ACTIVE ? &quot;ACTIVE&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_HELD ? &quot;HELD&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_DIALING ? &quot;DIALING&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_ALERTING ? &quot;ALERTING&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_INCOMING ? &quot;INCOMING&quot; : &quot;UNKNOWN&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;direction == TELEPHONY_CALL_DIRECTION_MO ? &quot;MO&quot; : &quot;MT&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conf_status ? &quot;TRUE&quot; : &quot;FALSE&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(number);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;telephony_call_release_call_list(count, &amp;call_list);
@@ -190,20 +201,22 @@ void tutorial_telephony_call_get_call_list()
 
 <li><p>When the call handle is no longer needed, call the <span style="font-family: Courier New,Courier,monospace">telephony_call_release_call_list()</span> function to free the handle:</p>
 <pre class="prettyprint">
-void tutorial_telephony_call_release_call_list()
+void 
+tutorial_telephony_call_release_call_list()
 {
 &nbsp;&nbsp;&nbsp;telephony_call_release_call_list(count, &amp;call_list);
 }
 </pre></li></ol>
 
-<h3>Receiving Change Notifications for the Call Status</h3>
+<h3 name="change_noti" id="change_noti">Receiving Change Notifications for the Call Status</h3>
 
 <p>Use a callback function to obtain change notifications for the call status asynchronously. The call ID is returned through a callback function, given to the function as one of its parameters.</p>
 
 <p>To be notified when the voice call status changes, implement and register a callback function compatible with the <span style="font-family: Courier New,Courier,monospace">telephony_noti_cb()</span> function typedef:</p>
 
 <pre class="prettyprint">
-static int voice_call_noti_tbl[] = 
+static int 
+voice_call_noti_tbl[] = 
 {
 &nbsp;&nbsp;&nbsp;TELEPHONY_NOTI_VOICE_CALL_STATUS_IDLE,
 &nbsp;&nbsp;&nbsp;TELEPHONY_NOTI_VOICE_CALL_STATUS_ACTIVE,
@@ -213,7 +226,8 @@ static int voice_call_noti_tbl[] =
 &nbsp;&nbsp;&nbsp;TELEPHONY_NOTI_VOICE_CALL_STATUS_INCOMING,
 };
 
-void voice_call_status_noti_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void* user_data)
+void 
+voice_call_status_noti_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void* user_data)
 {
 &nbsp;&nbsp;&nbsp;int ret_value;
 &nbsp;&nbsp;&nbsp;telephony_call_h *call_list;
@@ -275,24 +289,25 @@ void voice_call_status_noti_cb(telephony_h handle, telephony_noti_e noti_id, voi
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;telephony_call_get_conference_status(call_list[i], &amp;conf_status);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;id[%d] number[%s] type[%s] status[%s] direction[%s] conference_status[%s]&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handle_id, number,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == TELEPHONY_CALL_TYPE_VOICE ? &quot;VOICE&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == TELEPHONY_CALL_TYPE_VIDEO ? &quot;VIDEO&quot; : &quot;E911&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_IDLE ? &quot;IDLE&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_ACTIVE ? &quot;ACTIVE&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_HELD ? &quot;HELD&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_DIALING ? &quot;DIALING&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_ALERTING ? &quot;ALERTING&quot; :
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_INCOMING ? &quot;INCOMING&quot; : &quot;UNKNOWN&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;direction == TELEPHONY_CALL_DIRECTION_MO ? &quot;MO&quot; : &quot;MT&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conf_status ? &quot;TRUE&quot; : &quot;FALSE&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handle_id, number,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == TELEPHONY_CALL_TYPE_VOICE ? &quot;VOICE&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type == TELEPHONY_CALL_TYPE_VIDEO ? &quot;VIDEO&quot; : &quot;E911&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_IDLE ? &quot;IDLE&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_ACTIVE ? &quot;ACTIVE&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_HELD ? &quot;HELD&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_DIALING ? &quot;DIALING&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_ALERTING ? &quot;ALERTING&quot; :
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;status == TELEPHONY_CALL_STATUS_INCOMING ? &quot;INCOMING&quot; : &quot;UNKNOWN&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;direction == TELEPHONY_CALL_DIRECTION_MO ? &quot;MO&quot; : &quot;MT&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;conf_status ? &quot;TRUE&quot; : &quot;FALSE&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(number);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;telephony_call_release_call_list(count, &amp;call_list);
 &nbsp;&nbsp;&nbsp;}
 }
 
-void tutorial_telephony_set_noti_cb_voice()
+void 
+tutorial_telephony_set_noti_cb_voice()
 {
 &nbsp;&nbsp;&nbsp;telephony_error_e ret;
 &nbsp;&nbsp;&nbsp;int i;
@@ -313,16 +328,24 @@ void tutorial_telephony_set_noti_cb_voice()
 
 
  <h2 id="sim" name="sim">Getting SIM Information</h2>
+ 
+ <p>Getting SIM information involves:</p>
+ <ul>
+ <li><a href="#sim_state">Getting the state of the SIM</a></li>
+ <li><a href="#sim_noti">Receiving change notifications for the SIM state</a></li>
+ <li><a href="#sim_info">Getting SIM information</a></li>
+ </ul>
 
-<p>To extract information stored on a SIM card, use the Telephony SIM API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__SIM.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__SIM.html">wearable</a> applications):</p>
+<p>To extract information stored on a SIM card, use the Telephony SIM API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__SIM.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__SIM.html">wearable</a> applications).</p>
 
-<h3>Getting the State of the SIM</h3>
+<h3 name="sim_state" id="sim_state">Getting the State of the SIM</h3>
 <p>Before retrieving information from the SIM card, retrieve the state of the SIM card. You can get SIM-related information only if the state of the SIM is <span style="font-family: Courier New,Courier,monospace">TELEPHONY_SIM_STATE_AVAILABLE</span>.</p>
 
 <p>You can get the state of the SIM card by calling the <span style="font-family: Courier New,Courier,monospace">telephony_sim_get_state()</span> function. It returns the status of the SIM, which is one of the <span style="font-family: Courier New,Courier,monospace">telephony_sim_state_e</span> values (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__SIM.html#ga08448f4cfaf7c59cd585008d3bf32b70">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__SIM.html#ga08448f4cfaf7c59cd585008d3bf32b70">wearable</a> applications), through its output parameters.</p>
 
 <pre class="prettyprint">
-void tutorial_telephony_sim_get_state()
+void 
+tutorial_telephony_sim_get_state()
 {
 &nbsp;&nbsp;&nbsp;telephony_sim_state_e state;
 &nbsp;&nbsp;&nbsp;ret = telephony_sim_get_state(handle_list.handle[0], &amp;state);
@@ -331,23 +354,25 @@ void tutorial_telephony_sim_get_state()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
 &nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "SIM status: [%d]", status);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;SIM status: [%d]&quot;, status);
 
 &nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
 
-<h3>Receiving Change Notifications for the SIM State</h3>
+<h3 name="sim_noti" id="sim_noti">Receiving Change Notifications for the SIM State</h3>
 <p>The <span style="font-family: Courier New,Courier,monospace">telephony_noti_cb()</span> callback function can be used to obtain notifications for the changes in the SIM state asynchronously. The SIM status is returned through a callback function, given to the function as one of its parameters.</p>
 
 <pre class="prettyprint">
-void sim_state_noti_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void* user_data)
+void 
+sim_state_noti_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void* user_data)
 {
 &nbsp;&nbsp;&nbsp;telephony_sim_state_e sim_state = *(int *)data;
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "SIM state: [%d]", sim_state);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;SIM state: [%d]&quot;, sim_state);
 }
 
-void tutorial_telephony_set_noti_cb_sim()
+void 
+tutorial_telephony_set_noti_cb_sim()
 {
 &nbsp;&nbsp;&nbsp;telephony_error_e ret;
 &nbsp;&nbsp;&nbsp;ret = telephony_set_noti_cb(handle_list.handle[0], TELEPHONY_NOTI_SIM_STATUS,
@@ -365,21 +390,22 @@ void tutorial_telephony_set_noti_cb_sim()
 
 <p>Once the callback function of the SIM state change is registered, this callback function is invoked until it is unregistered with the <span style="font-family: Courier New,Courier,monospace">telephony_unset_noti_cb()</span> function by passing the notification ID.</p>
 
-<h3>Getting SIM Information</h3>
-<p>If you know the current SIM state and, for example, it is <span style="font-family: Courier New,Courier,monospace">SIM_STATE_AVAILABLE</span>, call the SIM API to get the following information from the SIM card: ICC-ID, operator (MCC+MNC), MSIN, SPN, subscriber name, subscriber number, subscriber ID, and application list.</p>
+<h3 name="sim_info" id="sim_info">Getting SIM Information</h3>
+<p>If you know the current SIM state and, it is for example <span style="font-family: Courier New,Courier,monospace">SIM_STATE_AVAILABLE</span>, call the SIM API to get the following information from the SIM card: ICC-ID, operator (MCC+MNC), MSIN, SPN, subscriber name, subscriber number, subscriber ID, and application list.</p>
 
-<p>If you do not get an error (<span style="font-family: Courier New,Courier,monospace">SIM_ERROR_NONE</span>), the requested SIM information is received and stored in an output parameter. You must free all returned variables once you are done with them.</p>
+<p>If the function returns <span style="font-family: Courier New,Courier,monospace">SIM_ERROR_NONE</span>, the requested SIM information is received and stored in an output parameter. You must free all returned variables once you are done with them.</p>
 
-<p>To get ICCID information from a SIM card:</p>
+<p>To get ICC-ID information from a SIM card:</p>
 
 <pre class="prettyprint">
-void tutorial_telephony_sim_get_icc_id()
+void 
+tutorial_telephony_sim_get_icc_id()
 {
 &nbsp;&nbsp;&nbsp;telephony_error_e ret;
 &nbsp;&nbsp;&nbsp;char *iccid;
 &nbsp;&nbsp;&nbsp;ret = telephony_sim_get_icc_id(handle_list.handle[0], &amp;iccid);
 &nbsp;&nbsp;&nbsp;if (ret == TELEPHONY_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Integrated Circuit Card IDentification: %s", iccid);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Integrated Circuit Card IDentification: %s&quot;, iccid);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(iccid);
 
 &nbsp;&nbsp;&nbsp;return ret;
@@ -388,16 +414,24 @@ void tutorial_telephony_sim_get_icc_id()
 
  <h2 id="network" name="network">Getting Network Information</h2>
  
-<p>To access, but not change, information about the current cellular network and telephony service, use the Telephony Network API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html">wearable</a> applications):</p>
+ <p>Getting network information involves:</p>
+ <ul>
+ <li><a href="#network_state">Getting the network service state</a></li>
+ <li><a href="#network_noti">Receiving network service state change notifications</a></li>
+ <li><a href="#network_info">Getting network information</a></li>
+ </ul>
+ 
+<p>To access, but not change, information about the current cellular network and telephony service, use the Telephony Network API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html">wearable</a> applications).</p>
 
 
-<h3>Getting the Network Service State</h3>
+<h3 name="network_state" id="network_state">Getting the Network Service State</h3>
 <p>Determine the state of the service network. The network service state is one of the <span style="font-family: Courier New,Courier,monospace">telephony_network_service_state_e</span> enumeration values (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html#gae9f3b6e54a1086b8734f4acc71fd001b">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html#gae9f3b6e54a1086b8734f4acc71fd001b">wearable</a> applications).</p>
 
 <p>You can only get telephony network information if the state is <span style="font-family: Courier New,Courier,monospace">TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE</span>.</p>
 
 <pre class="prettyprint">
-void tutorial_telephony_network_get_service_state()
+void 
+tutorial_telephony_network_get_service_state()
 {
 &nbsp;&nbsp;&nbsp;telephony_network_service_state_e network_service_state;
 &nbsp;&nbsp;&nbsp;int ret;
@@ -407,13 +441,13 @@ void tutorial_telephony_network_get_service_state()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
 &nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Network Service State [%d]", network_service_state);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Network Service State [%d]&quot;, network_service_state);
 
 &nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
 
-<h3>Receiving Network Service State Change Notifications</h3>
+<h3 id="network_noti" name="network_noti">Receiving Network Service State Change Notifications</h3>
 
 <p>The <span style="font-family: Courier New,Courier,monospace">telephony_noti_cb()</span> callback function can be used to obtain change notifications for a network asynchronously. The network status is returned through a callback function, given to the function as one of its parameters.</p>
 
@@ -430,13 +464,15 @@ void tutorial_telephony_network_get_service_state()
 </ul>
 
 <pre class="prettyprint">
-void network_service_state_noti_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void* user_data)
+void 
+network_service_state_noti_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void* user_data)
 {
 &nbsp;&nbsp;&nbsp;telephony_network_service_state_e network_state = *(int *)data;
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "SIM state: [%d]", network_state);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;SIM state: [%d]&quot;, network_state);
 }
 
-void tutorial_telephony_set_noti_cb_network()
+void 
+tutorial_telephony_set_noti_cb_network()
 {
 &nbsp;&nbsp;&nbsp;telephony_error_e ret;
 &nbsp;&nbsp;&nbsp;ret = telephony_set_noti_cb(handle_list.handle[0], TELEPHONY_NOTI_NETWORK_SERVICE_STATE,
@@ -450,11 +486,11 @@ void tutorial_telephony_set_noti_cb_network()
 }
 </pre>
 
-<p>The callback function is invoked automatically when the status of the network changes, if you register the callback function using the <span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span> function. To get additional notifications when the cell ID, RSSI level, network name, PS type, default data subscription, default subscription, or roaming state changes, define corresponding callback functions. Register each one of them with their corresponding notification ID.</p>
+<p>The callback function is invoked automatically when the status of the network changes, if you register the callback function using the <span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span> function. To get additional notifications when the Cell ID, RSSI level, network name, PS type, default data subscription, default subscription, or roaming state changes, define corresponding callback functions. Register each one of them with their corresponding notification ID.</p>
 
 <p>Once the callback function of the network state change is registered, this callback function is invoked until it is unregistered with the <span style="font-family: Courier New,Courier,monospace">telephony_unset_noti_cb()</span> function by passing the notification ID.</p>
 
-<h3>Getting Network Information</h3>
+<h3 name="network_info" id="network_info">Getting Network Information</h3>
 <p>If the current network service state is <span style="font-family: Courier New,Courier,monospace">NETWORK_INFO_SERVICE_STATE_IN_SERVICE</span>, use the Telephony Network API to get the network information: LAC, Cell ID, RSSI, roaming state, MCC, MNC, network provider name, PS type, and network type.</p>
 
 <p>You must free all returned variables (strings) once you are done with them.</p>
@@ -464,13 +500,14 @@ void tutorial_telephony_set_noti_cb_network()
 <ul><li><p>To get the Cell ID:</p>
 
 <pre class="prettyprint">
-void tutorial_telephony_network_get_cell_id()
+void 
+tutorial_telephony_network_get_cell_id()
 {
 &nbsp;&nbsp;&nbsp;telephony_error_e ret;
 &nbsp;&nbsp;&nbsp;int cell_id;
 &nbsp;&nbsp;&nbsp;ret = telephony_network_get_cell_id(handle_list.handle[0], &amp;cell_id);
 &nbsp;&nbsp;&nbsp;if (ret == TELEPHONY_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Cell Id: %d", cell_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Cell Id: %d&quot;, cell_id);
 
 &nbsp;&nbsp;&nbsp;return ret;
 }
@@ -479,13 +516,14 @@ void tutorial_telephony_network_get_cell_id()
 <li><p>To get the MNC:</p>
 
 <pre class="prettyprint">
-void tutorial_telephony_network_get_mnc()
+void 
+tutorial_telephony_network_get_mnc()
 {
 &nbsp;&nbsp;&nbsp;telephony_error_e ret;
 &nbsp;&nbsp;&nbsp;char *mnc;
 &nbsp;&nbsp;&nbsp;ret = telephony_network_get_mnc(handle_list.handle[0], &amp;mnc);
 &nbsp;&nbsp;&nbsp;if (ret == TELEPHONY_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "mnc: %s", mnc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;mnc: %s&quot;, mnc);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(mnc);
 
 &nbsp;&nbsp;&nbsp;return ret;
@@ -494,18 +532,19 @@ void tutorial_telephony_network_get_mnc()
 
  <h2 id="modem" name="modem">Getting Modem Information</h2>
 
-<p>To access, but not change, information about the modem (IMEI and power status), use the Telephony Modem API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__MODEM.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__MODEM.html">wearable</a> applications):</p>
+<p>To access, but not change, information about the modem (IMEI and power status), use the Telephony Modem API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__MODEM.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__MODEM.html">wearable</a> applications).</p>
 
-<p>Use the <span style="font-family: Courier New,Courier,monospace">telephony_modem_get_imei()</span> function, and free all returned variables (strings) once you are done with them.</p>
+<p>To get modem information, use the <span style="font-family: Courier New,Courier,monospace">telephony_modem_get_imei()</span> function, and free all returned variables (strings) once you are done with them.</p>
 
 <pre class="prettyprint">
-void tutorial_telephony_modem_get_imei()
+void 
+tutorial_telephony_modem_get_imei()
 {
 &nbsp;&nbsp;&nbsp;telephony_error_e ret;
 &nbsp;&nbsp;&nbsp;char *imei;
 &nbsp;&nbsp;&nbsp;ret = telephony_modem_get_imei(handle_list.handle[0], &amp;imei);
 &nbsp;&nbsp;&nbsp;if (ret == TELEPHONY_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "imei: %s", imei);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;imei: %s&quot;, imei);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(imei);
 
 &nbsp;&nbsp;&nbsp;return ret;

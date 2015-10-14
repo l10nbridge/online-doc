@@ -46,6 +46,9 @@
 
    <p>Panel inherits from layout component, so the layout API can be used on this UI component.</p>
 
+        <p class="figure">Figure: Panel component</p> 
+<p align="center"> <img alt="Panel component" src="../../images/panel.png" /> </p> 
+   
      <p class="figure">Figure: Panel hierarchy</p> 
 <p align="center"> <img alt="Panel hierarchy" src="../../images/panel_tree.png" /> </p> 
    
@@ -84,11 +87,9 @@ elm_panel_scrollable_set(pan, EINA_TRUE);
 <pre class="prettyprint">
 Evas_Object *layout;
 
-// Create a new layout object 
+// Create a new layout object and set the &quot;panel&quot; style to &quot;drawer&quot; group
 layout = elm_layout_add(parent);
-
-// Set the &quot;drawer&quot; group theme and &quot;panel&quot; style to it 
-elm_layout_theme_set(layout,&quot;layout&quot;, &quot;drawer&quot;, &quot;panel&quot;);
+elm_layout_theme_set(layout, &quot;layout&quot;, &quot;drawer&quot;, &quot;panel&quot;);
 
 // Show the new layout
 evas_object_show(layout);
@@ -97,18 +98,31 @@ evas_object_show(layout);
 <p>Once the panel object is created, it can be swallowed in the new layout.</p>
 
 <pre class="prettyprint">
-elm_object_part_content_set(layout, &quot;elm.swallow.left&quot;, pan);
+panel = elm_panel_add(layout);
+elm_panel_scrollable_set(panel, EINA_TRUE);
+
+// Default is visible, hide the content in default
+elm_panel_hidden_set(panel, EINA_TRUE);
+evas_object_show(panel);
+
+elm_panel_orient_set(panel, ELM_PANEL_ORIENT_LEFT);
+elm_object_part_content_set(layout, &quot;elm.swallow.left&quot;, panel);
 </pre>
 
-<p>You can set content to the <span style="font-family: Courier New,Courier,monospace">elm.swallow.bg</span> and <span style="font-family: Courier New,Courier,monospace">elm.swallow.content</span> parts of the layout.</p>
+<p>You can set content to the <span style="font-family: Courier New,Courier,monospace">elm.swallow.bg</span>. You must set a button on the <span style="font-family: Courier New,Courier,monospace">naviframe/drawers</span> part.</p>
 <pre class="prettyprint">
-// Panel Background (Dimmed Area) 
-Evas_Object *bg = create_bg(layout);
+// Panel background (dimmed area) 
+Evas_Object *bg;
+bg = evas_object_rectangle_add(evas_object_evas_get(layout));
+evas_object_color_set(bg, 0, 0, 0, 0);
+evas_object_show(bg);
 elm_object_part_content_set(layout, &quot;elm.swallow.bg&quot;, bg);
 
-// Add content to the drawer 
-Evas_Object *content;
-elm_object_part_content_set(layout, &quot;elm.swallow.content&quot;, content);
+// Set left panel toggle button and add callback
+btn = elm_button_add(nf);
+elm_object_style_set(btn, &quot;naviframe/drawers&quot;);
+evas_object_smart_callback_add(btn, &quot;clicked&quot;, btn_cb, panel);
+elm_object_item_part_content_set(nf_it, &quot;drawers&quot;, btn);
 </pre>
 
 <h2 id="panel_cb">Using Panel Callbacks</h2>
@@ -117,14 +131,19 @@ elm_object_part_content_set(layout, &quot;elm.swallow.content&quot;, content);
 
 <pre class="prettyprint">
 {
-&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(pan, &quot;scroll&quot;, scroll_cb, data);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(pan, &quot;scroll&quot;, panel_scroll_cb, bg);
 }
 // Callback function for the &quot;scroll&quot; signal
 // This callback is called when the user scrolls the panel
-void scroll_cb(void *data, Evas_Object *obj, void *event_info)
+static void 
+panel_scroll_cb(void *data, Evas_Object *obj, void *event_info)
 {
-&nbsp;&nbsp;&nbsp;Elm_Panel_Scroll_Info *scrollinfo = event_info;
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The panel was scrolled.\n&quot;);
+&nbsp;&nbsp;&nbsp;Elm_Panel_Scroll_Info *ev = event_info;
+&nbsp;&nbsp;&nbsp;Evas_Object *bg = data;
+&nbsp;&nbsp;&nbsp;int col = 127 * ev-&gt;rel_x;
+
+&nbsp;&nbsp;&nbsp;// Change color for background dim
+&nbsp;&nbsp;&nbsp;evas_object_color_set(bg, 0, 0, 0, col);
 }
 </pre>
 

@@ -31,6 +31,8 @@
             </li>
 			<li><a href="#handle">Handling Application Control Requests</a>
             </li>
+			<li><a href="#broadcast_event">Broadcasting and Listening for Events</a>
+            </li>
         </ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
@@ -56,6 +58,7 @@
       <li><a href="#manage">Managing Applications</a> <p>Launch, stop, hide, or exit applications.</p></li>
       <li><a href="#launch">Launching Applications with the Application Control</a> <p>Launch applications by a request based on their functionality.</p></li> 
 	  <li><a href="#handle">Handling Application Control Requests</a> <p>Handle requests from other applications and reply with a result.</p></li> 
+	  <li><a href="#broadcast_event">Broadcasting and Listening for Events</a> <p>Broadcast your own events and listen for events from other applications.</p></li>
   </ul> 
 	
 	
@@ -118,7 +121,7 @@ function onGetAppsContextSuccess(appcontexts)
 
 tizen.application.getAppsContext(onGetAppsContextSuccess);
 </pre> 
-<p>You can also <a href="../../../../../org.tizen.guides/html/web/tizen/application/application_w.htm#launch">launch an application using the application control</a>.</p> </li>
+<p>You can also <a href="../../../../../org.tizen.guides/html/web/tizen/application/application_w.htm#controls">launch an application using the application control</a>.</p> </li>
    <li><p>To retrieve the current application, use the <span style="font-family: Courier New,Courier,monospace">getCurrentApplication()</span> method:</p> 
 <pre class="prettyprint">
 var currApp = tizen.application.getCurrentApplication();
@@ -131,15 +134,23 @@ currApp.hide();
 <pre class="prettyprint">
 currApp.exit();
 </pre> </li>
-  </ol>         
+  </ol>
+         
                 <h2 id="launch" name="launch">Launching Applications with the Application Control</h2>
 				
- <p>Learning to use application controls to launch applications from your application allows you to take advantage of the functionality of other device applications:</p>
+ <p>Learning to use application controls to launch other applications from your application allows you to take advantage of the functionality of other device applications.</p>
 
- <p>An installed application can provide a service which can be identified by an operation name. Other applications can request and use the provided service of the service application (and optionally pass some data to the service). The service application responds to requests with an <span style="font-family: Courier New,Courier,monospace">ApplicationControlData</span> instance (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationControlData">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html#ApplicationControlData">wearable</a> applications) (which can also contain some data).</p>
+ <p>An installed application can provide a service which can be identified by the operation name. Other applications can request and use the provided service of the provider application (and optionally passing some data to the service). The provider application responds to requests with an <span style="font-family: Courier New,Courier,monospace">ApplicationControlData</span> instance (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationControlData">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html#ApplicationControlData">wearable</a> applications) (which can also contain some data).</p>
   <ol>
-   <li><p>To use the application control mechanism to pick image files from a list of images, create an <span style="font-family: Courier New,Courier,monospace">ApplicationControl</span> object (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationControl">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html#ApplicationControl">wearable</a> applications).</p> <p>Define the functionality that you require from the external application which you intend to launch. The application control request needs to have an operation type suitable for selecting images, with URI as <span style="font-family: Courier New,Courier,monospace">null</span>, and the MIME type as <span style="font-family: Courier New,Courier,monospace">image/*</span>.</p> <pre class="prettyprint">var appControl = new tizen.ApplicationControl(&quot;http://tizen.org/appcontrol/operation/pick&quot;, null, &quot;image/*&quot;);</pre> </li>
-   <li> Define the format of the reply you want to receive from the application control: <pre class="prettyprint">var appControlReplyCB =
+<li><p>To use the application control mechanism to pick image files from a list of images, create an <span style="font-family: Courier New,Courier,monospace">ApplicationControl</span> object (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationControl">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html#ApplicationControl">wearable</a> applications).</p> 
+<p>Define the functionality required from the external application which you want to launch. The application control request must have an operation type suitable for selecting images, with the URI set as <span style="font-family: Courier New,Courier,monospace">null</span>, and the MIME type set as <span style="font-family: Courier New,Courier,monospace">image/*</span>.</p> 
+<pre class="prettyprint">
+var appControl = new tizen.ApplicationControl(&quot;http://tizen.org/appcontrol/operation/pick&quot;, null, &quot;image/*&quot;);
+</pre> </li>
+
+<li> Define the format of the reply you want to receive from the application control: 
+<pre class="prettyprint">
+var appControlReplyCB =
 {
 &nbsp;&nbsp;&nbsp;/* Reply is sent if the requested operation is successfully delivered */
 &nbsp;&nbsp;&nbsp;onsuccess: function(reply)
@@ -166,16 +177,12 @@ tizen.application.launchAppControl(appControl, null,
                 <h2 id="handle" name="handle">Handling Application Control Requests</h2>
 				
   <p>Learning how to handle requests from other applications allows you to create Web applications that can be called from other applications to perform specific actions.</p>
-    <p>Web applications can provide a service which can be identified by an operation name. Other applications can request and use the provided service of other applications
-    (and optionally pass some data to the service). The service application receives the request, performs some actions, and sends the result to the caller application in
-    an <span style="font-family: Courier New,Courier,monospace">ApplicationControlData</span> array (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationControlData">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html#ApplicationControlData">wearable</a> applications).</p>
-
-
+    <p>Web applications can provide a service which can be identified by an operation name. Other applications can request and use the provided service of other applications (and optionally pass some data to the service). The provider application receives the request, performs some actions, and sends the result to the caller application in an <span style="font-family: Courier New,Courier,monospace">ApplicationControlData</span> array (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationControlData">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html#ApplicationControlData">wearable</a> applications).</p>
+ 
   <ol>
-   <li><p>To enable an application to receive Application Control requests, open the <a href="../../../../../org.tizen.gettingstarted/html/web/process/setting_properties_w.htm#set_widget">Web application configuration editor</a> in the Tizen SDK and
-   add an operation in the <span style="font-family: Courier New,Courier,monospace">app-control</span> section of the Tizen tab.</p>
-   <p>In this example, the name of the operation is <span style="font-family: Courier New,Courier,monospace">http://example.tizen.org/operation/get_time</span>.
-   The <span style="font-family: Courier New,Courier,monospace">config.xml</span> file contains a <a href="../../../../../org.tizen.devtools/html/web_tools/config_editor_w.htm#mw_appcontrol">&lt;tizen:app-control&gt;</a> element:</p>
+   <li><p>To enable an application to receive application control requests, open the <a href="../../../../../org.tizen.gettingstarted/html/web/process/setting_properties_w.htm#set_widget">Web application configuration editor</a> in the Tizen IDE and add an operation in the <span style="font-family: Courier New,Courier,monospace">app-control</span> section of the <strong>Tizen</strong> tab.</p>
+   <p>In this example, the name of the operation is <span style="font-family: Courier New,Courier,monospace">http://example.tizen.org/operation/get_time</span>. The <span style="font-family: Courier New,Courier,monospace">config.xml</span> file contains a <a href="../../../../../org.tizen.devtools/html/web_tools/config_editor_w.htm#mw_appcontrol">&lt;tizen:app-control&gt;</a> element:</p>
+   
 <pre class="prettyprint lang-xml">
 &lt;tizen:app-control&gt;
 &nbsp;&nbsp;&nbsp;&lt;tizen:src name=&quot;index.html&quot;/&gt;
@@ -211,45 +218,45 @@ try
   </ol>
 
   <p>For more information on launching an application, see <a href="#launch">Launching Applications with the Application Control</a>.</p>
+  
+<h2 id="broadcast_event" name="broadcast_event">Broadcasting and Listening for Events</h2>
 
-<h2 id="broadcast_event" name="broadcast_event">Broadcasting and listening to the events</h2>
-
-<p>Learning how to broadcast and listen to the events allows you to create Web applications that can send and receive data between each other.</p>
-<ol>
+<p>Learning how to broadcast and listen for events allows you to create Web applications that can send and receive data between each other:</p>
+<ul>
 <li>The first application can broadcast an event.
-<p>To broadcast events use <span style="font-family: Courier New,Courier,monospace">broadcastEvent()</span> method:</p>
+<p>To broadcast events, use the <span style="font-family: Courier New,Courier,monospace">broadcastEvent()</span> method:</p>
 <pre class="prettyprint">
 var app = tizen.application.getCurrentApplication();
-var appEvent = {name: "first_app_event_1"};
-var data = {foo: "bar"};
+var appEvent = {name: &quot;first_app_event_1&quot;};
+var data = {foo: &quot;bar&quot;};
 
 app.broadcastEvent(appEvent, data);
 </pre>
-<p>Web applications can also broadcast trusted events only for trusted listeners with the same certificate as the sender's application.</p>
-<p>To broadcast trusted events use <span style="font-family: Courier New,Courier,monospace">broadcastTrustedEvent()</span> method:</p>
-<pre class='prettyprint'>
+<p>Web applications can also broadcast trusted events for trusted listeners with the same certificate as the sender application. To broadcast trusted events, use the <span style="font-family: Courier New,Courier,monospace">broadcastTrustedEvent()</span> method:</p>
+<pre class="prettyprint">
 app.broadcastTrustedEvent(appEvent, data);
 </pre>
 </li>
-<li>
-The second application can listen to first application and receives data.
-<p>To receive data from the first application use <span style="font-family: Courier New,Courier,monospace">addEventListener()</span> method with sender's application ID and event name.</p>
+<li>The second application can listen for the first application and receive data.
+<p>To receive data from the first application, use the <span style="font-family: Courier New,Courier,monospace">addEventListener()</span> method with the sender application ID and event name:</p>
 <pre class="prettyprint">
 var app = tizen.application.getCurrentApplication();
 
-var watchId = app.addEventListener({appId: "a234567890.FirstApp", name: "first_app_event_1"}, function(event, data) {
-&nbsp;&nbsp;&nbsp;/* data from first app should be received here */
-&nbsp;&nbsp;&nbsp;console.log("Data: " + JSON.stringify(data));
-});
+var watchId = app.addEventListener({appId: &quot;a234567890.FirstApp&quot;, name: &quot;first_app_event_1&quot;}, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;function(event, data) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Data from first app must be received here */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Data: &quot; + JSON.stringify(data));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
 </pre>
 
-<p>To stop receiving data from the first application use <span style="font-family: Courier New,Courier,monospace">removeEventListener()</span> method with proper watchId.</p>
+<p>To stop receiving data from the first application, use the <span style="font-family: Courier New,Courier,monospace">removeEventListener()</span> method with the proper <span style="font-family: Courier New,Courier,monospace">watchId</span>:</p>
 <pre class="prettyprint">
 app.removeEventListener(watchId);
 </pre>
 </li>
-</ol>
-
+</ul>
+		
 <script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../../scripts/showhide.js"></script>
 
