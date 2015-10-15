@@ -153,6 +153,16 @@ void view2_connection_to_sql_button_onclicked(uib_view2_view_context *vc, Evas_O
 
 <h3>Type definitions</h3>
 
+<pre id="app_data" class="prettyprint">
+/* Base data structure. By default containing the application's main window. */
+struct _app_data {
+&nbsp;&nbsp;&nbsp;window_obj *win;
+};
+
+typedef struct _app_data app_data;
+</pre>
+
+
 <h4>Managed content</h4>
 <p>Managed content is the part of the source code that is automatically created by the UI-Builder. This code should not be modified by the user as it is altered by the tool each time the project is built.</p>
 
@@ -279,6 +289,68 @@ typedef struct _uib_view_data {
 </pre>
 
 <p>Note that the <span style="font-family: Courier New,Courier,monospace">uib_view_context</span> is used here while the view's content uses the <span style="font-family: Courier New,Courier,monospace">uib_view1_view_context, uib_view2_view_context, uib_view3_view_context</span> structures. A type-cast between <span style="font-family: Courier New,Courier,monospace">uib_view_context</span> and view structures is often used in UI-Builder code.</p>
+
+
+<h3 id="app-init">Application initialization</h3>
+
+<p>The entire application's life-cycle is implemented in the main source file using a common Tizen application structure: </p>
+
+<pre class="prettyprint">
+int main(int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;int result = 0;
+&nbsp;&nbsp;&nbsp;app_data *app = app_create();
+&nbsp;&nbsp;&nbsp;if (app)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = app_run(app, argc, argv);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_destroy(app);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return result;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">app_create()</span> function is mainly used to initialize the base <a href="#app_data">app_data</a> structure.</p>
+<pre class="prettyprint">
+app_data *app_create(void)
+{
+&nbsp;&nbsp;&nbsp;base_scale_set();
+&nbsp;&nbsp;&nbsp;return calloc(1, sizeof(app_data));
+}
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">app_run()</span> function is used to initialize the application's callbacks and run the standard Tizen app loop.</p>
+<pre class="prettyprint">
+int app_run(app_data *app, int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s cbs =
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.create = _on_create_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.terminate = _on_terminate_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.pause = _on_pause_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.resume = _on_resume_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.app_control = _on_app_control_cb,
+&nbsp;&nbsp;&nbsp;};
+
+&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL, };
+
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY, _on_low_battery_cb, app);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY, _on_low_memory_cb, app);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_DEVICE_ORIENTATION_CHANGED], APP_EVENT_DEVICE_ORIENTATION_CHANGED, _on_device_orientation_cb, app);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED, _on_language_changed_cb, app);
+&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED, _on_region_format_changed_cb, app);
+
+&nbsp;&nbsp;&nbsp;return ui_app_main(argc, argv, &cbs, app);
+}
+</pre>
+
+<h3>Data exchange with the provider application</h3>
+<p>The communication between the consumer and the provider can be done using either the 'sql' or the 'map' method. While the data used by the map and sql methods has a different structure (hash map and database), the data exchange implementation in both cases is very similar:</p>
+<ul>
+	<li>data consumer - send request;</li>
+	<li>data provider - send response or an error message;</li>
+	<li>data consumer - react to the data received;</li>
+	<li>data consumer - update the UI.</li>
+</ul>
 
 <!-- ********************************************************************************** -->
 
