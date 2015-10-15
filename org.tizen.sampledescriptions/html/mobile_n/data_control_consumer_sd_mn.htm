@@ -51,12 +51,12 @@
 	</ul>
 
 	<p>The structure of the user interface is depicted below.</p>
-	<p id="ui-struct" class="figure">Figure: Data-Control-Consumer map view layout structure.</p>
+	<p id="ui-struct-map" class="figure">Figure: Data-Control-Consumer map view layout structure.</p>
 	<p style="text-align:center;">
 		<img alt="Data-Control-Consumer map layout structure " hspace="80" height="550" src="../images/data_control_consumer/data-control-consumer-map-layout.png" />
 	</p>
 	<br/>
-	<p id="ui-struct" class="figure">Figure: Data-Control-Consumer sql view layout structure.</p>
+	<p id="ui-struct-sql" class="figure">Figure: Data-Control-Consumer slq view layout structure.</p>
 	<p style="text-align:center;">
 		<img alt="Data-Control-Consumer sql layout structure " hspace="80" height="550" src="../images/data_control_consumer/data-control-consumer-sql-layout.png" />
 	</p>
@@ -77,7 +77,7 @@
 	<h3>Prerequisites</h3>
 
 		<ul>
-			<li>The provider's app id must be obtained.</li>
+			<li>The provider's app ID must be obtained.</li>
 			<li>Privileges required:</li>
 			<ul>
 				<li>http://tizen.org/privilege/datasharing;</li>
@@ -290,6 +290,19 @@ typedef struct _uib_view_data {
 
 <p>Note that the <span style="font-family: Courier New,Courier,monospace">uib_view_context</span> is used here while the view's content uses the <span style="font-family: Courier New,Courier,monospace">uib_view1_view_context, uib_view2_view_context, uib_view3_view_context</span> structures. A type-cast between <span style="font-family: Courier New,Courier,monospace">uib_view_context</span> and view structures is often used in UI-Builder code.</p>
 
+<pre id = "map_structure" class="prettyprint">
+/*Structure used by the 'map' part of the consumer application*/
+static struct {
+&nbsp;&nbsp;&nbsp;data_control_map_response_cb map_callback;
+&nbsp;&nbsp;&nbsp;data_control_h provider;
+
+&nbsp;&nbsp;&nbsp;On_New_Data_Recieved_Cb new_data_recived_cb;
+&nbsp;&nbsp;&nbsp;error_recived_cb_t error_recived_cb;
+
+&nbsp;&nbsp;&nbsp;char *last_key_used;
+} s_info
+</pre>
+
 
 <h3 id="app-init">Application initialization</h3>
 
@@ -351,6 +364,95 @@ int app_run(app_data *app, int argc, char **argv)
 	<li>data consumer - react to the data received;</li>
 	<li>data consumer - update the UI.</li>
 </ul>
+
+<h4>Map</h4>
+<h5>Initialization:</h5>
+
+<p>In order to achieve communication with the provider app, the correct provider app ID must be set. The ID can be found in the provider's manifest. The <span style="font-family: Courier New,Courier,monospace">data_control_map_response_cb</span> must be filled with correct functions.</p>
+
+<pre class="prettyprint">
+
+void map_consumer_init(On_New_Data_Recieved_Cb new_data_recived_cb, error_recived_cb_t error_recived_cb)
+{
+&nbsp;&nbsp;&nbsp;const char *provider_id = "http://data-control-provider.com/datacontrol/provider/data-control-provider"; /* The provider ID */
+&nbsp;&nbsp;&nbsp;const char *data_id = "table";
+&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;/* Create data control handler */
+&nbsp;&nbsp;&nbsp;ret = data_control_map_create(&(s_info.provider));
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* Setting the provider ID*/
+&nbsp;&nbsp;&nbsp;ret = data_control_map_set_provider_id(s_info.provider, provider_id);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* Setting the data ID */
+&nbsp;&nbsp;&nbsp;ret = data_control_map_set_data_id(s_info.provider, data_id);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* Response callbacks */
+&nbsp;&nbsp;&nbsp;s_info.map_callback.get_cb = __map_get_response_cb;
+&nbsp;&nbsp;&nbsp;s_info.map_callback.set_cb = __map_set_response_cb;
+&nbsp;&nbsp;&nbsp;s_info.map_callback.add_cb = __map_add_response_cb;
+&nbsp;&nbsp;&nbsp;s_info.map_callback.remove_cb = __map_remove_response_cb;
+
+&nbsp;&nbsp;&nbsp;/* Register response callback */
+&nbsp;&nbsp;&nbsp;ret = data_control_map_register_response_cb(s_info.provider, &s_info.map_callback, NULL);
+&nbsp;&nbsp;&nbsp;/* ... /
+}
+</pre>
+
+<p>To provide full communication between the map consumer and the provider, four request functions and four callbacks have to be implemented.</p>
+
+<h5>Request functions:</h5>
+There are four request functions:
+
+<ul>
+	<li><span style="font-family: Courier New,Courier,monospace">data_control_map_add(s_info.provider, key, value, &req_id);</span> - this function is used to add new values to the provider's hash map. If the map doesn't contain the searched key, a new one should be created. Note that one key can hold multiple values. The key string is taken from the <span style="font-family: Courier New,Courier,monospace"><a href="#ui-struct-map">key_entry</a></span> widget and the value from <span style="font-family: Courier New,Courier,monospace"><a href="#ui-struct-map">new_value_entry</a></span> widget.</li>
+
+	<li><span style="font-family: Courier New,Courier,monospace">data_control_map_get(s_info.provider, key, &req_id);</span> - this function is used to get the values held by the given key. The key string is taken from the <span style="font-family: Courier New,Courier,monospace"><a href="#ui-struct-map">key_entry</a></span> widget.</li>
+
+	<li><span style="font-family: Courier New,Courier,monospace">data_control_map_set(s_info.provider, key, old, new, &req_id);</span> - this function is used to update the given value held by the given key. If there is no value equal to <span style="font-family: Courier New,Courier,monospace">old</span>, an error message should be provided. The key string is taken from the <span style="font-family: Courier New,Courier,monospace"><a href="#ui-struct-map">key_entry</a></span> widget, the 'old' string from the <span style="font-family: Courier New,Courier,monospace"><a href="#ui-struct-map">old_value_entry</a></span> widget and the 'new' string from the <span style="font-family: Courier New,Courier,monospace"><a href="#ui-struct-map">new_value_entry</a></span> widget.</li>
+
+	<li><span style="font-family: Courier New,Courier,monospace">data_control_map_remove(s_info.provider, key, value, &req_id);</span> - this function is used to remove the given value held by the given key. If a key is empty after this operation, it should be removed as well. If there is no value equal to <span style="font-family: Courier New,Courier,monospace">value</span> or key equal to <span style="font-family: Courier New,Courier,monospace">key</span>, an error message should be provided. The key string is taken from the <span style="font-family: Courier New,Courier,monospace"><a href="#ui-struct-map">key_entry</a></span> widget and the value from <span style="font-family: Courier New,Courier,monospace"><a href="#ui-struct-map">new_value_entry</a></span> widget.</li>
+</ul>
+
+<p>Note that there is one extra button in the <a href="#ui-struct-map">map view</a>. The <span style="font-family: Courier New,Courier,monospace">Keys</span> button sends a special get request using a "#GET_ALL_KEYS" key. In this case value received from the provider will contain all keys stored by the provider app.</p>
+
+<p>The above functions are invoked by click events of the <span style="font-family: Courier New,Courier,monospace">get_data_button</span>, <span style="font-family: Courier New,Courier,monospace">set_data_button</span>, <span style="font-family: Courier New,Courier,monospace">remove_data_button</span> and <span style="font-family: Courier New,Courier,monospace">add_data_button</span> buttons placed in the <a href="#ui-struct-map">map view</a>. The above functions are used to send requests to the provider app. The provider app should send a response. Based on the response type, one of the below callbacks is invoked.</p>
+
+<h5>Callback definitions:</h5>
+
+<pre class="prettyprint">
+static void __map_get_response_cb(int request_id, data_control_h provider, char **ret_value_list, int ret_value_count, bool provider_ret, const char *error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+<p>The above callback is invoked when a get request is sent. The values assigned to a given key are passed in the <span style="font-family: Courier New,Courier,monospace">ret_value_list</span> string array. If there was an error, the <span style="font-family: Courier New,Courier,monospace">provider_ret</span> will be set to false and an error message will be provided.</p>
+
+<pre class="prettyprint">
+static void __map_set_response_cb(int request_id, data_control_h provider, bool provider_ret, const char *error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<pre class="prettyprint">
+static void __map_add_response_cb(int request_id, data_control_h provider, bool provider_ret, const char *error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<pre class="prettyprint">
+static void __map_remove_response_cb(int request_id, data_control_h provider, bool provider_ret, const char *error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>The set, add and remove callbacks all work in the same way. They are used to inform if a given operation was successfull (<span style="font-family: Courier New,Courier,monospace">provider_ret == true</span>) or not. If an error in the communication occured, the <span style="font-family: Courier New,Courier,monospace">error</span> parameter should contain the error message. Note that in every callback except for the get one the get request is invoked. This way the UI can be updated with the modified hash map. Note that when error information is received, the function pointed by <span style="font-family: Courier New,Courier,monospace"><a href="#map_structure">error_recived_cb()</a></span> is invoked and a popup with the error message will be displayed.</p>
 
 <!-- ********************************************************************************** -->
 
