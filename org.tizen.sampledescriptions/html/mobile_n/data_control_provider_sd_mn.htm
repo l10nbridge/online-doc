@@ -33,9 +33,7 @@
 <p>No user interface is provided as this is a service application that runs in the background. The documentation for the consumer app can be found <a href = "data_control_consumer_sd_mn.htm">here</a>.</p>
 
 <h2>Prerequisites</h2>
-<p>To ensure proper application execution, the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/datasharing</span> privilege must be set and the following data-control entries must be enabled:
-
-</p>
+<p>To ensure proper application execution, the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/datasharing</span> privilege must be set and the following data-control entries must be enabled:</p>
 <ul>
 	<li><span id = "provider-map-id" style="font-family: Courier New,Courier,monospace">http://data-control-provider.com/datacontrol/provider/data-control-provider</span> with sql type and <span style="font-family: Courier New,Courier,monospace">ReadWrite</span> access rights;</li>
 	<li><span id = "provider-sql-id" style="font-family: Courier New,Courier,monospace">http://data-control-provider.com/datacontrol/provider/data-control-providers</span> with map type and <span style="font-family: Courier New,Courier,monospace">ReadWrite</span> access rights.</li>
@@ -67,6 +65,88 @@ int main(int argc, char* argv[])
 
 <p>The <span style="font-family: Courier New,Courier,monospace">service_app_create</span> function is used to initialize the map provider and the sql provider modules.</p>
 
+
+
+<h3>The Map module</h3>
+<h4>Structure definitions</h4>
+
+<p>The map module uses the structure below to hold its data:</p>
+<pre class="prettyprint">
+static struct {
+&nbsp;&nbsp;&nbsp;data_control_provider_map_cb map_callback; /* Provider callbacks */
+&nbsp;&nbsp;&nbsp;Eina_Hash *data_map; /* The map structure */
+}
+</pre>
+
+<h4>Initialization</h4>
+
+<p>The map module uses the <span style="font-family: Courier New,Courier,monospace">Eina_Hash</span> structure to hold data. Note that the stored data will be lost when the provider app is killed. Four callback are used to provide communication with the consumer application. </p>
+
+<pre class="prettyprint">
+Eina_Bool map_provider_initialize(void)
+{
+&nbsp;&nbsp;&nbsp;/* Assigning callback functions to callback structure. */
+&nbsp;&nbsp;&nbsp;s_info.map_callback.get_cb = __get_value_request_cb;
+&nbsp;&nbsp;&nbsp;s_info.map_callback.add_cb = __add_value_request_cb;
+&nbsp;&nbsp;&nbsp;s_info.map_callback.remove_cb = __remove_value_request_cb;
+&nbsp;&nbsp;&nbsp;s_info.map_callback.set_cb = __set_value_request_cb;
+
+&nbsp;&nbsp;&nbsp;/* Initialize the map provider using the callback structure. */
+&nbsp;&nbsp;&nbsp;int result = data_control_provider_map_register_cb(&s_info.map_callback, NULL);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;s_info.data_map = eina_hash_string_djb2_new(__data_map_free_cb);
+&nbsp;&nbsp;&nbsp;/* ... */
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<h4>Callbacks</h4>
+
+<p>The callback invoked when a 'get' request is sent from the consumer app:</p>
+<pre class="prettyprint">
+static void __get_value_request_cb(int request_id, data_control_h provider, const char *key, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int count = 0;
+&nbsp;&nbsp;&nbsp;char **entry = __data_map_get(request_id, key, &count); /* Read the data assigned to the 'key' from the hash map. */
+
+&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_get_value_result(request_id, entry, count); /* Send the operation result to the consumer app. */
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>The callback invoked when a 'set' request is sent from the consumer app:</p>
+<pre class="prettyprint">
+static void __set_value_request_cb(int request_id, data_control_h provider, const char *key, const char *old_value, const char *new_value, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;__data_map_set(request_id, key, old_value, new_value); /* Update the hash map. If there is a 'key' in the hash map and it holds a value equal to 'old_value', the value will be updated to 'new_value'. */
+
+&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id); /* Send the operation result to the consumer app. */
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>The callback invoked when a 'add' request is sent from the consumer app:</p>
+<pre class="prettyprint">
+static void __add_value_request_cb(int request_id, data_control_h provider, const char *key, const char *value, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int count = __data_map_add(request_id, key, value); /* Add a new value equal 'value' the 'key'. If a key equal to 'key' doesn't exist, a new key will be added. */
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id); /* Send the operation result to the consumer app. */
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>The callback invoked when a 'remove' request is sent from the consumer app:</p>
+<pre class="prettyprint">
+static void __remove_value_request_cb(int request_id, data_control_h provider, const char *key, const char *value, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;__data_map_remove(request_id, key, value); /* Remove 'value' from 'key'. If the key remains empty after this operation, it will be removed as well. */
+
+&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id); /* Send the operation result to the consumer app. */
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
 <!-- ********************************************************************************** -->
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
