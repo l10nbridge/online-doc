@@ -147,6 +147,133 @@ static void __remove_value_request_cb(int request_id, data_control_h provider, c
 &nbsp;&nbsp;&nbsp;/* ... */
 }
 </pre>
+
+
+<h4>Eina_Hash functions</h4>
+<p>The map provider part of the application uses the <span style="font-family: Courier New,Courier,monospace">Eina_Hash</span> structure to store data. Note that every key in the hash can hold multiple values, so a simple key/value pair is not enough. Every key has an <span style="font-family: Courier New,Courier,monospace">Eina_List</span> assigned as its data. There are five functions in total that allow to interact with the hash map. All of them are invoked by a proper callback.</p>
+
+<p>The function used to add new data to the hash map. As mentioned before, if a key doesn't exist, a new key should be created:</p>
+<pre class="prettyprint">
+static int __data_map_add(int request_id, const char *key, const char *value)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;entry = (Eina_List *)eina_hash_find(s_info.data_map, key); /* Find an Eina_List assigned to the passed key. */
+
+&nbsp;&nbsp;&nbsp;if (entry) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If an Eina_List is found, a new value is added to it, and the Eina_Hash key is modified accordingly.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note that the data added to the Eina_List is sorted so the eina_hash_list_* group of functions cannot be used. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entry = eina_list_sorted_insert(entry, __data_map_item_value_comparator_cb, strdup(value));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... */
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If an Eina_List is not found, a new list is created. A new key is created with the new list used at its value. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entry = eina_list_append(NULL, strdup(value));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... */
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return eina_list_count(entry);
+}
+</pre>
+
+<p>The function below is a special 'get' function. When 'get' request with a special <a href = "data_control_consumer_sd_mn.htm#consumer-get-all-keys">key</a> is sent from the consumer app, an array of all keys in the hash map are sent back instead of a value array:</p>
+<pre class="prettyprint">
+static char **__get_all_keys(int *values_count)
+{
+&nbsp;&nbsp;&nbsp;*values_count = eina_hash_population(s_info.data_map);
+&nbsp;&nbsp;&nbsp;char **ret = calloc(*values_count, sizeof(char *));
+&nbsp;&nbsp;&nbsp;eina_hash_foreach(s_info.data_map, __get_all_keys_cb, (char **)ret);
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+
+<p>The function used to get an array of values held by the given key:</p>
+<pre class="prettyprint">
+static char **__data_map_get(int request_id, const char *key, int *values_count)
+{
+&nbsp;&nbsp;&nbsp;/* If the requested key is equal to '#GET_ALL_KEYS', return an array of all available keys. */
+&nbsp;&nbsp;&nbsp;if(!__str_cmp_precise(key, GET_ALL_KEYS))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return __get_all_keys(values_count);
+
+&nbsp;&nbsp;&nbsp;/* Find an Eina_List assigned to the given key */
+&nbsp;&nbsp;&nbsp;entry = (Eina_List *)eina_hash_find(s_info.data_map, key);
+&nbsp;&nbsp;&nbsp;if (!entry) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*values_count = 0;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If no Eina_List is found, an error message is sent.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Note that this call will automatically set the <a href = "data_control_consumer_sd_mn.htm#consumer-callback-definitions">provider_ret</a> in the consumer's app callback to false. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, NO_KEY_FOUND);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Prepare an array of strings with values assigned to the given key. */
+&nbsp;&nbsp;&nbsp;*values_count = eina_list_count(entry);
+&nbsp;&nbsp;&nbsp;char **ret = calloc(*values_count, sizeof(char *));
+
+&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH(entry, l, item)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret[index] = item;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index++;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+
+<p>The function used to update the value assigned to the given key:</p>
+<pre class="prettyprint">
+static Eina_Bool __data_map_set(int request_id, const char *key, const char *old, const char *new)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* Search for the value to modify. */
+&nbsp;&nbsp;&nbsp;Eina_List *old_data_list = __search_value(entry, key, old);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* Remove the found value. This is used to simplify the sorted insertion to the Eina_List. */
+&nbsp;&nbsp;&nbsp;entry = eina_list_remove_list(entry, old_data_list);
+&nbsp;&nbsp;&nbsp;if (!entry)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "entry == NULL");
+
+&nbsp;&nbsp;&nbsp;/* Insert the new value. */
+&nbsp;&nbsp;&nbsp;entry = eina_list_sorted_insert(entry, __data_map_item_value_comparator_cb, strdup(new));
+
+&nbsp;&nbsp;&nbsp;/* Modify the key. */
+&nbsp;&nbsp;&nbsp;if (!eina_hash_modify(s_info.data_map, key, entry)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed to modify a key value pair");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p>The function used to remove the value assigned to the given key:</p>
+<pre class="prettyprint">
+static void __data_map_remove(int request_id, const char* key, const char *value)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;if(eina_list_count(entry) > 1) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;entry = eina_list_remove_list(entry, old_data_list);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!eina_hash_modify(s_info.data_map, key, entry)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed to modify a key value pair");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If akey is left empty after the value removal the key should be removed as well. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!eina_hash_del_by_key(s_info.data_map, key)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed to remove a key: %s", key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Key [%s] removed", key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text = eina_stringshare_printf(KEY_REMOVED, key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, text);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eina_stringshare_del(text);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
 <!-- ********************************************************************************** -->
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
