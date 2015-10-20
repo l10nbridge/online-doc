@@ -57,7 +57,7 @@
 
 <h1>Event Handling: Managing the Event Flow</h1>
 
-<p>DALi event handling system is composed of 2 major concepts:</p>
+<p>DALi event handling system is composed of two major concepts:</p>
 
 <ul>
 <li>Signal
@@ -82,20 +82,20 @@
 <li>Non-coupling: no dependency between caller and callee</li>
 <li>Non-type-intrusive: no modification to caller or callee types</li>
 <li>Generic: works for all types of call-backs</li>
-<li>Many-to-many relationship: 1 slot can connect to many signals and 1 signal can be connected to many slots, for example</li>
+<li>Many-to-many relationship: one slot can connect to many signals and one signal can be connected to many slots, for example</li>
 </ul>
 
 <h2 id="touch" name="touch">Touch Events</h2>
 <p>The <span style="font-family: Courier New,Courier,monospace;">Dali::Actor</span> class provides the <span style="font-family: Courier New,Courier,monospace;">TouchedSignal()</span> function to inform the application that a user touches the actor. It is defined as follows:</p>
 
 <pre class="prettyprint">typedef Signal&lt;bool (Actor, const TouchEvent&amp;)&gt; TouchSignalType;
-TouchSignalType&amp;TouchedSignal();</pre>
+TouchSignalType&amp; TouchedSignal();</pre>
 
-<p>This means that a slot of the following type can be connected to the <span style="font-family: Courier New,Courier,monospace;">TouchedSignal()</span> function:</p>
+<p>This means that a slot of the following type can be connected to the return value of the <span style="font-family: Courier New,Courier,monospace;">Actor::TouchedSignal()</span> function:</p>
 
-<pre class="prettyprint">bool YourCallbackName(Actor actor, const TouchEvent&amp;event);</pre>
+<pre class="prettyprint">bool YourCallbackName(Actor actor, const TouchEvent&amp; event);</pre>
 
-<p>The return value <span style="font-family: Courier New,Courier,monospace;">true</span> indicates that the touch event must be consumed. Otherwise, the signal is emitted on the next sensitive parent of the actor. The meaning is valid only for the <span style="font-family: Courier New,Courier,monospace;">TouchedSignal()</span> function, and other types of signals may not have a return value.</p>
+<p>The return value <span style="font-family: Courier New,Courier,monospace;">true</span> indicates that the touch event must be consumed. Otherwise, the signal is emitted on the next sensitive parent of the actor. Please note that a callback function signiture varies depending on its corresponding signal type. Other types of signals may not have a return value in their callback functions.</p>
 
 <p>Each point on the screen being or having been touched is represented by the <span style="font-family: Courier New,Courier,monospace;">Dali::TouchPoint</span> object. This object stores information about the state of the touch point (such as down, up, or motion.) and the coordinates of the touch.</p>
 
@@ -104,70 +104,79 @@ TouchSignalType&amp;TouchedSignal();</pre>
 <p>The following example shows how a connection to a touch event signal can be established:</p>
 
 <pre class="prettyprint">
-// Assuming this code is in the HelloWorldController class
-void 
-Create(Application&amp; application)
+// This sample code is for the HelloWorldController class
+// in the 'Basic DALi Application' code from the 'DALi Overview' section.
+void HelloWorldController::Create( Application& application )
 {
-&nbsp;&nbsp;&nbsp;Control actor = Control::New(); 
-&nbsp;&nbsp;&nbsp;// Control is one of the simplest types of Actor that has a visible form
-&nbsp;&nbsp;&nbsp;actor.SetParentOrigin(ParentOrigin::CENTER);
-&nbsp;&nbsp;&nbsp;actor.SetSize(100.0f, 100.0f);
-&nbsp;&nbsp;&nbsp;actor.SetBackgroundColor(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-&nbsp;&nbsp;&nbsp;actor.TouchedSignal().Connect(this, &amp;HelloWorldController::OnTouch);
-&nbsp;&nbsp;&nbsp;Stage::GetCurrent().Add(actor);
+  // Control is one of the simplest types of Actor which is visible
+  Control control = Control::New();
+  control.SetParentOrigin( ParentOrigin::CENTER );
+  control.SetSize( 100.0f, 100.0f );
+  control.SetBackgroundColor( Vector4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+  Stage::GetCurrent().Add( control );
+
+  // Connect to a touch signal emitted by the control
+  control.TouchedSignal().Connect( this, &HelloWorldController::OnTouch );
 }
 
-bool 
-OnTouch(Actor actor, const TouchEvent&amp;touch)
+bool HelloWorldController::OnTouch( Actor actor, const TouchEvent& event )
 {
-&nbsp;&nbsp;&nbsp;bool handled = false;
-&nbsp;&nbsp;&nbsp;unsigned int pointCount = touch.GetPointCount();
-&nbsp;&nbsp;&nbsp;if (pointCount == 1)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Do the action on the first touch on the screen
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handled = true;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else if (pointCount &gt; 1)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Do action on a multi-touch on the screen
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;handled = true;
-&nbsp;&nbsp;&nbsp;}
+  bool handled = false;
+  unsigned int pointCount = event.GetPointCount();
+  if( pointCount == 1)
+  {
+    if( event.GetPoint(0).state == TouchPoint::Down )
+    {
+      // Do action on the first touch on screen
+      // ...
+      handled = true;
+    }
+  }
+  else if( pointCount > 1)
+  {
+    if( event.GetPoint( pointCount-1 ).state == TouchPoint::Down )
+    {
+      // Do action on a multi-touch on screen
+      // ...
+      handled = true;
+    }
+  }
 
-&nbsp;&nbsp;&nbsp;return handled; 
-&nbsp;&nbsp;&nbsp;// true if you have handled the touch, false otherwise
+  // true if we have handled the touch, false otherwise
+  return handled;
 }
 </pre>
-
 <p>The touch event is first emitted to the hit actor by the primary touch point, which is the first point that the user touches. If this hit actor does not handle the event, then the event is offered to the hit actor&#39;s parent. Again, if the parent does not handle this event, it is then offered to its parent and so on until the stage is reached or the event is consumed.</p>
 
 <p>If a parent and child actor both connect to the touch signal, the touch event is first offered to the child. If it is consumed by the child, the parent is not informed.</p>
 
 <h2 id="key" name="key">Key Events</h2>
 
-<p>The following example shows how to handle key events received by the stage:</p>
+<p>The following example shows how to handle key events on the stage:</p>
 
 <pre class="prettyprint">
-// Assuming this code is in the HelloWorldController class
-void 
-Create(Application&amp; application)
+// This sample code is for the HelloWorldController class
+// in the 'Basic DALi Application' code from the 'DALi Overview' section.
+void HelloWorldController::Create( Application& application )
 {
-&nbsp;&nbsp;&nbsp;Stage::GetCurrent().SetBackgroundColor(Vector4(1.0f, 1.0f, 1.0f, 1.0f));
-&nbsp;&nbsp;&nbsp;Stage::GetCurrent().KeyEventSignal().Connect(this, &amp;HelloWorldController::OnKeyEvent);
+  // A simple control to render the screen
+  PushButton button = PushButton::New();
+  Stage::GetCurrent().Add( button );
 
-&nbsp;&nbsp;&nbsp;PushButton button = PushButton::New();
-&nbsp;&nbsp;&nbsp;Stage::GetCurrent().Add(button);
+  // Connect to a key event signal emitted by the stage
+  Stage::GetCurrent().KeyEventSignal().Connect( this, &HelloWorldController::OnKeyEvent );
 }
 
-void 
-OnKeyEvent(const KeyEvent&amp; event)
+void HelloWorldController::OnKeyEvent( const KeyEvent& event )
 {
-&nbsp;&nbsp;&nbsp;if (event.state == KeyEvent::Down)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IsKey(event, DALI_KEY_ESCAPE) || IsKey(event, DALI_KEY_BACK))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mApplication.Quit();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
+  if( event.state == KeyEvent::Down )
+  {
+    if( IsKey( event, DALI_KEY_ESCAPE)  || IsKey( event, DALI_KEY_BACK ) )
+    {
+      // Quit the application when escape or back key is pressed
+      mApplication.Quit();
+    }
+  }
 }
 </pre>
 
@@ -464,10 +473,11 @@ OnKeyEvent(const KeyEvent&amp; event)
 	</tr>
    </tbody>
   </table>
-</li>
-</ul>
 
 <p><span style="font-family: Courier New,Courier,monospace;">Dali::Toolkit::KeyboardFocusManager</span> provides the functionality of handling keyboard navigation and maintaining the 2-dimensional keyboard focus chain. Dissimilar to the key input focus, the keyboard focus is about the focus moving between actors, and that is why this signal is provided by the specific focus managing class.</p>
+
+</li>
+</ul>
 
 <p>The following DALi classes provide signals:</p>
 <ul>
@@ -502,6 +512,7 @@ OnKeyEvent(const KeyEvent&amp; event)
 <h2 id="gesture" name="gesture">Gestures</h2>
 <p>Gesture is a user-friendly high-level event produced from a stream of touch events. The <span style="font-family: Courier New,Courier,monospace;">Dali::GestureDetector </span> class analyzes a stream of touch events and attempts to determine the intention of the user. </p>
 <p>If an actor is attached to a gesture detector and the detector recognizes a user intention (detects a predefined pattern in a stream of touch events), the actor emits a detected gesture signal to the application.</p>
+<p>Please note that instances of gesture detectors should not be local variables because gestures cannot be detected after they are destroyed.</p>
 
 <p>DALi currently supports following gesture detectors:</p>
 
@@ -512,30 +523,38 @@ OnKeyEvent(const KeyEvent&amp; event)
 <li><span style="font-family: Courier New,Courier,monospace;">Dali::PanGestureDetector</span> detects when the user moves one or more fingers in the same direction.</li>
 </ul>
 
-<p>The example below shows how an application can be notified of a pinch gesture:</p>
+<p>The example below shows how an application can be notified of a pan gesture:</p>
 
 <pre class="prettyprint">
-// Assuming this code is in the HelloWorldController class
-void 
-Create(Application&amp; application)
+// This sample code is for the HelloWorldController class
+// in the 'Basic DALi Application' code from the 'DALi Overview' section.
+class HelloWorldController : public ConnectionTracker
 {
-&nbsp;&nbsp;&nbsp;PushButton actor = PushButton::New(); // Another type of Actor
-&nbsp;&nbsp;&nbsp;actor.SetParentOrigin(ParentOrigin::CENTER);
-&nbsp;&nbsp;&nbsp;actor.SetSize(100.0f, 100.0f);
-&nbsp;&nbsp;&nbsp;Stage::GetCurrent().Add(actor);
+  // ...
+  // A gesture detector should be a member variable to exist outside the local scope.
+  PanGestureDetector mDetector;
+};
 
-&nbsp;&nbsp;&nbsp;PinchGestureDetector detector = PinchGestureDetector::New();
-&nbsp;&nbsp;&nbsp;detector.Attach(actor);
-&nbsp;&nbsp;&nbsp;detector.DetectedSignal().Connect(this, &amp;HelloWorldController::OnPinch);
+void HelloWorldController::Create( Application& application )
+{
+  PushButton button = PushButton::New();
+  button.SetParentOrigin( ParentOrigin::CENTER );
+  button.SetSize( 100.0f, 100.0f );
+  Stage::GetCurrent().Add( button );
+
+  // Create a PanGestureDetector
+  mDetector = PanGestureDetector::New();
+  mDetector.Attach( button );
+  // Attach the button to the detector
+  mDetector.DetectedSignal().Connect( this, &HelloWorldController::OnPan );
 }
 
-void 
-OnPinch(Actor actor, const PinchGesture&amp; pinch)
+void HelloWorldController::OnPan( Actor actor, const PanGesture& gesture )
 {
-&nbsp;&nbsp;&nbsp;// Scale your actor according to the pinch scale
-&nbsp;&nbsp;&nbsp;Vector3 newSize = actor.GetCurrentSize() * pinch.scale;
-&nbsp;&nbsp;&nbsp;actor.SetSize(newSize);
+  // Move the button using detected gesture
+  actor.TranslateBy( Vector3( gesture.displacement ) );
 }
+
 </pre>
 
 <h2 id="automatic" name="automatic">Automatic Connection Management</h2>
