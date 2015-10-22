@@ -274,6 +274,144 @@ static void __data_map_remove(int request_id, const char* key, const char *value
 }
 </pre>
 
+
+<h3>The SQL module</h3>
+<h4>Structure definitions</h4>
+
+<p>The map module uses the following structure to hold its data:</p>
+<pre class="prettyprint">
+static struct {
+&nbsp;&nbsp;&nbsp;data_control_provider_sql_cb sql_callback; /* Provider callbacks */
+&nbsp;&nbsp;&nbsp;sqlite3 *db; /* The map structure */
+} s_info;
+</pre>
+
+<h4>Initialization</h4>
+<p>The SQL module uses a SQLite database to hold data. As opposed to the map module, the SQL module uses an external file to store the data so it is not lost when the app is killed. Four callback are used to provide communication with the consumer application.</p>
+
+<p>The function below is used to initialize the SQL provider module.</p>
+<pre class="prettyprint">
+void sql_provider_init(void)
+{
+&nbsp;&nbsp;&nbsp;int result = __create_database(); /* Create and open a database file */
+
+&nbsp;&nbsp;&nbsp;/* Initialize the callback structure with function pointers */
+&nbsp;&nbsp;&nbsp;s_info.sql_callback.select_cb = __select_request_cb;
+&nbsp;&nbsp;&nbsp;s_info.sql_callback.insert_cb = __insert_request_cb;
+&nbsp;&nbsp;&nbsp;s_info.sql_callback.delete_cb = __delete_request_cb;
+&nbsp;&nbsp;&nbsp;s_info.sql_callback.update_cb = __update_request_cb;
+
+&nbsp;&nbsp;&nbsp;/* Register the callbacks */
+&nbsp;&nbsp;&nbsp;result = data_control_provider_sql_register_cb(&s_info.sql_callback, NULL);
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<h4>Callbacks</h4>
+
+<p>The callback invoked when an 'insert' request is sent:</p>
+<pre class="prettyprint">
+static void __insert_request_cb(int request_id, data_control_h provider, bundle *insert_data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* The insert_data argument contains a list of column name / value pairs. Check the <a href = "data_control_consumer_sd_mn.htm#consumer-sql-insert-request">consumer</a> app documentation for details.
+&nbsp;&nbsp;&nbsp;Based on the values stored in the bundle a SQL INSERT query is created. */
+&nbsp;&nbsp;&nbsp;command = data_control_provider_create_insert_statement(provider, insert_data);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* The new row is added to the database using standard SQLite API's functions */
+&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(s_info.db, command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;/* ... */
+&nbsp;&nbsp;&nbsp;inserted_row_id = sqlite3_last_insert_rowid(s_info.db);
+
+&nbsp;&nbsp;&nbsp;/* The operation result is sent back to the consumer application */
+&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_insert_result(request_id, inserted_row_id);
+
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>The callback invoked when a 'delete' request is sent:</p>
+<pre class="prettyprint">
+static void __delete_request_cb(int request_id, data_control_h provider, const char *where, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* The 'where' text is used to create a SQL DELETE query */
+&nbsp;&nbsp;&nbsp;command = data_control_provider_create_delete_statement(provider, where);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* The new row is added to the database using standard SQLite API's functions */
+&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(s_info.db, command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* The operation result is sent back to the consumer application */
+&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_delete_result(request_id);
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>The callback invoked when a 'select' request is sent:</p>
+<pre class="prettyprint">
+static void __select_request_cb(int request_id, data_control_h provider, const char **column_list,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int column_count, const char *where, const char *order, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* A SQL SELECT query is created using the callback arguments. Note that some of the arguments can be NULL.
+&nbsp;&nbsp;&nbsp;The resulting query:
+&nbsp;&nbsp;&nbsp;SELECT column_list[0], column_list[1] .. column_list[column_count - 1] FROM Sample_Table WHERE where ORDER BY order;
+
+&nbsp;&nbsp;&nbsp;If the where string is NULL, there is no filter used and if order string is NULL there is no sorting applied.
+&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;command = data_control_provider_create_select_statement(provider, column_list, column_count, where, order);
+&nbsp;&nbsp;&nbsp;if (!command) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "command == NULL");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "command == %s", command);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* A SQL statement object is created and sent to the consumer application */
+&nbsp;&nbsp;&nbsp;ret = sqlite3_prepare_v2(s_info.db, command, strlen(command), &sql_stmt, NULL);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_select_result(request_id, (void *)sql_stmt);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;sqlite3_finalize(sql_stmt);
+
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
+
+<p>The callback invoked when an 'update' request is sent:</p>
+<pre class="prettyprint">
+static void __update_request_cb(int request_id, data_control_h provider, bundle *update_data, const char *where, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;int ret = -1;
+&nbsp;&nbsp;&nbsp;char *command = NULL;
+
+
+&nbsp;&nbsp;&nbsp;/* The SQL query is created using the bundle structure similar to the structure used in add query and where string similar to the one used in the delete query.
+&nbsp;&nbsp;&nbsp;The final query will look like this:
+&nbsp;&nbsp;&nbsp;UPDATE Sample_Table SET bundle_key1 = bundle_value_1, bundle_key1 = bundle_value_1, ..., columnN = valueN WHERE where
+
+&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;command = data_control_provider_create_update_statement(provider, update_data, where);
+&nbsp;&nbsp;&nbsp;if (!command) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "command == NULL");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The generated command is then used as a SQLite query */
+&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(s_info.db, command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;/* ... */
+
+&nbsp;&nbsp;&nbsp;/* After the database update information about the update's result is sent to the consumer app*/
+&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_update_result(request_id);
+&nbsp;&nbsp;&nbsp;/* ... */
+}
+</pre>
 <!-- ********************************************************************************** -->
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
