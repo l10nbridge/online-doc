@@ -23,13 +23,12 @@
 		<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#use">Using a Constraint</a></li>
-			<li><a href="#source">Defining Constraint Sources</a></li>
-			<li><a href="#function">Defining the Constraint Function</a></li>
-			<li><a href="#create">Creating a Constraint</a></li>
+			<li><a href="#source">Constraint Source</a></li>
+			<li><a href="#function">Constraint Function</a></li>
+			<li><a href="#examples">Constraint Function Examples</a></li>
 			<li><a href="#remove">Removing Constraints</a></li>
-			<li><a href="#equal">Setting an Equal To Constraint</a></li>
-			<li><a href="#relative">Setting a Relative To Constraint</a></li>
+			<li><a href="#builtin">Built-in Constraint Functions</a></li>
+			<li><a href="#when">When and When Not to use a Constraint</a></li>
 		</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
@@ -42,12 +41,216 @@
 <div id="container"><div id="contents"><div class="content">
 <h1>Constraints: Imposing Your Own Constraints on Actors</h1>
 
-<p>Constraints are used to modify the property of an actor, based on other properties of the same actor; properties of the actor&#39;s parent; or properties of another actor altogether, when the modification needs to be at run-time. Custom functions or functors can be supplied, where the desired value of the property can be calculated. These functions (or functors) are called in every frame, therefore they must be fast and not too complex, otherwise they can affect performance.</p>
+<p>Constraints are used to modify the property of an actor <em>(target property)</em>, based on other properties of the same actor; properties of the actor&#39;s parent; or properties of another actor altogether <em>(property input or constraint source)</em>, when the modification needs to be at run-time. Custom functions or functors can be supplied, where the desired value of the property can be calculated. These functions or functors are called in every frame, therefore they must be fast and not too complex, otherwise they can affect performance <em>(constraint function)</em>.</p>
 <p>Multiple constraints can be applied to the same actor at the same time. The order in which constraints are applied is important as this is the order in which they are processed in the update thread.</p>
 <p>Constraints are applied after animations have been applied. This means that Constraints override the values set by Animations. Constraints are not applied to off-stage actors.</p>
-<p>Not all properties can be used as a constraint input. For more details, see the <span style="font-family: Courier New,Courier,monospace;">IsPropertyAConstraintInput()</span> function in the <span style="font-family: Courier New,Courier,monospace;">Dali::Handle</span> class (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Handle.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Handle.html">wearable</a> applications).</p>
+<p>Not all properties can be used as a constraint input. To check if a property can be a constraint input, use <span style="font-family: Courier New,Courier,monospace;">Dali::Handle::IsPropertyAConstraintInput()</span> function (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Handle.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Handle.html">wearable</a> applications).</p>
 
-<h2 id="use" name="use">Using a Constraint</h2>
+<p class="figure">Figure: Conceptual diagram for DALi constraint system</p>
+<p align="center"><img alt="DALi modules" src="../../images/constraint-concept.png" /></p>
+
+<p>The following pseudocode fragment shows how to set up and apply a constraint:</p>
+<pre class="prettyprint">
+Constraint constraint = Constraint::New&lt; <em>target-property-type</em> &gt;( <em>target-handle</em>, <em>target-property</em>, <em>constraint-function</em> );
+constraint.AddSource( <em>property-input-1</em> ); 
+constraint.AddSource( <em>property-input-2</em> ); 
+...
+constraint.Apply(); 
+</pre>
+
+
+<h2 id="source" name="source">Constraint Source</h2>
+<p>These properties are used as input sources to the constraint. The constraint takes these values, optionally performs a calculation on them (if using a custom functor), and writes the result to the specified property of the target actor. The source actor is specified as either the same actor, its parent, or another actor.</p>
+<p>A constraint input source can be one of the following types:
+<ul>
+<li><strong>Local source</strong> - use <span style="font-family: Courier New,Courier,monospace;">Dali::LocalSource</span>
+<p>A local source is based on the local properties (such as size, position, scale, orientation, or color) of an actor. For example, the actor&#39;s orientation can be used as a constraint input source.</p>
+<pre class="prettyprint">
+ConstraintSource source( LocalSource( Actor::Property::ORIENTATION ) );
+</pre>
+</li>
+<li><strong>Parent Source</strong> - use <span style="font-family: Courier New,Courier,monospace;">Dali::ParentSource</span>
+<p>A parent source is based on properties of the actor&#39;s parent. For example, a parent&#39;s position can be used as a constraint input source.</p>
+<pre class="prettyprint">
+ConstraintSource source( ParentSource( Actor::Property::POSITION ) );
+</pre>
+</li>
+<li><strong>Other Handle Source</strong> - use <span style="font-family: Courier New,Courier,monospace;">Dali::Source</span>
+<p>You can base your source on the properties of another handle altogether. For example, a sibling actor&#39;s color can be used as a constraint input source.</p>
+<pre class="prettyprint">
+ConstraintSource source( Source( anotherHandle, Actor::Property::COLOR ) );
+</pre>
+</li>
+</ul>
+
+<h2 id="function" name="function">Constraint Function</h2>
+
+<p>The signature of the constraint function is:</p>
+
+<pre class="prettyprint">
+void Function( PropertyType &amp;current, const PropertyInputContainer &amp;inputs );
+</pre>
+<p>In this function the <span style="font-family: Courier New,Courier,monospace;">current</span> parameter is a reference to the target property type, such as float, Vector2, or Vector3. This is an in or out parameter. It represents the current value of the property and the expectation is that it is modified by the function to the desired value.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace;">inputs</span> parameter holds all the constraint input sources. Each element is a pointer to the property input and can be accessed using the indexing operator [ ]. The order in which the sources are added is the order in which the property inputs are sorted in the container.</p>
+<pre class="prettyprint">
+constraint.AddSource( LocalSource( Actor::Property::POSITION ) );
+constraint.AddSource( LocalSource( Actor::Property::SIZE ) );
+constraint.AddSource( ParentSource( Actor::Property::POSITION ) );
+constraint.AddSource( ParentSource( Actor::Property::SIZE ) );
+</pre>
+<p>In the constraint function this equals to:</p>
+<pre class="prettyprint">
+const Vector3&amp; position( inputs[0]-&gt;GetVector3() );
+const Vector3&amp; size( inputs[1]-&gt;GetVector3() );
+const Vector3&amp; parentPosition( inputs[2]-&gt;GetVector3() );
+const Vector3&amp; parentSize( inputs[3]-&gt;GetVector3() );
+</pre>
+
+
+<h2 id="examples" name="examples">Constraint Function Examples</h2>
+<h3>Using C Functions</h3>
+<p>If you do not have any data that is changed at runtime, a C function is preferred as a constraint function.</p>
+<p>For example, the color of an actor can be changed based on its position along the x axis.
+In the following sample, the color of the control is white when its x position is 0.0f, red when its x position is 100.0f, and interpolated color inbetween them:</p>
+<pre class="prettyprint">
+// This sample code is for the HelloWorldExample class
+// in the 'Basic DALi Application' code from the 'DALi Overview' section.
+
+// C function
+void MyConstraintFunction( Vector4& current, const PropertyInputContainer& inputs )
+{
+  const Vector3& position( inputs[0]->GetVector3() );
+
+  float distance = fabs( position.x );
+  if( distance > 100.0f ) // More than 100.0f away, color is red
+  {
+    current.g = current.b = 0.0f;
+  }
+  else // Otherwise it blends between white and red
+  {
+    current.g = current.b = ( 100.0f - distance ) / 100.0f;
+  }
+}
+
+void HelloWorldExample::Create( Application& application )
+{
+  // Create a Control
+  Control control = Control::New();
+  control.SetParentOrigin( ParentOrigin::CENTER );
+  control.SetSize( 100.0f, 100.0f );
+  control.SetBackgroundColor( Color::WHITE );
+  Stage::GetCurrent().Add( control );
+
+  // Use PanGestureDetector to move the control with touch panning
+  mDetector = PanGestureDetector::New();
+  mDetector.Attach( control );
+  mDetector.DetectedSignal().Connect( this, &HelloWorldExample::OnPan );
+
+  // Create a Constraint that targets the control
+  Constraint constraint = Constraint::New< Vector4 >( control, Actor::Property::COLOR, MyConstraintFunction );
+
+  // Add the POSITION property of the control as a constraint input
+  constraint.AddSource( LocalSource( Actor::Property::POSITION ) ); 
+
+  // Apply the constraint
+  constraint.Apply(); 
+}
+
+void HelloWorldExample::OnPan( Actor actor, const PanGesture& gesture )
+{
+  // Move the button using detected gesture
+  actor.TranslateBy( Vector3( gesture.displacement ) );
+}
+</pre>
+
+<p>For more information, see the <span style="font-family: Courier New,Courier,monospace;">New()</span> function in the <span style="font-family: Courier New,Courier,monospace;">Dali::Constraint</span> class (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Constraint.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Constraint.html">wearable</a> applications).</p>
+
+<h3>Using Functors</h3>
+
+<p>If you need to store some data in a struct or class, a functor can be used.</p>
+<p>Reusing the last example, the color of an actor is changed based on its position along the x axis, but the distance when it is red can be different for each constraint object.</p>
+<pre class="prettyprint">
+struct MyConstraintFunctor
+{
+  // Constructor which takes the distance at which the actor is red
+  MyConstraintFunctor(float distance)
+    : mDistance(distance)  {}
+
+  // Functor
+  void operator()( Vector4& current, const PropertyInputContainer& inputs )
+  {
+    const Vector3& position( inputs[0]->GetVector3() );
+
+    float distance = fabs( position.x );
+    if( distance > mDistance ) // More than mDistance away, color is red
+    {
+      current.g = current.b = 0.0f;
+    }
+    else // Otherwise it blends between white and red
+    {
+      current.g = current.b = ( mDistance - distance ) / mDistance;
+    }
+  }
+
+  const float mDistance; // Data
+};
+</pre>
+
+<p><span style="font-family: Courier New,Courier,monospace;">MyConstraintFunctor()</span> can be applied to  <span style="font-family: Courier New,Courier,monospace;">control</span> as follows:
+
+<pre class="prettyprint">
+Constraint constraint = Constraint::New< Vector4 >( control, Actor::Property::COLOR, MyConstraintFunctor( 200.0f ) );
+</pre>
+
+<p><span style="font-family: Courier New,Courier,monospace;">MyConstraintFunctor()</span> can be used also with another constraint with a different distance.</p>
+<p>Instead of using the default functor (operator()), another function can be declared in the class or struct and be used as the constraint function.
+For more information, see the <span style="font-family: Courier New,Courier,monospace;">New()</span> function in the <span style="font-family: Courier New,Courier,monospace;">Dali::Constraint</span> class (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Constraint.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Constraint.html">wearable</a> applications).</p>
+
+
+<h2 id="remove" name="remove">Removing Constraints</h2>
+
+<p>The actor&#39;s constraints can later be removed in several ways:</p>
+<pre class="prettyprint">
+constraint.Remove(); // Remove the constraint itself and stop applying it
+actor.RemoveConstraints(); // Removes ALL constraints applied to an actor
+actor.RemoveConstraints( tag ); // All constraints with the tag are removed from an actor (tag can be set using SetTag)
+</pre> 
+
+
+<h2 id="builtin" name="builtin">Built-in Constraint Functions</h2>
+
+<h3 id="equal" name="equal">EqualToConstraint</h3>
+
+<p>The built-in <span style="font-family: Courier New,Courier,monospace;">Dali::EqualToConstraint</span> function can be used if only setting a property equal to another property is required:</p>
+<pre class="prettyprint">
+Constraint constraint = Constraint::New&lt; Vector3 &gt;( actor, Actor::Property::POSITION, EqualToConstraint() );
+constraint.AddSource( Source( anotherActor, Actor::Property::POSITION ) );
+constraint.Apply();
+</pre>
+<p>Here the <span style="font-family: Courier New,Courier,monospace;">actor</span>&#39;s position is set to equal the position of <span style="font-family: Courier New,Courier,monospace;">anotherActor</span>.</p>
+
+
+<h3 id="relative" name="relative">RelativeToConstraint</h3>
+
+<p>The built in <span style="font-family: Courier New,Courier,monospace;">Dali::RelativeToConstraint</span> and <span style="font-family: Courier New,Courier,monospace;">Dali::RelativeToConstraintFloat</span> functions can be used if only setting a property relative to another property is required:</p>
+
+<pre class="prettyprint">
+Constraint constraint = Constraint::New&lt; Vector3 &gt;( actor, Actor::Property::POSITION, RelativeToConstraint( 2.0f ) );
+constraint.AddSource( Source( anotherActor, Actor::Property::POSITION ) );
+constraint.Apply();
+</pre>
+
+<p>Here the <span style="font-family: Courier New,Courier,monospace;">actor</span>&#39;s position is relative to the position of <span style="font-family: Courier New,Courier,monospace;">anotherActor</span> (multiplied by a given scale). If <span style="font-family: Courier New,Courier,monospace;">anotherActor</span> is at (10.0f, 20.0f, 30.0f), <span style="font-family: Courier New,Courier,monospace;">actor</span> is at (20.0f, 40.0f, 60.0f).</p>
+
+<table class="note">
+       <tbody>
+       <tr>
+               <th class="note">Note</th>
+       </tr>
+       <tr>
+               <td class="note">
+
+<h2 id="when" name="when">When and When Not to use a Constraint</h2>
 
 <p>Constraints are designed as a way of modifying properties that cannot be modified by any existing built-in functionality, such as animations, size negotiation, parent anchor, or origin settings. As they provide the ability for the application developer to execute their own code within the update thread, DALi can no longer guarantee the timeliness of this code, or how optimized it can be.</p>
 <p>Generally, you must not use constraints with the <span style="font-family: Courier New,Courier,monospace;">size</span> property as constraining the size and size negotiation are mutually exclusive. Consider the following use cases as an example of when and when not to use a constraint:</p>
@@ -63,19 +266,19 @@
     </tr>
     <tr>
 		<td>Need a child to be 50% the size of it&#39;s parent.</td>
-		<td>Use size negotiation.</td>
+		<td>Use size negotiation.<br>(See <a href="layout_n.htm">Layout Management</a> for more information)</td>
 	</tr>
 	<tr>
 		<td>Need to zoom an actor in to the screen using its scale property.</td>
-		<td>Use an animation.</td>
+		<td>Use an animation.<br>(See <a href="animation_n.htm">Animation</a> for more information)</td>
 	</tr>
 	<tr>
 		<td>Need an actor to appear centered around the bottom-right corner of its parent.</td>
-		<td>Use ParentOrigin and AnchorPoint.</td>
+		<td>Use ParentOrigin and AnchorPoint.<br>(See <a href="actors_n.htm#position">Positioning Actors</a> for more information)</td>
 	</tr>
 	<tr>
 		<td>Need to lay out a series of controls with various alignment requirements.</td>
-		<td>Use either Anchor and origin settings, or a TableView.</td>
+		<td>Use either ParentOrigin and AnchorPoint settings, or a <span style="font-family: Courier New,Courier,monospace;">Dali::Toolkit::TableView</span>.</td>
 	</tr>
 	<tr>
 		<td>Need to automatically modify the position property of one actor based on the position property of another actor, that is neither a parent OR a child.</td>
@@ -94,177 +297,10 @@
 
 <p>For most general cases, the position and size requirements of a child or parent actor (from its child or parent) can be calculated with size negotiation.</p>
 
-<h2 id="source" name="source">Defining Constraint Sources</h2>
-<p>These properties are used as input sources to the constraint. The constraint takes these values, optionally performs a calculation on them (if using a custom functor), and writes the result to the specified property of the target actor. The source actor is specified as either the same actor, its parent, or another actor.</p>
-<ul>
-<li>Local source
-<p>A local source is based on the local properties (such as size, position, scale, orientation, or color) of an actor. For example, the actor&#39;s orientation can be used as a constraint input source.</p>
-<pre class="prettyprint">
-Dali::ConstraintSource source(Dali::LocalSource(Dali::Actor::Property::ORIENTATION));
-</pre>
-</li>
-<li>Parent Source
-<p>A parent source is based on properties of the actor&#39;s parent. For example, a parent&#39;s position can be used as a constraint input source.</p>
-<pre class="prettyprint">
-Dali::ConstraintSource source(Dali::ParentSource(Dali::Actor::Property::POSITION));
-</pre>
-</li>
-<li>Other Handle Source
-<p>You can base your source on the properties of another handle altogether. For example, a sibling actor&#39;s color can be used as a constraint input source.</p>
-<pre class="prettyprint">
-Dali::ConstraintSource source(Dali::Source(anotherHandle, Dali::Actor::Property::COLOR));
-</pre>
-</li>
-</ul>
-
-<h2 id="function" name="function">Defining the Constraint Function</h2>
-
-<p>The signature of the constraint function is:</p>
-
-<pre class="prettyprint">
-void Function(PropertyType &amp;current, const Dali::PropertyInputContainer &amp;inputs);
-</pre>
-<p>In this function the <span style="font-family: Courier New,Courier,monospace;">current</span> parameter is a reference to the target property type, such as float, Vector2, or Vector3. This is an in or out parameter. It represents the current value of the property and the expectation is that it is modified by the function to the desired value.</p>
-<p>The <span style="font-family: Courier New,Courier,monospace;">inputs</span> parameter holds all the constraint input sources. Each element is a pointer to the property input and can be accessed using the indexing operator [ ]. The order in which the sources are added is the order in which the property inputs are sorted in the container.</p>
-<pre class="prettyprint">
-constraint.AddSource(Dali::LocalSource(Dali::Actor::Property::POSITION));
-constraint.AddSource(Dali::LocalSource(Dali::Actor::Property::SIZE));
-constraint.AddSource(Dali::ParentSource(Dali::Actor::Property::POSITION));
-constraint.AddSource(Dali::ParentSource(Dali::Actor::Property::SIZE));
-</pre>
-<p>In the constraint function this equals to:</p>
-<pre class="prettyprint">
-const Dali::Vector3&amp; position(inputs[0]-&gt;GetVector3());
-const Dali::Vector3&amp; size(inputs[1]-&gt;GetVector3());
-const Dali::Vector3&amp; parentPosition(inputs[2]-&gt;GetVector3());
-const Dali::Vector3&amp; parentSize(inputs[3]-&gt;GetVector3());
-</pre>
-
-
-<h2 id="create" name="create">Creating a Constraint</h2>
-<h3>Using C Functions</h3>
-<p>If you do not have any data that is changed at runtime, C functions must be used. For example, the color of an actor can be changed based on its position along the x axis to a preset distance of 100, beyond which it is transparent.</p>
-<pre class="prettyprint">
-Dali::Actor actor = Actor::New();
-
-// Create a constraint that targets actor
-Dali::Constraint constraint = Dali::Constraint::New&lt; Vector4 &gt;(actor, Dali::Actor::Property::COLOR, MyConstraintFunction); 
-
-// Add the POSITION property as a constraint input
-constraint.AddSource(Dali::LocalSource(Dali::Actor::Property::POSITION)); 
-
-// Apply the constraint
-constraint.Apply(); 
-</pre>
-
-<p>The following example shows the actual C function:</p>
-<pre class="prettyprint">
-void MyConstraintFunction(Dali::Vector4&amp; current, const Dali::PropertyInputContainer&amp; inputs)
-{
-&nbsp;&nbsp;&nbsp;const Dali::Vector3&amp; position(inputs[0]-&gt;GetVector3());
-
-&nbsp;&nbsp;&nbsp;float distance = fabs(position.x);
-
-&nbsp;&nbsp;&nbsp;// More than 100.0f away, opacity is 0.0f
-&nbsp;&nbsp;&nbsp;if (distance &gt; 100.0f)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current.a = 0.0f;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Otherwise it blends between fully opaque and transparent
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current.a = (100.0f - distance) / 100.0f;
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-
-<p>For more information, see the <span style="font-family: Courier New,Courier,monospace;">New()</span> function in the <span style="font-family: Courier New,Courier,monospace;">Dali::Constraint</span> class (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Constraint.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Constraint.html">wearable</a> applications).</p>
-
-<h3>Using Functors</h3>
-
-<p>If you need to store some data in a struct or class, a functor can be used. Reusing the last example, the color of an actor is changed based on its position along the x axis, but the distance when it is transparent is different for each applied constraint.</p>
-<pre class="prettyprint">
-Dali::Actor actor = Actor::New();
-
-// Create a constraint that targets actor, and uses MyFunctor with a distance of 200
-Dali::Constraint constraint = Dali::Constraint::New&lt; Vector4 &gt;(actor, Dali::Actor::Property::COLOR, MyFunctor(200)); 
-
-// Add the POSITION property as a constraint input
-constraint.AddSource(Dali::LocalSource(Dali::Actor::Property::POSITION)); 
-
-// Apply the constraint
-constraint.Apply(); 
-</pre>
-<p>The following example shows the structure:</p>
-<pre class="prettyprint">
-struct MyFunctor
-{
-&nbsp;&nbsp;&nbsp;// Constructor which takes the distance at which the actor is fully transparent
-&nbsp;&nbsp;&nbsp;MyFunctor(float distance)
-&nbsp;&nbsp;&nbsp;: mDistance(distance)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;// Functor
-&nbsp;&nbsp;&nbsp;void operator()(Dali::Vector4 &amp;current, const Dali::PropertyInputContainer &amp;inputs)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const Dali::Vector3&amp; position(inputs[0]-&gt;GetVector3());
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;float distance = fabs(position.x);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// More than mDistance away, opacity is 0.0f
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (distance &gt; mDistance)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current.a = 0.0f;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Otherwise it blends between fully opaque and transparent
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;current.a = (100.0f - mDistance) / 100.0f;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;// Data
-&nbsp;&nbsp;&nbsp;const float mDistance;
-};
-</pre>
-<p><span style="font-family: Courier New,Courier,monospace;">MyFunctor()</span> can be used also with another constraint with a different distance.</p>
-<p>Instead of using the default functor, another function can be declared in the class or struct and be used as the constraint function.</p>
-<p>For more information, see the <span style="font-family: Courier New,Courier,monospace;">New()</span> function in the <span style="font-family: Courier New,Courier,monospace;">Dali::Constraint</span> class (in <a href="../../../../org.tizen.native.mobile.apireference/classDali_1_1Constraint.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/classDali_1_1Constraint.html">wearable</a> applications).</p>
-
-
-<h2 id="remove" name="remove">Removing Constraints</h2>
-
-<p>The actor&#39;s constraints can later be removed in several ways:</p>
-<pre class="prettyprint">
-mConstraint.Remove(); // mConstraint is a base-handle to a constraint
-actor.RemoveConstraints(); // Removes ALL constraints applied to an actor
-actor.RemoveConstraint(tag); // All constraints with the tag are removed from the actor (tag can be set using SetTag)
-</pre> 
-
-
-<h2 id="equal" name="equal">Setting an Equal To Constraint</h2>
-
-<p>The built-in <span style="font-family: Courier New,Courier,monospace;">Dali::EqualToConstraint</span> function can be used if only setting a property equal to another property is required:</p>
-<pre class="prettyprint">
-Dali::Constraint constraint = Dali::Constraint::New&lt; Vector3 &gt;(actor, Dali::Actor::Property::POSITION, Dali::EqualToConstraint());
-constraint.AddSource(Dali::Source(anotherActor, Dali::Actor::Property::POSITION));
-constraint.Apply();
-</pre>
-<p>Here actor&#39;s position is set to equal the position of <span style="font-family: Courier New,Courier,monospace;">anotherActor</span>.</p>
-
-
-<h2 id="relative" name="relative">Setting a Relative To Constraint</h2>
-
-<p>The built in <span style="font-family: Courier New,Courier,monospace;">Dali::RelativeToConstraint</span> and <span style="font-family: Courier New,Courier,monospace;">Dali::RelativeToConstraintFloat</span> functions can be used if only setting a property relative to another property is required:</p>
-
-<pre class="prettyprint">
-Dali::Constraint constraint = Dali::Constraint::New&lt; Vector3 &gt;(actor, Dali::Actor::Property::POSITION, Dali::RelativeToConstraint(2.0f));
-constraint.AddSource(Dali::Source(anotherActor, Dali::Actor::Property::POSITION));
-constraint.Apply();
-</pre>
-<p>Here the actor&#39;s position is relative to the position of <span style="font-family: Courier New,Courier,monospace;">anotherActor</span>. If <span style="font-family: Courier New,Courier,monospace;">anotherActor</span> is at (10.0f, 20.0f, 30.0f), <span style="font-family: Courier New,Courier,monospace;">actor</span> is at (20.0f, 40.0f, 60.0f).</p>
-
+               </td>
+       </tr>
+       </tbody>
+</table>
 
 
 
