@@ -20,12 +20,12 @@
         <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
     </div>
     <div id="toc_border"><div id="toc">
-         <p class="toc-title">Content</p>
+        <p class="toc-title">Content</p>
         <ul class="toc">
-                <li><a href="#init">Initializing OpenAL</a></li>
-                <li><a href="#request">Requesting a Source and Audio Buffer</a></li>
-                <li><a href="#play">Managing Audio Stream Playback</a></li>
-				<li><a href="#buffer">Using Buffer Queuing for Stream Playback</a></li>
+            <li><a href="#init">Initializing OpenAL</a></li>
+            <li><a href="#request">Requesting a Source and Audio Buffer</a></li>
+            <li><a href="#play">Controlling Audio Stream Playback</a></li>
+            <li><a href="#buffer">Using Buffer Queuing for Stream Playback</a></li>
         </ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
@@ -40,7 +40,7 @@
 
 <h1>OpenAL: Managing Playback Streams</h1>
 
-<p>This tutorial demonstrates how you can manage playback stream using OpenAL.</p>
+<p>This tutorial demonstrates how you can manage a playback stream using OpenAL.</p>
 <p>For additional OpenAL code samples, see <a href="http://kcat.strangesoft.net/openal.html#examples" target="_blank">Example Code</a>.</p>
 
 <h2>Warm-up</h2>
@@ -51,11 +51,11 @@
     <li><a href="#init">Initializing OpenAL</a>
         <p>Initialize OpenAL for use.</p></li>
     <li><a href="#request">Requesting a Source and Audio Buffer</a>
-        <p>Request a source, and prepare and request an audio buffer.</p></li>
-    <li><a href="#play">Managing Audio Stream Playback</a>
-        <p>Play and stop the playback.</p></li>
-	<li><a href="#buffer">Using Buffer Queuing for Stream Playback</a>
-        <p>Queue one or multiple buffers to be used as a streamed audio source.</p></li>	
+        <p>Request a source, and request and prepare an audio buffer.</p></li>
+    <li><a href="#play">Controlling Audio Stream Playback</a>
+        <p>Start and stop playback.</p></li>
+    <li><a href="#buffer">Using Buffer Queuing for Stream Playback</a>
+        <p>Queue one or more buffers to be used for a streamed audio source.</p></li>
 </ul>
 
 <h2 id="init" name="init">Initializing OpenAL</h2>
@@ -72,9 +72,8 @@
 </li>
 
 <li>
-<p>Get and open the default device.</p>
-<p>To retrieve available devices, verify that a given extension is available, query the available device list, and open it.</p>
-<p>To get the available device list, use the <span style="font-family: Courier New,Courier,monospace;">alcGetString()</span> string query function.</p>
+<p>Retrieve the default device name, and open the default device.</p>
+<p>The following example code verifies that a given extension is available, retrieves the names of all available devices and the name of the default device using the <span style="font-family: Courier New,Courier,monospace;">alcGetString()</span> function, and opens the default device using the <span style="font-family: Courier New,Courier,monospace;">alcOpenDevice()</span> function:</p>
 <pre class="prettyprint">
 // Verify that a given extension is available for the current context
 enumeration = alcIsExtensionPresent(NULL, &quot;ALC_ENUMERATION_EXT&quot;);
@@ -83,11 +82,12 @@ if (enumeration == AL_FALSE)
 &nbsp;&nbsp;&nbsp;LOGI(&quot;[%s] enumeration extension not available&quot;, __func__);
 }
 
-// Return a list of available devices
-// Each device name is separated by a single NULL character and the list is terminated with 2 NULL characters
+// Retrieve a list of available devices
+// Each device name is separated by a single NULL character
+// and the list is terminated with 2 NULL characters
 deviceNameList = alcGetString(NULL, ALC_DEVICE_SPECIFIER));
 
-// Get a default device name
+// Retrieve the default device name
 defaultDeviceName = alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER);
 
 // Open the default device
@@ -95,17 +95,17 @@ device = alcOpenDevice(defaultDeviceName);
 if (!device)
 {
 &nbsp;&nbsp;&nbsp;LOGI(&quot;[%s] unable to open default device&quot;, __func__);
-  
+
 &nbsp;&nbsp;&nbsp;return;
 }
 
 LOGI(&quot;[%s] Device : %s &quot;, __func__, alcGetString(device, ALC_DEVICE_SPECIFIER));
 </pre>
-<p>With the default device name, the <span style="font-family: Courier New,Courier,monospace;">alcOpenDevice()</span> function opens the audio device through the pulseaudio layer.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace;">alcOpenDevice()</span> function opens the audio device through the pulseaudio layer.</p>
 </li>
 
 <li>
-<p>If the device is opened successfully, create a context using the <span style="font-family: Courier New,Courier,monospace;">alcCreateContext()</span> function and set the active context using the <span style="font-family: Courier New,Courier,monospace;">alcMakeContextCurrent()</span> with the device. Once the device is associated with a current context, the AL commands are applied to that context.</p>
+<p>If the device is opened successfully, create a context for the device using the <span style="font-family: Courier New,Courier,monospace;">alcCreateContext()</span> function, and set the context as active using the <span style="font-family: Courier New,Courier,monospace;">alcMakeContextCurrent()</span> function:</p>
 
 <pre class="prettyprint">
 // Create context
@@ -114,7 +114,7 @@ if (context == NULL)
 {
 &nbsp;&nbsp;&nbsp;alcCloseDevice(device);
 &nbsp;&nbsp;&nbsp;LOGI(&quot;[%s] failed to create context&quot;, __func__);
-  
+
 &nbsp;&nbsp;&nbsp;return;
 }
 
@@ -124,20 +124,22 @@ if (!alcMakeContextCurrent(context))
 &nbsp;&nbsp;&nbsp;alcDestroyContext(context);
 &nbsp;&nbsp;&nbsp;alcCloseDevice(device);
 &nbsp;&nbsp;&nbsp;LOGI(&quot;[%s] failed to make default context&quot;, __func__);
-  
+
 &nbsp;&nbsp;&nbsp;return;
 }
 </pre>
+<p>Once the device is associated with an active context, the AL commands are applied to that context.</p>
 </li>
 </ol>
 
 <h2 id="request" name="request">Requesting a Source and Audio Buffer</h2>
 
+<p>Playback requires a source object for controlling the playback, and a buffer object for storing the audio data to be played.</p>
 <p>To request a source and audio buffer:</p>
 
 <ol>
 <li>
-<p>You must control sound playing through a source object. Request a source using the <span style="font-family: Courier New,Courier,monospace;">alSources()</span> function and update the source attributes (such as the default gain and sound position).</p>
+<p>Request the source using the <span style="font-family: Courier New,Courier,monospace;">alSources()</span> function, and update the source attributes, such as the default gain and sound position:</p>
 
 <pre class="prettyprint">
 // Request a source name
@@ -152,8 +154,7 @@ alSource3f(source, AL_POSITION, 0, 0, 0);
 </li>
 
 <li>
-<p>Request a buffer and specify the allocated PCM buffer and size.</p>
-<p>In this example, to read the WAV file from file system, the <span style="font-family: Courier New,Courier,monospace;">_data_buffer</span> heap memory is allocated using the <span style="font-family: Courier New,Courier,monospace;">malloc()</span> function. The <span style="font-family: Courier New,Courier,monospace;">dataSize</span> parameter defines the amount of data to be buffered.</p>
+<p>Request the audio buffer, and specify the allocated PCM buffer and size:</p>
 
 <pre class="prettyprint">
 // Request a buffer name
@@ -166,7 +167,9 @@ ALenum format = AL_FORMAT_MONO8;
 alBufferData(buffer, format, _data_buffer, dataSize, frequency);
 </pre>
 
-<p>The following table defines the supported audio sample formats.</p>
+<p>In the above example code, the <span style="font-family: Courier New,Courier,monospace;">_data_buffer</span> parameter points to the audio sample data. The memory for the data has been allocated using the <span style="font-family: Courier New,Courier,monospace;">malloc()</span> function. The <span style="font-family: Courier New,Courier,monospace;">dataSize</span> parameter defines the amount of data to be buffered.</p>
+
+<p>The following table lists the supported audio sample formats:</p>
 
 <table>
 <caption>Table: Supported audio sample formats</caption>
@@ -195,45 +198,44 @@ alBufferData(buffer, format, _data_buffer, dataSize, frequency);
 </li>
 </ol>
 
-<h2 id="play" name="play">Managing Audio Stream Playback</h2>
+<h2 id="play" name="play">Controlling Audio Stream Playback</h2>
 
-<p>You can manage the playback through the following state transition commands:</p>
+<p>To control the playback, use the following state transition functions:</p>
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace;">alSourcePlay(ALuint sName)</span>: Play, replay, or resume a source</li>
-<li><span style="font-family: Courier New,Courier,monospace;">alSourceStop(ALuint sName)</span>: Stop a list of sources</li>
-<li><span style="font-family: Courier New,Courier,monospace;">alSourceRewind(ALuint sName)</span>: Rewind a source (set the playback position to the beginning)</li>
-<li><span style="font-family: Courier New,Courier,monospace;">alSourcePause(ALuint sName)</span>: Pause a source</li></ul>
+<li><span style="font-family: Courier New,Courier,monospace;">alSourcePlay()</span>: Play, replay, or resume a source.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">alSourceStop()</span>: Stop one or more sources.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">alSourceRewind()</span>: Rewind a source (set the playback position to the beginning).</li>
+<li><span style="font-family: Courier New,Courier,monospace;">alSourcePause()</span>: Pause a source.</li></ul>
 
-
-<p>To play or stop the audio stream:</p>
+<p>To start and stop playback:</p>
 
 <ol>
 <li>
-<p>To play the audio stream, implement the start event of the playback action (for example, a start button click)</p>
-<p>In this example, the whole audio buffer is allocated and filled before the playback starts using the <span style="font-family: Courier New,Courier,monospace;">alSourcei()</span> function. The second parameter specifies the source type as static. Start the audio playback right after changing the state to play.</p>
+<p>To play the audio stream, implement the start event of the playback action (for example, a start button click).</p>
+<p>In the following example code, the whole audio buffer is allocated and filled before the playback starts using the <span style="font-family: Courier New,Courier,monospace;">alSourcei()</span> function. The second parameter specifies the source type as static. Start the playback after changing the state to play.</p>
 
 <pre class="prettyprint">
 // Function: _on_click1()
 // Source specifies the current buffer object
 alSourcei(source, AL_BUFFER, buffer);
 
-// Change state to play
+// Change the state to play
 alSourcePlay(source);
 </pre>
 </li>
 
 <li>
-<p>When a stop event is triggered, change the playback state to stop to end the audio playback:</p>
+<p>When a stop event is triggered, change the playback state to stop to end the playback:</p>
 
 <pre class="prettyprint">
 // Function: _on_click2()
-// Change state to stop
+// Change the state to stop
 alSourceStop(source);
 </pre>
 </li>
 
 <li>
-<p>When the playback is finished, release the resources. Clean up the source, buffer, context, and device:</p>
+<p>When the playback is finished, release the resources by cleaning up the source, buffer, context, and device:</p>
 
 <pre class="prettyprint">
 alDeleteSources(1, &amp;source);
@@ -248,13 +250,13 @@ alcCloseDevice(device);
 
 <h2 id="buffer" name="buffer">Using Buffer Queuing for Stream Playback</h2>
 
-<p>OpenAL provides a buffer queuing method for the streamed audio source, in which one or more buffers can be queued and dequeued after consumed:</p>
+<p>OpenAL provides a buffer queuing method for the streamed audio source, in which one or more buffers can be queued and dequeued after consumed.</p>
 
-
+<p>To queue and play multiple buffers:</p>
 
 <ol>
 <li>
-<p>Multiple buffers (or one buffer) must be submitted before you can start the playback:</p>
+<p>Submit one or more buffers before starting the playback:</p>
 
 <pre class="prettyprint">
 #define DATA_CHUNK_SIZE (1024)
@@ -275,12 +277,11 @@ for (iLoop = 0; iLoop &lt; 4; iLoop++)
 </li>
 
 <li>
-<p>Start the playback stream and push the buffer (for example, 1024 bytes) periodically on click events.</p>
-<p>If a loop detects a number of consumed buffers (<span style="font-family: Courier New,Courier,monospace;">iBuffersProcessed</span>) by querying <span style="font-family: Courier New,Courier,monospace;">AL_BUFFERS_PROCESSED</span>, unqueue the consumed buffer with the <span style="font-family: Courier New,Courier,monospace;">alSourceUnqueueBuffers()</span> function. Fill and queue again with the <span style="font-family: Courier New,Courier,monospace;">alSourceQueueBuffers()</span> function to keep the playback going.</p>
-<p>Run the loop in a thread separate from the application main thread.</p>
+<p>Start the playback stream, and push the buffer (for example, 1024 bytes) periodically on click events.</p>
+<p>If a loop detects a consumed buffer (<span style="font-family: Courier New,Courier,monospace;">iBuffersProcessed</span>) by querying <span style="font-family: Courier New,Courier,monospace;">AL_BUFFERS_PROCESSED</span>, dequeue the consumed buffer using the <span style="font-family: Courier New,Courier,monospace;">alSourceUnqueueBuffers()</span> function. To continue the playback, fill and queue the buffer again using the <span style="font-family: Courier New,Courier,monospace;">alSourceQueueBuffers()</span> function. Run the loop in a thread separate from the application main thread.</p>
 
 <pre class="prettyprint">
-// Start to play streamed audio
+// Start playing the streamed audio
 alSourcePlay(source);
 LOGI(&quot;[%s] alSourcePlay&quot;, __func__);
 
@@ -288,18 +289,18 @@ LOGI(&quot;[%s] alSourcePlay&quot;, __func__);
 iBuffersProcessed = 0;
 while (!thread_finish)
 {
-&nbsp;&nbsp;&nbsp;usleep(10 * 1000);  // Sleep 10 msec periodically
+&nbsp;&nbsp;&nbsp;usleep(10 * 1000); // Sleep 10 msec periodically
 
 &nbsp;&nbsp;&nbsp;alGetSourcei(source, AL_BUFFERS_PROCESSED, &amp;iBuffersProcessed);
 
 &nbsp;&nbsp;&nbsp;iTotalBuffersProcessed += iBuffersProcessed;
 &nbsp;&nbsp;&nbsp;ALOGI(&quot;Buffers Processed %d&quot;, iTotalBuffersProcessed);
 
-&nbsp;&nbsp;&nbsp;// For each processed buffer, remove it from the source queue, read next chunk of audio
-&nbsp;&nbsp;&nbsp;// data from disk, fill buffer with new data, and add it to the source queue
+&nbsp;&nbsp;&nbsp;// For each processed buffer, remove it from the source queue, read the next chunk of
+&nbsp;&nbsp;&nbsp;// audio data from the file, fill the buffer with new data, and add it to the source queue
 &nbsp;&nbsp;&nbsp;while (iBuffersProcessed)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Remove the buffer from the queue (uiBuffer contains the buffer ID for the unqueued buffer)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Remove the buffer from the queue (uiBuffer contains the buffer ID for the dequeued buffer)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uiBuffer = 0;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alSourceUnqueueBuffers(source, 1, &amp;uiBuffer);
 
@@ -307,7 +308,7 @@ while (!thread_finish)
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Copy audio data to buffer
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alBufferData(uiBuffer, AL_FORMAT_MONO8, pData, DATA_CHUNK_SIZE, 22050);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Insert audio buffer to source queue
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Insert the audio buffer to the source queue
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alSourceQueueBuffers(source, 1, &amp;uiBuffer);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iBuffersProcessed--;
