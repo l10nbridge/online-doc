@@ -37,9 +37,9 @@
 
 <h2 id="Implementation" name="Implementation">Implementation</h2>
 
-<p>The <span style="font-family: Courier New,Courier,monospace;">ecore_thread_2_cb()</span> function creates the scene which consists of a button  (Evas object) with text. It also creates a thread by using the <span style="font-family: Courier New,Courier,monospace;">pthread_create()</span> function. </p>
+<p>The <span style="font-family: Courier New,Courier,monospace;">ecore_thread_2_cb()</span> function creates the scene which consists of a button (Evas object) with text. It also creates a thread by using the <span style="font-family: Courier New,Courier,monospace;">pthread_create()</span> function. </p>
 
-<p>A parameter of the <span style="font-family: Courier New,Courier,monospace;">pthread_create()</span> function is the <span style="font-family: Courier New,Courier,monospace;">thread_run()</span> callback. In the <span style="font-family: Courier New,Courier,monospace;">thread_run()</span> callback, the <span style="font-family: Courier New,Courier,monospace;">ecore_main_loop_thread_safe_call_sync()</span> function is used with the <span style="font-family: Courier New,Courier,monospace;">thread_safe_call_sync_cb()</span> callback. The <span style="font-family: Courier New,Courier,monospace;">thread_safe_call_sync_cb()</span> callback is in the critical section, to make threads safe for the main loop. Finally, when you exit from current naviframe or window you should correctly handle thread termination (see call of <span style="font-family: Courier New,Courier,monospace;">naviframe_pop_cb()</span>).</p>
+<p>A parameter of the <span style="font-family: Courier New,Courier,monospace;">pthread_create()</span> function is the <span style="font-family: Courier New,Courier,monospace;">thread_run()</span> callback. In the <span style="font-family: Courier New,Courier,monospace;">thread_run()</span> callback, the <span style="font-family: Courier New,Courier,monospace;">ecore_main_loop_thread_safe_call_sync()</span> function is used with the <span style="font-family: Courier New,Courier,monospace;">thread_safe_call_sync_cb()</span> callback. The <span style="font-family: Courier New,Courier,monospace;">thread_safe_call_sync_cb()</span> callback is in the critical section, to make threads safe for the main loop. Finally, when you exit from the current naviframe or window, you must handle the thread termination correctly (see the <span style="font-family: Courier New,Courier,monospace;">naviframe_pop_cb()</span> function).</p>
 
 <pre class="prettyprint">
 #include &lt;pthread.h&gt;
@@ -71,10 +71,10 @@ thread_run(void *arg)
 &nbsp;&nbsp;&nbsp;Evas_Object *btn = arg;
 &nbsp;&nbsp;&nbsp;double t = 0.0;
 &nbsp;&nbsp;&nbsp;Evas_Coord x, y;
-&nbsp;&nbsp;&nbsp;
+
 &nbsp;&nbsp;&nbsp;user_data data;
 &nbsp;&nbsp;&nbsp;data.btn = btn;
-&nbsp;&nbsp;&nbsp;
+
 &nbsp;&nbsp;&nbsp;while (!thread_finish) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x = 150 + (150 * sin(t));
@@ -82,7 +82,7 @@ thread_run(void *arg)
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.x = x;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.y = y;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_main_loop_thread_safe_call_sync(thread_safe_call_sync_cb, &amp;data);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;usleep(1000);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;t += 0.001;
@@ -94,11 +94,10 @@ thread_run(void *arg)
 &nbsp;&nbsp;&nbsp;return NULL;
 }
 
-static Eina_Bool
+Eina_Bool
 naviframe_pop_cb(void *data, Elm_Object_Item *it)
 {
 &nbsp;&nbsp;&nbsp;void *thread_result;
-
 &nbsp;&nbsp;&nbsp;thread_finish = EINA_TRUE;
 &nbsp;&nbsp;&nbsp;pthread_join(thread_id, &amp;thread_result);
 
@@ -109,31 +108,30 @@ void
 ecore_thread_2_cb(void *data, Evas_Object *obj, void *event_info)
 {
 &nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-
 &nbsp;&nbsp;&nbsp;Evas_Object *btn;
+
 &nbsp;&nbsp;&nbsp;Elm_Object_Item *nf_it;
 
-&nbsp;&nbsp;&nbsp;/* Base Layout */
+&nbsp;&nbsp;&nbsp;// Base layout
 &nbsp;&nbsp;&nbsp;ad-&gt;layout = elm_layout_add(ad-&gt;win);
 &nbsp;&nbsp;&nbsp;elm_layout_theme_set(ad-&gt;layout, &quot;layout&quot;, &quot;application&quot;, &quot;default&quot;);
 &nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 &nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;layout);
 
-&nbsp;&nbsp;&nbsp;//Create a Button
+&nbsp;&nbsp;&nbsp;// Create a button
 &nbsp;&nbsp;&nbsp;btn = elm_button_add(ad-&gt;layout);
 &nbsp;&nbsp;&nbsp;elm_object_text_set(btn, &quot;Thread Safe Sync&quot;);
 &nbsp;&nbsp;&nbsp;evas_object_resize(btn, ELM_SCALE_SIZE(350), ELM_SCALE_SIZE(100));
 &nbsp;&nbsp;&nbsp;evas_object_show(btn);
 
-&nbsp;&nbsp;&nbsp;//Create a thread
+&nbsp;&nbsp;&nbsp;// Create a thread
 &nbsp;&nbsp;&nbsp;if (!pthread_create(&amp;thread_id, NULL, thread_run, btn))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;perror(&quot;pthread_create!\n&quot;);
 
-&nbsp;&nbsp;&nbsp;/* Push base layout into naviframe */
+&nbsp;&nbsp;&nbsp;// Push base layout into naviframe
 &nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(ad-&gt;nf, NULL, NULL, NULL, ad-&gt;layout, &quot;empty&quot;);
 &nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(nf_it, naviframe_pop_cb, ad);
 }
-
 </pre>
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>

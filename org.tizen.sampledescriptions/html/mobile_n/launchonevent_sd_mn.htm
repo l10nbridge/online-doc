@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>LaunchOnEventServiceApp Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+  <h1>LaunchOnEventServiceApp Sample Overview</h1>
+<p>The LaunchOnEventServiceApp sample application demonstrates how you can use launch-on-event in your application.</p>
+
+<p>The LaunchOnEventServiceApp is a service application with no user interface. It is launched by launch-on-event operations. When a launch-on-event operation occurs, a message is shown in the notification window. The operations are earjack connection, USB connection, battery charger connection, and incoming messages.</p>
+<p>This service application can be launched by launch-on-event operations when it is not running.</p>
+
+<h2>Prerequisites</h2> 
+<p>To ensure proper application execution, the following privilege must be set:</p>
+			<ul>
+				<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/message.read</span></li>
+			</ul>
+
+
+<h2>Implementation</h2> 
+
+<p>To use launch-on-event:</p>
+<ol>
+<li>Add an <span style="font-family: Courier New,Courier,monospace">&lt;app-control&gt;</span> element in the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file for each operation that can launch the application:
+<ul>
+<li>Earjack connection: <span style="font-family: Courier New,Courier,monospace">event://tizen.system.event.earjack_status</span></li>
+<li>USB connection: <span style="font-family: Courier New,Courier,monospace">event://tizen.system.event.usb_status</span></li>
+<li>Battery charger connection: <span style="font-family: Courier New,Courier,monospace">event://tizen.system.event.battery_charger_status</span></li>
+<li>Incoming message: <span style="font-family: Courier New,Courier,monospace">event://tizen.system.event.incoming_msg</span></li>
+</ul>
+<pre class="prettyprint">
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=http://tizen.org/appcontrol/operation/launch_on_event/&gt;
+&nbsp;&nbsp;&nbsp;&lt;uri name=&quot;event://tizen.system.event.earjack_status&quot;/&gt;
+&lt;/app-control&gt;
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=http://tizen.org/appcontrol/operation/launch_on_event/&gt;
+&nbsp;&nbsp;&nbsp;&lt;uri name=&quot;event://tizen.system.event.usb_status&quot;/&gt;
+&lt;/app-control&gt;
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=http://tizen.org/appcontrol/operation/launch_on_event/&gt;
+&nbsp;&nbsp;&nbsp;&lt;uri name=&quot;event://tizen.system.event.battery_charger_status&quot;/&gt;
+&lt;/app-control&gt;
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=http://tizen.org/appcontrol/operation/launch_on_event/&gt;
+&nbsp;&nbsp;&nbsp;&lt;uri name=&quot;event://tizen.system.event.incoming_msg&quot;/&gt;
+&lt;/app-control&gt;
+</pre>
+</li>
+
+<li>Manage the operations:
+<ol type="a"><li> 
+<p>Register the <span style="font-family: Courier New,Courier,monospace">app_control</span> event callback that is called when the launch-on-event operation launches the application:</p>
+<pre class="prettyprint">
+int 
+main(int argc, char* argv[])
+{
+&nbsp;&nbsp;&nbsp;Service_app_lifecycle_callback_s event_callback;
+    
+&nbsp;&nbsp;&nbsp;Event_callback.app_control = service_app_control;
+}
+</pre></li>
+
+<li><p>If the operation is <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_LAUNCH_ON_EVENT</span>, use the URI to determine which launch-on-event operation occurred:</p>
+<pre class="prettyprint">
+void 
+service_app_control(app_control_h app_control, void *data)
+{
+&nbsp;&nbsp;&nbsp;char *operation = NULL;
+&nbsp;&nbsp;&nbsp;char *uri = NULL;
+   
+&nbsp;&nbsp;&nbsp;ret = app_control_get_operation(app_control, &amp;operation);
+
+&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE &amp;&amp; operation &amp;&amp; strncmp(operation, APP_CONTROL_OPERATION_LAUNCH_ON_EVENT, strlen(operation)) == 0)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_get_uri(app_control, &amp;uri)
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE &amp;&amp; uri)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strncmp(uri, &quot;event://tizen.system.event.earjack-status&quot;, strlen(uri)) == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Earjack is connected
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strncmp(uri, &quot;event://tizen.system.event.usb-status&quot;, strlen(uri)) == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// USB cable is connected
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strncmp(uri, &quot;event://tizen.system.event.battery_charger_status&quot;, strlen(uri)) == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Battery charger is connected
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strncmp(uri, &quot;event://tizen.system.event.incoming_msg&quot;, strlen(uri)) == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Incoming message received
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li></ol>
+</li>
+</ol>
+
+  
+  
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

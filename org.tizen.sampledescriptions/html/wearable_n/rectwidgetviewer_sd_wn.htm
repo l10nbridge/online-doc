@@ -11,7 +11,7 @@
 	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
 	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
 
-	<title>The (Rectangle) Widget Viewer Overview</title>
+	<title>(Rectangle) Widget Viewer Sample Overview</title>
 </head>
 
 <body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
@@ -26,246 +26,239 @@
 
 <h1>(Rectangle) Widget Viewer Sample Overview</h1>
 
-<p>The (Rectangle) Widget viewer sample application demonstrates how you can use widget service and viewer API.</p>
+<p>The (Rectangle) Widget viewer sample application demonstrates how you can use the <a href="../../../org.tizen.native.wearable.apireference/group__CAPI__WIDGET__SERVICE__MODULE.html">Widget Service</a> and <a href="../../../org.tizen.native.wearable.apireference/group__CAPI__WIDGET__VIEWER__EVAS__MODULE.html">Widget Viewer</a> APIs.</p>
 
-<p>The following figure illustrates two screens of the (Rectangle) Widget viewer sample application: widget and widgets list views.</p>
+<p>The following figure illustrates the screens of the (Rectangle) Widget Viewer application: widget and widget list views.</p>
 
-<p class="figure">Figure 1: (Rectangle) Widget viewer views</p>
-  <p align="center"><img alt="(Rectangle) Widget viewer views" src="../images/rectwidget_viewer0.png" /> <img alt="(Rectangle) Widget viewer views" src="../images/rectwidget_viewer1.png" /></p>
+<p class="figure">Figure: (Rectangle) Widget Viewer views</p>
+  <p align="center"><img alt="(Rectangle) Widget Viewer views" src="../images/rectwidget_viewer0.png" /> <img alt="(Rectangle) Widget Viewer views" src="../images/rectwidget_viewer1.png" /></p>
 
-<p>Click the button to enter list view of widgets installed in the system.</p>
-<p>From there you can select which widget you want to view.</p>
+<p>Click <strong>Widget list</strong> to view the list of widgets installed in the system. In the list, you can select which widget you want to view.</p>
 
-<p class="figure">Figure 2: (Rectangle) Widget viewer UI structure</p>
-  <p align="center"><img alt="(Rectangle) Widget viewer UI structure" src="../images/rectwidget_viewer2.png"/>
+<p>The following figure shows the (Rectangle) Widget Viewer UI structure.</p>
+<p class="figure">Figure: UI structure</p>
+  <p align="center"><img alt="UI structure" src="../images/rectwidget_viewer2.png"/>
   </p>
 
 <h2>Prerequisites</h2>
-<p>To ensure proper application execution, the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/widget.viewer</span> privilege
-must be set. Also there should be some widget applications preinstalled in the system. You could use one of the sample widget applications delivered with SDK.
-You can see it in figure 1. It's documentation can be found <a href="widget_animation_sd_wn.htm">here</a>.</p>
+<ul><li><p>To ensure proper application execution, the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/widget.viewer</span> privilege
+must be set.</p></li>
+<li><p>Some widget application must be preinstalled in the system. You can use the <a href="widget_animation_sd_wn.htm">Widget Animation</a> sample delivered with the SDK.</p></li></ul>
 
 <h2>Implementation</h2>
 
-<h3 id="mainview">Controller module</h3>
+<h3 id="controller">Controller Module</h3>
 
-<p>There are two importatnt functions in this module:</p>
+<p>The controller module contains 2 important functions:</p>
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace">__refresh_avaialable_widgets()</span></li>
-<li><span style="font-family: Courier New,Courier,monospace">__widget_list_cb()</span>.</li>
+<li><span style="font-family: Courier New,Courier,monospace">__refresh_available_widgets()</span>
+<p>The function calls the <span style="font-family: Courier New,Courier,monospace">widget_service_get_widget_list()</span> function, which in turn calls the <span style="font-family: Courier New,Courier,monospace">__widget_list_cb()</span> callback function synchronously for each installed widget found in the system.</p>
+<pre class="prettyprint">
+static bool 
+__refresh_available_widgets(void)
+{
+&nbsp;&nbsp;&nbsp;int res = TIZEN_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;bool clear_list = true;
+
+&nbsp;&nbsp;&nbsp;res = widget_service_get_widget_list(__widget_list_cb, &amp;clear_list);
+
+&nbsp;&nbsp;&nbsp;if (res &lt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, &quot;Error obtaining widgets list or no widgets installed: %s&quot;, get_error_message(res));
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace">__widget_list_cb()</span>
+<p>The callback function takes the following parameters:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">pkgid</span>: Identifier of the widget package</li>
+<li><span style="font-family: Courier New,Courier,monospace">widget_id</span>: Identifier of the widget, which can be the same as <span style="font-family: Courier New,Courier,monospace">pkgid</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">is_prime</span>: Indicates whether the widget is the default one</li>
+<li><span style="font-family: Courier New,Courier,monospace">data</span>: User defined data. In this example, the boolean flag is set to indicate that the old view content must be cleared only once.</li>
+</ul>
+<p>The <span style="font-family: Courier New,Courier,monospace">__widget_list_cb()</span> callback passes the unique widget ID and name to the view part of the application. The following example shows how the list of available widgets is created. The procedure repeats each time you enter the widget list view. The list has to be refreshed because at any time widgets can be installed or uninstalled in the system.</p>
+
+<pre class="prettyprint">
+static int 
+__widget_list_cb(const char *pkgid, const char *widget_id, int is_prime, void *data)
+{
+&nbsp;&nbsp;&nbsp;char *widget_name = NULL;
+
+&nbsp;&nbsp;&nbsp;if (data &amp;&amp; *(bool *)data) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_clear_widgets_options();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*(bool *)data = false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;widget-package: %s widget-id: %s widget is prime: %d&quot;, pkgid, widget_id, is_prime);
+
+&nbsp;&nbsp;&nbsp;if (!widget_service_get_nodisplay(widget_id)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;widget_name = widget_service_get_name(widget_id, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_add_widget_to_options(strndup(widget_id, NAME_MAX), widget_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(widget_name);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return WIDGET_ERROR_NONE;
+}
+</pre>
+</li>
 </ul>
 
-<p>The <span style="font-family: Courier New,Courier,monospace">__refresh_avaialable_widgets()</span> function calls the
-API <span style="font-family: Courier New,Courier,monospace">widget_service_get_widget_list()</span> function, which in turn calls
-the <span style="font-family: Courier New,Courier,monospace">__widget_list_cb()</span> callback function synchronously for each installed widget found in the system.</p>
-<p>The <span style="font-family: Courier New,Courier,monospace">__widget_list_cb()</span> callback function takes the following arguments</p>
+<h3 id="view">View Module</h3>
+
+<p>To implement the view module:</p>
+<ol>
+<li>
+<p>Initialize the widget viewer with the <span style="font-family: Courier New,Courier,monospace">widget_viewer_evas_init()</span> function.</p>
+<p>Use the <span style="font-family: Courier New,Courier,monospace">widget_viewer_evas_fini()</span> function at application exit.</p>
+
+<pre class="prettyprint">
+#define WIDGET_CONTAINER_SIZE 100
+#define WIDGET_SIZES_COUNT 13
+
+bool 
+view_create_gui(refresh_options_event_callback cb)
+{
+&nbsp;&nbsp;&nbsp;int result = TIZEN_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;vd.win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!__create_widget_view())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;result = widget_viewer_evas_init(vd.widget_view);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;vd.options_list = options_list_create(vd.win, __options_item_selection_changed);
+
+&nbsp;&nbsp;&nbsp;// Error handling and common initialization code
+}
+
+static bool 
+__create_widget_view(void)
+{
+&nbsp;&nbsp;&nbsp;// Variable declarations
+
+&nbsp;&nbsp;&nbsp;vd.widget_view = elm_layout_add(vd.win);
+
+&nbsp;&nbsp;&nbsp;// Error handling and common initialization code
+
+&nbsp;&nbsp;&nbsp;grid = elm_grid_add(vd.widget_view);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_grid_size_set(grid, WIDGET_CONTAINER_SIZE, WIDGET_CONTAINER_SIZE);
+&nbsp;&nbsp;&nbsp;elm_layout_content_set(vd.widget_view, MAIN_LAYOUT_WIDGET_CONTAINER, grid);
+
+&nbsp;&nbsp;&nbsp;elm_layout_signal_callback_add(vd.widget_view, OPTIONS_CLICKED_SIG, MAIN_LAYOUT_OPTIONS_LIST_BUTTON,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__option_button_click_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_show(vd.widget_view);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+<li>
+<p>For displaying the widget, the <span style="font-family: Courier New,Courier,monospace">elm_layout</span> with the <span style="font-family: Courier New,Courier,monospace">elm_grid</span> are used as a container. Each time the user selects a new widget to display, the <span style="font-family: Courier New,Courier,monospace">__options_item_selection_changed()</span> function is executed:</p>
+<ol type="a">
+<li>Get the selected widget ID to display.</li>
+<li>To display widget properly, obtain the widget supported sizes with the <span style="font-family: Courier New,Courier,monospace">widget_service_get_supported_sizes()</span> function.
+<p>Note that <span style="font-family: Courier New,Courier,monospace">supported_sizes_count</span> is an in/out parameter. Set it to any number to limit the length of resulting tables: <span style="font-family: Courier New,Courier,monospace">widths</span> and <span style="font-family: Courier New,Courier,monospace">heights</span>. The <span style="font-family: Courier New,Courier,monospace">supported_sizes_count</span> contains the length of these tables upon the function return.</p></li>
+<li><p>If the widget ID is valid and it supports non-zero sizes, create an <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> widget with the <span style="font-family: Courier New,Courier,monospace">widget_viewer_evas_add_widget()</span> function.</p></li></ol>
+<pre class="prettyprint">
+static void 
+__options_item_selection_changed(void)
+{
+&nbsp;&nbsp;&nbsp;// Variable declarations
+
+&nbsp;&nbsp;&nbsp;const char *widget_id = options_list_get_selected_item_data(vd.options_list);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;result = widget_service_get_supported_sizes(widget_id, &amp;supported_sizes_count, &amp;widths, &amp;heights);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;wgt = widget_viewer_evas_add_widget(vd.widget_view, widget_id, NULL, WIDGET_VIEWER_EVAS_DEFAULT_PERIOD);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;widget_viewer_evas_set_permanent_delete(wgt, 1);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(wgt, WIDGET_SMART_SIGNAL_WIDGET_FAULTED, __widget_failure_evas_smart_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(wgt, WIDGET_SMART_SIGNAL_WIDGET_DELETED, __widget_failure_evas_smart_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(wgt, WIDGET_SMART_SIGNAL_PROVIDER_DISCONNECTED, __widget_failure_evas_smart_cb, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_show(wgt);
+</pre>
+</li>
+<li>
+<p>The grid content is cleared with the <span style="font-family: Courier New,Courier,monospace">elm_grid_clear()</span> function and the previous <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> widget is deleted.</p>
+<p>The new <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> widget is packed into the grid and scaled to fit the screen dimensions. To simplify the sample application, only the first supported size is chosen from the list (<span style="font-family: Courier New,Courier,monospace">widths[0]</span> and <span style="font-family: Courier New,Courier,monospace">heights[0]</span>).</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;grid = elm_layout_content_get(vd.widget_view, MAIN_LAYOUT_WIDGET_CONTAINER);
+&nbsp;&nbsp;&nbsp;elm_grid_clear(grid, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;elm_grid_pack(grid, wgt, 0, 0, (int)((float)widths[0] / (float)vd.screen_w * (float)WIDGET_CONTAINER_SIZE),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(int)((float)heights[0] / (float)vd.screen_h * (float)WIDGET_CONTAINER_SIZE));
+
+&nbsp;&nbsp;&nbsp;widget_size_type_e type = WIDGET_SIZE_TYPE_UNKNOWN;
+
+&nbsp;&nbsp;&nbsp;result = widget_service_get_size_type(widths[0], heights[0], &amp;type);
+</pre>
+</li>
+<li>
+<p>Some widgets need a frame (border) around them to be rendered. You can check this with the <span style="font-family: Courier New,Courier,monospace">widget_service_get_need_of_frame()</span> function. If a widget needs a surrounding frame, it is decorated with a red border by sending <span style="font-family: Courier New,Courier,monospace">SHOW_FRAME_SIG</span> to the <span style="font-family: Courier New,Courier,monospace">elm_layout</span> instance.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;if (result == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = widget_service_get_need_of_frame(widget_id, type, &amp;needs_frame);
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (needs_frame) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_layout_signal_emit(vd.widget_view, SHOW_FRAME_SIG, &quot;&quot;);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_layout_signal_emit(vd.widget_view, HIDE_FRAME_SIG, &quot;&quot;);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Common code
+}
+</pre>
+</li>
+<li><p>When the widget is created, it supports the following callbacks:</p>
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace">pkgid</span> - the identifier of the widget's package;</li>
-<li><span style="font-family: Courier New,Courier,monospace">widget_id</span> - the identifier of the widget, which may be the same as pkgid;</li>
-<li><span style="font-family: Courier New,Courier,monospace">is_prime</span> - indicates whether the widget is the default one;</li>
-<li><span style="font-family: Courier New,Courier,monospace">data</span> - user defined data. In this example we set the boolean flag to indicate that the old view content should be cleared only once.</li>
+<li><span style="font-family: Courier New,Courier,monospace">WIDGET_SMART_SIGNAL_WIDGET_FAULTED</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">WIDGET_SMART_SIGNAL_WIDGET_DELETED</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">WIDGET_SMART_SIGNAL_PROVIDER_DISCONNECTED</span></li>
 </ul>
 
-<p>The <span style="font-family: Courier New,Courier,monospace">__widget_list_cb()</span> callback passes widget unique id and name to the view part of this application.
-This is how the list of available widgets is created. The procedure repeats each time you enter widget list view.
-List has to be refreshed because at any time widgets can be installed/uninstalled in the system.</p>
-
-<pre class="prettyprint">
-static bool __refresh_avaialable_widgets(void)
-{
-&nbsp;&nbsp;int res = TIZEN_ERROR_NONE;
-&nbsp;&nbsp;bool clear_list = true;
-
-&nbsp;&nbsp;res = widget_service_get_widget_list(__widget_list_cb, &clear_list);
-
-&nbsp;&nbsp;if (res < 0)
-&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Error obtaining widgets list or no widgets installed: %s", get_error_message(res));
-
-&nbsp;&nbsp;return true;
-}
-</pre>
-
-<pre class="prettyprint">
-static int __widget_list_cb(const char *pkgid, const char *widget_id, int is_prime, void *data)
-{
-&nbsp;&nbsp;char *widget_name = NULL;
-
-&nbsp;&nbsp;if (data && *(bool *)data) {
-&nbsp;&nbsp;&nbsp;&nbsp;view_clear_widgets_options();
-&nbsp;&nbsp;&nbsp;&nbsp;*(bool *)data = false;
-&nbsp;&nbsp;}
-
-&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "widget-package: %s widget-id: %s widget is prime: %d", pkgid, widget_id, is_prime);
-
-&nbsp;&nbsp;if (!widget_service_get_nodisplay(widget_id)) {
-&nbsp;&nbsp;&nbsp;&nbsp;widget_name = widget_service_get_name(widget_id, NULL);
-&nbsp;&nbsp;&nbsp;&nbsp;view_add_widget_to_options(strndup(widget_id, NAME_MAX), widget_name);
-&nbsp;&nbsp;&nbsp;&nbsp;free(widget_name);
-&nbsp;&nbsp;}
-
-&nbsp;&nbsp;return WIDGET_ERROR_NONE;
-}
-</pre>
-
-<h3 id="mainview">View module</h3>
-
-<p>In order to use widget viewer API, it has to be initiated with the <span style="font-family: Courier New,Courier,monospace">widget_viewer_evas_init()</span> function.</p>
-<p>Don't forget to use the <span style="font-family: Courier New,Courier,monospace">widget_viewer_evas_fini()</span> function at application exit.</p>
-
-<pre class="prettyprint">
-&#35;define WIDGET_CONTAINER_SIZE 100
-&#35;define WIDGET_SIZES_COUNT 13
-</pre>
-
-<pre class="prettyprint">
-bool view_create_gui(refresh_options_event_callback cb)
-{
-&nbsp;&nbsp;int result = TIZEN_ERROR_NONE;
-
-&nbsp;&nbsp;vd.win = elm_win_util_standard_add(PACKAGE, PACKAGE);
-
-	// Error handling...
-
-&nbsp;&nbsp;if (!__create_widget_view())
-&nbsp;&nbsp;&nbsp;&nbsp;return false;
-
-&nbsp;&nbsp;result = widget_viewer_evas_init(vd.widget_view);
-
-	// Error handling...
-
-&nbsp;&nbsp;vd.options_list = options_list_create(vd.win, __options_item_selection_changed);
-
-	// Error handling and common initialization code...
-}
-</pre>
-<pre class="prettyprint">
-static bool __create_widget_view(void)
-{
-	// Variables declarations...
-
-&nbsp;&nbsp;vd.widget_view = elm_layout_add(vd.win);
-
-	// Error handling and common initialization code...
-
-&nbsp;&nbsp;grid = elm_grid_add(vd.widget_view);
-
-	// Error handling...
-
-&nbsp;&nbsp;elm_grid_size_set(grid, WIDGET_CONTAINER_SIZE, WIDGET_CONTAINER_SIZE);
-&nbsp;&nbsp;elm_layout_content_set(vd.widget_view, MAIN_LAYOUT_WIDGET_CONTAINER, grid);
-
-&nbsp;&nbsp;elm_layout_signal_callback_add(vd.widget_view, OPTIONS_CLICKED_SIG, MAIN_LAYOUT_OPTIONS_LIST_BUTTON,
-										__option_button_click_cb, NULL);
-&nbsp;&nbsp;evas_object_show(vd.widget_view);
-
-&nbsp;&nbsp;return true;
-}
-</pre>
-
-<p>For displaying the widget, the <span style="font-family: Courier New,Courier,monospace">elm_layout</span> with the <span style="font-family: Courier New,Courier,monospace">elm_grid</span>
-are used as a container (see figure 2).</p>
-<p>Each time the user selects a new widget to display (see figure 1, right), the following code is executed:</p>
-
-<pre class="prettyprint">
-static void __options_item_selection_changed(void)
-{
-	// Variables declarations...
-
-&nbsp;&nbsp;const char *widget_id = options_list_get_selected_item_data(vd.options_list);
-
-	// Error handling...
-
-&nbsp;&nbsp;result = widget_service_get_supported_sizes(widget_id, &supported_sizes_count, &widths, &heights);
-
-	// Error handling...
-
-&nbsp;&nbsp;wgt = widget_viewer_evas_add_widget(vd.widget_view, widget_id, NULL, WIDGET_VIEWER_EVAS_DEFAULT_PERIOD);
-
-	// Error handling...
-
-&nbsp;&nbsp;widget_viewer_evas_set_permanent_delete(wgt, 1);
-&nbsp;&nbsp;evas_object_smart_callback_add(wgt, WIDGET_SMART_SIGNAL_WIDGET_FAULTED, __widget_failure_evas_smart_cb, NULL);
-&nbsp;&nbsp;evas_object_smart_callback_add(wgt, WIDGET_SMART_SIGNAL_WIDGET_DELETED, __widget_failure_evas_smart_cb, NULL);
-&nbsp;&nbsp;evas_object_smart_callback_add(wgt, WIDGET_SMART_SIGNAL_PROVIDER_DISCONNECTED, __widget_failure_evas_smart_cb, NULL);
-&nbsp;&nbsp;evas_object_show(wgt);
-
-&nbsp;&nbsp;grid = elm_layout_content_get(vd.widget_view, MAIN_LAYOUT_WIDGET_CONTAINER);
-&nbsp;&nbsp;elm_grid_clear(grid, EINA_TRUE);
-
-&nbsp;&nbsp;elm_grid_pack(grid, wgt, 0, 0,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(int)((float)widths[0] / (float)vd.screen_w * (float)WIDGET_CONTAINER_SIZE),
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(int)((float)heights[0] / (float)vd.screen_h * (float)WIDGET_CONTAINER_SIZE));
-
-&nbsp;&nbsp;widget_size_type_e type = WIDGET_SIZE_TYPE_UNKNOWN;
-
-&nbsp;&nbsp;result = widget_service_get_size_type(widths[0], heights[0], &type);
-
-&nbsp;&nbsp;if (result == 0)
-&nbsp;&nbsp;&nbsp;&nbsp;result = widget_service_get_need_of_frame(widget_id, type, &needs_frame);
-
-	// Error handling...
-
-&nbsp;&nbsp;if (needs_frame) {
-&nbsp;&nbsp;&nbsp;&nbsp;elm_layout_signal_emit(vd.widget_view, SHOW_FRAME_SIG, "");
-&nbsp;&nbsp;} else {
-&nbsp;&nbsp;&nbsp;&nbsp;elm_layout_signal_emit(vd.widget_view, HIDE_FRAME_SIG, "");
-&nbsp;&nbsp;}
-
-	// Common code...
-}
-</pre>
-
-<p>The firs step in <span style="font-family: Courier New,Courier,monospace">__options_item_selection_changed()</span>
-function is to get the selected widget id to display. Next, to display widget properly, the widget supported sizes are obtained by a call to
-<span style="font-family: Courier New,Courier,monospace">widget_service_get_supported_sizes()</span>.
-Note that <span style="font-family: Courier New,Courier,monospace">supported_sizes_count</span> is in/out parameter.
-Set it to any number to limit the length of resulting tables: <span style="font-family: Courier New,Courier,monospace">widths</span>
-and <span style="font-family: Courier New,Courier,monospace">heights</span>. The <span style="font-family: Courier New,Courier,monospace">supported_sizes_count</span>
-will contain length of these tables upon the function return.</p>
-<p>If widget id is valid and it supports non zero sizes, it is the time to create widget
-<span style="font-family: Courier New,Courier,monospace">Evas_Object</span> with the
-<span style="font-family: Courier New,Courier,monospace">widget_viewer_evas_add_widget()</span> call.</p>
-
-<p>At the beginning, the grid content is cleared (<span style="font-family: Courier New,Courier,monospace">elm_grid_clear()</span>)
-and previous widget <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> is deleted.</p>
-<p> Then the new widget <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> is packed into grid and scaled versus screen dimension.
-To simplify the sample application, only the first supported size is chosen from the list
-(<span style="font-family: Courier New,Courier,monospace">widths[0]</span> and
-<span style="font-family: Courier New,Courier,monospace">heights[0]</span>).
-
-<p>Some widgets need a frame (border) around them to be rendered. One can check this with
-<span style="font-family: Courier New,Courier,monospace">widget_service_get_need_of_frame()</span> function call.
-If a widget needs a surrounding frame, then it is decorated with red border by sending
-<span style="font-family: Courier New,Courier,monospace">SHOW_FRAME_SIG</span> to the
-<span style="font-family: Courier New,Courier,monospace">elm_layout</span>.
-</p>
-
-<p>Also note that the newly created widget supports the following callbacks:</p>
-<ul>
-<li>WIDGET_SMART_SIGNAL_WIDGET_FAULTED</li>
-<li>WIDGET_SMART_SIGNAL_WIDGET_DELETED</li>
-<li>WIDGET_SMART_SIGNAL_PROVIDER_DISCONNECTED</li>
-</ul>
-
-<p>These events may occur upon some error in widget application or it's deinstallation. In case any of these events occur, the
-<span style="font-family: Courier New,Courier,monospace">__widget_failure_evas_smart_cb()</span> callback function is called and
-grid content is cleared.
+<p>These events can occur upon some error in the widget application or its uninstallation. If any of these events occur, the <span style="font-family: Courier New,Courier,monospace">__widget_failure_evas_smart_cb()</span> callback function is called and the grid content is cleared.
 </p>
 
 <pre class="prettyprint">
-static void __widget_failure_evas_smart_cb(void *data, Evas_Object *obj, void *event_info)
+static void 
+__widget_failure_evas_smart_cb(void *data, Evas_Object *obj, void *event_info)
 {
-&nbsp;&nbsp;Evas_Object *grid = NULL;
-&nbsp;&nbsp;widget_evas_event_info_s *ev = (widget_evas_event_info_s *)event_info;
+&nbsp;&nbsp;&nbsp;Evas_Object *grid = NULL;
+&nbsp;&nbsp;&nbsp;widget_evas_event_info_s *ev = (widget_evas_event_info_s *)event_info;
 
-&nbsp;&nbsp;grid = elm_layout_content_get(vd.widget_view, MAIN_LAYOUT_WIDGET_CONTAINER);
+&nbsp;&nbsp;&nbsp;grid = elm_layout_content_get(vd.widget_view, MAIN_LAYOUT_WIDGET_CONTAINER);
 
-&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Removing widget %s on event %d error %d", ev->widget_app_id, ev->event, ev->error);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Removing widget %s on event %d error %d&quot;, ev-&gt;widget_app_id, ev-&gt;event, ev-&gt;error);
 
-&nbsp;&nbsp;elm_grid_clear(grid, EINA_TRUE);
-&nbsp;&nbsp;elm_layout_signal_emit(vd.widget_view, HIDE_FRAME_SIG, "");
+&nbsp;&nbsp;&nbsp;elm_grid_clear(grid, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;elm_layout_signal_emit(vd.widget_view, HIDE_FRAME_SIG, &quot;&quot;);
 }
 </pre>
+</li>
+</ol>
+
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>

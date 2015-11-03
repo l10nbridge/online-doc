@@ -24,18 +24,20 @@
 		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
 </div>
 
-
-
-<h1>Sync Adapter Service Sample Overview</h1>
-<p>The Sync Adapter Service App acts as a sync adapter to <a href="./syncadapterapp_sd_mn.htm">Sync Adapter App</a>. The service application handles all sync requests from Sync Adapter App.</p>
-
-
+<h1>Sync Adapter Service App Sample Overview</h1>
+<p>The Sync Adapter Service App sample application demonstrates how you can create an application that acts as a sync adapter to the <a href="./syncadapterapp_sd_mn.htm">Sync Adapter App</a> UI application. The service application handles all sync requests from the UI application. The Sync Adapter Service App sample demonstrates how the sync callbacks are implemented to handle sync requests.</p>
 
 <h2>Prerequisites</h2>
-<ol>
-<li>Sync Adapter Service App's app id must be <strong>"org.tizen.syncadapterapp.service"</strong>. Because <strong>Sync Adapter App</strong> use this ID as fixed value, when the app communicates with Sync Adapter Service App. Otherwise, app control communication will not be operated properly. <br>Also, Sync Adapter Service App's package name must be <strong>"org.tizen.syncadapterapp"</strong> as same with Sync Adapter App's.</li>
-<li><strong>Sync Adapter App</strong> and <strong>Sync Adapter Service App</strong> packages should be built as coupled each other. For building them like that, please follow below steps. On your Tizen IDE, click right button on Sync Adapter App and select <strong>Properties</strong>. Once you select <strong>Project References</strong>, you can find Sync Adapter Service App. Select the check box for the service application, and click OK. In the Project Explorer view, a message (<strong>with the Sync Adapter App</strong>) appears next to the Sync Adapter Service App project name that you have added to the package.</li>
-<li>To ensure proper application execution, the following privileges must be set:
+<ul>
+<li>Sync Adapter Service App&#39;s app ID must be <span style="font-family: Courier New,Courier,monospace">org.tizen.syncadapterapp.service</span>, because the Sync Adapter App uses this ID as a fixed value when it communicates with the Sync Adapter Service App. Otherwise, the application control communication does not operate properly.
+<p>In addition, the Sync Adapter Service App package name must be <span style="font-family: Courier New,Courier,monospace">org.tizen.syncadapterapp</span> (same as the Sync Adapter App).</p></li>
+<li>The Sync Adapter App and Sync Adapter Service App packages must be coupled during the build process. To couple the packages:
+<ol><li>On the Tizen IDE, right-click the Sync Adapter App project and select <strong>Properties</strong>.</li>
+<li>Select <strong>Project References</strong> and find <strong>Sync Adapter Service App</strong>.</li>
+<li>Select the <strong>Sync Adapter Service App</strong> check box and click <strong>OK</strong>.</li></ol>
+<p>In the <strong>Project Explorer</strong> view, a <strong>with the Sync Adapter App</strong> message appears next to the Sync Adapter Service App project name showing that you have coupled it successfully.</p></li>
+<li>
+<p>To ensure proper application execution, the following privileges must be set:</p>
 <ul>
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.read</span></li>
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/account.write</span></li>
@@ -44,88 +46,98 @@
 	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/packagemanager.info</span></li>
 </ul>
 </li>
-<li>Register the service application as a sync adapter by passing the sync callback functions to the following sync adapter API.
+</ul>
+
+
+<h2>Implementation</h2>
+
+<h3>Application Initialization</h3>
+
+<p>Register the service application as a sync adapter by passing the sync callbacks to the <span style="font-family: Courier New,Courier,monospace">sync_adapter_set_callbacks()</span> function:</p>
 <pre class="prettyprint">
-bool service_app_create(void *data)
+bool 
+service_app_create(void *data)
 {
-	dlog_print(DLOG_INFO, LOG_TAG, "service_app_create called");
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;service_app_create called&quot;);
 
-	sync_adapter_set_callbacks(handleStartSync, handleStopSync);
-	...
-	...
+&nbsp;&nbsp;&nbsp;sync_adapter_set_callbacks(handleStartSync, handleStopSync);
 
-	return true;
-}</pre>
-</li>
-</ol>
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
 
 
+<h3>Sync Start</h3>
 
-<h2>Start Sync</h2>
-<h3>Handle Start Sync</h3>
-<li>Whenever sync manager schedules a sync job for Sync Adapter App, the following callback function will be tirgger to perform the sync job.
-The Sync Adapter Service App will communicates to Sync Adapter App by using app control.
+<p>Whenever the sync manager schedules a sync job for the Sync Adapter App UI application, the following callback is triggered to perform a sync job. The Sync Adapter Service App communicates the information to the Sync Adapter App UI application using an application control.</p>
 <pre class="prettyprint">
-static bool handleStartSync(account_h account, const char *sync_job_name, const char *sync_capability, bundle *sync_job_user_data)
+static bool 
+handleStartSync(account_h account, const char *sync_job_name, const char *sync_capability, bundle *sync_job_user_data)
 {
-	dlog_print(DLOG_INFO, LOG_TAG, "HandleStartSync called in service app");
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;HandleStartSync called in service app&quot;);
 
-	bool is_data_change = sync_capability ? true : false;
+&nbsp;&nbsp;&nbsp;bool is_data_change = sync_capability ? true : false;
 
-	if (sync_job_name)
-		dlog_print(DLOG_INFO, LOG_TAG, "Sync Job Name [%s]", sync_job_name);
-	else
-		dlog_print(DLOG_INFO, LOG_TAG, "Data Change Sync Job Capability [%s]", sync_capability);
+&nbsp;&nbsp;&nbsp;if (sync_job_name)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Sync Job Name [%s]&quot;, sync_job_name);
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Data Change Sync Job Capability [%s]&quot;, sync_capability);
 
-	if (account) {
-		int id;
-		account_get_account_id(account, &amp;id);
-		dlog_print(DLOG_INFO, LOG_TAG, "account [%d] ", id);
-	} else
-		dlog_print(DLOG_INFO, LOG_TAG, "accountless case");
+&nbsp;&nbsp;&nbsp;if (account)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int id;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;account_get_account_id(account, &amp;id);
 
-	app_control_h app_control;
-	int ret = app_control_create(&amp;app_control);
-	ret = app_control_set_app_id(app_control, SYNC_ADAPTER_APP_ID);
-	if (ret == APP_CONTROL_ERROR_NONE)
-		dlog_print(DLOG_INFO, LOG_TAG, "Launching sync UI app successfully [%s]", SYNC_ADAPTER_APP_ID);
-	else
-		dlog_print(DLOG_INFO, LOG_TAG, "Launching sync UI app failed [%s]", get_error_message(ret));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;account [%d]&quot;, id);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;accountless case&quot;);
 
-	if (is_data_change) {
-		ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/data_change_sync_complete");
-	} else {
-		bool is_periodic = !strcmp(sync_job_name, "Periodic") ? true : false;
-		if (is_periodic)
-			ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/periodic_sync_complete");
-		else
-			ret = app_control_set_operation(app_control, "http://tizen.org/appcontrol/operation/on_demand_sync_complete");
-	}
-	dlog_print(DLOG_INFO, LOG_TAG, "sync operation is completed");
+&nbsp;&nbsp;&nbsp;app_control_h app_control;
+&nbsp;&nbsp;&nbsp;int ret = app_control_create(&amp;app_control);
+&nbsp;&nbsp;&nbsp;ret = app_control_set_app_id(app_control, SYNC_ADAPTER_APP_ID);
+&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Launching sync UI app successfully [%s]&quot;, SYNC_ADAPTER_APP_ID);
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Launching sync UI app failed [%s]&quot;, get_error_message(ret));
 
-	app_control_send_launch_request(app_control, NULL, NULL);
+&nbsp;&nbsp;&nbsp;if (is_data_change) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_set_operation(app_control, &quot;http://tizen.org/appcontrol/operation/data_change_sync_complete&quot;);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool is_periodic = !strcmp(sync_job_name, &quot;Periodic&quot;) ? true : false;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (is_periodic)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_set_operation(app_control, &quot;http://tizen.org/appcontrol/operation/periodic_sync_complete&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_set_operation(app_control, &quot;http://tizen.org/appcontrol/operation/on_demand_sync_complete&quot;);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;sync operation is completed&quot;);
 
-	return true;
-}</pre>
-</li>
+&nbsp;&nbsp;&nbsp;app_control_send_launch_request(app_control, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
 
 
 
-<h2>Stop Sync</h2>
-<h3>Handle Stop Sync</h3>
-<li>This callback function is a notification to inform Sync Adapter Service App to stop and safely cancel ongoing sync job (if any).
+<h3>Sync Stop</h3>
+
+<p>To safely stop and cancel any ongoing sync jobs, use the following callback function:</p>
 <pre class="prettyprint">
-static void handleStopSync(account_h account, const char *capability)
+static void 
+handleStopSync(account_h account, const char *capability)
 {
-	dlog_print(DLOG_INFO, LOG_TAG, "HandleStopSync called in service app");
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;HandleStopSync called in service app&quot;);
 
-	int id;
-	account_get_account_id(account, &amp;id);
-	dlog_print(DLOG_INFO, LOG_TAG, "details %d, %s ", id, capability);
-	dlog_print(DLOG_INFO, LOG_TAG, "HandleStopSync called in client");
-}</pre>
-</li>
-
+&nbsp;&nbsp;&nbsp;int id;
+&nbsp;&nbsp;&nbsp;account_get_account_id(account, &amp;id);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;details %d, %s &quot;, id, capability);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;HandleStopSync called in client&quot;);
+}
+</pre>
 
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
