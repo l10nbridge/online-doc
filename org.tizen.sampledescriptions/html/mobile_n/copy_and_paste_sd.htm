@@ -1,0 +1,243 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Copy And Paste documentation</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<div id="profile">
+	<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+</div>
+
+  <h1>Copy And Paste Sample Overview</h1>
+
+  <p>The Copy And Paste sample application demonstrates how to incorporate copy/cut/paste mechanism into an EFL based application. The sample operates on a predefined text block using system clipboard to perform mentioned operations.</p>
+  <p>The figure below illustrates the views of the application. </p>
+  <p class="figure">Figure: Copy And Paste screens</p>
+  <p style="text-align:center;">
+    <img alt="Main view of the Copy And Paste application" hspace="20" src="../images/copy_and_paste_main_view_sd.png" />
+    <img alt="Drag operation in the Copy And Paste application" hspace="20" src="../images/copy_and_paste_drag_sd.png" />
+	<img alt="Text paste view in the Copy And Paste application" hspace="20" src="../images/copy_and_paste_pasted_sd.png" />
+  </p>
+
+  <p>The main screen consists of two widgets:</p>
+  <ul>
+    <li><span style="font-family: Courier New,Courier,monospace">elm_label</span> - plays the role of the text source widget;</li>
+    <li><span style="font-family: Courier New,Courier,monospace">elm_entry</span> - plays the role of the text sink widget.</li>
+  </ul>
+  <p>Copy-and-paste operation is initiated by a long press on the source widget and performed by a drag and drop operation. The following user actions are supported:</p>
+  <ul>
+    <li>long press on the source widget - the hover window is shown and the text is copied from the source widget to the clipboard and pasted from the clipboard to the hover window;</li>
+    <li>drag the hover window - the hover window follows the mouse pointer;</li>
+	<li>drop to the sink widget - the text is cut from the hover window to the clipboard and pasted from the clipboard to the sink widget. The hover window is hidden.</li>
+  </ul>
+
+  <p class="figure">Figure: Widget layout structure</p>
+  <p style="text-align:center;">
+    <img alt="Widget layout structure" width="614" height="336" hspace="20" src="../images/copy_and_paste_widgets.png" />
+  </p>
+
+<h2>Implementation</h2>
+<p>The <span style="font-family: Courier New,Courier,monospace">controller_application_view_create()</span>
+  function in controller module is responsible for calling view creation specific routines. Also, it attaches all necessary touch (mouse) callbacks.
+</p>
+
+<pre class="prettyprint">
+bool
+controller_application_view_create(void)
+{
+	char full_path_source_extension[FILE_PATH_MAX_LEN] = {0,};
+	char full_path_sink_image[FILE_PATH_MAX_LEN] = {0,};
+
+	_resource_path_compile(SOURCE_THEME_EXTENSION, full_path_source_extension);
+	_resource_path_compile(SINK_IMAGE, full_path_sink_image);
+
+
+	if(!main_window_create())
+	{
+		dlog_print(DLOG_ERROR, LOG_TAG,"View creation failed: on window handle");
+		return false;
+	}
+	if(!main_window_source_wgt_create(full_path_source_extension))
+	{
+		dlog_print(DLOG_ERROR, LOG_TAG,"View creation failed: on source widget");
+		return false;
+	}
+	if(!main_window_sink_entry_wgt_create(full_path_sink_image))
+	{
+		dlog_print(DLOG_ERROR, LOG_TAG,"View creation failed: on sink widget");
+		return false;
+	}
+	if(!main_window_hover_create(full_path_source_extension))
+	{
+		dlog_print(DLOG_ERROR, LOG_TAG,"View creation failed: on hover");
+		return false;
+	}
+
+	_attach_callbacks();
+
+	dlog_print(DLOG_DEBUG, LOG_TAG,"View creation successful");
+
+	return true;
+}
+
+</pre>
+
+<pre class="prettyprint">
+static void
+_attach_callbacks(void)
+{
+	ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_DOWN, _press_cb, NULL);
+	ecore_event_handler_add(ECORE_EVENT_MOUSE_MOVE, _move_cb, NULL);
+	ecore_event_handler_add(ECORE_EVENT_MOUSE_BUTTON_UP, _unpress_cb, NULL);
+}
+</pre>
+
+<p>Each time user touches the screen
+  <span style="font-family: Courier New,Courier,monospace">_press_cb()</span>
+  is called with a hit test. If the hit is in source region, hover window is shown. It uses
+  <span style="font-family: Courier New,Courier,monospace">evas_object_show()</span>
+internally.
+</p>
+
+<pre class="prettyprint">
+static Eina_Bool
+_press_cb(void *data, int type, void *event)
+{
+	Ecore_Event_Mouse_Button *press = (Ecore_Event_Mouse_Button *)event;
+
+				...
+
+	//state test && hit test:
+	if(!(s_controller_data.state == CONTROLLER_STATE_NORMAL &&
+		main_window_source_wgt_hit_test(press->root.x, press->root.y))
+	)
+	{
+		return EINA_TRUE;
+	}
+
+	//paste text from clipboard to hover:
+	main_window_hover_text_paste();
+
+				...
+
+	hover_window_coordinates_set(press->root.x, press->root.y);
+	hover_window_show();
+
+	return EINA_TRUE;
+}
+</pre>
+
+<p>The hover window drag is implemented in controller module's
+  <span style="font-family: Courier New,Courier,monospace">_move_cb()</span>
+  function. It is responsible for changing the window's position and uses
+<span style="font-family: Courier New,Courier,monospace">evas_object_move()</span>
+  internally.
+</p>
+<pre class="prettyprint">
+static Eina_Bool
+_move_cb(void *data, int type, void *event)
+{
+	Ecore_Event_Mouse_Move *move = (Ecore_Event_Mouse_Move *)event;
+
+				...
+
+	hover_window_coordinates_set(move->root.x, move->root.y);
+
+	return EINA_TRUE;
+}
+</pre>
+
+<p>The clipboard mechanism is used to copy the text from the source to the hover window.</p>
+
+<pre class="prettyprint">
+void
+hover_window_text_paste(const char * text_to_paste)
+{
+	//We could just use elm_object_text_set, but for example purpose let's use cnp mechanism:
+
+	//use copy mechanism, fill copy buffer associated with the label:
+	elm_cnp_selection_set(s_view_data.label, ELM_SEL_TYPE_PRIMARY, ELM_SEL_FORMAT_TEXT, text_to_paste, strlen(text_to_paste));
+
+	//get the text from the clipboard and since
+	// we use 'Label' widget type, we have to use custom drop callback: _text_paste_cb
+	elm_cnp_selection_get(s_view_data.label, ELM_SEL_TYPE_PRIMARY, ELM_SEL_FORMAT_TEXT, _text_paste_cb, NULL);
+}
+</pre>
+
+<p>When user releases the mouse or touch,
+  <span style="font-family: Courier New,Courier,monospace">_unpress_cb()</span>
+  is called with a hit test. It checks whether the finger/cursor is in the sink widget area.
+</p>
+
+<pre class="prettyprint">
+static Eina_Bool
+_unpress_cb(void *data, int type, void *event)
+{
+	Ecore_Event_Mouse_Button *unpress = (Ecore_Event_Mouse_Button *)event;
+
+			...
+
+	hover_window_hide();
+
+	//state && hit test
+	if(s_controller_data.state == CONTROLLER_STATE_DRAG &&
+		main_window_sink_wgt_hit_test(unpress->root.x, unpress->root.y)
+	)
+	{
+		main_window_sink_wgt_text_paste();
+	}
+
+			...
+}
+</pre>
+
+<p>After that the clipboard mechanism is used again to copy the text to the sink widget.</p>
+
+<pre class="prettyprint">
+void
+sink_wgt_text_paste(Evas_Object *wgt)
+{
+	//use paste mechanism:
+	//sink widget is of 'Entry' type so callback can be NULL:
+	elm_cnp_selection_get(wgt, ELM_SEL_TYPE_PRIMARY, ELM_SEL_FORMAT_TEXT, NULL, NULL);
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
