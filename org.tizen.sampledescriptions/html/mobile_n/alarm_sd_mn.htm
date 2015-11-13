@@ -1,0 +1,370 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>Alarm Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+
+  <h1>Alarm Sample Overview</h1> 
+
+  <p>The Alarm sample application demonstrates how you can implement recurring and on-time alarms using the <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__ALARM__MODULE.html">Alarm</a> API from the Tizen Application Framework.</p>
+  <p>The following figure illustrates the application views.</p>
+  <p class="figure">Figure: Alarm screens</p>
+  <p align="center"><img alt="Main view" src="../images/alarm_main_view_sd.png" /> <img alt="Recurring alarm view" src="../images/alarm_recurring_sd.png" /> <img alt="On time alarm view" src="../images/alarm_on_time_sd.png" />
+  </p>
+
+  <p>The application is user non-interactive. After it is launched, 2 alarms are registered:</p>
+  <ul>
+    <li>Recurring alarm is invoked 5 times with a 2-second interval.</li>
+    <li>On-time alarm is invoked once, 2 seconds after the last recurring alarm invocation.</li>
+  </ul>
+  <p>The registered alarms are invoked through the <span style="font-family: Courier New,Courier,monospace">app_control</span> event callback. When the callback is triggered, the predefined image and respective alarm text start blinking.</p>
+  <p>The following figure illustrates the user interface layout structure.</p>
+  <p class="figure">Figure: UI layout structure</p>
+  <p align="center"><img alt="UI layout structure" src="../images/alarm_layout_sd.png" /></p>
+
+  <h2>Prerequisites</h2>
+<p>To ensure proper application execution, the following privileges must be set:</p>
+  <ul>
+    <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/systemsettings</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/alarm.set</span></li>
+  </ul>
+
+<h2>Implementation</h2>
+<p>The Alarm application is very simple, so once it is created it handles only 2 types of application life-cycle events: <span style="font-family: Courier New,Courier,monospace">app_create</span>
+and <span style="font-family: Courier New,Courier,monospace">app_control</span>:</p>
+<pre class="prettyprint">
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.create = app_create,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;.app_control = app_control,
+&nbsp;&nbsp;&nbsp;};
+
+&nbsp;&nbsp;&nbsp;int ret = ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+<p>In the above code snippet, the <span style="font-family: Courier New,Courier,monospace">ad</span> variable is used to store application-related data, such as UI object pointers or alarm identifiers.</p>
+
+<p>The application life-cycle event callback functions are called in the following order:</p>
+<ol>
+  <li><span style="font-family: Courier New,Courier,monospace">app_create()</span>
+  <p>The <span style="font-family: Courier New,Courier,monospace">app_create()</span> function is responsible for creating the UI and initializing the alarms by calling the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> and <span style="font-family: Courier New,Courier,monospace">initialize_alarms()</span> functions.</p></li>
+  <li><span style="font-family: Courier New,Courier,monospace">app_control()</span>
+  <p>The <span style="font-family: Courier New,Courier,monospace">app_control()</span> function handles incoming application control requests.</p></li>
+</ol>
+
+<p>As the UI is not the subject of this application, its implementation is not covered in detail - just the following shortened snippet:</p>
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;// Window
+&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+
+&nbsp;&nbsp;&nbsp;// Conformant
+&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+
+&nbsp;&nbsp;&nbsp;// Layout
+&nbsp;&nbsp;&nbsp;ad-&gt;layout = elm_layout_add(ad-&gt;win);
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre>
+
+<h3>Creating Alarms</h3>
+
+<p>To initialize 2 types of alarms, the <span style="font-family: Courier New,Courier,monospace">initialize_alarms()</span> function invokes 2 subfunctions: <span style="font-family: Courier New,Courier,monospace">recurring_alarm_set()</span> and <span style="font-family: Courier New,Courier,monospace">ontime_alarm_set()</span>:</p>
+
+<ul><li>
+<p>The flow of creating a new recurring alarm that is fired with a 2-second delay at 2-second intervals is shown in the following code snippet:</p>
+
+<ol><li>The <span style="font-family: Courier New,Courier,monospace">recurring_alarm_set()</span> function obtains an application control handle through the
+<span style="font-family: Courier New,Courier,monospace">app_control_create()</span> function.</li>
+<li>If the application control handle is obtained successfully, the <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_ALARM_RECURRING</span> custom operation is bound by invoking the <span style="font-family: Courier New,Courier,monospace">app_control_set_operation()</span> function. 
+<p>This operation name is used to identify the alarm within the <span style="font-family: Courier New,Courier,monospace">app_control</span> callback and to distinguish alarm types.</p>
+<p>If the operation is successful, the target application package name is bound next using the <span style="font-family: Courier New,Courier,monospace">app_control_set_app_id()</span> function.</p> 
+<p>Based on the provided package name, the alarm is invoked within the context of the referenced application by the provided package name.</p></li>
+<li>The recurring alarm is set using the <span style="font-family: Courier New,Courier,monospace">alarm_schedule_after_delay()</span> function. 
+<p>In this case, the alarm is scheduled with the
+<span style="font-family: Courier New,Courier,monospace">ALARM_DELAY</span> (2 seconds) delay and <span style="font-family: Courier New,Courier,monospace">ALARMS_INTERVAL</span> (2 seconds) period. As a result, the first alarm invocation occurs after a 2-second delay, and the subsequent alarm invocations occur at 2-second intervals.</p>
+<p>If <span style="font-family: Courier New,Courier,monospace">ALARMS_INTERVAL</span> is set to 0, the alarm is invoked only once after the <span style="font-family: Courier New,Courier,monospace">ALARM_DELAY</span> (2 seconds).</p></li>
+<li>If the <span style="font-family: Courier New,Courier,monospace">alarm_schedule_after_delay()</span> function succeeds, the alarm ID is returned and stored in the <span style="font-family: Courier New,Courier,monospace">appdata_s</span> structure.  The returned alarm ID is assigned to the extra data of the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle by default.</li>
+<li>The application control handle is released with the <span style="font-family: Courier New,Courier,monospace">app_control_destroy()</span> function.</li></ol>
+
+<p>For convenience, the <span style="font-family: Courier New,Courier,monospace">TRACE_ERROR_IF()</span> macro is used to dump the output to the log subsystem.</p>
+
+<pre class="prettyprint">
+void
+recurring_alarm_set(appdata_s *appdata)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;app_control_h app_control;
+
+&nbsp;&nbsp;&nbsp;ret = app_control_create(&amp;app_control);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_create() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = app_control_set_operation(app_control, APP_CONTROL_OPERATION_ALARM_RECURRING);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_set_operation() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_destroy(app_control);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = app_control_set_app_id(app_control, PACKAGE);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_set_app_id() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_destroy(app_control);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = alarm_schedule_after_delay(app_control, ALARM_DELAY, ALARMS_INTERVAL, &amp;appdata-&gt;recurring_alarm_id);
+&nbsp;&nbsp;&nbsp;TRACE_ERROR_IF(ret, &quot;Function alarm_schedule_after_delay() failed.&quot;);
+
+&nbsp;&nbsp;&nbsp;ret = app_control_destroy(app_control);
+&nbsp;&nbsp;&nbsp;TRACE_ERROR_IF(ret, &quot;Function app_control_destroy() failed.&quot;);
+}
+</pre></li>
+
+<li>
+<p>The flow of creating a new on-time alarm that is fired at a specified date and time is shown in the following code snippet:</p>
+
+<ol><li>The <span style="font-family: Courier New,Courier,monospace">ontime_alarm_set()</span> function obtains an application control handle through the
+<span style="font-family: Courier New,Courier,monospace">app_control_create()</span> function.</li>
+<li>If the application control handle is obtained successfully, the <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_ALARM_ONTIME</span> custom operation is bound by invoking the <span style="font-family: Courier New,Courier,monospace">app_control_set_operation()</span> function. 
+<p>This operation name is used to identify the alarm within the <span style="font-family: Courier New,Courier,monospace">app_control</span> callback and to distinguish alarm types.</p>
+<p>If the operation is successful, the target application package name is bound next using the <span style="font-family: Courier New,Courier,monospace">app_control_set_app_id()</span> function.</p> 
+<p>Based on the provided package name, the alarm is invoked within the context of the referenced application.</p></li>
+<li>The on-time alarm is set using the <span style="font-family: Courier New,Courier,monospace">alarm_schedule_at_date()</span> function. 
+<p>In this case, the alarm is scheduled at a specified point in time:</p>
+<p><span style="font-family: Courier New,Courier,monospace">time_t t_alarm = time(NULL) + ALARM_DELAY + ALARMS_INTERVAL * RECURRING_ALARMS_TO_BE_INVOKED;</span></p>
+<p>As a result, the on-time alarm is invoked <span style="font-family: Courier New,Courier,monospace">ALARMS_INTERVAL</span> (2 seconds) after the last recurring alarm is fired.</p></li>
+<li>If the <span style="font-family: Courier New,Courier,monospace">alarm_schedule_at_date()</span> function succeeds, the alarm ID is returned and stored in the <span style="font-family: Courier New,Courier,monospace">appdata_s</span> structure.  The returned alarm ID is assigned to the extra data of the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle by default.</li>
+<li>The application control handle is released with the <span style="font-family: Courier New,Courier,monospace">app_control_destroy()</span> function.</li></ol>
+
+<p>For convenience, the <span style="font-family: Courier New,Courier,monospace">TRACE_ERROR_IF()</span> macro is used to dump the output to the log subsystem.</p>
+
+<pre class="prettyprint">
+static void
+ontime_alarm_set(appdata_s *appdata)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;app_control_h app_control;
+
+&nbsp;&nbsp;&nbsp;ret = app_control_create(&amp;app_control);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_create() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = app_control_set_operation(app_control, APP_CONTROL_OPERATION_ALARM_ONTIME);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_set_operation() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_destroy(app_control);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = app_control_set_app_id(app_control, PACKAGE);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_set_app_id() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_destroy(app_control);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;time_t t_alarm = time(NULL) + ALARM_DELAY + ALARMS_INTERVAL * RECURRING_ALARMS_TO_BE_INVOKED;
+
+&nbsp;&nbsp;&nbsp;ret = alarm_schedule_at_date(app_control, localtime(&amp;t_alarm), 0, &amp;appdata-&gt;ontime_alarm_id);
+&nbsp;&nbsp;&nbsp;TRACE_ERROR_IF(ret, &quot;Function alarm_schedule_at_date() failed.&quot;);
+
+&nbsp;&nbsp;&nbsp;ret = app_control_destroy(app_control);
+&nbsp;&nbsp;&nbsp;TRACE_ERROR_IF(ret, &quot;Function app_control_destroy() failed.&quot;);
+}
+</pre></li></ul>
+
+<p>At this point, all alarms are set and ready to fire as scheduled.</p>
+
+
+<h3>Receiving Alarms</h3>
+
+<p>In order to receive the alarms, you must handle them properly within the <span style="font-family: Courier New,Courier,monospace">app_control()</span> callback function:</p>
+
+<ol>
+<li>
+<p>The <span style="font-family: Courier New,Courier,monospace">app_control()</span> callback function is called whenever an external call from the application framework arrives. First of all, the received
+operation must be extracted using the <span style="font-family: Courier New,Courier,monospace">app_control_get_operation()</span> function. The <span style="font-family: Courier New,Courier,monospace">operation</span> variable holds the name of the operation to be executed and is used to handle appropriate tasks by means of the function execution assigned to the operations:</p>
+<ul>
+  <li><span style="font-family: Courier New,Courier,monospace">recurring_alarm_invoked()</span> for
+	<span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_ALARM_RECURRING</span></li>
+  <li><span style="font-family: Courier New,Courier,monospace">ontime_alarm_invoked()</span> for
+	<span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_ALARM_ONTIME</span></li>
+</ul>
+
+<p>In case of this application, only 2 types of application control operations are supported.</p>
+
+<p>For convenience, the <span style="font-family: Courier New,Courier,monospace">TRACE_ERROR_IF()</span> macro is used to dump the output to the log subsystem.</p>
+
+<pre class="prettyprint">
+static void
+app_control(app_control_h app_control, void *data)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *appdata = (appdata_s*)data;
+&nbsp;&nbsp;&nbsp;char *operation = NULL;
+&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;ret = app_control_get_operation(app_control, &amp;operation);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_get_operation() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (!strncmp(APP_CONTROL_OPERATION_ALARM_RECURRING, operation, strlen(APP_CONTROL_OPERATION_ALARM_RECURRING))) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;recurring_alarm_invoked(app_control, appdata);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!strncmp(APP_CONTROL_OPERATION_ALARM_ONTIME, operation, strlen(APP_CONTROL_OPERATION_ALARM_ONTIME))) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ontime_alarm_invoked(app_control, appdata);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;free(operation);
+}
+</pre></li>
+<li>
+<p>If the alarm control arrives and is recognized as a recurring alarm, the <span style="font-family: Courier New,Courier,monospace">recurring_alarm_invoked()</span> function is called:</p>
+<ol type="a"><li>Identify the alarm by extracting the extra data from the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle using the
+<span style="font-family: Courier New,Courier,monospace">app_control_get_extra_data()</span> function with a predefined 
+<span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_ALARM_ID</span> key name.</li>
+<li>The extracted data contains an identifier of the arrived alarm in a string format. Compare it to the identifier stored in the <span style="font-family: Courier New,Courier,monospace">appdata</span> structure for the created recurring alarm. If the IDs do not match, this is not the alarm you are waiting for.</li>
+<li>To notify the end user about the alarm, send EDJE signals to the UI layer to display visual notifications (image and text message). An additional timer is set to hide the visual notifications after a predefined time interval.</li></ol>
+
+<p>This application assumes that the recurring alarm is invoked <span style="font-family: Courier New,Courier,monospace">RECURRING_ALARMS_TO_BE_INVOKED</span> (5) times. So, if the number of recurring alarms invocations exceeds 5, the alarm is canceled with the <span style="font-family: Courier New,Courier,monospace">alarm_cancel()</span> function.</p>
+
+<pre class="prettyprint">
+static void
+recurring_alarm_invoked(app_control_h app_control, appdata_s *appdata)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;char *alarm_data = NULL;
+
+&nbsp;&nbsp;&nbsp;ret = app_control_get_extra_data(app_control, APP_CONTROL_DATA_ALARM_ID, &amp;alarm_data);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_get_extra_data() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (atoi(alarm_data) != appdata-&gt;recurring_alarm_id) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;appdata-&gt;recurring_alarm_count++;
+
+&nbsp;&nbsp;&nbsp;alarm_fired_signal_emit(appdata, PART_RECURRING_ALARM_STATE_TEXT);
+
+&nbsp;&nbsp;&nbsp;ecore_timer_add(ALARM_MESSAGE_TIMEOUT, recurring_alarm_timer_cb, appdata);
+
+&nbsp;&nbsp;&nbsp;char *time_str = current_time_get();
+&nbsp;&nbsp;&nbsp;TRACE_INFO(&quot;Recurring alarm #%d invoked at %s&quot;, appdata-&gt;recurring_alarm_count, time_str);
+&nbsp;&nbsp;&nbsp;free(time_str);
+
+&nbsp;&nbsp;&nbsp;if (appdata-&gt;recurring_alarm_count &lt; RECURRING_ALARMS_TO_BE_INVOKED) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = alarm_cancel(appdata-&gt;recurring_alarm_id);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function alarm_cancel() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;TRACE_INFO(&quot;Recurring alarm canceled&quot;);
+}
+</pre></li>
+
+<li>
+<p>If the alarm control arrives and is recognized as an on-time alarm, the <span style="font-family: Courier New,Courier,monospace">ontime_alarm_invoked()</span> function is called:</p>
+<ol type="a"><li>Identify the alarm by extracting the extra data from the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle using the <span style="font-family: Courier New,Courier,monospace">app_control_get_extra_data()</span> function with a predefined <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_DATA_ALARM_ID</span> key name.</li>
+<li>The extracted data contains an identifier of the arrived alarm in a string format. Compare it to the identifier stored in the <span style="font-family: Courier New,Courier,monospace">appdata</span> structure for the created on-time alarm. If the IDs do not match, this is not the alarm you are waiting for.</li>
+<li>To notify the end user about the alarm, send EDJE signals to the UI layer to display visual notifications (image and text message).</li></ol>
+
+<p>The on-time alarm needs no canceling, as it is invoked only once.</p>
+
+<pre class="prettyprint">
+static void
+ontime_alarm_invoked(app_control_h app_control, appdata_s *appdata)
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;char *alarm_data = NULL;
+
+&nbsp;&nbsp;&nbsp;ret = app_control_get_extra_data(app_control, APP_CONTROL_DATA_ALARM_ID, &amp;alarm_data);
+&nbsp;&nbsp;&nbsp;if (TRACE_ERROR_IF(ret, &quot;Function app_control_get_extra_data() failed.&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (atoi(alarm_data) != appdata-&gt;ontime_alarm_id) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;alarm_fired_signal_emit(appdata, PART_ONTIME_ALARM_STATE_TEXT);
+
+&nbsp;&nbsp;&nbsp;char *time_str = current_time_get();
+
+&nbsp;&nbsp;&nbsp;TRACE_INFO(&quot;Ontime alarm invoked at %s&quot;, time_str);
+&nbsp;&nbsp;&nbsp;free(time_str);
+}
+</pre></li></ol>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

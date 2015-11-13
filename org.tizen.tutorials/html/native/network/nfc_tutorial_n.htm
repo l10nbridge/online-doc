@@ -27,7 +27,7 @@
 				<ul class="toc">
 					<li><a href="#init">Initializing NFC</a></li>
 					<li><a href="#enable">Enabling and Disabling NFC</a></li>
-					<li><a href="#work">Working with NFC</a></li>
+					<li><a href="#work">Working with NFC Connections and Messages</a></li>
 					<li><a href="#get">Getting a Cached NFC Message</a></li>
 					<li><a href="#cardemulation">Using the Card Emulation Feature</a></li>
 					<li><a href="#appcontrol">Using the NFC Application Control</a></li>
@@ -61,13 +61,13 @@
 		<li>NFC
 			<ul>
 				<li><a href="#init">Initializing NFC</a>
-				<p>Initialize NFC for use.</p></li>
+				<p>Check whether NFC is supported in the device and initialize NFC for use.</p></li>
 				<li><a href="#enable">Enabling and Disabling NFC</a>
-				<p>Enable or disable NFC using the toggle application.</p></li>
-				<li><a href="#work">Working with NFC</a>
-				<p>Initialize NFC asynchronously, set the NFC tag filter, and register all necessary NFC callbacks.</p></li>
+				<p>Open the NFC settings application to allow the user to enable or disable NFC.</p></li>
+				<li><a href="#work">Working with NFC Connections and Messages</a>
+				<p>Register all necessary NFC callbacks and handle connection events.</p></li>
 				<li><a href="#get">Getting a Cached NFC Message</a>
-				<p>Initialize NFC synchronously and get a cached NFC message.</p></li>
+				<p>Get a cached NFC message.</p></li>
 				<li><a href="#cardemulation">Using the Card Emulation Feature</a>
 				<p>Create a card emulation application.</p></li>
 				<li><a href="#appcontrol">Using the NFC Application Control</a>
@@ -87,14 +87,6 @@
 	
  <h2 id="init" name="init">Initializing NFC</h2>
 
-<p>Near Field Communication (NFC) is an international standard (<a href="http://www.iso.org/iso/catalogue_detail.htm?csnumber=38578" target="blank">ISO/IEC 18092</a>) that specifies an interface and a protocol for simple wireless interconnection of closely coupled devices. There are 3 groups of application scenarios for NFC:</p>
-
-<ul><li>Device close to a wireless tag</li>
-<li>Device close to another device (target)</li>
-<li>Device close to a point of sales terminal</li></ul>
-
-<p>In the NFC tutorial, the NFC API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__NFC__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__NFC__MODULE.html">wearable</a> applications) is used to write an application which initializes the NFC adapter and registers callbacks called in case of each connection scenario, so the user is able to work with NFC manually. By connecting your device to the other NFC point (tag, device, or sales terminal), you can invoke the specified callback registered earlier. The second scenario of this tutorial shows how to get the message cached by NFC.</p>
-
 <p>To initialize NFC:</p>
 <ol><li>
 <p>To use the functions and data types of the NFC API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__NFC__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__NFC__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;nfc.h&gt;</span> header file in your application:</p>
@@ -102,7 +94,7 @@
 #include &lt;nfc.h&gt;
 </pre></li>
 
-<li><p>Check whether the device you want to work with supports NFC. This can be done by calling the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_is_supported()</span> function. It takes no parameters and it simply returns <span style="font-family: Courier New,Courier,monospace;">true</span> if NFC is supported on the device and <span style="font-family: Courier New,Courier,monospace;">false</span> otherwise.</p>
+<li><p>Check whether the device you want to work with supports NFC. This can be done by calling the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_is_supported()</span> function. It takes no parameters and returns <span style="font-family: Courier New,Courier,monospace;">true</span> if NFC is supported on the device.</p>
 <pre class="prettyprint">
 void 
 Network_NFC_startup(void)
@@ -115,24 +107,38 @@ Network_NFC_startup(void)
 </pre>
 
 <p>The <span style="font-family: Courier New,Courier,monospace;">gmainloop</span>, which is being created here, is used to wait for the results of calling asynchronous functions.</p></li>
+<li>
+<p>To initialize NFC, call the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_initialize()</span> function to start the initialization:</p>
+<pre class="prettyprint">
+int error_code = NFC_ERROR_NONE;
 
-<li><p>When the work with NFC is finished, the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_deinitialize()</span> function must be called to clear the environment.</p>
+error_code = nfc_manager_initialize();
+if (NFC_ERROR_NONE != error_code) 
+&nbsp;&nbsp;&nbsp;// Error occurred
+
+g_timeout_add(1000, timeout_func, gmainloop);
+g_main_loop_run(gmainloop);
+</pre>
+
+<p>Run <span style="font-family: Courier New,Courier,monospace;">gmainloop</span> to wait for the result of the initialization. It is closed when the time set in the <span style="font-family: Courier New,Courier,monospace;">g_timeout_add()</span> function elapses. This time is in milliseconds so the <span style="font-family: Courier New,Courier,monospace;">timeout_func</span> is called after 1 second passes.</p></li>
+
+<li><p>When the work with NFC is finished, the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_deinitialize()</span> function must be called to clear the environment:</p>
 
 <pre class="prettyprint">
 void 
 Network_NFC_cleanup(void)
 {
-&nbsp;&nbsp;&nbsp;g_main_loop_unref (gmainloop);
+&nbsp;&nbsp;&nbsp;g_main_loop_unref(gmainloop);
 &nbsp;&nbsp;&nbsp;nfc_manager_deinitialize();
 }
 </pre></li></ol>
 
  <h2 id="enable" name="enable">Enabling and Disabling NFC</h2>
 			
-<p>To enable or disable NFC:</p>			
-<p>The NFC API does not contain functions for enabling or disabling NFC. Use the NFC toggle application illustrated in the following figure (off screen on the left and on screen on the right).</p>
-  <p class="figure">Figure: NFC toggle application</p>
-  <p align="center"><img alt="NFC toggle application" src="../../images/nfc_onoff.png" /></p>
+<p>To allow the user to enable or disable NFC, use the <a href="../../../../org.tizen.guides/html/native/app/common_appcontrol_n.htm#settings_nfc">application control</a> to display the NFC settings.</p>
+<p>The NFC API does not contain functions for enabling or disabling NFC. You must display the NFC settings application to allow the user to toggle the NFC state.</p>
+  <p class="figure">Figure: NFC settings application (off screen on the left and on screen on the right)</p>
+  <p align="center"><img alt="NFC settings application" src="../../images/nfc_onoff.png" /></p>
 
 <pre class="prettyprint">
 #include &lt;app_control.h&gt;
@@ -171,34 +177,21 @@ nfc_onoff_operation(void)
 }
 </pre>
 
- <h2 id="work" name="work">Working with NFC</h2>
+ <h2 id="work" name="work">Working with NFC Connections and Messages</h2>
 
-<p>To work with NFC manually, you need to initialize NFC, register for notifications, and work with NFC manually.</p>
+<p>To work with NFC manually, you need to register for notifications and handle connection events:</p>
 
 <ol>
 <li>
-<p>To initialize NFC:</p>
+<p>To register for notifications:</p>
 <ol type="a">
 <li>
-<p>Call the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_initialize()</span> function to start the initialization:</p>
-<pre class="prettyprint">
-int error_code = NFC_ERROR_NONE;
-
-error_code = nfc_manager_initialize();
-if (NFC_ERROR_NONE != error_code) // Error occurred
-
-g_timeout_add(1000, timeout_func, gmainloop);
-g_main_loop_run(gmainloop);
-</pre>
-
-<p>Run <span style="font-family: Courier New,Courier,monospace;">gmainloop</span> to wait for the result of the initialization. It is closed when the time set in the <span style="font-family: Courier New,Courier,monospace;">g_timeout_add()</span> function elapses. This time is in milliseconds so the <span style="font-family: Courier New,Courier,monospace;">timeout_func</span> is called after 1 second passes.</p></li>
-
-<li><p>When the initialization is finished, call the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_activation_changed_cb()</span> function. The function registers the callback that is invoked every time the activation state of NFC changes. The parameters are the activation state changed callback and the data passed to the callback.</p>
+<p>Call the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_activation_changed_cb()</span> function to register a callback that is invoked every time the activation state of NFC changes:</p>
 <pre class="prettyprint">
 error_code = nfc_manager_set_activation_changed_cb(on_nfc_activation_changed, NULL);
 </pre>
 
-<p>In this example, the <span style="font-family: Courier New,Courier,monospace;">on_nfc_activation_changed()</span> callback only informs the user that the activation state has changed.</p>
+<p>Define the callback. In this example, it only informs the user that the activation state has changed.</p>
 <pre class="prettyprint">
 static void 
 on_nfc_activation_changed(bool activated, void *user_data)
@@ -211,75 +204,79 @@ on_nfc_activation_changed(bool activated, void *user_data)
 </pre>
 </li>
 
-<li><p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_tag_filter()</span> function to declare the tag filtering option. Use a bit operation of the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_filter_e</span> type to specify the type of filtering. The default value is <span style="font-family: Courier New,Courier,monospace;">NFC_TAG_FILTER_ALL_ENABLE</span>, which means that all tag types are enabled.</p>
+<li><p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_tag_filter()</span> function to declare the tag filtering option. Use a bit operation of the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_filter_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__NFC__MANAGER__MODULE.html#gaaedb205391ef13ef62d0c9a318a802ad">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__NFC__MANAGER__MODULE.html#gaaedb205391ef13ef62d0c9a318a802ad">wearable</a> applications) to specify the type of filtering. The default value is <span style="font-family: Courier New,Courier,monospace;">NFC_TAG_FILTER_ALL_ENABLE</span>, which means that all tag types are enabled.</p>
 <pre class="prettyprint">
 nfc_manager_set_tag_filter(NFC_TAG_FILTER_ALL_ENABLE);
 </pre></li>
 
-<li><p>Register callback functions to receive discovery notifications for tag, NDEF, peer-to-peer, secure element, and secure element transaction events. To register a callback function for receiving tag discovery notifications, use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_tag_discovered_cb()</span> function. The first parameter is the <span style="font-family: Courier New,Courier,monospace;">on_nfc_tag_discovered()</span> callback function described later in the tutorial. The second parameter is a user data parameter. In this case, that parameter is not needed and you can pass a <span style="font-family: Courier New,Courier,monospace;">NULL</span> value to the function.</p>
+<li><p>Register callback functions to receive discovery notifications for tag, NDEF, peer-to-peer, secure element, and secure element transaction events:</p>
+<ul>
+<li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_tag_discovered_cb()</span> function to register a tag discovery callback:
 <pre class="prettyprint">
 error_code = nfc_manager_set_tag_discovered_cb(on_nfc_tag_discovered, NULL);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre>
-<p>In the same way, register NDEF, peer-to-peer, secure element, and secure element transaction event notifications using:</p>
-<ul><li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_ndef_discovered_cb()</span> function to register an NDEF event notifications with the <span style="font-family: Courier New,Courier,monospace;">on_nfc_ndef_discovered()</span> callback function: 
+</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_ndef_discovered_cb()</span> function to register an NDEF event callback: 
 <pre class="prettyprint">
 error_code = nfc_manager_set_ndef_discovered_cb(on_nfc_ndef_discovered, NULL);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre>
 </li>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_p2p_target_discovered_cb()</span> function to register peer-to-peer event notifications with the <span style="font-family: Courier New,Courier,monospace;">on_nfc_p2p_target_discovered()</span> callback function: 
+<li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_p2p_target_discovered_cb()</span> function to register a peer-to-peer event callback: 
 <pre class="prettyprint">
-error_code = nfc_manager_set_p2p_target_discovered_cb(on_nfc_p2p_target_discovered, NULL);
+error_code = nfc_manager_set_p2p_target_discovered_cb(on_nfc_p2p_target_discovered, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre></li>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_se_event_cb()</span> function to register secure element event notifications with the <span style="font-family: Courier New,Courier,monospace;">on_nfc_se_event()</span> callback function:
+<li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_se_event_cb()</span> function to register a secure element event callback:
 <pre class="prettyprint">
 error_code = nfc_manager_set_se_event_cb(on_nfc_se_event, NULL);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre></li>
-<li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_se_transaction_event_cb()</span> function to register secure element transaction event notifications with the <span style="font-family: Courier New,Courier,monospace;">on_nfc_se_transaction_event()</span> callback function: 
+<li>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_se_transaction_event_cb()</span> function to register a secure element transaction event callback: 
 <pre class="prettyprint">
-error_code = nfc_manager_set_se_transaction_event_cb(NFC_SE_TYPE_ESE, on_nfc_se_transaction_event, NULL);
+error_code = nfc_manager_set_se_transaction_event_cb(NFC_SE_TYPE_ESE, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on_nfc_se_transaction_event, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre></li></ul>
 </li>
 
-<li><p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_is_system_handler_enabled()</span> function to check whether system handling for tag and target discovery is enabled. By default it is enabled. If the function returns <span style="font-family: Courier New,Courier,monospace;">FALSE</span>, enable system handling using the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_system_handler_enable()</span> function and pass the <span style="font-family: Courier New,Courier,monospace;">TRUE</span> value as an input parameter.</p>
+<li><p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_is_system_handler_enabled()</span> function to check whether system handling for tag and target discovery is enabled.</p> 
+<p>By default, the system handling is enabled. If the function returns <span style="font-family: Courier New,Courier,monospace;">FALSE</span>, enable system handling using the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_system_handler_enable()</span> function and pass <span style="font-family: Courier New,Courier,monospace;">TRUE</span> as an input parameter.</p>
 <pre class="prettyprint">
 if (nfc_manager_is_system_handler_enabled() != true)
 &nbsp;&nbsp;&nbsp;nfc_manager_set_system_handler_enable(true);
 </pre></li></ol>
+
+<p>After registering the callbacks, you can start using NFC on the device. You can connect to other devices, resulting in launching the code from the registered callbacks.</p>
 </li>
-<li>To work with NFC manually
-
-<p>After initializing NFC, you can start using NFC on the device. You can connect to other devices, resulting in launching the code from the registered callbacks.</p>
-
-<ul>
-<li id="tag_work" name="tag_work">Work with NFC tags.
-<ol>
-<li>Get the basic tag information. 
-<p>When a tag is discovered, the <span style="font-family: Courier New,Courier,monospace;">on_nfc_tag_discovered()</span> callback registered earlier is called. The first parameter of the function is the NFC discovered type, the second is a tag handle, and the last is user data. In the example, the <span style="font-family: Courier New,Courier,monospace;">on_nfc_tag_discovered()</span> callback prints out the information about the discovered tag.</p>
-
-<p>At the beginning of this callback, the NFC discovered type is checked. It can be <span style="font-family: Courier New,Courier,monospace;">NFC_DISCOVERED_TYPE_ATTACHED</span> if the tag has connected to the device or <span style="font-family: Courier New,Courier,monospace;">NFC_DISCOVERED_TYPE_DETACHED</span> if the tag was detached.  If the tag is attached, you can print out information read from it.</p>
-
-<p>Call the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_get_type()</span> function to get the type of the tag. The first parameter is the handle to the tag and the second is a pointer to a (<span style="font-family: Courier New,Courier,monospace;">nfc_tag_type_e</span>) variable, where the type of the tag is stored.</p>
+<li id="tag_work" name="tag_work">Handling NFC tags and related events:
+<ol type="a">
+<li>Get basic tag information. 
+<p>When a tag is discovered, the <span style="font-family: Courier New,Courier,monospace;">on_nfc_tag_discovered()</span> callback registered earlier is called. In the callback, you can check the NFC discovered type from the first callback parameter. The <span style="font-family: Courier New,Courier,monospace;">nfc_discovered_type_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__NFC__MANAGER__MODULE.html#ga27acb1707c933da6d9180d80a03f4402">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__NFC__MANAGER__MODULE.html#ga27acb1707c933da6d9180d80a03f4402">wearable</a> applications) defines the possible values. If the value is <span style="font-family: Courier New,Courier,monospace;">NFC_DISCOVERED_TYPE_ATTACHED</span>, the tag has connected to the device, and you can read and print out information from the tag:</p>
+<ol type="a">
+<li>
+<p>Get the type of the tag with the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_get_type()</span> function. The first parameter is the tag handle (received in the second callback parameter) and the second is a pointer to an <span style="font-family: Courier New,Courier,monospace;">nfc_tag_type_e</span> variable (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__NFC__TAG__MODULE.html#gac77f833a3dde9e3e12d2171f923d8fcb">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__NFC__TAG__MODULE.html#gac77f833a3dde9e3e12d2171f923d8fcb">wearable</a> applications), where the tag type is stored.</p>
 <pre class="prettyprint">
 nfc_tag_get_type(tag, &amp;tag_type);
 </pre>
-<p>You can also get the size of the NDEF message stored in the tag by calling the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_get_ndef_size()</span> function. The parameters are similar to the ones described above, but instead of the <span style="font-family: Courier New,Courier,monospace;">tag_type</span> variable, the pointer is passed to an unsigned <span style="font-family: Courier New,Courier,monospace;">int</span> variable where the current size of the tag is stored.</p>
+</li>
+<li>
+<p>Get the size of the NDEF message stored in the tag with the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_get_ndef_size()</span> function. The parameters are similar to the ones described above, but instead of the <span style="font-family: Courier New,Courier,monospace;">tag_type</span> variable, the pointer is passed to an unsigned <span style="font-family: Courier New,Courier,monospace;">int</span> variable where the current size of the tag is stored.</p>
 <pre class="prettyprint">
 nfc_tag_get_ndef_size(tag, &amp;size);
 </pre>
 </li>
 <li>
-<p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_get_maximum_ndef_size()</span> function to get the maximum NDEF message size that can be stored in the tag. It also takes 2 parameters, where the first one is a tag handle and the second is a pointer to an unsigned <span style="font-family: Courier New,Courier,monospace;">int</span> where the maximum size of the tag is stored.</p>
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_get_maximum_ndef_size()</span> function to get the maximum NDEF message size that can be stored in the tag. The function takes 2 parameters, where the first one is a tag handle and the second is a pointer to an unsigned <span style="font-family: Courier New,Courier,monospace;">int</span> where the maximum size of the tag is stored.</p>
 <pre class="prettyprint">
 nfc_tag_get_maximum_ndef_size(tag, &amp;maximum_ndef_bytes_size);
 </pre>
 </li>
 <li>
-<p>Retrieve all remaining tag information by calling the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_foreach_information()</span> function. The parameters are the tag that is operated on, the callback that is called for each found pair of key and value in the tag, and the user data that can be passed to the callback. If there is no need to pass any data, <span style="font-family: Courier New,Courier,monospace;">NULL</span> is passed as the last parameter.</p>
+<p>Retrieve all remaining tag information by calling the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_foreach_information()</span> function. The parameters are the tag that is operated on, the callback that is called for each found key and value pair in the tag, and the user data that can be passed to the callback. If there is no need to pass any data, <span style="font-family: Courier New,Courier,monospace;">NULL</span> is passed as the last parameter.</p>
 <pre class="prettyprint">
 error_code = nfc_tag_foreach_information(tag, on_nfc_tag_information_event, NULL);
 
@@ -288,17 +285,20 @@ if (NFC_ERROR_NONE != error_code) // Error occurred
 
 <p>The <span style="font-family: Courier New,Courier,monospace;">on_nfc_tag_information_event()</span> callback prints out the found keys and their values.</p>
 <pre class="prettyprint">
-on_nfc_tag_information_event(const char *key, const unsigned char *value, int value_size, void *user_data)
+on_nfc_tag_information_event(const char *key, const unsigned char *value, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int value_size, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Title: %s, Value: %s&quot;, key, (char*)value);
 
 &nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
-<p><span style="font-family: Courier New,Courier,monospace;">true</span> is returned to continue the iteration over all other pairs of keys and values. If <span style="font-family: Courier New,Courier,monospace;">false</span> is returned, then the iteration stops.</p>
+<p>The iteration over the key and value pairs continues while the callback returns <span style="font-family: Courier New,Courier,monospace;">true</span>.</p>
+</li>
+</ol>
 </li>
 <li>
-<p>Check the NFC tag filter and print it out. This ensures that the callback was called and informs us what kind of a tag filter is set right now. For example, if the callback has not printed any information about the tag, but it printed out that the tag filter is <span style="font-family: Courier New,Courier,monospace;">NFC_TAG_FILTER_ALL_DISABLE</span>, the filter needs to be set to the proper value to read the specific tag type. To check the current tag filter, you can use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_get_tag_filter()</span> function.</p>
+<p>Check the NFC tag filter and print it out. This ensures that the callback was called and informs you what kind of a tag filter is set right now. For example, if the callback has not printed any information about the tag, but it printed out that the tag filter is <span style="font-family: Courier New,Courier,monospace;">NFC_TAG_FILTER_ALL_DISABLE</span>, the filter needs to be set to the proper value to read the specific tag type. To check the current tag filter, use the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_get_tag_filter()</span> function:</p>
 <pre class="prettyprint">
 filter = nfc_manager_get_tag_filter();
 </pre>
@@ -309,9 +309,8 @@ filter = nfc_manager_get_tag_filter();
 error_code = nfc_tag_read_ndef(tag, on_nfc_tag_read_completed, NULL);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre>
-</li>
-<li>
-<p>After the tag message has been read, the <span style="font-family: Courier New,Courier,monospace;">on_nfc_tag_read_completed()</span> callback is called. The parameters are the status of reading the message, the message read from the tag, data passed to the callback. The last one can be <span style="font-family: Courier New,Courier,monospace;">NULL</span> if no data need to be passed.</p>
+
+<p>After the tag message has been read, the <span style="font-family: Courier New,Courier,monospace;">on_nfc_tag_read_completed()</span> callback is called. The parameters are the status of reading the message, the message read from the tag, and data passed to the callback. The last one can be <span style="font-family: Courier New,Courier,monospace;">NULL</span> if no data need to be passed.</p>
 <pre class="prettyprint">
 static void 
 on_nfc_tag_read_completed(int error_code, nfc_ndef_message_h message, void *user_data)
@@ -320,7 +319,15 @@ on_nfc_tag_read_completed(int error_code, nfc_ndef_message_h message, void *user
 }</pre>
 </li>
 <li>
-<p>If there was no error (<span style="font-family: Courier New,Courier,monospace;">error_code == NFC_ERROR_NONE</span>), you can operate on the retrieved message. To present how to use other NFC API functionality, 2 additional functions have been presented.</p>
+<p>If the <span style="font-family: Courier New,Courier,monospace;">nfc_tag_read_ndef()</span> function returned no error (<span style="font-family: Courier New,Courier,monospace;">error_code == NFC_ERROR_NONE</span>), you can operate on the retrieved message:</p>
+<ol type="a">
+<li>
+<p>To read information from the message, use the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_read_cb()</span> function. The function takes as a parameter a handle to the tag message. Pass the cloned message to it.</p>
+<pre class="prettyprint">
+nfc_ndef_message_read_cb(clone_message(message));
+</pre>
+
+<p>To create a cloned message:</p>
 <ol type="a">
 <li>
 <p>Clone the message by calling the <span style="font-family: Courier New,Courier,monospace;">clone_message()</span> function.</p>
@@ -334,14 +341,14 @@ nfc_ndef_message_h clone_message(nfc_ndef_message_h msg)
 </pre>
 </li>
 <li>
-<p>Get the copy of the bytes array of the NDEF message with the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_get_rawdata()</span> function. The parameters are the handle to NDEF message, the two-dimensional bytes array, and the size of the bytes array.</p>
+<p>Get the copy of the bytes array of the NDEF message with the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_get_rawdata()</span> function. The parameters are the handle to the NDEF message, the 2-dimensional bytes array, and the size of the bytes array.</p>
 <p>The parameters are variables that must be passed to be fulfilled inside the called function. </p>
 <pre class="prettyprint">
 &nbsp;&nbsp;&nbsp;nfc_ndef_message_get_rawdata(msg, &amp;rawdata, &amp;rawdata_size);
 </pre>
 </li>
 <li>
-<p>Create an NDEF handle from raw serial bytes with the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_create_from_rawdata()</span> function. Use it to create a copy of the message retrieved from the tag. The parameters are the message handle, <span style="font-family: Courier New,Courier,monospace;">rawdata</span>, and <span style="font-family: Courier New,Courier,monospace;">rawdata_size</span>.</p>
+<p>Create an NDEF handle from raw serial bytes with the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_create_from_rawdata()</span> function. Use it to create a copy of the message retrieved from the tag to make it possible to read information from the copy. The parameters are the message handle, <span style="font-family: Courier New,Courier,monospace;">rawdata</span>, and <span style="font-family: Courier New,Courier,monospace;">rawdata_size</span>.</p>
 <p>In the end, <span style="font-family: Courier New,Courier,monospace;">rawdata</span> must be released with the <span style="font-family: Courier New,Courier,monospace;">free()</span> function.</p>
 <pre class="prettyprint">
 &nbsp;&nbsp;&nbsp;nfc_ndef_message_create_from_rawdata(&amp;msg_cp, rawdata, rawdata_size);
@@ -351,11 +358,7 @@ nfc_ndef_message_h clone_message(nfc_ndef_message_h msg)
 }
 </pre>
 </li>
-<li>
-<p>As the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_create_from_rawdata()</span> function created a copy of the message, it is possible to read information from it. The function takes as a parameter a handle to the tag message. Pass the cloned message to it.</p>
-<pre class="prettyprint">
-nfc_ndef_message_read_cb(clone_message(message));
-</pre>
+</ol>
 </li>
 <li>
 <p>Get the number of records stored in the tag message with the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_get_record_count()</span> function. It needs the handle to the message that is operated on and the pointer to an integer which is fulfilled by the function with the number of records in the message.</p>
@@ -397,25 +400,22 @@ if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre></li></ul>
 </li>
 <li>
-<p>To get more information from the tag, specify what type of a tag message you are dealing with. If there is a message with <span style="font-family: Courier New,Courier,monospace;">Type = &quot;T&quot;</span> and the TNF is <span style="font-family: Courier New,Courier,monospace;">NFC_RECORD_TNF_WELL_KNOWN</span>, it is possible to get the following data:</p>
-
-<ul><li>Get the record text with the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_record_get_text()</span> function:
+<p>To get more information from the tag, specify what type of a tag message you are dealing with:</p>
+<ul>
+<li>If there is a message with <span style="font-family: Courier New,Courier,monospace;">Type = &quot;T&quot;</span> and the TNF is <span style="font-family: Courier New,Courier,monospace;">NFC_RECORD_TNF_WELL_KNOWN</span>, it is possible to get the following data:
 <pre class="prettyprint">
+// Get the record text
 error_code = nfc_ndef_record_get_text(record, &amp;text);
 if (NFC_ERROR_NONE != error_code) // Error occurred
-</pre></li>
 
-<li>Get the record text language code by using the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_record_get_langcode()</span> function:
-<pre class="prettyprint">
+// Gett he record text language code
 error_code = nfc_ndef_record_get_langcode(record, &amp;language);
 if (NFC_ERROR_NONE != error_code) // Error occurred
-</pre></li>
 
-<li>Get the record text encoding type by calling <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_record_get_encode_type()</span> function:
-<pre class="prettyprint">
+// Get the record text encoding type
 error_code = nfc_ndef_record_get_encode_type(record, &amp;encode);
 if (NFC_ERROR_NONE != error_code) // Error occurred
-</pre></li></ul>
+</pre>
 </li>
 <li>
 <p>If there is a message with <span style="font-family: Courier New,Courier,monospace;">Type=&quot;U&quot;</span> and TNF is also <span style="font-family: Courier New,Courier,monospace;">NFC_RECORD_TNF_WELL_KNOWN</span>, you can get the URI using the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_record_get_uri()</span> function:</p>
@@ -432,18 +432,20 @@ error_code = nfc_ndef_record_get_mime_type(record, &amp;mime);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre>
 </li>
-</ol>
+</ul>
 </li>
 </ol>
 </li>
+</ol>
+</li>
 
 
-<li>Work with NFC NDEF messages
+<li>Handling NFC NDEF messages and related events: 
 
-<p>The principle of working with NFC NDEF messages is the same as described in working with the NFC tag NDEF message.</p>
+<p>NFC NDEF messages are handled in the same way as NFC tag NDEF messages, described above.</p>
 
-<p>In the registered callback <span style="font-family: Courier New,Courier,monospace;">on_nfc_ndef_discovered()</span>, get the number of records in the message and then iterate through those records.</p>
-<p>After getting the handles to those records, get the payloads of those records.</p>
+<p>In the registered <span style="font-family: Courier New,Courier,monospace;">on_nfc_ndef_discovered()</span> callback, get the number of records in the message and then iterate through those records.</p>
+<p>Retrieve the record handles, and then the record payloads.</p>
 <pre class="prettyprint">
 static void 
 on_nfc_ndef_discovered(nfc_ndef_message_h message, void *user_data)
@@ -456,7 +458,7 @@ on_nfc_ndef_discovered(nfc_ndef_message_h message, void *user_data)
 &nbsp;&nbsp;&nbsp;nfc_ndef_message_get_record_count(message, &amp;count);
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;on_nfc_ndef_discovered %d&quot;, count);
 
-&nbsp;&nbsp;&nbsp;for (i=0; i&lt;count; i++)
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; count; i++)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nfc_ndef_message_get_record(message, i, &amp;record);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nfc_ndef_record_get_payload(record, &amp;payload, &amp;size);
@@ -465,19 +467,12 @@ on_nfc_ndef_discovered(nfc_ndef_message_h message, void *user_data)
 }
 </pre>
 </li>
-<li>Work with NFC P2P target
+<li>Handling a NFC P2P target and related events:
 <ol>
 <li>
-<p>When the device is connected to some P2P target, it is possible to exchange NDEF data with that peer target. It allows:</p>
-<ul><li>Sending NDEF messages</li>
-<li>Receiving NDEF messages</li></ul>
+<p>When the device is connected to a P2P target, you can exchange NDEF data with that peer target by sending and receiving messages.</p>
 
-<p>In this tutorial, the registered callback for such a connection is called <span style="font-family: Courier New,Courier,monospace;">on_nfc_p2p_target_discovered()</span>. It has the following parameters:</p>
-<ul><li>The type of NFC discovery (<span style="font-family: Courier New,Courier,monospace;">nfc_discovered_type_e</span>)</li>
-<li>The handle to the target</li>
-<li>User data</li></ul>
-
-<p>Check the first parameter (<span style="font-family: Courier New,Courier,monospace;">type</span>). If the type is <span style="font-family: Courier New,Courier,monospace;">NFC_DISCOVERED_TYPE_ATTACHED</span>, then it means that the remote device was attached to the device. </p>
+<p>In the registered <span style="font-family: Courier New,Courier,monospace;">on_nfc_p2p_target_discovered()</span> callback, check the value of the first parameter, which defines the type of the NFC discovery using the <span style="font-family: Courier New,Courier,monospace;">nfc_discovered_type_e</span> enumerator (in <a href=".../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__NFC__MANAGER__MODULE.html#ga27acb1707c933da6d9180d80a03f4402">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__NFC__MANAGER__MODULE.html#ga27acb1707c933da6d9180d80a03f4402">wearable</a> applications). If the type is <span style="font-family: Courier New,Courier,monospace;">NFC_DISCOVERED_TYPE_ATTACHED</span>, the remote device is attached to the device:</p>
 <pre class="prettyprint">
 if (type == NFC_DISCOVERED_TYPE_ATTACHED)
 {
@@ -486,15 +481,17 @@ if (type == NFC_DISCOVERED_TYPE_ATTACHED)
 </pre>
 </li>
 <li>
-<p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_p2p_set_data_received_cb()</span> function to register a callback that is invoked when any data from the connected target is received.</p>
-<pre class="prettyprint">error_code = nfc_p2p_set_data_received_cb(target, on_nfc_p2p_read_completed, 0);
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_p2p_set_data_received_cb()</span> function to register a callback that is invoked when any data from the connected target is received:</p>
+<pre class="prettyprint">
+error_code = nfc_p2p_set_data_received_cb(target, on_nfc_p2p_read_completed, 0);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre>
 
-<p>The code of the registered <span style="font-family: Courier New,Courier,monospace;">on_nfc_p2p_read_completed()</span> callback is presented in the following example.</p>
+<p>Use the callback to read the received message. You can check its number of records using the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_get_record_count()</span> function and get more detailed info about the message itself by calling the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_read_cb()</span> function, similarly as with the NFC tag messages described earlier.</p>
 <pre class="prettyprint">
 static void 
-on_nfc_p2p_read_completed(nfc_p2p_target_h target, nfc_ndef_message_h message, void *user_data)
+on_nfc_p2p_read_completed(nfc_p2p_target_h target, nfc_ndef_message_h message, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;void *user_data)
 {
 &nbsp;&nbsp;&nbsp;int count;
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;on_nfc_p2p_read_completed&quot;);
@@ -504,91 +501,87 @@ on_nfc_p2p_read_completed(nfc_p2p_target_h target, nfc_ndef_message_h message, v
 }
 </pre>
 </li>
-<li>
-<p>After reading the message from the remote device, check its number of records using the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_get_record_count()</span> function and get more detailed info about the message by calling the <span style="font-family: Courier New,Courier,monospace;">nfc_ndef_message_read_cb()</span> function described earlier.</p>
-</li>
 </ol>
 </li>
 
-<li>Work with NFC secure element
+<li>Handling NFC secure elements and related events:
 <ol>
 <li>
-<p>The secure element event notification is received through the <span style="font-family: Courier New,Courier,monospace;">on_nfc_se_event()</span> function. The first parameter defines the event type. The second one is user data. In this example it is not used. Depending on the event type, you can take some additional actions.</p>
+<p>The secure element event notification is received through the <span style="font-family: Courier New,Courier,monospace;">on_nfc_se_event()</span> callback. The first parameter defines the event type, which determines the additional actions you can take.</p>
 <pre class="prettyprint">
 static void 
 on_nfc_se_event(nfc_se_event_e event, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;switch (event)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_START_TRANSACTION:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This event notifies the terminal host that it launches
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// an application associated with an NFC application in a
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// UICC (Universal Integrated Circuit Card) host
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Start Transaction&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_END_TRANSACTION:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This event notifies the terminal host that the current transaction
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// in process was ended
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: End Transaction&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_CONNECTIVITY:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// It is a ready signal to communicate UICC (Universal Integrated Circuit
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Card) with terminal host. UICC (Universal Integrated Circuit Card)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// creates a pipe and opens the pipe channel. Then it sends the signal
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// to terminal host or host controller
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Connectivity&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_FIELD_ON:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// When the CLF (Contactless Front-end) detects 5ra RF field, the card
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// RF gate sends the event #NFC_SE_EVENT_FIELD_ON to the card
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// application gate. When there are multiple open card RF gates
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the CLF sends the #NFC_SE_EVENT_FIELD_ON on all open pipes
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// to these gates. Next the CLF starts the initialization
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// and anti-collision process as defined in ISO/IEC 14443-3 [6]
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Field ON&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_FIELD_OFF:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// When the CLF (Contactless Front-end) detects that the RF field
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// is off, the card RF gate sends #NFC_SE_EVENT_FIELD_OFF to
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the card application gate. When there are multiple open card RF
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// gates the CLF sends the #NFC_SE_EVENT_FIELD_OFF to one gate
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// only
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Field OFF&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_TRANSACTION:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This event notifies that an external reader is trying to access a secure
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// element
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Remote Start Transaction&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;default:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: DEFAULT:OTHER&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_START_TRANSACTION:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This event notifies the terminal host that it launches
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// an application associated with an NFC application in a
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// UICC (Universal Integrated Circuit Card) host
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Start Transaction&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_END_TRANSACTION:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This event notifies the terminal host that the current transaction
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// in process was ended
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: End Transaction&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_CONNECTIVITY:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This event is a ready signal for UICC (Universal Integrated Circuit
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Card) to communicate with terminal host. UICC 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// creates a pipe and opens the pipe channel. Then it sends the signal
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// to terminal host or host controller
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Connectivity&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_FIELD_ON:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// When the CLF (Contactless Front-end) detects a 5ra RF field, the card
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// RF gate sends the event #NFC_SE_EVENT_FIELD_ON to the card
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// application gate. When there are multiple open card RF gates,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the CLF sends the #NFC_SE_EVENT_FIELD_ON on all open pipes
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// to these gates. Next the CLF starts the initialization
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// and anti-collision process as defined in ISO/IEC 14443-3 [6]
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Field ON&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_FIELD_OFF:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// When the CLF (Contactless Front-end) detects that the RF field
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// is off, the card RF gate sends the event #NFC_SE_EVENT_FIELD_OFF to
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// the card application gate. When there are multiple open card RF
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// gates the CLF sends the #NFC_SE_EVENT_FIELD_OFF to one gate
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// only
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Field OFF&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case NFC_SE_EVENT_TRANSACTION:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This event signals that an external reader is trying to access a secure
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// element
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: Remote Start Transaction&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;NFC EVENT: DEFAULT:OTHER&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
 } 
 </pre>
 </li>
 <li>
-<p>The secure element transaction event gives you 4 information parameters and user data. You can get the application ID (specified in ISO/IEC 7816-4) from the first parameter, size of aid from the second parameter, the parameter list (specified in ISO/IEC 8825-1) from the third parameter, and the size of the parameter from the next function input parameter.</p>
+<p>The secure element transaction event gives you 4 information parameters and user data. You can get the application ID (specified in ISO/IEC 7816-4) the size of aid, the parameter list (specified in ISO/IEC 8825-1), and the size of the parameter.</p>
 <pre class="prettyprint">
 static void 
 on_nfc_se_transaction_event(nfc_se_type_e se_type, unsigned char *aid, int aid_size, 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *param, int param_size, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Secure Element(SIM/UICC(Universal Integrated Circuit Card)) transaction event data&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Secure Element(SIM/UICC(Universal Integrated Circuit Card)) transaction event data&quot;);
 }
 </pre>
 </li>
 </ol>
 </li>
-</ul></li>
 </ol>
 
  <h2 id="get" name="get">Getting a Cached NFC Message</h2>
 
 <p>To get a cached NFC message:</p>
 
-<ol><li>Initialize NFC.
-<p>To initialize NFC, the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_initialize()</span> function can be used, as shown in <a href="#init">Initializing NFC</a>. </p></li>
+<ol>
 <li>Set the NFC tag filter with the <span style="font-family: Courier New,Courier,monospace;">nfc_manager_set_tag_filter()</span> function:
 <pre class="prettyprint">
 nfc_manager_set_tag_filter(NFC_TAG_FILTER_ALL_ENABLE);
@@ -605,7 +598,7 @@ nfc_ndef_message_h message = NULL;
 error_code = nfc_manager_get_cached_message(&amp;message);
 if (NFC_ERROR_NONE != error_code) // Error occurred
 </pre>
-<p>After getting the message, get the detailed information from the message as it was described earlier. To do this, check whether there were any errors and whether the message is not <span style="font-family: Courier New,Courier,monospace;">NULL</span>.</p>
+<p>After getting the message, get the detailed information from the message as described in <a href="#work">Working with NFC Connections and Messages</a>. First check whether there are any errors and that the message is not <span style="font-family: Courier New,Courier,monospace;">NULL</span>:</p>
 <pre class="prettyprint">
 if (message != NULL)
 {
@@ -636,8 +629,8 @@ if (ret != NFC_ERROR_NONE)
 }
 </pre>
 </li>
-<li>Use the app control to <a href="#enable">enable NFC</a>.</li>
-<li>Make sure that card emulation is enabled. If not, enable it.
+<li>Use the NFC settings app control to <a href="#enable">enable NFC</a>.</li>
+<li>Make sure that card emulation is enabled:
 <pre class="prettyprint">
 nfc_se_card_emulation_mode_type_e ce_type;
 
@@ -666,12 +659,15 @@ else
 <p>To tell the platform which AID groups are requested by application, a metadata element must be included in the manifest file:</p>
 <pre class="prettyprint">
 &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
-&lt;manifest xmlns=&quot;http://tizen.org/ns/packages&quot; api-version=&quot;2.3.1&quot; package=&quot;org.tizen.basicuiapplication&quot; version=&quot;1.0.0&quot;&gt;
+&lt;manifest xmlns=&quot;http://tizen.org/ns/packages&quot; api-version=&quot;2.3.1&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;package=&quot;org.tizen.basicuiapplication&quot; version=&quot;1.0.0&quot;&gt;
 &nbsp;&nbsp;&nbsp;&lt;profile name=&quot;wearable&quot; /&gt;
-&nbsp;&nbsp;&nbsp;&lt;ui-application appid=&quot;org.tizen.basicuiapplication&quot; exec=&quot;basicuiapplication&quot; type=&quot;capp&quot; multiple=&quot;false&quot; taskmanage=&quot;true&quot; nodisplay=&quot;false&quot;&gt;
+&nbsp;&nbsp;&nbsp;&lt;ui-application appid=&quot;org.tizen.basicuiapplication&quot; exec=&quot;basicuiapplication&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type=&quot;capp&quot; multiple=&quot;false&quot; taskmanage=&quot;true&quot; nodisplay=&quot;false&quot;&gt;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;icon&gt;basicuiapplication.png&lt;/icon&gt;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;label&gt;basicuiapplication&lt;/label&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;metadata key=&quot;http://tizen.org/metadata/nfc_cardemulation&quot; value=&quot;/shared/res/wallet.xml&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;metadata key=&quot;http://tizen.org/metadata/nfc_cardemulation&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value=&quot;/shared/res/wallet.xml&quot;/&gt;
 &nbsp;&nbsp;&nbsp;&lt;/ui-application&gt;
 &lt;/manifest&gt;
 </pre>
@@ -681,13 +677,14 @@ else
 <p>The <span style="font-family: Courier New,Courier,monospace;">value</span> attribute is a relative path starting from the application root path.</p></li>
 </ul>
 </li>
-<li><p>The metadata element points to an AID XML file. The following is an example of this file with AID declaration.</p>
+<li><p>The metadata element points to an AID XML file. The following is an example of the file with an AID declaration:</p>
 <pre class="prettyprint">
 &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
 &lt;application name=&quot;org.tizen.basicuiapplication&quot;&gt;
 &nbsp;&nbsp;&nbsp;&lt;wallet&gt;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;aid-group category=&quot;payment&quot;&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;aid aid=&quot;325041592E5359532E4444463031&quot; se_type=&quot;hce&quot; unlock=&quot;false&quot; power=&quot;sleep&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;aid aid=&quot;325041592E5359532E4444463031&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;se_type=&quot;hce&quot; unlock=&quot;false&quot; power=&quot;sleep&quot;/&gt;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/aid-group&gt;
 &nbsp;&nbsp;&nbsp;&lt;/wallet&gt;
 &lt;/application&gt;
@@ -695,7 +692,7 @@ else
 <ul><li>The <span style="font-family: Courier New,Courier,monospace;">application</span> element must contain a <span style="font-family: Courier New,Courier,monospace;">name</span> attribute with an application name.</li>
 <li>The <span style="font-family: Courier New,Courier,monospace;">application</span> element must contain one or more <span style="font-family: Courier New,Courier,monospace;">wallet</span> element, each of which must contain one or more <span style="font-family: Courier New,Courier,monospace;">aid-group</span> element. </li>
 <li>The <span style="font-family: Courier New,Courier,monospace;">aid-group</span> element is required to contain a <span style="font-family: Courier New,Courier,monospace;">category</span> attribute with the <span style="font-family: Courier New,Courier,monospace;">payment</span> or <span style="font-family: Courier New,Courier,monospace;">other</span> value.</li>
-<li>Each <span style="font-family: Courier New,Courier,monospace;">aid-group</span> element must contain one or more <span style="font-family: Courier New,Courier,monospace;">aid</span> element, each of which contains a single AID. The <span style="font-family: Courier New,Courier,monospace;">aid-group</span> can have as much as many <span style="font-family: Courier New,Courier,monospace;">aid</span> elements as you want.</li>
+<li>Each <span style="font-family: Courier New,Courier,monospace;">aid-group</span> element must contain one or more <span style="font-family: Courier New,Courier,monospace;">aid</span> element, each of which contains a single AID. The <span style="font-family: Courier New,Courier,monospace;">aid-group</span> can have as many <span style="font-family: Courier New,Courier,monospace;">aid</span> elements as you want.</li>
 <li>The <span style="font-family: Courier New,Courier,monospace;">aid</span> element must contain the <span style="font-family: Courier New,Courier,monospace;">aid</span>, <span style="font-family: Courier New,Courier,monospace;">se_type</span>, <span style="font-family: Courier New,Courier,monospace;">unlock</span>, and <span style="font-family: Courier New,Courier,monospace;">power</span> attributes.</li>
 <li>The <span style="font-family: Courier New,Courier,monospace;">se_type</span> attribute must contain <span style="font-family: Courier New,Courier,monospace;">hce</span>, <span style="font-family: Courier New,Courier,monospace;">ese</span>, or <span style="font-family: Courier New,Courier,monospace;">uicc</span>. The <span style="font-family: Courier New,Courier,monospace;">se_type</span> value can be added later.</li>
 <li>The <span style="font-family: Courier New,Courier,monospace;">unlock</span> attribute must contain one of the following:
@@ -715,7 +712,7 @@ else
 
 <li>Define HCE event handling.
 <p>The application must be able to handle an HCE event from the NFC reader. Define and register a callback that is triggered when data arrives from the NFC reader.</p>
-<p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_hce_send_apdu_response()</span> function to send a response to the NFC reader. The actual data moving between the NFC reader and the application can be anything. The APDU protocol only defines as a promise between the application producer and NFC reader.</p>
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">nfc_hce_send_apdu_response()</span> function to send a response to the NFC reader. The actual data moving between the NFC reader and the application can be anything. The APDU protocol only defines a promise between the application producer and NFC reader.</p>
 
 <pre class="prettyprint">
 static void 
@@ -786,7 +783,8 @@ if (ret != NFC_ERROR_NONE)
 }
 else
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;nfc_se_is_activated_handler_for_aid is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;nfc_se_is_activated_handler_for_aid is failed : %d&quot;, ret);
 }
 
 ret = nfc_se_is_activated_handler_for_category(NFC_SE_TYPE_HCE, 
@@ -808,7 +806,8 @@ if (ret != NFC_ERROR_NONE)
 }
 else
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;nfc_se_is_activated_handler_for_category is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;nfc_se_is_activated_handler_for_category is failed : %d&quot;, ret);
 }
 </pre></li>
 <li>To register or unregister the AID at application runtime, use the <span style="font-family: Courier New,Courier,monospace;">nfc_se_register_aid()</span> and <span style="font-family: Courier New,Courier,monospace;">nfc_se_unregister_aid()</span> functions:
@@ -836,13 +835,15 @@ if (ret != NFC_ERROR_NONE)
 <li>To check whether the application has a registered AID (including a registered AID at the install time), use the <span style="font-family: Courier New,Courier,monospace;">nfc_se_foreach_registered_aids()</span> function (the callback is called for each AID value separately):
 <pre class="prettyprint">
 static void 
-_registered_aid_cb(nfc_se_type_e se_type, const char *aid, bool read_only, void *user_data)
+_registered_aid_cb(nfc_se_type_e se_type, const char *aid, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool read_only, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;registered_aids callback is called&quot;);
 &nbsp;&nbsp;&nbsp;// Do something
 }
 
-ret = nfc_se_foreach_registered_aids(NFC_SE_TYPE_HCE, NFC_CARD_EMULATION_CATEGORY_OTHER, _registered_aid_cb, NULL);
+ret = nfc_se_foreach_registered_aids(NFC_SE_TYPE_HCE, NFC_CARD_EMULATION_CATEGORY_OTHER, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_registered_aid_cb, NULL);
 
 if (ret != NFC_ERROR_NONE)
 {
@@ -1021,36 +1022,39 @@ main(int argc, char* argv[])
 
 <h2 id="appcontrol" name="appcontrol">Using the NFC Application Control</h2>
 
-<p>NFC application controls are events sent by the system to applications when NFC-based payment transactions occur.</p>
-<p>To receive these events, you must define the application control information in the <strong>Application Control</strong> tab of the manifest editor.</p>
+<p>NFC application controls are events sent by the system to applications when NFC-based payment transactions occur. To receive these events, you must define the application control information in the <strong>Application Control</strong> tab of the manifest editor.</p>
 
-<p>The platform supports the following application controls for NFC applications: </p>
+<p>The platform supports the following application control operations for NFC applications: </p>
 <ul>
-<li><span style="font-family: Courier New,Courier,monospace">default_changed</span> operation
+<li><span style="font-family: Courier New,Courier,monospace">default_changed</span>
 
-<p>The system sends the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/nfc/card_emulation/default_changed</span> application control when the default wallet is changed. For example, in <strong>Setting &gt; NFC &gt; Set Default Wallet App</strong>, if the default wallet is changed, an application control with this operation is sent to the selected application (wallet).</p>
+<p>The system sends the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/nfc/card_emulation/default_changed</span> application control event when the default wallet is changed. For example, in <strong>Setting &gt; NFC &gt; Set Default Wallet App</strong>, if the default wallet is changed, an application control with this operation is sent to the selected application (wallet).</p>
 
 <p>You have to define the <span style="font-family: Courier New,Courier,monospace">app_control_cb()</span> callback and register it to <span style="font-family: Courier New,Courier,monospace">ui_app_lifecycle_callback::app_control</span>.</p>
 </li>
-<li><span style="font-family: Courier New,Courier,monospace">host_apdu_service</span> operation
-<p>The system sends the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/nfc/card_emulation/host_apdu_service</span> application control when HCE event occurs. For example, when a mobile device receives a host-based APDU (HCE) event from a POS terminal, an application control with this operation is sent to NFC applications. </p>
+<li><span style="font-family: Courier New,Courier,monospace">host_apdu_service</span>
+<p>The system sends the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/nfc/card_emulation/host_apdu_service</span> application control event when an HCE event occurs. For example, when a mobile device receives a host-based APDU (HCE) event from a POS terminal, an application control with this operation is sent to NFC applications. </p>
 <p>You can get the target AID information using the <span style="font-family: Courier New,Courier,monospace">app_control_get_extra_data()</span> function with the <span style="font-family: Courier New,Courier,monospace">data</span> key. The target AID key comes packaged when the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/nfc/card_emulation/host_apdu_service</span> operation is launching.</p>
 <p>You have to define the <span style="font-family: Courier New,Courier,monospace">app_control_cb()</span> callback and register it to <span style="font-family: Courier New,Courier,monospace">ui_app_lifecycle_callback::app_control</span>.</p>
 </li>
-<li><span style="font-family: Courier New,Courier,monospace">off_host_apdu_service</span> operation
+<li><span style="font-family: Courier New,Courier,monospace">off_host_apdu_service</span>
 
-<p>The system sends the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/nfc/card_emulation/off_host_apdu_service</span> application control when SE transaction occurs. For example, when a mobile device receives an off-host APDU event from a POS terminal, an application control with this operation is sent to NFC applications.</p>
+<p>The system sends the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/nfc/card_emulation/off_host_apdu_service</span> application control event when an SE transaction occurs. For example, when a mobile device receives an off-host APDU event from a POS terminal, an application control with this operation is sent to NFC applications.</p>
 <p>You can get the target AID information using the <span style="font-family: Courier New,Courier,monospace">app_control_get_extra_data()</span> function with the <span style="font-family: Courier New,Courier,monospace">data</span> key. The target AID key comes packaged when the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/nfc/card_emulation/off_host_apdu_service</span> operation is launching.</p>
 <p>You have to define the <span style="font-family: Courier New,Courier,monospace">app_control_cb()</span> callback and register it to <span style="font-family: Courier New,Courier,monospace">ui_app_lifecycle_callback::app_control</span>.</p>
-
 </li>
 </ul>
-<p>The following example shows the use of the application control. To tell the platform which application is registered for the operation:</p>
+<p>To use the NFC application controls:</p>
+<ol>
+<li>
+<p>To tell the platform that your application is registered for the operation, add the applicable operations to the manifest file:</p>
 <pre class="prettyprint">
 &lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
-&lt;manifest xmlns=&quot;http://tizen.org/ns/packages&quot; api-version=&quot;2.3.1&quot; package=&quot;org.tizen.basicuiapplication&quot; version=&quot;1.0.0&quot;&gt;
+&lt;manifest xmlns=&quot;http://tizen.org/ns/packages&quot; api-version=&quot;2.3.1&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;package=&quot;org.tizen.basicuiapplication&quot; version=&quot;1.0.0&quot;&gt;
 &nbsp;&nbsp;&nbsp;&lt;profile name=&quot;wearable&quot; /&gt;
-&nbsp;&nbsp;&nbsp;&lt;ui-application appid=&quot;org.tizen.basicuiapplication&quot; exec=&quot;basicuiapplication&quot; type=&quot;capp&quot; multiple=&quot;false&quot; taskmanage=&quot;true&quot; nodisplay=&quot;false&quot;&gt;
+&nbsp;&nbsp;&nbsp;&lt;ui-application appid=&quot;org.tizen.basicuiapplication&quot; exec=&quot;basicuiapplication&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type=&quot;capp&quot; multiple=&quot;false&quot; taskmanage=&quot;true&quot; nodisplay=&quot;false&quot;&gt;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;icon&gt;basicuiapplication.png&lt;/icon&gt;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;label&gt;basicuiapplication&lt;/label&gt;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;app-control&gt;
@@ -1061,7 +1065,9 @@ main(int argc, char* argv[])
 &nbsp;&nbsp;&nbsp;&lt;/ui-application&gt;
 &lt;/manifest&gt;
 </pre>
-<p>The following example shows the NFC application control code:</p>
+</li>
+<li>
+<p>Define the callback and register it to <span style="font-family: Courier New,Courier,monospace">ui_app_lifecycle_callback::app_control</span>:</p>
 <pre class="prettyprint">
 #define NFC_APPCONTROL_STRING &quot;http://tizen.org/appcontrol/operation/nfc/card_emulation/host_apdu_service&quot;
 
@@ -1096,12 +1102,27 @@ main(int argc, char* argv[])
 &nbsp;&nbsp;&nbsp;return service_app_main(argc, argv, &amp;event_callback, ad);
 }
 </pre>
+</li>
+</ol>
+
 
  <h2 id="init_p2p" name="init_p2p">Initializing NFC P2P</h2>
 
 <p>To initialize NFC P2P:</p>
 <ol>
-<li><p>Make sure you have 2 target devices that support the NFC P2P mode. Note that the device screen must be unlocked to use NFC.</p></li>
+<li><p>Make sure you have 2 target devices that support the NFC P2P mode.</p>
+
+ <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The device screen must be unlocked to use NFC.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+</li>
 <li><p>To use the functions and data types of the NFC API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__NFC__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__NFC__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;nfc.h&gt;</span> header file in your application:</p>
 <pre class="prettyprint">
 #include &lt;nfc.h&gt;
@@ -1110,7 +1131,7 @@ main(int argc, char* argv[])
 <pre class="prettyprint">
 nfc_manager_initialize();
 </pre></li>
-<li><p>After the initialization of the API manager, ensure that NFC is supported and activated on the device. The <span style="font-family: Courier New,Courier,monospace">nfc_manager_is_supported()</span> function checks whether NFC is supported. The <span style="font-family: Courier New,Courier,monospace">nfc_manager_is_activated()</span> function gets the NFC activation state. </p>
+<li><p>After the initialization of the NFC manager, ensure that NFC is supported and activated on the device. The <span style="font-family: Courier New,Courier,monospace">nfc_manager_is_supported()</span> function checks whether NFC is supported. The <span style="font-family: Courier New,Courier,monospace">nfc_manager_is_activated()</span> function gets the NFC activation state. </p>
 <pre class="prettyprint">
 if (!nfc_manager_is_supported()) 
 {
@@ -1118,7 +1139,7 @@ if (!nfc_manager_is_supported())
 }
 if (!nfc_manager_is_activated()) 
 {
-&nbsp;&nbsp;&nbsp;// Report error, switch on NFC
+&nbsp;&nbsp;&nbsp;// Report error, ask the user to switch on NFC
 }
 </pre></li>
 
@@ -1129,14 +1150,16 @@ nfc_manager_deinitialize();
 
  <h2 id="send" name="send">Sending and Receiving a Message through NFC P2P</h2>
 
-<p>To send and receive messages using the NFC P2P mode (a simple NDEF message containing a business card (name, phone number, and e-mail address) of the device owner is prepared and exchanged with the second device):</p>
+<p>This use case prepares a simple NDEF message containing a business card of the device owner (name, phone number, and email address), and exchanges it with a second device.</p>
+
+<p>To send and receive messages using the NFC P2P mode:</p>
 
 <ol><li>Prepare the NDEF message.
 <ol type="a">
 <li>
-<p>An NDEF message consists of several NDEF records. A record payload type is determined by two values: the TNF (Type Name Format) and type. There are a few TNFs and related types of the NDEF records, such as text record, URI record, and MIME record. In this example, only text records are used.</p>
-<p>The sample message in this example contains a name, phone number, and e-mail address of the device owner. Values can be stored in a file or taken from the UI of the application – in this example getting values has been omitted.</p>
-<p>To create a text record, use the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_record_create_text()</span> function. The parameters are a record handle, the text to store, the language code (for example en-US or ko-KR), and the encoding type. The following example creates 3 records for a name, phone number, and e-mail address.</p>
+<p>An NDEF message consists of several NDEF records. A record payload type is determined by 2 values: the TNF (Type Name Format) and type. There are a few TNFs and related types of the NDEF records, such as text record, URI record, and MIME record. In this example, only text records are used.</p>
+<p>The message in this example contains a name, phone number, and email address of the device owner. Values can be stored in a file or taken from the UI of the application – in this example, getting values has been omitted.</p>
+<p>To create a text record, use the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_record_create_text()</span> function. The parameters are a record handle, the text to store, the language code (for example, en-US or ko-KR), and the encoding type. The following example creates 3 records for a name, phone number, and email address:</p>
 <pre class="prettyprint">
 nfc_ndef_record_h ndef_name_record = NULL;
 nfc_ndef_record_h ndef_phone_record = NULL;
@@ -1152,7 +1175,7 @@ nfc_ndef_record_create_text(&amp;ndef_email_record, email, &quot;en-US&quot;, NF
 </pre>
 </li>
 <li>
-<p>When the records are created, they must be appended to a message. Before that, create and initialize an NDEF message using the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_message_create()</span> function. Pass a handle to the created message as the parameter.</p>
+<p>Create and initialize an NDEF message using the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_message_create()</span> function. Pass a handle to the created message as the parameter.</p>
 <pre class="prettyprint">
 nfc_ndef_message_h ndef_message = NULL;
 nfc_ndef_message_create(&amp;ndef_message);
@@ -1168,13 +1191,13 @@ nfc_ndef_message_append_record(ndef_message, ndef_email_record);
 </ol>
 </li>
 
-<li>Notify the application about the discovered P2P target.
-<p>To exchange messages using P2P, first register a callback for receiving notifications about discovered P2P targets using the <span style="font-family: Courier New,Courier,monospace">nfc_manager_set_p2p_target_discovered_cb()</span> function. When the P2P target is discovered, the callback provides a handle to that device and information on whether it is attached or detached.</p>
+<li>Register a callback to receive notifications about discovered P2P targets. 
+<p>To exchange messages using P2P, register a callback for receiving notifications about discovered P2P targets using the <span style="font-family: Courier New,Courier,monospace">nfc_manager_set_p2p_target_discovered_cb()</span> function. When the P2P target is discovered, the callback provides a handle to that device and information on whether it is attached or detached.</p>
 <pre class="prettyprint">
 nfc_manager_set_p2p_target_discovered_cb(on_target_discovered, NULL);
 </pre></li>
 
-<li id="received" name="received">Notify the application about the received data.
+<li id="received" name="received">Register a callback to receive notifications about the received data.
 <p>In this example, both devices receive and send a message to each other, so when another P2P target is attached, register a callback for receiving notifications about received data from this device. Use the <span style="font-family: Courier New,Courier,monospace">nfc_p2p_set_data_received_cb()</span> function (the best way is to place this code in the callback called after the P2P device is discovered). Specify the peer target handle that was provided by the previously set callback.</p>
 <pre class="prettyprint">
 nfc_p2p_set_data_received_cb(target, on_p2p_data_received, NULL);
@@ -1188,13 +1211,13 @@ nfc_p2p_send(target, ndef_message, NULL, NULL);
 </pre></li>
 
 <li id="receive" name="receive">Receive a message from another device.
-<p>When the callback about receive data is called, the device receives a message from another device. The callback provides a handle to the received message and a handle to the message source.</p>
-<p>Get the number of records in the received message using the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_message_get_record_count()</span> function. In this example, the number must be 3, since there are 3 records a name,  phone number, and e-mail address.</p>
+<p>The callback about receive data is invoked when the device receives a message from another device. The callback provides a handle to the received message and a handle to the message source.</p>
+<p>Get the number of records in the received message using the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_message_get_record_count()</span> function. In this example, the number must be 3, since there are 3 records: a name, phone number, and email address.</p>
 <pre class="prettyprint">
 int count;
 nfc_ndef_message_get_record_count(message, &amp;count);
 </pre>
-<p>To get a specified record from the message, use the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_message_get_record()</span> function. Specify a message handle, a record index, and a handle to store the obtained record. When the text record is obtained, get the stored text using the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_record_get_text()</span> function. In the tutorial, there are 3 text records to obtain.</p>
+<p>To get a specified record from the message, use the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_message_get_record()</span> function. Specify a message handle, a record index, and a handle to store the obtained record. When the text record is obtained, get the stored text using the <span style="font-family: Courier New,Courier,monospace">nfc_ndef_record_get_text()</span> function.</p>
 <pre class="prettyprint">
 nfc_ndef_record_h ndef_record;
 
@@ -1212,7 +1235,7 @@ nfc_ndef_record_get_text(ndef_record, &amp;email);
 </pre>
 <p>You can use the obtained values to create, for example, a new contact.</p>
 
-<p>Note that depending on the record type, some obtained values must be freed and others must not. For example, you must free the obtained text from a text record. See the documentation to know how to get the payload of other types of records.</p></li></ol>
+<p>Depending on the record type, some obtained values must be freed and others must not. For example, you must free the obtained text from a text record.</p></li></ol>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
