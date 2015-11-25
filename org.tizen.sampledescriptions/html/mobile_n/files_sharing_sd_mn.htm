@@ -178,6 +178,81 @@ bool bt_module_send_files(Eina_List *files_list, const char *device_name)
 }
 </pre>
 
+<p>Callback functions are used to update the view and inform the user about sending status. The sending progress is shown in a popup with a progressbar and a file name label.</p>
+<p>When the sample application is terminated, Bluetooth module is deinitialized which is performed in the <span style="font-family: Courier New,Courier,monospace">bt_module_deinit()</span> function listed below.</p>
+
+<pre class="prettyprint">
+void bt_module_deinit(void)
+{
+&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;ret = bt_opp_client_deinitialize();
+&nbsp;&nbsp;&nbsp;__bt_module_check_err("bt_opp_client_deinitialize", ret);
+&nbsp;&nbsp;&nbsp;ret = bt_deinitialize();
+&nbsp;&nbsp;&nbsp;bt_devices_list_destroy();
+}
+</pre>
+
+<p>To cancel the sending process, <span style="font-family: Courier New,Courier,monospace">bt_module_cancel_data_sending()</span> function is used. It clears the files list stored by the OPP client and invokes the <span style="font-family: Courier New,Courier,monospace">bt_opp_client_cancel_push()</span> function.</p>
+
+<pre class="prettyprint">
+
+void bt_module_cancel_data_sending(void)
+{
+&nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;ret = bt_opp_client_cancel_push();
+&nbsp;&nbsp;&nbsp;__bt_module_check_err("bt_opp_client_cancel_push", ret);
+&nbsp;&nbsp;&nbsp;ret = bt_opp_client_clear_files();
+&nbsp;&nbsp;&nbsp;__bt_module_check_err("bt_opp_client_clear_files", ret);
+}
+</pre>
+
+<p>The device structure consists of two fields which store the device's name and address:</p>
+<pre class="prettyprint">
+struct _bt_dev_t {
+&nbsp;&nbsp;&nbsp;char *dev_name;
+&nbsp;&nbsp;&nbsp;char *dev_remote_addr;
+};
+typedef struct _bt_dev_t bt_dev_t;
+</pre>
+<p>The Bluetooth Device API is very simple. It consists of three functions:</p>
+<ul>
+  <li><span style="font-family: Courier New,Courier,monospace">bt_dev_t *bt_device_create(const char *name, const char *remote_addr)</span>: The device constructor. It creates a new bt_device_t object.</li>
+  <li><span style="font-family: Courier New,Courier,monospace">bt_device_destroy(bt_dev_t *dev)</span>: It releases the data connected to the device object.</li>
+  <li><span style="font-family: Courier New,Courier,monospace">const char *bt_device_get_remote_addr(bt_dev_t *dev)</span>: It returns the remote address of the device.</li>
+</ul>
+
+<p>The devices list implementation is based on the <span style="font-family: Courier New,Courier,monospace">Eina_List</span> list. It holds all paired devices in a form of bt_dev_t objects. It provides the API for appending new devices into the list and finding a device using its name.</p>
+<pre class="prettyprint">
+bt_dev_t *bt_devices_list_get_device(const char *dev_name)
+{
+&nbsp;&nbsp;&nbsp;Eina_List *it = NULL;
+&nbsp;&nbsp;&nbsp;bt_dev_t *device = NULL;
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;if (!dev_name) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH (bt_devices_list_info_s.devices_list, it, device) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!device)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Compare device name*/
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (device->dev_name && (strlen(device->dev_name) == strlen(dev_name)) && !strncmp(device->dev_name, dev_name, strlen(dev_name)))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return device;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;return NULL;
+}
+</pre>
+<h3>Controller</h3>
+<p>The controller module connects the view and the model. It delivers the following set of functions described below:</p>
+<ul>
+  <li><span style="font-family: Courier New,Courier,monospace">controller_update_files_list()</span>: Connects the media module with the files list widget. All images are obtained using the Media API.</li>
+  <li><span style="font-family: Courier New,Courier,monospace">controller_update_devices_list()</span>: Adds a new device to the view.</li>
+  <li><span style="font-family: Courier New,Courier,monospace">controller_send_files()</span>: Gets the selected files list from the view and sends it via Bluetooth.</li>
+  <li><span style="font-family: Courier New,Courier,monospace">controller_change_sending_progress()</span>: Updates the sending progress in the view.</li>
+  <li><span style="font-family: Courier New,Courier,monospace">controller_cancel_data_sending()</span>: Cancels files pushing. It is invoked on the user's action.</li>
+  <li><span style="font-family: Courier New,Courier,monospace">controller_enable_popup()</span>: Enables the done button in the sending popup.</li>
+  <li><span style="font-family: Courier New,Courier,monospace">controller_block_view_with_warning()</span>: Displays the warning popup and blocks the view for a short amount of time.</li>
+</ul>
 
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
