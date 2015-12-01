@@ -1,0 +1,448 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Radio Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+  <h1>Radio Sample Overview</h1>
+
+<p>The Radio sample application demonstrates how you can create an application utilizing Radio API. The application interface consists of a main window (old style radio view) and a simple menu
+containing a list of known (scanned) frequencies. After a successful scan, just press the menu button and the list will appear.</p>
+<p>This application has been designed as multithreaded to avoid main rendering loop lockups in case of multiple frequency set commands.
+It takes some time for the radio hardware to set itself up.</p>
+
+  <p class="figure">Figure: Application views</p>
+  <p align="center">
+    <img alt="Radio view" src="../images/radio_screen_0.png" />
+    <img alt="List of known frequencies" src="../images/radio_screen_1.png" />
+  </p>
+
+<p>You can change the frequency manually, using the knob or let the radio seek the station for you. The signal strength indicator can help you tune the radio.
+To obtain the list of strongest stations frequencies, press the scan buton. Scanning turns the radio off, so afterwards you have to switch it back on manually.</p>
+
+<h2>Prerequisites</h2>
+<p>This application requires the device to support the following feature:</p>
+<ul>
+ <li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/fmradio</span> .</li>
+</ul>
+
+<h2>Implementation</h2>
+
+<h3>Main controller</h3>
+
+<p>There are two important functions in this module:
+<span style="font-family: Courier New,Courier,monospace">__radio_cb()</span> and
+<span style="font-family: Courier New,Courier,monospace">__ui_cb()</span>. The first one reacts to radio module changes and sets up the
+application view accordingly. The latter one does the opposite - it invokes radio module functions depending on user interface selections.</p>
+
+<pre class="prettyprint">
+static void __radio_cb(radio_event event)
+{
+&nbsp;&nbsp;//Variables definition ...
+
+&nbsp;&nbsp;switch (event) {
+&nbsp;&nbsp;case RADIO_EVENT_SCAN_END:
+&nbsp;&nbsp;&nbsp;&nbsp;if(radio_controller_get_known_stations(&stations_arr, &stations_arr_len) &&
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stations_arr_len > 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; stations_arr_len; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_add_station(stations_arr[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;view_lock_ui(false);
+&nbsp;&nbsp;&nbsp;&nbsp;view_show_on_off(radio_controller_is_on());
+&nbsp;&nbsp;&nbsp;&nbsp;view_show_scanning(false);
+&nbsp;&nbsp;&nbsp;&nbsp;if (radio_controller_is_muted(&muted))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_muted(muted);
+&nbsp;&nbsp;&nbsp;&nbsp;view_show_seeking(false, false);
+&nbsp;&nbsp;&nbsp;&nbsp;view_show_seeking(false, true);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;case RADIO_EVENT_SCAN_UPDATE:
+&nbsp;&nbsp;&nbsp;&nbsp;__setup_ui_freq();
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;case RADIO_EVENT_SEEK_END:
+&nbsp;&nbsp;&nbsp;&nbsp;view_lock_ui(false);
+&nbsp;&nbsp;&nbsp;&nbsp;view_show_on_off(radio_controller_is_on());
+&nbsp;&nbsp;&nbsp;&nbsp;view_show_scanning(false);
+&nbsp;&nbsp;&nbsp;&nbsp;if (radio_controller_is_muted(&muted))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_muted(muted);
+&nbsp;&nbsp;&nbsp;&nbsp;view_show_seeking(false, false);
+&nbsp;&nbsp;&nbsp;&nbsp;view_show_seeking(false, true);
+&nbsp;&nbsp;&nbsp;&nbsp;__setup_ui_freq();
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;case RADIO_EVENT_RSSI_UPDATE:
+&nbsp;&nbsp;&nbsp;&nbsp;__setup_ui_rssi();
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;case RADIO_EVENT_INTERRUPTION:
+&nbsp;&nbsp;&nbsp;&nbsp;radio_controller_set_on(false);
+&nbsp;&nbsp;&nbsp;&nbsp;__setup_ui();
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;case RADIO_EVENT_FREQ_SET:
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;}
+}
+</pre>
+
+<pre class="prettyprint">
+static void __ui_cb(ui_event event, ui_element element, const void *data)
+{
+&nbsp;&nbsp;//Variables definition ...
+&nbsp;&nbsp;bool activate_button = (event == UI_EVENT_BUTTON_ACTIVATE);
+
+&nbsp;&nbsp;if (event == UI_EVENT_FREQ_CHANGE && data) {
+&nbsp;&nbsp;&nbsp;&nbsp;frequency = (float)(*(double *)data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (!radio_controller_set_frequency(frequency * 1000.0))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Error handling ...
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;if (event == UI_EVENT_FREQ_CHANGE_END) {
+&nbsp;&nbsp;&nbsp;&nbsp;__setup_ui_freq();
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;if (event == UI_EVENT_STATION_SELECTION && data) {
+&nbsp;&nbsp;&nbsp;&nbsp;selected_station = *(int *)data;
+&nbsp;&nbsp;&nbsp;&nbsp;if(radio_controller_get_known_stations(&stations_arr, &stations_arr_len) &&
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;selected_station >= 0 && selected_station &lt; stations_arr_len
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (radio_controller_set_frequency(stations_arr[selected_station])) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_frequency((float)stations_arr[selected_station] / 1000.0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;if (event == UI_EVENT_BUTTON_ACTIVATE || event == UI_EVENT_BUTTON_DEACTIVATE)
+&nbsp;&nbsp;&nbsp;&nbsp;switch (element) {
+&nbsp;&nbsp;&nbsp;&nbsp;case UI_ELEMENT_ON_OFF_BUTTON:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((result_ok = radio_controller_set_on(activate_button)))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_on_off(activate_button);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case UI_ELEMENT_MUTE_BUTTON:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((result_ok = radio_controller_mute(activate_button)))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_muted(activate_button);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case UI_ELEMENT_SCAN_BUTTON:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((result_ok = radio_controller_start_scan(activate_button))) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (activate_button) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_clear_stations();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_lock_ui(true);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_scanning(activate_button);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case UI_ELEMENT_SEEK_MINUS_BUTTON:
+&nbsp;&nbsp;&nbsp;&nbsp;case UI_ELEMENT_SEEK_PLUS_BUTTON:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!activate_button) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result_ok = true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((result_ok = radio_controller_start_seek(element == UI_ELEMENT_SEEK_PLUS_BUTTON))) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_seeking(true, element == UI_ELEMENT_SEEK_PLUS_BUTTON);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_lock_ui(true);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h3>Radio controller</h3>
+
+<p>This is module is the essence of the application.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">radio_controller_init()</span>
+function is used to obtain handles for the radio resource and the timer as well as to set callbacks for the following events:</p>
+<ul>
+<li>scan command completion event,</li>
+<li>radio operation interruption event,</li>
+<li>timer timeout event (used to periodically poll for the RSSI).</li>
+</ul>
+
+<pre class="prettyprint">
+bool radio_controller_init(radio_cb cb)
+{
+&nbsp;&nbsp;//Common code ...
+
+&nbsp;&nbsp;ret = radio_create(&radio_data.handle);
+
+&nbsp;&nbsp;//Error handling ...
+
+&nbsp;&nbsp;ret = radio_set_scan_completed_cb(radio_data.handle, __radio_scan_completed_cb, NULL);
+&nbsp;&nbsp;//Error handling ...
+
+&nbsp;&nbsp;ret = radio_set_interrupted_cb(radio_data.handle, __radio_interrupted_cb, NULL);
+&nbsp;&nbsp;//Error handling ...
+
+&nbsp;&nbsp;radio_data.tim = ecore_timer_add(RSSI_POLL_INTERVAL, __rssi_tim_cb, NULL);
+
+&nbsp;&nbsp;//Error handling and common code...
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">radio_controller_set_on()</span>
+function uses API calls to
+<span style="font-family: Courier New,Courier,monospace">radio_start()</span> and
+<span style="font-family: Courier New,Courier,monospace">radio_stop()</span> .</p>
+
+<pre class="prettyprint">
+bool radio_controller_set_on(bool on_off)
+{
+&nbsp;&nbsp;int res = RADIO_ERROR_NONE;
+
+&nbsp;&nbsp;if (on_off) {
+&nbsp;&nbsp;&nbsp;&nbsp;res = radio_start(radio_data.handle);
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.state = RADIO_STATE_PLAYING;
+
+&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;res = radio_stop(radio_data.handle);
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.state = RADIO_STATE_READY;
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">radio_controller_set_frequency()</span>
+function uses ecore thread to set up the selected frequency. Such approach is used because this operation takes a long time to complete.
+Calling <span style="font-family: Courier New,Courier,monospace">radio_set_frequency()</span>
+function directly would block the main event loop.</p>
+
+<pre class="prettyprint">
+bool radio_controller_set_frequency(int freq)
+{
+&nbsp;&nbsp;if (!radio_data.thread_h && (__radio_is_in_state(RADIO_STATE_PLAYING) || __radio_is_in_state(RADIO_STATE_READY))) {
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.thread_h = ecore_thread_run(__thread_function, __thread_end_cb, NULL, (void *)freq);
+
+&nbsp;&nbsp;&nbsp;&nbsp; return (radio_data.thread_h != NULL);
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;return false;
+}
+</pre>
+
+<pre class="prettyprint">
+static void __thread_function(void *frequency, Ecore_Thread *thread)
+{
+&nbsp;&nbsp;radio_set_frequency(radio_data.handle, (int)frequency);
+}
+</pre>
+
+<pre class="prettyprint">
+static void __thread_end_cb(void *data, Ecore_Thread *thread)
+{
+&nbsp;&nbsp;if (radio_data.cb)
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.cb(RADIO_EVENT_FREQ_SET);
+
+&nbsp;&nbsp;radio_data.thread_h = NULL;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">radio_controller_start_scan()</span>
+function issues asynchronous scan command. This automatically shuts the radio off.</p>
+
+<pre class="prettyprint">
+bool radio_controller_start_scan(bool start_stop)
+{
+&nbsp;&nbsp;int ret = RADIO_ERROR_NONE;
+
+&nbsp;&nbsp;if (radio_data.thread_h != NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;if (start_stop) {
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (!radio_controller_set_on(false))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = radio_scan_start(radio_data.handle, __radio_scan_updated_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (RADIO_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.known_freq_ix = 0;
+
+&nbsp;&nbsp;} else {
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = radio_scan_stop(radio_data.handle, __radio_scan_stopped_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (RADIO_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>Each time a radio station frequency is found,
+the <span style="font-family: Courier New,Courier,monospace">__radio_scan_updated_cb()</span>
+callback is invoked. The callback is used to update the known frequencies list.</p>
+
+<pre class="prettyprint">
+static void __radio_scan_updated_cb(int frequency, void *user_data)
+{
+&nbsp;&nbsp;if (radio_data.known_freq_ix &lt; KNOWN_STATIONS_MAX) {
+
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.known_freq[radio_data.known_freq_ix++] = frequency;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (radio_data.cb)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radio_data.cb(RADIO_EVENT_SCAN_UPDATE);
+&nbsp;&nbsp;}
+}
+</pre>
+
+<p>Once the scan is completed,
+<span style="font-family: Courier New,Courier,monospace">__radio_scan_completed_cb()</span>
+callback function is invoked.</p>
+
+<pre class="prettyprint">
+static void __radio_scan_completed_cb(void *user_data)
+{
+&nbsp;&nbsp;if (radio_data.cb)
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.cb(RADIO_EVENT_SCAN_END);
+}
+</pre>
+
+<pre class="prettyprint">
+bool radio_controller_mute(bool mute)
+{
+&nbsp;&nbsp;return (RADIO_ERROR_NONE == radio_set_mute(radio_data.handle, mute));
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">radio_controller_start_seek()</span>
+function runs an asynchronous command which finds the nearest channel (in sense of frequency).
+The <span style="font-family: Courier New,Courier,monospace">__radio_seek_completed_cb</span>
+callback function is invoked upon this operation's completion.</p>
+
+<pre class="prettyprint">
+bool radio_controller_start_seek(bool up_down)
+{
+&nbsp;&nbsp;if (__radio_is_in_state(RADIO_STATE_SCANNING) || !radio_controller_set_on(true))
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;if (up_down) {
+&nbsp;&nbsp;&nbsp;&nbsp;return (RADIO_ERROR_NONE == radio_seek_up(radio_data.handle, __radio_seek_completed_cb, NULL));
+&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;return (RADIO_ERROR_NONE == radio_seek_down(radio_data.handle, __radio_seek_completed_cb, NULL));
+&nbsp;&nbsp;}
+}
+</pre>
+
+<pre class="prettyprint">
+static void __radio_seek_completed_cb(int frequency, void *user_data)
+{
+&nbsp;&nbsp;if (radio_data.cb)
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.cb(RADIO_EVENT_SEEK_END);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">__rssi_tim_cb()</span>
+function is the poll timer timeout event callback.
+Whenever it is called, it notifies the <span style="font-family: Courier New,Courier,monospace">main controller</span>
+module to update itself on a RSSI status.
+</p>
+
+<pre class="prettyprint">
+static Eina_Bool __rssi_tim_cb(void *data)
+{
+&nbsp;&nbsp;if (radio_data.cb)
+&nbsp;&nbsp;&nbsp;&nbsp;radio_data.cb(RADIO_EVENT_RSSI_UPDATE);
+
+&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p>The following functions represent getters of the radio module.
+You can get the current frequency the radio is set to, the radio frequency range and the signal strength as well as check whether the radio is muted/on.</p>
+
+<pre class="prettyprint">
+bool radio_controller_is_on(void)
+{
+&nbsp;&nbsp;return __radio_is_in_state(RADIO_STATE_PLAYING);
+}
+</pre>
+
+<pre class="prettyprint">
+bool radio_controller_is_muted(bool *muted)
+{
+&nbsp;&nbsp;return (RADIO_ERROR_NONE == radio_is_muted(radio_data.handle, muted));
+}
+</pre>
+
+<pre class="prettyprint">
+bool radio_controller_get_rssi(float *strength)
+{
+&nbsp;&nbsp;//Error handling ...
+&nbsp;&nbsp;if (RADIO_ERROR_NONE != radio_get_signal_strength(radio_data.handle, &dBm))
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;*strength = (float)(dBm + 128.0) / (2.0 * 128.0);
+
+&nbsp;&nbsp;if (*strength <= 0.0)
+&nbsp;&nbsp;&nbsp;&nbsp;*strength = 0.0;
+
+&nbsp;&nbsp;if (*strength >= 1.0)
+&nbsp;&nbsp;&nbsp;&nbsp;*strength = 1.0;
+
+&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+bool radio_controller_get_freq(int *freq)
+{
+&nbsp;&nbsp;return (RADIO_ERROR_NONE == radio_get_frequency(radio_data.handle, freq));
+}
+</pre>
+
+<pre class="prettyprint">
+bool radio_controller_get_freq_range(int *freq_min, int *freq_max)
+{
+&nbsp;&nbsp;return (RADIO_ERROR_NONE == radio_get_frequency_range(radio_data.handle, freq_min, freq_max));
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
