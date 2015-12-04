@@ -38,8 +38,8 @@
 				<ul class="toc">
 					<li><a href="#pre_gatt">Handling GATT Operation Preconditions</a></li>
 					<li><a href="#gatt">Managing the GATT Client Operations</a></li>
-					<li><a href="#gatt_getter">Managing Common Getter GATT Operations</a></li>
-					<li><a href="#gatt_setter">Managing Common Setter GATT Operations</a></li>
+					<li><a href="#gatt_getter">Managing Common GATT Getter Operations</a></li>
+					<li><a href="#gatt_setter">Managing Common GATT Setter Operations</a></li>
 				</ul>
 			</li>
 			<li>Object Push Profile (OPP) operations
@@ -100,9 +100,9 @@
 					<p>Connect to the BLE target before using the GATT APIs.</p></li>
 					<li><a href="#gatt">Managing the GATT Client Operations</a>
 					<p>Create a GATT client to connect to a remote service, get service details, read and set service attributes, and set and release callbacks when the characteristic value changes.</p></li>
-					<li><a href="#gatt_getter">Managing Common Getter GATT Operations</a>
-                    <p>Get information used commonly in client GATT operations.</p></li>
-					<li><a href="#gatt_setter">Managing Common Setter GATT Operations</a>
+					<li><a href="#gatt_getter">Managing Common GATT Getter Operations</a>
+                    <p>Get information used commonly in GATT client operations.</p></li>
+					<li><a href="#gatt_setter">Managing Common GATT Setter Operations</a>
                     <p>Set the properties and values of GATT attributes.</p></li>
 				</ul></li>
 				<li>Object Push Profile (OPP) operations
@@ -149,7 +149,7 @@ bt_error_e ret;
 ret = bt_initialize();
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_initialize] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_initialize] failed.&quot;);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -159,8 +159,6 @@ if (ret != BT_ERROR_NONE)
 			
 <p>To allow the user to enable or disable Bluetooth, use the application control to display the Bluetooth activation settings.</p>
 <p>The Bluetooth API does not contain functions for enabling or disabling Bluetooth. You must display the Bluetooth activation settings application to allow the user to toggle the Bluetooth state.</p>
-		
-<p>No Bluetooth API is provided to enable or disable Bluetooth. Use the Bluetooth ON/OFF application illustrated in the following figure (off screen on the left and on screen on the right).</p>
 
   <p class="figure">Figure: Bluetooth activation settings application (off screen on the left and on screen on the right)</p> 
   <p align="center"><img alt="Bluetooth activation settings application (off screen on the left and on screen on the right)" src="../../images/bluetooth_onoff.png" /></p> 
@@ -214,7 +212,7 @@ bt_adapter_state_e adapter_state;
 ret = bt_adapter_get_state(&amp;adapter_state);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_get_state] Failed&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_get_state] failed&quot;);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -238,7 +236,7 @@ adapter_state_changed_cb(int result, bt_adapter_state_e adapter_state, void* use
 {
 &nbsp;&nbsp;&nbsp;if (result != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[adapter_state_changed_cb] Failed! result=%d&quot;, result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[adapter_state_changed_cb] failed! result=%d&quot;, result);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
@@ -289,47 +287,37 @@ adapter_state_changed_cb(int result, bt_adapter_state_e adapter_state, void* use
 ret = bt_adapter_set_state_changed_cb(adapter_state_changed_cb, NULL);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_set_state_changed_cb()] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_set_state_changed_cb()] failed.&quot;);
 }
 </pre></li>
 </ol>
 
  <h2 id="find" name="find">Finding Other Devices</h2>
 
-<p>To find remote Bluetooth devices either through device discovery or querying bonded devices:</p>
+<p>To find remote Bluetooth devices, you can either discover them and bond with them, or you can query the list of previously bonded devices:</p>
 <ul>
-<li>Define and register the discovery state callback function.
+<li>Discover and bond with new devices:
 <ol>
-<li>
-<p>Discovering available Bluetooth-enabled devices is the first step to communicating with remote devices. There are 2 types of Bluetooth devices: classic Bluetooth devices and Bluetooth LE devices. Both device types use their own APIs to discover devices of the same type.</p>
+<li>Define and register the discovery state change callback.
+<p>Register the callback with the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_set_device_discovery_state_changed_cb()</span> (classic Bluetooth) or <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_set_device_discovery_state_changed_cb()</span> (Bluetooth LE) function.</p>
+<p>Use the callback to manage the discovery process:</p>
+<ul><li><p>The first callback parameter defines the result of the Bluetooth discovery process. In case of success, the parameter value is <span style="font-family: Courier New,Courier,monospace;">BT_ERROR_NONE</span>. If the discovery failed to start due to an error, the parameter value is <span style="font-family: Courier New,Courier,monospace;">BT_ERROR_TIMEOUT</span>.</p></li>
+<li><p>The second callback parameter defined the current state of the discovery process using the enumerators <span style="font-family: Courier New,Courier,monospace;">bt_adapter_device_discovery_state_e</span> (classic Bluetooth) (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__MODULE.html#gaae6b21353576e515e5bb1e76d25472bd">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__MODULE.html#gaae6b21353576e515e5bb1e76d25472bd">wearable</a> applications) or <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_device_discovery_state_e</span> (Bluetooth LE) (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__LE__MODULE.html#ga4b90a954c6cfb51b60d520c114d8f62d">mobile</a> applications):</p>
+<ul><li>When you start the discovery process, the callback is triggered with the <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_DEVICE_DISCOVERY_STARTED</span> or <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_LE_DEVICE_DISCOVERY_STARTED</span> state.
+<p>Similarly, when you stop the discovery process, the callback is triggered with the <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_DEVICE_DISCOVERY_FINISHED</span> or <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_LE_DEVICE_DISCOVERY_FINISHED</span> state.</p></li>
+<li>Each time a remote Bluetooth device is found, the callback is triggered with the <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_DEVICE_DISCOVERY_FOUND</span> or <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_LE_DEVICE_DISCOVERY_FOUND</span> state.
+<p>In this state, you can get some information about the discovered device, such as the device MAC address, name, class, RSSI (received signal strength indicator), and bonding state. Using this information, you can bond with the discovered device.</p></li></ul></li></ul>
 
-<p>Declare the discovery start functions for the 2 types.</p>
-<pre class="prettyprint">// Classic Bluetooth
-int bt_adapter_start_device_discovery(void);
-int bt_adapter_stop_device_discovery(void);
-
-// Bluetooth LE
-int bt_adapter_le_start_device_discovery(void);
-int bt_adapter_le_stop_device_discovery(void);
-</pre>
- </li>
- <li>
-<p>If discovering Bluetooth succeeds, you receive the <span style="font-family: Courier New,Courier,monospace;">BT_ERROR_NONE</span> result as the first parameter in your <span style="font-family: Courier New,Courier,monospace;">bt_adapter_device_discovery_state_changed_cb()</span> (classic Bluetooth) or <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_device_discovery_state_changed_cb()</span> (Bluetooth LE) callback function. If your device did not start to discover devices due to an error, the result code is <span style="font-family: Courier New,Courier,monospace;">BT_ERROR_TIMEOUT</span>. If stopping the discovery succeeds, you can also receive <span style="font-family: Courier New,Courier,monospace;">BT_ERROR_CANCELLED</span>.</p>
-</li>
-<li>
-<p>When your implemented callback function is first called, the second parameter, <span style="font-family: Courier New,Courier,monospace;">discovery_state</span>, is <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_DEVICE_DISCOVERY_STARTED</span> or <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_LE_DEVICE_DISCOVERY_STARTED</span>. This indicates that device discovery has begun.</p>
-<p>The discovery states are values of the enumerations <span style="font-family: Courier New,Courier,monospace;">bt_adapter_device_discovery_state_e</span> (classic Bluetooth) (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__MODULE.html#gaae6b21353576e515e5bb1e76d25472bd">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__MODULE.html#gaae6b21353576e515e5bb1e76d25472bd">wearable</a> applications) or <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_device_discovery_state_e</span> (Bluetooth LE) (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__LE__MODULE.html#ga4b90a954c6cfb51b60d520c114d8f62d">mobile</a> applications).</p>
-<p>Each time you find a remote Bluetooth device, <span style="font-family: Courier New,Courier,monospace;">discovery_state</span> is in the <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_DEVICE_DISCOVERY_FOUND</span> or <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_LE_DEVICE_DISCOVERY_FOUND</span> state. At this state you can get some information about a discovered device, such as the device MAC address, name, class, rssi (received signal strength indicator), and bonding state. Using this information, you can connect to the discovered device.</p>
-<p><span style="font-family: Courier New,Courier,monospace;">discovery_info</span> is a NULL value in the <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_DEVICE_DISCOVERY_STARTED</span>, <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_LE_DEVICE_DISCOVERY_STARTED</span>, <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_DEVICE_DISCOVERY_FINISHED</span>, or <span style="font-family: Courier New,Courier,monospace;">BT_ADAPTER_LE_DEVICE_DISCOVERY_FINISHED</span> state.</p>
-<p>The following example shows the implementation for classic Bluetooth. Bluetooth LE usage is the same.</p>
-<pre class="prettyprint">#include &lt;glib.h&gt; // For GList
+<p>The following example shows the callback implementation for classic Bluetooth. Bluetooth LE is implemented in the same way.</p>
+<pre class="prettyprint">
+#include &lt;glib.h&gt; // For GList
 void 
 adapter_device_discovery_state_changed_cb(int result, bt_adapter_device_discovery_state_e discovery_state, 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_adapter_device_discovery_info_s *discovery_info, void* user_data) 
 {
 &nbsp;&nbsp;&nbsp;if (result != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[adapter_device_discovery_state_changed_cb] Failed! result(%d).&quot;, result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[adapter_device_discovery_state_changed_cb] failed! result(%d).&quot;, result);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
@@ -359,38 +347,164 @@ adapter_device_discovery_state_changed_cb(int result, bt_adapter_device_discover
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
 &nbsp;&nbsp;&nbsp;}
-}</pre>
-</li>
-<li>
-<p>Register the callback for classic Bluetooth. Bluetooth LE usage is the same.</p>
-<pre class="prettyprint">GList *devices_list = NULL;
+}
+
+GList *devices_list = NULL;
 ret = bt_adapter_set_device_discovery_state_changed_cb(adapter_device_discovery_state_changed_cb,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void*)&amp;devices_list);
 
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_set_device_discovery_state_changed_cb] Failed.&quot;);
-}</pre>
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_set_device_discovery_state_changed_cb] failed.&quot;);
+}
+</pre>
 </li>
-</ol>
-</li>
-<li>Find other Bluetooth devices.
-<p>If you want to stop the device discovery, call the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_stop_device_discovery()</span> (classic Bluetooth) or <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_stop_device_discovery()</span> (Bluetooth LE) function.</p>
-<p>A remote Bluetooth device responds to the request if it is enabled and in a discovery mode. Classic Bluetooth and Bluetooth LE usages are the same.</p>
+<li>Start the discovery process:
 <pre class="prettyprint">
 // Classic Bluetooth
 ret = bt_adapter_start_device_discovery();
+
+// Bluetooth LE
+int bt_adapter_le_start_device_discovery(void);
+
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_start_device_discovery] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_start_device_discovery] failed.&quot;);
+}
+</pre>
+<p>You can discover a nearby remote Bluetooth device, if the remote device Bluetooth is enabled and in a discovery mode.</p>
+
+<p>To stop the device discovery, call the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_stop_device_discovery()</span> (classic Bluetooth) or <span style="font-family: Courier New,Courier,monospace;">bt_adapter_le_stop_device_discovery()</span> (Bluetooth LE) function.</p>
+</li>
+<li>
+<p>To bond with a discovered remote device, use the <span style="font-family: Courier New,Courier,monospace;">bt_device_create_bond()</span> function. To cancel the bonding, call the <span style="font-family: Courier New,Courier,monospace;">bt_device_cancel_bonding()</span> function.</p>
+
+<pre class="prettyprint">
+ret = bt_device_create_bond(bt_server_address);
+if (ret != BT_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_device_create_bond] failed.&quot;);
+
+&nbsp;&nbsp;&nbsp;return;
+} 
+else 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_device_create_bond] succeeded. device_bond_created_cb callback will be called.&quot;);
 }</pre>
 
-</li>
+<p>To get notified when the bonding process has finished, register a bond created callback using the <span style="font-family: Courier New,Courier,monospace;">bt_device_set_bond_created_cb()</span> function. From the callback, you can get the service UUID and the list of services provided by the remote Bluetooth device.</p>
 
-<li>Enable discovery.
+<pre class="prettyprint">
+void 
+device_bond_created_cb(int result, bt_device_info_s *device_info, void *user_data) 
+{
+&nbsp;&nbsp;&nbsp;if (result != BT_ERROR_NONE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_device_bond_created_cb] failed. result(%d).&quot;, result);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+ 
+&nbsp;&nbsp;&nbsp;if (device_info != NULL &amp;&amp; !strcmp(device_info-&gt;remote_address, remote_server_address)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Callback: A bond with chat_server is created.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Callback: The number of service - %d.&quot;, device_info-&gt;service_count);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Callback: is_bonded - %d.&quot;, device_info-&gt;is_bonded);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Callback: is_connected - %d.&quot;, device_info-&gt;is_connected);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Callback: A bond with another device is created.&quot;);
+&nbsp;&nbsp;&nbsp;}
+}
+
+// You can get bt_server_address from bt_adapter_bonded_device_cb() or bt_device_service_searched_cb()
+// device_info-&gt;remote_address in bt_adapter_bonded_device_cb()
+// sdp_info-&gt;remote_address in bt_device_service_searched_cb()
+ 
+ret = bt_device_set_bond_created_cb(device_bond_created_cb, bt_server_address);
+if (ret != BT_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_device_set_bond_created_cb] failed.&quot;);
+
+&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+<p>After you have successfully bonded with a remote device, it is included in the bonded device list. When you want to connect to that device again in the future, you do not need to discover it again. Instead, you can simply query the bonded device list to receive the information (such as address and name) you need to connect to the device. You can also query the bonded device list to verify that the bonding was successful.</p>
+</li>
+</ol>
+</li>
+<li>Query the bonded device list.
+<p>To query the list of previously bonded devices, use the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_foreach_bonded_device()</span> function. The function triggers a callback for each bonded device, and the callback provides you information about the bonded device (such as name, MAC address, and service list) that you need to connect to the device.</p>
+<p>Make sure that the callback returns <span style="font-family: Courier New,Courier,monospace;">true</span> until you have found the device you want. When the callback returns <span style="font-family: Courier New,Courier,monospace;">false</span>, the iterations stop and no more callbacks are called even if there are more devices in the bonded list.</p>
+<pre class="prettyprint">// Server address for connecting
+char *bt_server_address = NULL;
+const char *remote_server_name = &quot;server device&quot;;
+ 
+bool 
+adapter_bonded_device_cb(bt_device_info_s *device_info, void *user_data) 
+{
+&nbsp;&nbsp;&nbsp;if (device_info == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;if (!strcmp(device_info-&gt;remote_name, (char*)user_data)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The server device is found in bonded device list. address(%s)&quot;, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;device_info-&gt;remote_address);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_server_address = strdup(device_info-&gt;remote_address);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If you want to stop iterating, you can return &quot;false&quot;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;// Get information about bonded device
+&nbsp;&nbsp;&nbsp;int count_of_bonded_device = 1;
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Get information about the bonded device(%d)&quot;, count_of_bonded_device);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;remote address = %s.&quot;, device_info-&gt;remote_address);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;remote name = %s.&quot;, device_info-&gt;remote_name);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;service count = %d.&quot;, device_info-&gt;service_count);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bonded?? %d.&quot;, device_info-&gt;is_bonded);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;connected?? %d.&quot;, device_info-&gt;is_connected);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;authorized?? %d.&quot;, device_info-&gt;is_authorized);
+ 
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;major_device_class %d.&quot;, device_info-&gt;bt_class.major_device_class);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;minor_device_class %d.&quot;, device_info-&gt;bt_class.minor_device_class);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;major_service_class_mask %d.&quot;, device_info-&gt;bt_class.major_service_class_mask);
+&nbsp;&nbsp;&nbsp;count_of_bonded_device++;
+
+&nbsp;&nbsp;&nbsp;// Keep iterating
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+ret = bt_adapter_foreach_bonded_device(adapter_bonded_device_cb, remote_server_name);
+if (ret != BT_ERROR_NONE) 
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_foreach_bonded_device] failed!&quot;);
+}
+
+if (bt_server_address != NULL)
+&nbsp;&nbsp;&nbsp;free(bt_server_address);
+</pre>
+<p>To remove a device from the bonded list, call the <span style="font-family: Courier New,Courier,monospace;">bt_device_destroy_bond()</span> function.</p>
+</li></ul>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">A Bluetooth device must be in a discovery mode (visible) for other devices to find it and connect to it. If you want other devices to find your device, you must set the device to be visible.</td> 
+    </tr> 
+   </tbody> 
+  </table>  
+
+<p>To manage the device visibility and enable discovery:</p>
+
 <ol>
 <li>
-<p>Check the current visibility of your device. For other devices to find your device, your device must be discoverable.</p>
+<p>Check the current visibility of your device:</p>
 <pre class="prettyprint">
 // Visibility mode of the Bluetooth device
 bt_adapter_visibility_mode_e mode;
@@ -408,11 +522,12 @@ else if (mode == BT_ADAPTER_VISIBILITY_MODE_GENERAL_DISCOVERABLE)
 else 
 {
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The device is discoverable for a set period of time.&quot;);
-}</pre>
+}
+</pre>
 </li>
 <li>
-<p>To change the visibility mode, use the Bluetooth visibility setting application (shown below with the initial screen on the left and the visibility setting screen on the right).</p>
-<p class="figure">Figure: Bluetooth visibility setting application</p>
+<p>To allow the user to change the visibility mode of the device, use the application control to display the Bluetooth visibility setting application.</p>
+<p>The Bluetooth API does not contain functions for changing the visibility. You must display the Bluetooth visibility setting application to allow the user to toggle the visibility state.</p>
 <p align="center"><img alt="Bluetooth visibility setting application" src="../../images/bluetooth_visibility.png" /></p>
 
 <pre class="prettyprint">
@@ -449,10 +564,11 @@ bt_set_visibility_operation(void)
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;return 0;
-}</pre>
+}
+</pre>
 </li>
 <li>
-<p>To get a notification when the visibility is changed after 90 seconds, implement the following callback:</p>
+<p>To get a notification when the visibility mode changes, define and register a visibility mode change callback:</p>
 <pre class="prettyprint">
 void 
 adapter_visibility_mode_changed_cb(int result, bt_adapter_visibility_mode_e visibility_mode, void* user_data) 
@@ -474,139 +590,16 @@ adapter_visibility_mode_changed_cb(int result, bt_adapter_visibility_mode_e visi
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[visibility_mode_changed_cb] Limited discoverable mode!&quot;);
 &nbsp;&nbsp;&nbsp;}
-}</pre>
-</li>
-<li>
-<p>Register the callback:</p>
-<pre class="prettyprint">ret = bt_adapter_set_visibility_mode_changed_cb(adapter_visibility_mode_changed_cb, NULL);
-if (ret != BT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_set_visibility_mode_changed_cb] Failed.&quot;);
-}</pre>
-</li>
-</ol>
-</li>
-<li>Query bonded devices.
-<ol>
-<li>
-<p>Before trying to find the remote devices nearby, you can query the list of bonded devices to get the basic information (such as device address and name) your device has stored for the bonded devices. To get all bonded devices, call the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_foreach_bonded_device()</span> function. You can get information about bonded devices in the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_bonded_device_cb()</span> callback function, which you need to call for each bonded device.</p>
-<p>Declare the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_foreach_bonded_device()</span> function.</p>
-<pre class="prettyprint">int bt_adapter_foreach_bonded_device(bt_adapter_bonded_device_cb foreach_cb, void *user_data)</pre>
-<p>You can get information (such as the device name, service list, and Mac address) about the bonded device.</p>
-<p>To continue performing iterations, your implemented callback function must return <span style="font-family: Courier New,Courier,monospace;">true</span>. Otherwise, it returns <span style="font-family: Courier New,Courier,monospace;">false</span> and stops performing additional iterations.</p>
-<p>The following example describes how to query bonded devices and how to discover a desired device.</p>
-<pre class="prettyprint">// Server address for connecting
-char *bt_server_address = NULL;
-const char *remote_server_name = &quot;server device&quot;;
- 
-bool 
-adapter_bonded_device_cb(bt_device_info_s *device_info, void *user_data) 
-{
-&nbsp;&nbsp;&nbsp;if (device_info == NULL) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;if (!strcmp(device_info-&gt;remote_name, (char*)user_data)) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The server device is found in bonded device list. address(%s)&quot;, device_info-&gt;remote_address);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_server_address = strdup(device_info-&gt;remote_address);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If you want to stop iterating, you can return &quot;false&quot;
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;// Get information about bonded device
-&nbsp;&nbsp;&nbsp;int count_of_bonded_device = 1;
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Get information about the bonded device(%d)&quot;, count_of_bonded_device);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;remote address = %s.&quot;, device_info-&gt;remote_address);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;remote name = %s.&quot;, device_info-&gt;remote_name);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;service count = %d.&quot;, device_info-&gt;service_count);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bonded?? %d.&quot;, device_info-&gt;is_bonded);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;connected?? %d.&quot;, device_info-&gt;is_connected);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;authorized?? %d.&quot;, device_info-&gt;is_authorized);
- 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;major_device_class %d.&quot;, device_info-&gt;bt_class.major_device_class);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;minor_device_class %d.&quot;, device_info-&gt;bt_class.minor_device_class);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;major_service_class_mask %d.&quot;, device_info-&gt;bt_class.major_service_class_mask);
-&nbsp;&nbsp;&nbsp;count_of_bonded_device++;
-
-&nbsp;&nbsp;&nbsp;// Keep iterating
-
-&nbsp;&nbsp;&nbsp;return true;
 }
 
-ret = bt_adapter_foreach_bonded_device(adapter_bonded_device_cb, remote_server_name);
+ret = bt_adapter_set_visibility_mode_changed_cb(adapter_visibility_mode_changed_cb, NULL);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_foreach_bonded_device] Failed!&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_set_visibility_mode_changed_cb] failed.&quot;);
 }
-
-if (bt_server_address != NULL)
-&nbsp;&nbsp;&nbsp;free(bt_server_address);
 </pre>
 </li>
 </ol>
-</li>
-
-<li>Request bonding with a remote Bluetooth device.
-<ol>
-<li>
-<p>You can request to bond with a remote device using the <span style="font-family: Courier New,Courier,monospace;">bt_device_create_bond()</span> function. If you want to cancel bonding, call the <span style="font-family: Courier New,Courier,monospace;">bt_device_cancel_bonding()</span> function.</p>
-<p>To get notified when the bonding has finished, register a <span style="font-family: Courier New,Courier,monospace;">bt_device_bond_created_cb()</span> callback function using the <span style="font-family: Courier New,Courier,monospace;">bt_device_set_bond_created_cb()</span> function. From this callback, you can get the service list that the remote Bluetooth device provides and the service UUID from that service list.</p>
-<p>The following example shows how to implement the <span style="font-family: Courier New,Courier,monospace;">bt_device_bond_created_cb()</span> callback function and bond with a remote Bluetooth device.</p>
-<pre class="prettyprint">
-void 
-device_bond_created_cb(int result, bt_device_info_s *device_info, void *user_data) 
-{
-&nbsp;&nbsp;&nbsp;if (result != BT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_device_bond_created_cb] Failed. result(%d).&quot;, result);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-&nbsp;&nbsp;&nbsp;}
- 
-&nbsp;&nbsp;&nbsp;if (device_info != NULL &amp;&amp; !strcmp(device_info-&gt;remote_address, remote_server_address)) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Callback: A bond with chat_server is created.&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Callback: The number of service - %d.&quot;, device_info-&gt;service_count);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int i = 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Callback: is_bonded - %d.&quot;, device_info-&gt;is_bonded);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Callback: is_connected - %d.&quot;, device_info-&gt;is_connected);
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Callback: A bond with another device is created.&quot;);
-&nbsp;&nbsp;&nbsp;}
-}
-
-// You can get bt_server_address from bt_adapter_bonded_device_cb() or bt_device_service_searched_cb()
-// device_info-&gt;remote_address in bt_adapter_bonded_device_cb()
-// sdp_info-&gt;remote_address in bt_device_service_searched_cb()
- 
-ret = bt_device_set_bond_created_cb(device_bond_created_cb, bt_server_address);
-if (ret != BT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_device_set_bond_created_cb] failed.&quot;);
-
-&nbsp;&nbsp;&nbsp;return;
-}
- 
-ret = bt_device_create_bond(bt_server_address);
-if (ret != BT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_device_create_bond] failed.&quot;);
-
-&nbsp;&nbsp;&nbsp;return;
-} 
-else 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_device_create_bond] succeeded. device_bond_created_cb callback will be called.&quot;);
-}</pre>
-</li>
-<li>
-<p>After that, the remote device is included in the bonded device list. Next time you do not need to find it again. Without finding, you can get information (such as address and name) by querying the bonded device.</p>
-<p>You can verify the bonding by calling the <span style="font-family: Courier New,Courier,monospace;">bt_adapter_foreach_bonded_device()</span> function. To remove the device from the bonded list, call the <span style="font-family: Courier New,Courier,monospace;">bt_device_destroy_bond()</span> function.</p>
-</li>
-</ol>
-</li>
-</ul>
 
  <h2 id="connect" name="connect">Connecting to Other Devices Using SPP</h2>
 			
@@ -656,7 +649,7 @@ socket_connection_state_changed(int result, bt_socket_connection_state_e connect
 {
 &nbsp;&nbsp;&nbsp;if (result != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[socket_connection_state_changed_cb] Failed. result =%d.&quot;, result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[socket_connection_state_changed_cb] failed. result =%d.&quot;, result);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
@@ -710,7 +703,7 @@ if (ret != BT_ERROR_NONE)
 <li>Connect as a client:
 <ol>
 <li>Define and register the socket connection state change callback using the <span style="font-family: Courier New,Courier,monospace;">bt_socket_set_connection_state_changed_cb()</span> function.
-<p>The callback in invoked whenever the connection state changes (for example, when you connect to the server device). </p>
+<p>The callback is invoked whenever the connection state changes (for example, when you connect to the server device). </p>
 <pre class="prettyprint">
 ret = bt_socket_set_connection_state_changed_cb(socket_connection_state_changed, NULL);
 if (ret != BT_ERROR_NONE) 
@@ -737,14 +730,6 @@ if (ret != BT_ERROR_NONE)
 <p>The first parameter is the address of the remote device. You can get it from the <span style="font-family: Courier New,Courier,monospace;">bt_device_info_s</span> structure (in <a href="../../../../org.tizen.native.mobile.apireference/structbt__device__info__s.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/structbt__device__info__s.html">wearable</a> applications), which is returned in a callback after you bond with the server device or query a previously bonded device. The second parameter is the UUID for the specific RFCOMM-based service on a remote device. The UUID must match the UUID used by the server device in the <span style="font-family: Courier New,Courier,monospace;">bt_socket_create_rfcomm()</span> function.</p>
 <pre class="prettyprint">
 const char *service_uuid=&quot;00001101-0000-1000-8000-00805F9B34FB&quot;;
- 
-ret = bt_socket_set_connection_state_changed_cb(socket_connection_state_changed, NULL);
-if (ret != BT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_socket_set_connection_state_changed_cb] failed.&quot;);
-
-&nbsp;&nbsp;&nbsp;return;
-}
  
 ret = bt_socket_connect_rfcomm(bt_server_address, service_uuid);
 if (ret != BT_ERROR_NONE) 
@@ -802,7 +787,7 @@ bt_socket_data_received_cb(bt_socket_received_data_s* data, void* user_data)
 ret = bt_socket_set_data_received_cb(bt_socket_data_received_cb, NULL);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_socket_data_received_cb] regist to fail.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_socket_data_received_cb] regist failed.&quot;);
 }
 </pre>
 
@@ -820,11 +805,11 @@ bt_error_e ret;
 ret = bt_socket_destroy_rfcomm(server_socket_fd);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] failed.&quot;);
 } 
 else 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] Succeeded. socket_fd = %d&quot;, server_socket_fd);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] succeeded. socket_fd = %d&quot;, server_socket_fd);
 }
 </pre></li>
 
@@ -836,11 +821,11 @@ bt_error_e ret;
 ret = bt_socket_disconnect_rfcomm(server_socket_fd);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] Failed. server_socket_fd = %d.&quot;, server_socket_fd);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] failed. server_socket_fd = %d.&quot;, server_socket_fd);
 } 
 else 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] Succeeded. server_socket_fd = %d.&quot;, server_socket_fd);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_socket_destroy_rfcomm] succeeded. server_socket_fd = %d.&quot;, server_socket_fd);
 }
 </pre></li></ul>
 
@@ -854,7 +839,7 @@ int ret = BT_ERROR_NONE;
 ret = bt_adapter_le_start_scan(__bt_adapter_le_scan_result_cb, NULL);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_scan] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_scan] failed.&quot;);
 }
 // Wait while the system searches for the LE target you want to connect to
 // If you find the LE target you want, stop the scan
@@ -920,7 +905,7 @@ int ret = 0;
 ret = bt_gatt_client_foreach_services(client, __bt_gatt_client_foreach_svc_cb, NULL);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;fail&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;failed&quot;);
 }
 
 return;
@@ -943,7 +928,7 @@ __bt_gatt_client_foreach_svc_cb(int total, int index, bt_gatt_h svc_handle, void
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_foreach_chr_cb, NULL);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_foreach_characteristics is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_foreach_characteristics failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;return true;
@@ -967,7 +952,7 @@ __bt_gatt_client_foreach_chr_cb(int total, int index, bt_gatt_h chr_handle, void
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_characteristic_foreach_descriptors(chr_handle,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_gatt_client_foreach_desc_cb, NULL);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_foreach_descriptors is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_foreach_descriptors failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return true;
 }
@@ -1004,7 +989,7 @@ bt_gatt_h desc = NULL;
 ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1012,7 +997,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1020,7 +1005,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1028,7 +1013,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_client_read_value(desc, __bt_gatt_client_read_complete_cb, NULL);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_read_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_read_value failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1067,7 +1052,7 @@ bt_gatt_h desc = NULL;
 ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1075,7 +1060,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1083,7 +1068,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1091,7 +1076,7 @@ if (ret != BT_ERROR_NONE)
 ret = __bt_gatt_client_set_value(&quot;int32&quot;, &quot;1234&quot;, desc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_set_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_set_value failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1100,7 +1085,7 @@ ret = bt_gatt_client_write_value(desc, __bt_gatt_client_write_complete_cb, NULL)
 
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_write_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_write_value failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1162,7 +1147,7 @@ __bt_gatt_client_set_value(char *type, char *value, bt_gatt_h h)
 
 &nbsp;&nbsp;&nbsp;ret = bt_gatt_set_value(h, buf, len);
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;bt_gatt_set_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TC_PRT(&quot;bt_gatt_set_value failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return ret;
 }
@@ -1196,7 +1181,7 @@ bt_gatt_h chr = NULL;
 ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1204,7 +1189,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1212,7 +1197,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_client_set_characteristic_value_changed_cb(chr, __bt_gatt_client_value_changed_cb, NULL);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_set_characteristic_value_changed_cb is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_set_characteristic_value_changed_cb failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1249,7 +1234,7 @@ bt_gatt_h chr = NULL;
 ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1257,7 +1242,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1265,7 +1250,7 @@ if (ret != BT_ERROR_NONE)
 ret = bt_gatt_client_unset_characteristic_value_changed_cb(chr);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_unset_characteristic_value_changed_cb is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_unset_characteristic_value_changed_cb failed : %d&quot;, ret);
 
 &nbsp;&nbsp;&nbsp;return;
 }
@@ -1306,7 +1291,7 @@ bt_gatt_type_e gatt_type;
 ret = bt_gatt_get_type(gatt_handle, &amp;gatt_type);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_type is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_type failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1321,7 +1306,7 @@ char *uuid = NULL;
 ret = bt_gatt_get_uuid(gatt_handle, &amp;uuid);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_uuid is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_uuid failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1337,7 +1322,7 @@ char *value = NULL;
 ret = bt_gatt_get_value(gatt_handle, &amp;value, &amp;len);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_value failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1354,7 +1339,7 @@ int value;
 ret = bt_gatt_get_int_value(gatt_handle, type, offset, &amp;value);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_int_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_int_value failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1371,7 +1356,7 @@ float value;
 ret = bt_gatt_get_float_value(gatt_handle, type, offset, &amp;value);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_float_value is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_get_float_value failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1383,7 +1368,7 @@ bt_gatt_h svc = NULL;
 ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1397,14 +1382,14 @@ bt_gatt_h chr = NULL;
 ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;break;
 }
 
 ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1420,21 +1405,21 @@ bt_gatt_h desc = NULL;
 ret = bt_gatt_client_get_service(client, svc_uuid, &amp;svc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_client_get_service failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;break;
 }
 
 ret = bt_gatt_service_get_characteristic(svc, chr_uuid, &amp;chr);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_characteristic failed : %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;break;
 }
 
 ret = bt_gatt_characteristic_get_descriptor(chr, desc_uuid, &amp;desc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_descriptor failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1448,7 +1433,7 @@ int properties;
 ret = bt_gatt_characteristic_get_properties(chr, &amp;properties);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_properties is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_properties failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1461,7 +1446,7 @@ bt_gatt_h chr = NULL;
 ret = bt_gatt_characteristic_get_service(chr, &amp;svc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_service failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1474,7 +1459,7 @@ bt_gatt_h dsc = NULL;
 ret = bt_gatt_descriptor_get_characteristic(dsc, &amp;chr);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_descriptor_get_characteristic is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_descriptor_get_characteristic failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1487,7 +1472,7 @@ bt_gatt_client_h client = NULL;
 ret = bt_gatt_service_get_client(svc, &amp;client);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_client is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_client failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1500,7 +1485,7 @@ bt_gatt_write_type_e write_type;
 ret = bt_gatt_characteristic_get_write_type(chr, &amp;write_type);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_write_type is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_characteristic_get_write_type failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1515,7 +1500,7 @@ bt_gatt_write_type_e write_type = NULL;
 ret = bt_gatt_service_get_included_service(svc, uuid, &amp;included_svc);
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_included_service is failed : %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;bt_gatt_service_get_included_service failed : %d&quot;, ret);
 }
 </pre></li>
 
@@ -1639,7 +1624,7 @@ connection_requested_cb_for_opp_server(const char *remote_address, void *user_da
 ret = bt_opp_server_initialize_by_connection_request(directory, connection_requested_cb_for_opp_server, NULL);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_opp_server_initialize_by_connection_request] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_opp_server_initialize_by_connection_request] failed.&quot;);
 }
 free(directory);
 </pre>
@@ -1671,13 +1656,13 @@ ret = bt_opp_server_accept(bt_opp_server_transfer_progress_cb_for_opp,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file_name, NULL, NULL);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_opp_server_accept] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_opp_server_accept] failed.&quot;);
 }
 
 ret = bt_opp_server_reject();
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_opp_server_reject] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_opp_server_reject] failed.&quot;);
 }
 </pre>
 </li>
@@ -1693,7 +1678,7 @@ bt_error_e ret;
 ret = bt_opp_client_initialize();
 if (ret != BLUETOOTH_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;bt_opp_client_initialize() fail&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;bt_opp_client_initialize() failed&quot;);
 
 &nbsp;&nbsp;&nbsp;return -1;
 }
@@ -1704,7 +1689,7 @@ if (ret != BLUETOOTH_ERROR_NONE)
 <pre class="prettyprint">
 bt_error_e ret;
 char *resource_path = NULL;
-char caller_id_path[1024] = {&#39;\0&#39;, };
+char caller_id_path[1024] = {&#39;\0&#39;,};
 
 resource_path = app_get_resource_path();
 snprintf(caller_id_path, sizeof(caller_id_path)-1, &quot;%s/image1.jpg&quot;, resource_path);
@@ -1714,7 +1699,7 @@ ret = bt_opp_client_add_file(caller_id_path);
 
 if (ret != BLUETOOTH_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;bt_opp_client_add_file() fail&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;bt_opp_client_add_file() failed&quot;);
 
 &nbsp;&nbsp;&nbsp;return -1;
 }
@@ -1760,11 +1745,11 @@ ret = bt_opp_client_push_files(remote_addr, __bt_opp_client_push_responded_cb,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_opp_client_push_finished_cb, NULL);
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_opp_client_push_files] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_opp_client_push_files] failed.&quot;);
 } 
 else 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_opp_client_push_files] Succeeded.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[bt_opp_client_push_files] succeeded.&quot;);
 }
 </pre>
 </li>
@@ -1777,7 +1762,7 @@ bt_error_e ret;
 ret = bt_opp_client_clear_files();
 if (ret != BLUETOOTH_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;bt_opp_client_clear_files() fail&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;bt_opp_client_clear_files() failed&quot;);
 
 &nbsp;&nbsp;&nbsp;return -1;
 }
@@ -1786,7 +1771,7 @@ ret = bt_opp_client_deinitialize();
 if (ret != BLUETOOTH_ERROR_NONE) 
 {
 &nbsp;&nbsp;&nbsp;ERR(&quot;bt_opp_client_initialize &quot;);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;bt_opp_client_initialize Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;bt_opp_client_initialize failed.&quot;);
 
 &nbsp;&nbsp;&nbsp;return -1;
 }
@@ -1813,7 +1798,7 @@ main()
 
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE) 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_scan] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_scan] failed.&quot;);
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;return;
@@ -1931,7 +1916,7 @@ main()
 
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_stop_scan] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_stop_scan] failed.&quot;);
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;return;
@@ -1996,7 +1981,7 @@ main()
 
 &nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_device_discovery] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_start_device_discovery] failed.&quot;);
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;// To unset the LE device discovery state change callback
 &nbsp;&nbsp;&nbsp;ret = bt_adapter_le_unset_device_discovery_state_changed_cb();
@@ -2106,7 +2091,7 @@ ret = bt_adapter_le_destroy_advertiser(advertiser);
  
 if (ret != BT_ERROR_NONE)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_destroy_advertiser] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_adapter_le_destroy_advertiser] failed.&quot;);
 }
 
 return;
@@ -2259,7 +2244,7 @@ bt_socket_unset_connection_state_changed_cb();
 ret = bt_deinitialize();
 if (ret != BT_ERROR_NONE) 
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_deinitialize] Failed.&quot;);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;[bt_deinitialize] failed.&quot;);
 }</pre>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>

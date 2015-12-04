@@ -39,7 +39,7 @@
 
  <h1>Evas Rendering Concept and Method</h1>
  
-<p>Evas is a canvas display library. It is markedly different from most display and windowing systems as the canvas is structural and is also a state engine, whereas most display and windowing systems are immediate mode display targets. Evas handles the logic between a structural display via its state engine, and controls the target windowing system in order to produce rendered results of the current canvas&#39; state on the display.</p>
+<p>Evas is a canvas display library. It is different from most display and windowing systems as the canvas is structural and also a state engine, whereas most display and windowing systems are immediate mode display targets. Evas handles the logic between a structural display using its state engine, and controls the target windowing system to produce rendered results of the current canvas&#39; state on the display.</p>
 <p>Immediate mode display systems retain very little or no state. A program executes a series of commands, as in the following pseudo code.</p>
 <pre class="prettyprint">
 draw line from position (0, 0) to position (100, 200);
@@ -51,25 +51,25 @@ scale bitmap_handle to size 100 x 100;
 draw image bitmap_handle at position (10, 30);
 </pre>
 <p>The series of commands is executed by the windowing system and the results are typically displayed on the screen. Once the commands are executed, the display system does not know how to reproduce this image again, and has to be instructed by the application on how to redraw sections of the screen if needed. Each successive command is executed as instructed by the application and either emulated by software or sent to the graphics hardware on the device to be performed.</p>
-<p>The advantage of such a system is that it is simple and gives a program tight control over how something looks and is drawn. Given the increasing complexity of displays and demands by users to have better looking interfaces, more work needs to be done at this level by the internals of UI component sets, custom display components and other programs. This means that more logic and display rendering code needs to be written again each time the application needs to figure out how to minimize redraws so that display is fast and interactive, and keep track of redraw logic.</p>
-<p>For example, if in the scene below, the windowing system requires the application to redraw the area from 0, 0 to 50, 50 (also referred to as the &quot;expose event&quot;). Then the programmer calculates manually the updates and repaints it again.</p>
+<p>The advantage of such a system is that it is simple and gives a program tight control over how something looks and is drawn. Given the increasing complexity of displays and demands for better looking interfaces, more work needs to be done at this level by the internals of UI component sets, custom display components, and other programs. This means that more logic and display rendering code needs to be written again each time the application needs to figure out how to minimize redraws for the display to be fast and interactive, and to keep track of redraw logic.</p>
+<p>For example, if in the following scene, the windowing system requires the application to redraw the area from 0, 0 to 50, 50 (also referred to as the &quot;expose event&quot;), the programmer calculates manually the updates and repaints it again.</p>
 <pre class="prettyprint">
 Redraw from position (0, 0) to position (50, 50):
 
 // What was in area (0, 0, 50, 50)?
 
-// 1. intersection part of line (0, 0) to (100, 200)?
+&nbsp;&nbsp;&nbsp;// 1. intersection part of line (0, 0) to (100, 200)?
 &nbsp;&nbsp;&nbsp;draw line from position (0, 0) to position (25, 50);
 
-// 2. intersection part of rectangle (10, 30) to (50, 500)?
+&nbsp;&nbsp;&nbsp;// 2. intersection part of rectangle (10, 30) to (50, 500)?
 &nbsp;&nbsp;&nbsp;draw rectangle from position (10, 30) to position (50, 50)
 
-// 3. intersection part of image at (10, 30), size 100 x 100?
+&nbsp;&nbsp;&nbsp;// 3. intersection part of image at (10, 30), size 100 x 100?
 &nbsp;&nbsp;&nbsp;bitmap_subimage = subregion from position (0, 0) to position (40, 20)
 &nbsp;&nbsp;&nbsp;draw image bitmap_subimage at position (10, 30);
 </pre>
 
-<p>If all elements in the above scene are opaque, the system is doing useless paints: part of the line is behind the rectangle, and part of the rectangle is behind the image. These useless paints tend to be very costly.</p>
+<p>If all elements in the scene are opaque, the system is doing useless paints: part of the line is behind the rectangle, and part of the rectangle is behind the image. These useless paints tend to be very costly.</p>
 <p>Evas is a structural system in which the programmer creates and manages display objects and their properties, and as a result of this higher level state management, the canvas is able to redraw the set of objects when needed to represent the current state of the canvas.</p>
 <p>For example, see the following pseudo code.</p>
 <pre class="prettyprint">
@@ -90,24 +90,24 @@ show bitmap_handle;
 render scene;
 </pre>
 
-<p>This looks longer, but when the display needs to be refreshed or updated, the programmer only moves, resizes, shows, hides etc. the objects that need to change. The programmer thinks at the object logic level, and the canvas software does the rest of the work, figuring out what changed in the canvas since it was last drawn, how to most efficiently redraw the canvas and its contents to reflect the current state, and doing the actual drawing of the canvas.</p>
-<p>This allows the programmer think in a more natural way when dealing with a display, and saves time and effort of working out how to load and display images, to render given the current display system etc. Since Evas is portable across different display systems, this gives the programmer the ability to port and display the code on different display systems with little work.</p>
-<p>Evas is a display system somewhere between a UI component set and an immediate mode display system. It retains basic display logic, but does little high-level logic such as scrollbars, sliders, push buttons etc.</p>
+<p>This code looks longer, but when the display needs to be refreshed or updated, the programmer only moves, resizes, shows, or hides the objects that need to change. The programmer thinks at the object logic level, and the canvas software does the rest of the work, figuring out what changed in the canvas since it was last drawn, how to most efficiently redraw the canvas and its contents to reflect the current state, and doing the actual drawing of the canvas.</p>
+<p>This allows the programmer to think in a more natural way when dealing with a display, and saves time and effort of working out how to load and display images, such as to render given the current display system. Since Evas is portable across different display systems, this gives the programmer the ability to port and display the code on different display systems with little work.</p>
+<p>Evas is a display system somewhere between a UI component set and an immediate mode display system. It retains basic display logic, but does little high-level logic, such as scrollbars, sliders, or push buttons.</p>
 
 <p>For more information on the UI rendering modes (immediate and retained), see <a href="#ui_rendering">UI Rendering Mode</a>.</p>
 
 
 <h2 id="engine" name="engine">Evas Engines Concept </h2>
-<p>Evas delegates most of the actual rendering work to its engines. Engines are the backends that Evas uses to render (primitive) objects on a canvas. The canvas can be the screen, or a buffer in the memory.</p>
-<p>Evas can work with and provides multiple engines, such as (this list is non-exhaustive):</p>
+<p>Evas delegates most of the actual rendering work to its engines. Engines are the backends that Evas uses to render primitive objects on a canvas. The canvas can be the screen, or a buffer in the memory.</p>
+<p>Evas can work with and provides multiple engines, such as:</p>
 <ul>
-<li>buffer: all the rendering takes place in a buffer</li>
-<li>fb: the rendering takes place in the system&#39;s framebuffer</li>
-<li>software_x11: this is the most used, using X11</li>
-<li>gl_x11: this also renders to an X11 window, except that it uses OpenGL</li>
+<li><span style="font-family: Courier New,Courier,monospace">buffer</span>: All the rendering takes place in a buffer</li>
+<li><span style="font-family: Courier New,Courier,monospace">fb</span>: The rendering takes place in the system&#39;s framebuffer</li>
+<li><span style="font-family: Courier New,Courier,monospace">software_x11</span>: The most used, using X11</li>
+<li><span style="font-family: Courier New,Courier,monospace">gl_x11</span>: Renders to an X11 window, except that it uses OpenGL</li>
 </ul>
-<p>These implement the rendering of all the basic objects by themselves, because they often can be accelerated by the hardware or backend software libraries to provide fast rendering.</p>
-<p>If a particular engine does not have the provision for a certain primitive object, it reverts back to using a default software version. </p> 
+<p>These engines implement the rendering of all the basic objects by themselves, because they often can be accelerated by the hardware or backend software libraries to provide fast rendering.</p>
+<p>If a particular engine does not have the provision for a certain primitive object, it reverts back to using a default software version.</p> 
 
 <h2 id="ui_rendering" name="ui_rendering">UI Rendering Mode</h2> 
 
@@ -120,11 +120,12 @@ render scene;
 <p class="figure">Figure: Immediate mode</p> 
 <p align="center"><img alt="Immediate mode" src="../../images/immediate_mode.png" /></p> 
 
-<p>The application commands any drawing issues as it needs, and the display system draws some GUIs. After the drawing is done, it appears in the destination. This mode allows you to have a exact control over the render cycles. However, if the draw commands are misused, unnecessary drawing can be performed or drawing never happen at all.</p> 
+<p>The application commands any drawing issues as it needs, and the display system draws some GUIs. After the drawing is done, it appears in the destination. This mode allows you to have a exact control over the render cycles. However, if the draw commands are misused, unnecessary drawing can be performed or drawing never happens at all.</p> 
 <p>The following example explains the common usage of the immediate mode:</p> 
 
 <pre class="prettyprint">
-void update()
+void 
+update()
 {
 &nbsp;&nbsp;&nbsp;Image *img = load_image(NEW_IMG);
 
@@ -164,7 +165,8 @@ void update()
 <p>Since Evas works with the retained mode, there is no need to command any drawings. The following example shows how to write a GUI code with Evas for your application:</p>
 
 <pre class="prettyprint">
-void create_image()
+void 
+create_image()
 {
 &nbsp;&nbsp;&nbsp;// Initialize an image object to be displayed on the screen
 &nbsp;&nbsp;&nbsp;Evas_Object *img = evas_object_image_add(e);
@@ -182,7 +184,8 @@ void create_image()
 &nbsp;&nbsp;&nbsp;evas_object_show(img);
 }
 
-void create_rectangle()
+void 
+create_rectangle()
 {
 &nbsp;&nbsp;&nbsp;// Initialize an rectangle object to be displayed on the screen
 &nbsp;&nbsp;&nbsp;Evas_Object *rect = evas_object_rectangle_add(e);
@@ -204,7 +207,8 @@ void create_rectangle()
 <p>A few main loops later you can replace the image with another one and move the rectangle. You only need to set a new image file to the image object and move the rectangle object. Evas computes the invalidate area and redraws the image and rectangle behind the application when it&#39;s on rendering time.</p>
 
 <pre class="prettyprint">
-void update()
+void 
+update()
 {
 &nbsp;&nbsp;&nbsp;// Set new image resource
 &nbsp;&nbsp;&nbsp;elm_image_file_set(img, NEW_IMG, NULL);
@@ -216,7 +220,7 @@ void update()
 
 <h3 id="evas_rendering" name="evas_rendering">Evas Rendering</h3>
 
-<p>Tizen Native applications work on the ecore main loop, and the loop goes on a few steps for every frame. Evas redraws some changes in the objects when the main loop goes to the idle enterer step. If there are no changes, Evas rendering is skipped. Otherwise, Evas calculates any changed portions of all display objects and redraws them.</p>
+<p>Tizen native applications work on the Ecore main loop, and the loop goes on a few steps for every frame. Evas redraws some changes in the objects when the main loop goes to the idle enterer step. If there are no changes, Evas rendering is skipped. Otherwise, Evas calculates any changed portions of all display objects and redraws them.</p>
 
 <p class="figure">Figure: Evas rendering in the main loop</p> 
 <p align="center"><img alt="Evas rendering in the main loop" src="../../images/rendering1.png" /></p> 
@@ -250,7 +254,7 @@ void update()
 <p class="figure">Figure: Evas redrawing example 5</p> 
 <p align="center"><img alt="Evas redrawing example 5" src="../../images/redrawing05.png" /></p>
 
-<p>If Evas worked in an immediate mode style, the application would need to calculate the changed areas themselves, adding extra work. With Evas, you can let Evas figure out the updates and you can yourself concentrate on the application and UI core and logic.</p></li></ul>
+<p>If Evas worked in an immediate mode style, the application needs to calculate the changed areas themselves, adding extra work. With Evas, you can let Evas figure out the updates and you can yourself concentrate on the application and UI core and logic.</p></li></ul>s
 
 <table class="note">
     <tbody>
