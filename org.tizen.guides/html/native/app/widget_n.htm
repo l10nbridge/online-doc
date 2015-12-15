@@ -24,6 +24,7 @@
 			<ul class="toc">
 				<li><a href="#app">Widget Application States and Events</a></li>
 				<li><a href="#instance">Widget Instance States and Events</a></li>
+				<li><a href="#share">Data Sharing Between the Widget Application and Other Applications</a></li>
 			</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
@@ -50,7 +51,19 @@
 	<p>To ensure that the application runs smoothly, you must <a href="../../../../org.tizen.devtools/html/native_tools/manifest_text_editor_n.htm#widget_app">edit the application manifest file</a> to define the widget settings.</p>
 	</li>
 	<li>Creating the widget UI
-	<p>The widget application can draw a UI on the home screen. To do this, you must get the window object of the home screen and attach UI components to it. You can use the <span style="font-family: Courier New,Courier,monospace">widget_app_get_elm_win()</span> function to <a href="../../../../org.tizen.tutorials/html/native/app_framework/widget_tutorial_n.htm#get_window">create an EFL object for widget window</a>.</p></li>
+	<p>The widget application can draw a UI on the home screen. To do this, you must get the window object of the home screen and attach UI components to it. You can use the <span style="font-family: Courier New,Courier,monospace">widget_app_get_elm_win()</span> function to <a href="../../../../org.tizen.tutorials/html/native/app_framework/widget_tutorial_n.htm#get_window">create an EFL object for widget window</a>.</p>
+	  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The widget application UI has a limitation with the scroll action to provide better user experience. Design the widget UI to display all the information within the given area of the screen points.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+	
+	</li>
 	</ul>
 
 <h2 id="app" name="app">Widget Application States and Events</h2>
@@ -162,6 +175,37 @@ widget_app_create(void *user_data)
 }
 </pre>
 
+<h2 id="share" name="share">Data Sharing Between the Widget Application and Other Applications</h2>
+
+<p>You can share data between widget applications and UI (or service) applications. However, you must understand that this kind of data sharing is based on the file system. The reason is that the system (Home screen) controls the widget application life-cycle, while the UI application life-cycle is mostly explicitly controlled by the user.</p>
+
+<p>For example, consider the differences between a Weather application and a Weather widget:</p>
+<ul>
+<li>The Weather application is launched when user selects it from the application list.</li>
+<li>The widget is launched when the Home screen is on screen and is terminated when the Home screen is hidden.</li></ul>
+
+<p>Although the widget wants to share some data from the Weather application (such as the user&#39;s favorite city), it is ineffective for the widget to launch the Weather application every time to retrieve such data. This inefficiency makes it difficult to use typical IPC mechanisms, such as socket and <a href="message_port_n.htm">Message Port</a>, in which both the receiver and sender processes must be alive for communication. To overcome this issue, the widget application must use a communication type where the data is permanently stored somewhere in the system.</p> 
+
+<p>In the Tizen platform, applications in the same package (including widget applications) can access files in the <span style="font-family: Courier New,Courier,monospace">data</span> directory of the package installation path. This means that the UI (or service) application can first write files to the <span style="font-family: Courier New,Courier,monospace">data</span> directory, and the widget can later read them, or vice versa.</p>
+
+<p class="figure">Figure: Sharing through the data directory</p> 
+<p align="center"><img alt="Sharing through the data directory" src="../../images/widget_data_share.png" /></p> 
+
+<p>To manage data through the <span style="font-family: Courier New,Courier,monospace">data</span> directory:</p>
+
+<ul>
+<li><p>You can set and get data in the <span style="font-family: Courier New,Courier,monospace">data</span> directory using the Preference API functions (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PREFERENCE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__PREFERENCE__MODULE.html">wearable</a> applications). You can use the functions to <a href="../../../../org.tizen.tutorials/html/native/app_framework/preference_tutorial_n.htm">store and retrieve key-value data</a> in the <span style="font-family: Courier New,Courier,monospace">data</span> directory.</p></li>
+
+<li><p>You can share the <span style="font-family: Courier New,Courier,monospace">data</span> directory content with Sqlite, by creating an Sqlite database file in the <span style="font-family: Courier New,Courier,monospace">data</span> directory.</p>
+<p>The Sqlite database has an advantage to a direct use of a file in error handling, such as journaling. Consequently, if the application must handle complex data rather than primitive values, <a href="../../../../org.tizen.tutorials/html/native/base/sqlite_tutorial_n.htm">use Sqlite to store and retrieve the data</a>.</p></li></ul>
+
+<p>If an application requires complex control over a widget, such as Music Player, it must implement a service application in the middle and use the Data Control API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__DATA__CONTROL__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__DATA__CONTROL__MODULE.html">wearable</a> applications).</p>
+<p>For example, a music-player-service service application is needed to control the audio device, process audio files, and handle play and stop signals. The music-player-ui and music-player-widget applications display the UI controls, title, album arts, and other content retrieved from the music-player-service service application. The service application can export its data using the Data Control to <a href="data_control_n.htm">provide data to the other applications</a> (widget and UI) simultaneously.</p>
+
+<p>The following figure illustrates typical data control flows between the set of UI, service, and widget applications.</p>
+
+<p class="figure">Figure: Sharing through data control</p> 
+<p align="center"><img alt="Sharing through data control" src="../../images/widget_data_control_share.png" /></p>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
