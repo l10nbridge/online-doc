@@ -316,11 +316,187 @@ static void __view_del_file_item_cb(void *data, Evas_Object *obj)
 }
 </pre>
 
-
 <h3>Model</h3>
+<p>The application's model consists of three sub-modules: Model, File and the Bluetooth module. The main tasks are presented in the picture below:</p>
+<p align="center"><img alt="Model tasks" src="../images/files_sharing_server_model_tasks.png"/>
+<p>The model's data is represented by the <span style="font-family: Courier New,Courier,monospace">model_data_t</span> structure, which is allocated in the <span style="font-family: Courier New,Courier,monospace">model_init()</span> function, called by the controller when the application is created.</p>
 
+<pre class="prettyprint">
+struct _model_data_t {
+&nbsp;&nbsp;&nbsp;Eina_List *files_list;
+&nbsp;&nbsp;&nbsp;int transfer_id;
+};
+typedef struct _model_data_t model_data_t;
+</pre>
 
+<pre class="prettyprint">
+extern model_data_t *model_init(void)
+{
+&nbsp;&nbsp;&nbsp;model_data_t *md = NULL;
+&nbsp;&nbsp;&nbsp;md = (model_data_t *)malloc(sizeof(model_data_t));
+&nbsp;&nbsp;&nbsp;md->files_list = NULL;
 
+&nbsp;&nbsp;&nbsp;if (!bt_module_init())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+
+&nbsp;&nbsp;&nbsp;return md;
+}
+</pre>
+
+<p>The model object destructor is called on <span style="font-family: Courier New,Courier,monospace">app_terminate()</span> by the constructor and releases all allocated data.</p>
+<pre class="prettyprint">
+extern void model_deinit(model_data_t *md)
+{
+&nbsp;&nbsp;&nbsp;file_t *file = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!md || !md->files_list)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling*/
+
+&nbsp;&nbsp;&nbsp;EINA_LIST_FREE (md->files_list, file)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;file_delete(file);
+
+&nbsp;&nbsp;&nbsp;free(md);
+&nbsp;&nbsp;&nbsp;bt_module_deinit();
+}
+</pre>
+
+<p>Bluetooth initialization is described below:</p>
+
+<pre class="prettyprint">
+bool bt_module_init(void)
+{
+&nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;char *directory = NULL;
+
+&nbsp;&nbsp;&nbsp;/*Set storage directory for received files*/
+&nbsp;&nbsp;&nbsp;storage_get_directory(0, STORAGE_DIRECTORY_DOWNLOADS, &directory);
+&nbsp;&nbsp;&nbsp;if(!directory)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+
+&nbsp;&nbsp;&nbsp;/*Initialize Bluetooth.*/
+&nbsp;&nbsp;&nbsp;ret = bt_initialize();
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+
+&nbsp;&nbsp;&nbsp;/*Initialize the Bluetooth OPP server and set callbacks invoked when connection is requested.*/
+&nbsp;&nbsp;&nbsp;ret = bt_opp_server_initialize_by_connection_request(directory, __bt_connection_request_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+
+&nbsp;&nbsp;&nbsp;free(directory);
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>All initialized modules must be released when they are no longer needed. In case of this sample application, it is called on <span style="font-family: Courier New,Courier,monospace">app_terminate</span> event.</p>
+
+<pre class="prettyprint">
+void bt_module_deinit(void)
+{
+&nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;ret = bt_opp_server_deinitialize();
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+
+&nbsp;&nbsp;&nbsp;ret = bt_deinitialize();
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+}
+</pre>
+
+<p>If another device starts to send files using the Bluetooth OPP protocol, the request callback is invoked. In this sample application, <span style="font-family: Courier New,Courier,monospace">Ecore Events</span> mechanism is used to inform the controller about actions from other modules. This approach was chosen to avoid static data structures declared in each module.</p>
+
+<pre class="prettyprint">
+static void __bt_connection_request_cb(const char *remote_addr, void *data)
+{
+&nbsp;&nbsp;&nbsp;ecore_event_add(app_utils_get_event_type(EVENT_CONNECTION_REQUEST), NULL, NULL, NULL);
+}
+</pre>
+
+<p>After receiving a request event, controller changes the state of the view to enable the accept button. When the user taps it, <span style="font-family: Courier New,Courier,monospace">bt_module_transfer_accept()</span> function is called. It accepts the connection and starts the files transfer. It is also used to set callback functions which inform the application about the progress changes and transfer finished events.</p>
+
+</p><pre class="prettyprint">
+void bt_module_transfer_accept(model_data_t *md)
+{
+&nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;if (!md)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+
+&nbsp;&nbsp;&nbsp;ret = bt_opp_server_accept(__bt_transfer_progress_cb, __bt_transfer_finished_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, md, &(md->transfer_id));
+
+&nbsp;&nbsp;&nbsp;if (ret != BT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+}
+</pre>
+
+<p> The <span style="font-family: Courier New,Courier,monospace">__bt_transfer_progress_cb()</span> function is used to update the received file progress and distinguish new files transfer.
+For that purpose, the <span style="font-family: Courier New,Courier,monospace">transfer_in_progress</span> flag is declared in the static memory. It is reset by the <span style="font-family: Courier New,Courier,monospace">__bt_transfer_finished_cb()</span> callback function.</p>
+
+</p><pre class="prettyprint">
+static void __bt_transfer_progress_cb(const char *file, long long size, int percent, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;model_data_t *md = (model_data_t *)user_data;
+&nbsp;&nbsp;&nbsp;static file_t *recv_file = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!md)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+
+&nbsp;&nbsp;&nbsp;/*Receive new file. In that case EVENT_TRANSFER_STARTED is emitted and it is handled by the controller
+&nbsp;&nbsp;&nbsp;to add new file item into the files list.*/
+&nbsp;&nbsp;&nbsp;if (!transfer_in_progres) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Create a new file object.*/
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;recv_file = file_create(md, strdup(file), NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Pass the created file to the controller module. New genlist item is created based on the file.*/
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_event_add(app_utils_get_event_type(EVENT_TRANSFER_STARTED), recv_file, __bt_transfer_started_end_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Change the flag to true. It will be reset when the transfer of the file is completed.*/
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;transfer_in_progres = true;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/*Update the progress of the received file.*/
+&nbsp;&nbsp;&nbsp;file_update_progress(recv_file, percent);
+&nbsp;&nbsp;&nbsp;/*Pass the received file to the controller. It is used to update the progressbar widget for a specific file in the received files list.*/
+&nbsp;&nbsp;&nbsp;ecore_event_add(app_utils_get_event_type(EVENT_TRANSFER_IN_PROGRESS), recv_file, __bt_transfer_in_progress_end_cb, NULL);
+}
+</pre>
+
+<p>Transfer finished callback is used to change the value of the <span style="font-family: Courier New,Courier,monospace">transfer_in_progress</span> flag.</p>
+
+</p><pre class="prettyprint">
+static void __bt_transfer_finished_cb(int result, const char *file, long long size, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;transfer_in_progres = false;
+}
+</pre>
+
+<p>All helper function used in the sample application are implemented in the <span style="font-family: Courier New,Courier,monospace">app_utils.c</span> file. The most important function in this module initializes new <span style="font-family: Courier New,Courier,monospace">Ecore Callbacks</span> used by the controller.</p>
+
+</p><pre class="prettyprint">
+typedef enum {
+&nbsp;&nbsp;&nbsp;EVENT_CONNECTION_REQUEST = 0,
+&nbsp;&nbsp;&nbsp;EVENT_TRANSFER_IN_PROGRESS,
+&nbsp;&nbsp;&nbsp;EVENT_ACCEPT_BUTTON_CLICKED,
+&nbsp;&nbsp;&nbsp;EVENT_REJECT_BUTTON_CLICKED,
+&nbsp;&nbsp;&nbsp;EVENT_TRANSFER_STARTED,
+} event_type_t;
+</pre>
+
+</p><pre class="prettyprint">
+extern int app_utils_get_event_type(event_type_t event)
+{
+&nbsp;&nbsp;&nbsp;int i = 0;
+
+&nbsp;&nbsp;&nbsp;if (!initialized) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;initialized = true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i < APP_EVENTS_COUNT; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arr_custom_events[i] = ecore_event_type_new();
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return arr_custom_events[event];
+}
+</pre>
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
