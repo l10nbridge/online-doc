@@ -240,7 +240,7 @@ static Eina_Bool __create_toolbar(void)
 			</td>
 		</tr>
 
-		<tr>
+		<tr id="display-section-layout">
 			<td>
 				The display section is made of two stacked objects:
 				<ul>
@@ -518,6 +518,50 @@ player_error_e player_model_play_file(const char *file_path)
 </ul>
 <p>Note that when the loop mode is on, the <span style="font-family: Courier New,Courier,monospace">__player_completed_cb</span> callback function is <b>not</b> invoked.</p>
 
+<h5>Other functionalities</h5>
+<p>Some of the multimedia files provide an album art image that can be displayed during the playback. To display such an image, the <span style="font-family: Courier New,Courier,monospace">player_get_album_art()</span> function has to be invoked. Raw image data is provided after a succesful call. The data can be later passed to <span style="font-family: Courier New,Courier,monospace">elm_image_memfile_set()</span> function to create an image object that will be set in the display section./p>
+<p>During the playback of a video file (local or online) a screenshot can be taken at any moment using the <span style="font-family: Courier New,Courier,monospace">player_capture_video()</span> function. If the capture is successful, the <span style="font-family: Courier New,Courier,monospace">__video_captured_cb()</span> callback function is invoked with the image size and raw data as its parameters. Then, an image file is generated using <span style="font-family: Courier New,Courier,monospace">image_util_encode_jpeg()</span> function. The image is saved in the internal storage of the device, in the Images folder. To get the correct path to the file, <span style="font-family: Courier New,Courier,monospace">__get_storage_path()</span> and <span style="font-family: Courier New,Courier,monospace">__get_storage_path_cb()</span> functions listed below are used.</p>
+
+<pre class="prettyprint">
+static bool __get_storage_path_cb(int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (type == STORAGE_TYPE_INTERNAL) // Check if the storage type is internal
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.found_storage_id = storage_id; // Save the internal storage key
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false; // Stop iterating
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true; // Continue interating
+}
+</pre>
+<pre class="prettyprint">
+static char *__get_storage_path(storage_directory_e dir)
+{
+&nbsp;&nbsp;&nbsp;// Variables declaration
+
+&nbsp;&nbsp;&nbsp;error_code = storage_foreach_device_supported(__get_storage_path_cb, NULL); //iterate each available storages
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;error_code = storage_get_directory(s_info.found_storage_id, dir, &path); //get the path to the storage
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return path;
+}
+</pre>
+<p>Note that to get access to the storage of the device, the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/mediastorage</span> privilege must be set. In order to display the image in the gallery application, it has to be added to the media content database using the <span style="font-family: Courier New,Courier,monospace">__insert_image_info_to_db()</span> function.</p>
+<pre class="prettyprint">
+static void __insert_image_info_to_db(const char *path)
+{
+&nbsp;&nbsp;&nbsp;int ret = media_content_connect();
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;ret = media_content_scan_file(path);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;ret = media_content_disconnect();
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+</pre>
 
 <!-- ********************************************************************************** -->
 
