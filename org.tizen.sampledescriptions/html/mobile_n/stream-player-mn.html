@@ -393,6 +393,95 @@ static Eina_Bool __add_option_panel(void)
 
 <!-- ********************************************************************************** -->
 
+<h5>Information popup</h5>
+<p>The information popup displays a text message with all information about a file gathered by the <a href="model-file-information">model</a>. The function below generates the message.</p>
+<pre class="prettyprint">
+static char *__get_stream_info(void)
+{
+&nbsp;&nbsp;&nbsp;// Variables declaration
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "===== Stream info =====");
+
+&nbsp;&nbsp;&nbsp;__append_content_info(PLAYER_CONTENT_INFO_ALBUM,  msg, "Album: ");
+&nbsp;&nbsp;&nbsp;__append_content_info(PLAYER_CONTENT_INFO_ARTIST, msg, "Artist: ");
+&nbsp;&nbsp;&nbsp;__append_content_info(PLAYER_CONTENT_INFO_AUTHOR, msg, "Author: ");
+&nbsp;&nbsp;&nbsp;__append_content_info(PLAYER_CONTENT_INFO_GENRE,  msg, "Genre: ");
+&nbsp;&nbsp;&nbsp;__append_content_info(PLAYER_CONTENT_INFO_TITLE,  msg, "Title: ");
+&nbsp;&nbsp;&nbsp;__append_content_info(PLAYER_CONTENT_INFO_YEAR,   msg, "Year: ");
+
+&nbsp;&nbsp;&nbsp;player_model_get_codec(&audio_codec, &video_codec);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "CODECS Audio: %s; Video: %s", audio_codec, video_codec);
+&nbsp;&nbsp;&nbsp;__append_underlined_text(msg, "Codecs:");
+&nbsp;&nbsp;&nbsp;__append_bolded_text(msg, "Audio: ", "%s%s", audio_codec, NEW_LINE);
+&nbsp;&nbsp;&nbsp;__append_bolded_text(msg, "Video: ", "%s%s", video_codec, NEW_LINE);
+&nbsp;&nbsp;&nbsp;free(audio_codec);
+&nbsp;&nbsp;&nbsp;free(video_codec);
+
+&nbsp;&nbsp;&nbsp;player_model_get_audio_stream_info(&sample_rate, &channel, &bit_rate);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "AUDIO STREAM INFO: sample rate: %d; channel: %d; bit rate: %d", sample_rate, channel, bit_rate);
+&nbsp;&nbsp;&nbsp;__append_underlined_text(msg, "Audio stream info:");
+&nbsp;&nbsp;&nbsp;__append_bolded_text(msg, "Sample rate: ", "%d%s", sample_rate, NEW_LINE);
+&nbsp;&nbsp;&nbsp;__append_bolded_text(msg, "Channel: ", "%d%s", channel, NEW_LINE);
+&nbsp;&nbsp;&nbsp;__append_bolded_text(msg, "Bit rate: ", "%d%s", bit_rate, NEW_LINE);
+
+&nbsp;&nbsp;&nbsp;player_model_get_video_stream_info(&fps, &bit_rate);
+&nbsp;&nbsp;&nbsp;player_model_get_video_size(&width, &height);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "VIDEO STREAM INFO: FPS: %d; bit_rate: %d; size=[%d, %d]", fps, bit_rate, width, height);
+&nbsp;&nbsp;&nbsp;__append_underlined_text(msg, "Video stream info:");
+&nbsp;&nbsp;&nbsp;__append_bolded_text(msg, "FPS: ", "%d%s", fps, NEW_LINE);
+&nbsp;&nbsp;&nbsp;__append_bolded_text(msg, "Bit rate: ", "%d%s", bit_rate, NEW_LINE);
+&nbsp;&nbsp;&nbsp;__append_bolded_text(msg, "Size: ", "%d x %d", width, height);
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, "===== Stream info =====");
+
+&nbsp;&nbsp;&nbsp;eina_strbuf_replace_all(msg, "&", "&amp;amp;"); //Every '&' character has to be replaced with '&amp;amp;'
+&nbsp;&nbsp;&nbsp;ret = eina_strbuf_string_steal(msg);
+&nbsp;&nbsp;&nbsp;eina_strbuf_free(msg);
+
+&nbsp;&nbsp;&nbsp;return ret;
+}
+</pre>
+<p>The text part of the popup uses tags similar to the HTML's ones. This can used to bold or underline parts of the text.</p>
+<pre class="prettyprint">
+static inline Eina_Stringshare *__bold_text(char *txt)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return eina_stringshare_printf("&ltfont_weight=bold>%s&lt/font_weight&gt", txt); //&ltfont_weight=bold>%s&lt/font_weight> %s will be bolded
+}
+
+static inline void __append_bolded_text(Eina_Strbuf *msg, char *key, char *format, ...)
+{
+&nbsp;&nbsp;&nbsp;va_list args;
+&nbsp;&nbsp;&nbsp;Eina_Stringshare *bolded = __bold_text(key);
+&nbsp;&nbsp;&nbsp;va_start(args, format);
+&nbsp;&nbsp;&nbsp;eina_strbuf_append(msg, bolded);
+&nbsp;&nbsp;&nbsp;eina_strbuf_append_vprintf(msg, format, args);
+&nbsp;&nbsp;&nbsp;eina_stringshare_del(bolded);
+&nbsp;&nbsp;&nbsp;va_end(args);
+}
+
+static inline Eina_Stringshare *__underline_text(const char *txt, const char *color)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;return eina_stringshare_printf("&ltunderline=on underline_color=%s&gt%s&lt/underline&gt", color ? color : "#000000", txt);
+&nbsp;&nbsp;&nbsp;//"&ltunderline=on underline_color=%s&gt%s&lt/underline&gt %s will be underlined. Note that the default color of the underline is white.
+}
+
+static inline void __append_underlined_text(Eina_Strbuf *msg, const char *txt)
+{
+&nbsp;&nbsp;&nbsp;Eina_Stringshare *underlined = __underline_text(txt, "#000000");
+&nbsp;&nbsp;&nbsp;eina_strbuf_append_printf(msg, "%s%s", underlined, NEW_LINE);
+&nbsp;&nbsp;&nbsp;eina_stringshare_del(underlined);
+}
+</pre>
+<p>Refer to the links below for information about the tags:</p>
+<ul>
+	<li><a href="https://developer.tizen.org/ko/development/ui-practices/native-application/efl/graphical-objects/evas-objects?langredirect=1#block">Textblock</a>;</li>
+	<li><a href="https://developer.tizen.org/ko/development/ui-practices/native-application/efl/fonts?langredirect=1">Fonts</a>.</li>
+</ul>
+
+<!-- ********************************************************************************** -->
+
 <h3>Model</h3>
 
 <p>The image below describes the typical state changes of the player.</p>
@@ -564,6 +653,62 @@ static void __insert_image_info_to_db(const char *path)
 </pre>
 
 <!-- ********************************************************************************** -->
+
+<p id="model-file-information">Another feature of the sample application is file's information displaying. Multimedia files provide information about their content which can be accessed using the Player API. The data include:</p>
+<ul>
+	<li>album name,</li>
+	<li>artist name,</li>
+	<li>author name,</li>
+	<li>genre,</li>
+	<li>title,</li>
+	<li>year,</li>
+	<li>audio codec name,</li>
+	<li>video codec name,</li>
+	<li>audio sample rate,</li>
+	<li>audio channel,</li>
+	<li>audio bit rate,</li>
+	<li>video frames per second,</li>
+	<li>video bit rate,</li>
+	<li>video size.</li>
+</ul>
+<p>The functions below are used to get the file's information.</p>
+<pre class="prettyprint">
+char *player_model_get_content_info(player_content_info_e key)
+{
+&nbsp;&nbsp;&nbsp;char *value = NULL;
+
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;player_get_content_info(s_info.player, key, &value);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "player_model_content_info_get(%d) == %s", key, value);
+&nbsp;&nbsp;&nbsp;return value;
+}
+
+void player_model_get_codec(char **audio_codec, char **video_codec)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;player_get_codec_info(s_info.player, audio_codec, video_codec);
+}
+
+void player_model_get_audio_stream_info(int *sample_rate, int *channel, int *bit_rate)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;player_get_audio_stream_info(s_info.player, sample_rate, channel, bit_rate);
+}
+
+void player_model_get_video_stream_info(int *fps, int *bit_rate)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;player_get_video_stream_info(s_info.player, fps, bit_rate);
+}
+
+void player_model_get_video_size(int *width, int *height)
+{
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;player_get_video_size(s_info.player, width, height);
+}
+</pre>
+<p>Note that not every file provides all the mentioned data.</p>
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
