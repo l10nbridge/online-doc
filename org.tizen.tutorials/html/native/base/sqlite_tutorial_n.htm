@@ -47,19 +47,92 @@
 		<li><a href="#init">Initializing the Database</a>
 		<p>Initialize the database for use.</p></li>
 		<li><a href="#store">Storing Encrypted Data</a>
-		<p>Store AES encrypted data in the SQL database.</p></li>
+		<p>Store AES-encrypted data in the SQL database.</p></li>
 	</ul>
 
  <h2 id="init" name="init">Initializing the Database</h2>
+<p>This tutorial is only a draft of encryption and database usage. For more information, see <a href="http://www.openssl.org" target="_blank">OpenSSL</a> and <a href="http://www.sqlite.org" target="_blank">SQLite</a> Web pages.</p>
 
-<p>Initialize external open source libraries:</p>
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">While operating with real data, make sure that you fulfill all security requirements. This tutorial demonstrates how to use the library APIs on Tizen, but does not show how to perform fully secure encryption.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+<p>To initialize external open source libraries:</p>
 
-<ol><li><p>To operate on an SQL database provided by SQLite:</p>
+<ol><li>Define the needed variables:
+<pre class="prettyprint">
+#define BUFLEN 300 // Buffer size, used in functions
+const int key_len = 256; // AES key length
+
+static const unsigned char password[] = {&quot;DummyPassword&quot;}; // Password to generate key
+	
+sqlite3 *db; // Database handle
+
+unsigned char salt[9]; // Encryption salt
+unsigned char iv[17]; // Encryption initial vector
+</pre>
+</li>
+<li><p>To operate on a SQL database provided by SQLite:</p>
 <ol type="a">
-	<li>Configure the database interface <span style="font-family: Courier New,Courier,monospace">sqlite3_config</span> (<span style="font-family: Courier New,Courier,monospace">SQLITE_CONFIG_URI, 1</span>). It allows setting the path to the database using URI.</li>
-	<li>Initialize the interface with the <span style="font-family: Courier New,Courier,monospace">sqlite3_initialize()</span> function.</li>
-	<li>Open database using the <span style="font-family: Courier New,Courier,monospace">sqlite3_open(file_path, &amp;db)</span> function. It creates a new database file, if the URI points to a non-existing one. The handle to the database is stored in a <span style="font-family: Courier New,Courier,monospace">db</span> variable.</li>
-	<li>Create a table, this step is described later.</li>
+
+<li>Configure the database interface to set the path to the database using URI:
+<pre class="prettyprint">
+sqlite3_shutdown();
+sqlite3_config(SQLITE_CONFIG_URI, 1);
+</pre>
+</li>
+<li>Initialize the interface with the <span style="font-family: Courier New,Courier,monospace">sqlite3_initialize()</span> function:
+<pre class="prettyprint">
+sqlite3_initialize();
+</pre>
+</li>
+<li>Open the database using the <span style="font-family: Courier New,Courier,monospace">sqlite3_open()</span> function. <p>The function creates a new database file, if the URI in the first parameter points to a non-existing one. The handle to the database is stored in the second parameter.</p>
+<pre class="prettyprint">
+char file_path[BUFLEN];
+char *document_path;
+// Fill the variable with the value obtained using storage_foreach_device_supported()
+int internal_storage_id = 0; 
+storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_DOCUMENTS, &amp;document_path);
+snprintf(file_path, size, &quot;%s/test.db&quot;, document_path);
+free(document_path);
+
+sqlite3_open(file_path, &amp;db);
+
+free(file_path);
+</pre>
+</li>
+<li>Create a table:
+<pre class="prettyprint">
+CreateTable();
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">CreateTable()</span> function prepares a SQL query, and uses the <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function to execute the query in the defined database.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function passes a return message to a callback function as an array of strings. It creates a database only if one does not exist already. In the following example, the created database name is <span style="font-family: Courier New,Courier,monospace">EncryptedData</span>, and it contains the DATA, ENCRYPTED, SALT, IV, PART, and KEY fields.</p>
+<pre class="prettyprint">
+static int 
+CreateTable()
+{
+&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;char *ErrMsg;
+&nbsp;&nbsp;&nbsp;char *sql = &quot;CREATE TABLE IF NOT EXISTS EncryptedData(&quot;  \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;DATA TEXT NOT NULL,&quot; \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;ENCRYPTED INT NOT NULL,&quot;\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;SALT TEXT NOT NULL,&quot; \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;IV TEXT NOT NULL,&quot; \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;PART INTEGER,&quot; \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;KEY INTEGER PRIMARY KEY);&quot;;
+
+&nbsp;&nbsp;&nbsp;sqlite3_exec(db, sql, callback, 0, &amp;ErrMsg);
+
+&nbsp;&nbsp;&nbsp;return 0;
+}
+</pre>
+</li>
 </ol></li>
 
 <li><p>To operate with OpenSSL AES, salt and initial vectors are needed. Those are auxiliary variables, which are used to generate a cryptographic key:</p>
@@ -67,8 +140,33 @@
 	<li><span style="font-family: Courier New,Courier,monospace">RAND_bytes()</span> generates a random chain of bytes.</li>
 	<li>An additional character is appended after the last character of a chain to point the end of the salt[8]=0x00 variable.</li>
 	<li><span style="font-family: Courier New,Courier,monospace">PrepareToSQL()</span> removes some of the SQL special characters from the chain to make it possible to insert it to the database.</li>
-</ul></li>
-<li><p>Include the required headers:</p>
+</ul>
+<pre class="prettyprint">
+RAND_bytes(salt, 8);
+RAND_bytes(iv, 16);
+
+salt[8]=0x00;
+iv[16]=0x00;
+
+PrepareToSQL(salt);
+PrepareToSQL(iv);
+</pre>
+<p>In the following example, only the string delimiting characters are removed. In a real implementation, you must replace other characters too, such as the comment sequence.</p>
+<pre class="prettyprint">
+void 
+PrepareToSQL(unsigned char* msg)
+{
+&nbsp;&nbsp;&nbsp;int i = 0;
+&nbsp;&nbsp;&nbsp;while (msg[i] != 0x00)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i] == &#39;\&#39;&#39;)msg[i] = &#39;a&#39;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i] == &#39;\&quot;&#39;)msg[i] = &#39;b&#39;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++i;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+<li>
+<p>Include the required headers:</p>
 <ul>
 <li><span style="font-family: Courier New,Courier,monospace">#include &lt;string.h&gt;</span></li>
 <li><span style="font-family: Courier New,Courier,monospace">#include &lt;time.h&gt;</span></li>
@@ -82,162 +180,43 @@
 </ul>
 <p>The <span style="font-family: Courier New,Courier,monospace">time.h</span> is obtained to create an example message to encrypt and store.</p></li></ol>
 
-<p>This scenario is only a draft of encryption and database usage. For more information, see <a href="http://www.openssl.org" target="_blank">OpenSSL</a> and <a href="http://www.sqlite.org" target="_blank">SQLite</a> Web pages.</p>
-
-  <table class="note"> 
-   <tbody> 
-    <tr> 
-     <th class="note">Note</th> 
-    </tr> 
-    <tr> 
-     <td class="note">While operating with real data, make sure that you fulfill all security requirements. Code shown in this tutorial demonstrates only how to use libraries APIs on Tizen but not how to perform fully secure encryption.</td> 
-    </tr> 
-   </tbody> 
-  </table> 
- 
-
-<pre class="prettyprint">
-#define BUFLEN 300 // Buffer size, used in functions
-const int key_len = 256; // AES key length
-
-static const unsigned char password[] = {&quot;DummyPassword&quot;}; // Password to generate key
-	
-sqlite3 *db; // Database handle
-
-unsigned char salt[9]; // Encryption salt
-unsigned char iv[17]; // Encryption initial vector
-</pre>
-
-<pre class="prettyprint">
-sqlite3_shutdown();
-
-sqlite3_config(SQLITE_CONFIG_URI, 1);
-
-sqlite3_initialize();
-
-char file_path[BUFLEN];
-
-char *document_path;
-// Fill the variable with the value obtained using storage_foreach_device_supported()
-int internal_storage_id = 0; 
-storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_DOCUMENTS, &amp;document_path);
-snprintf(file_path, size, &quot;%s/test.db&quot;, document_path);
-free(document_path);
-
-sqlite3_open(file_path, &amp;db);
-
-free(file_path);
-
-CreateTable();
-
-RAND_bytes(salt, 8);
-RAND_bytes(iv, 16);
-
-salt[8]=0x00;
-iv[16]=0x00;
-
-PrepareToSQL(salt);
-PrepareToSQL(iv);
-</pre>
-<p>To create a table, an SQL query has to be prepared. The <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function executes the query in the defined database.</p>
-
-<p>An SQL query:</p>
-<pre class="prettyprint">
-CREATE TABLE IF NOT EXISTS EncryptedData(TEXT NOT NULL,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ENCRYPTED INT NOT NULL,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SALT TEXT NOT NULL,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;IV TEXT NOT NULL,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;PART INTEGER,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;KEY INTEGER PRIMARY KEY);
-</pre>
-
-<p>A return message is passed to the callback function as an array of strings. A database is created only if it does not exist already. The created database name is EncryptedData, and it contains the following fields:</p>
-<ol>
-<li>DATA</li>
-<li>ENCRYPTED</li>
-<li>SALT</li>
-<li>IV</li>
-<li>PART</li>
-<li>KEY</li>
-</ol>
-
-<pre class="prettyprint">
-static int 
-CreateTable()
-{
-&nbsp;&nbsp;&nbsp;int ret;
-&nbsp;&nbsp;&nbsp;char *ErrMsg;
-&nbsp;&nbsp;&nbsp;char *sql = &quot;CREATE TABLE IF NOT EXISTS EncryptedData(&quot;  \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;DATA  TEXT  NOT NULL,&quot; \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;ENCRYPTED  INT  NOT NULL,&quot;\
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;SALT  TEXT  NOT NULL,&quot; \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;IV  TEXT  NOT NULL,&quot; \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;PART  INTEGER,&quot; \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;KEY  INTEGER  PRIMARY KEY);&quot;;
-
-&nbsp;&nbsp;&nbsp;sqlite3_exec(db, sql, callback, 0, &amp;ErrMsg);
-
-&nbsp;&nbsp;&nbsp;return 0;
-}
-</pre>
- 
-
-<p>The string delimiting characters are removed. In a real implementation, replace some more characters, such as the comment sequence.</p>
-<pre class="prettyprint">
-void 
-PrepareToSQL(unsigned char* msg)
-{
-&nbsp;&nbsp;&nbsp;int i = 0;
-&nbsp;&nbsp;&nbsp;while (msg[i]!=0x00)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i]==&#39;\&#39;&#39;)msg[i]=&#39;a&#39;;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i]==&#39;\&quot;&#39;)msg[i]=&#39;b&#39;;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++i;
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-
  <h2 id="store" name="store">Storing Encrypted Data</h2>
  
-<p>This scenario shows how to:</p>
-<ul>
-<li>Encrypt a message with OpenSSL</li>
-<li>Prepare it to store in the database with Base64</li>
-<li>Store in the SQLite database</li>
-<li>Get the database content</li>
-<li>Encrypt the message</li>
-</ul>
+<p>This use case shows how to:</p>
+<ol>
+<li>Encrypt a message with OpenSSL, prepare it, and store it in the SQLite database with the Base64 encoding.</li>
+<li>Check that the message has been successfully stored by listing the database content. </li>
+<li>Retrieve the database content and decrypt the message.</li>
+</ol>
 
 <p>To store encrypted data:</p>
 <ol>
-	<li>Store a short message.
-	<p>OpenSSL AES_Encrypt allows encrypting up to 16 characters at once. Adding a short message (length&lt;=16 characters) is divided in 2 steps:</p>
-	<ol type="a">
-		<li>Encrypt plain text <span style="font-family: Courier New,Courier,monospace">EncryptMsg()</span>.</li>
-		<li>Execute database insertion <span style="font-family: Courier New,Courier,monospace">InsertRecord()</span>.</li>
-	</ol>
-	<pre class="prettyprint">
+<li>Store a short message.
+<pre class="prettyprint">
 char *ShortMsg = &quot;Short Msg.&quot;;
 EncryptMsg(ShortMsg, decrypted_out, password, salt, iv);
 InsertRecord(decrypted_out, 1, 0, strlen(ShortMsg));
 </pre>
-	</li>
-	
-	<li>Encrypt.
-	<ol type="a">
-		<li>Generate a string for key generation from password and salt using <span style="font-family: Courier New,Courier,monospace">PKCS5_PBKDF2_HMAC_SHA1()</span>. Also, an initial vector can be used in different hash functions. In this case, only the first byte of the initial vector is used as an iteration variable for a hash algorithm.</li>
-		<li>Generate the encryption key using the <span style="font-family: Courier New,Courier,monospace">AES_set_encrypt_key()</span> function. A key len defines the AES key length. Check the actual recommended length and encoding type before use. This tutorial uses AES 256, which is defined in the initialization section.</li>
-		<li>Encrypt the data.</li>
-		<li>Encode Base64. Data is encoded to make it safe to insert it to the database. Base 64 does not contain any special characters. Encoding and decoding functions are listed at the end of the tutorial.</li>
-		<li>Add a delimiting 0x00 character at the end of the byte array.</li>
-	</ol>
-		<pre class="prettyprint">
+<p>The OpenSSL <span style="font-family: Courier New,Courier,monospace">AES_encrypt()</span> function allows encrypting up to 16 characters at once. Adding a short message (at most 16 characters long) requires the following steps:</p>
+<ol type="a">
+<li>Encrypt plain text with the <span style="font-family: Courier New,Courier,monospace">EncryptMsg()</span> function:
+<ol type="a">
+<li>Generate a string for key generation from a password and salt using <span style="font-family: Courier New,Courier,monospace">PKCS5_PBKDF2_HMAC_SHA1()</span>. 
+<p>An initial vector can be used in different hash functions. In this example, only the first byte of the initial vector is used as an iteration variable for a hash algorithm.</p></li>
+<li>Generate the encryption key using the <span style="font-family: Courier New,Courier,monospace">AES_set_encrypt_key()</span> function. 
+<p>The second parameter defines the AES key length. Check the actual recommended length and encoding type before use. This example uses AES 256 (defined in <a href="#init">Initializing the Database</a>).</p></li>
+<li>Encrypt the data with the <span style="font-family: Courier New,Courier,monospace">AES_encrypt()</span> function.</li>
+<li>Encode Base64 with the <span style="font-family: Courier New,Courier,monospace">base64_encode()</span> function. 
+<p>The data is encoded to make it safe to insert it to the database. Base 64 does not contain any special characters. For the encoding and decoding function details, see <a href="#base64">Base64 functions</a>.</p></li>
+<li>Add a delimiting 0x00 character at the end of the byte array.</li>
+</ol>
+<pre class="prettyprint">
 static int 
 EncryptMsg(char* in, unsigned char* out, const unsigned char* password, unsigned char *localsalt, unsigned char *vector)
 {
 &nbsp;&nbsp;&nbsp;AES_KEY encryption_key;
 &nbsp;&nbsp;&nbsp;int iter = (int)vector[0];
-&nbsp;&nbsp;&nbsp;unsigned char key[key_len+1];
+&nbsp;&nbsp;&nbsp;unsigned char key[key_len + 1];
 &nbsp;&nbsp;&nbsp;char *msgbuff;
 &nbsp;&nbsp;&nbsp;unsigned char buf[BUFLEN];
 &nbsp;&nbsp;&nbsp;unsigned int retlen;
@@ -246,12 +225,12 @@ EncryptMsg(char* in, unsigned char* out, const unsigned char* password, unsigned
 &nbsp;&nbsp;&nbsp;memset(buf, 0x00, BUFLEN);
 
 &nbsp;&nbsp;&nbsp;PKCS5_PBKDF2_HMAC_SHA1((char *)password,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(password)/sizeof(unsigned char),
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localsalt,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(localsalt)/sizeof(unsigned char),
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iter,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key_len,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(password)/sizeof(unsigned char),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localsalt,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(localsalt)/sizeof(unsigned char),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iter,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key_len,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key);
 
 
 &nbsp;&nbsp;&nbsp;AES_set_encrypt_key(key, key_len, &amp;encryption_key);
@@ -260,24 +239,24 @@ EncryptMsg(char* in, unsigned char* out, const unsigned char* password, unsigned
 &nbsp;&nbsp;&nbsp;msgbuff = base64_encode(buf, 16, &amp;retlen);
 
 &nbsp;&nbsp;&nbsp;memcpy(buf, msgbuff, retlen);
-&nbsp;&nbsp;&nbsp;buf[retlen+1]=0x00;
+&nbsp;&nbsp;&nbsp;buf[retlen + 1] = 0x00;
 &nbsp;&nbsp;&nbsp;free(msgbuff);
    
-&nbsp;&nbsp;&nbsp;memcpy(out, buf, retlen+1);
+&nbsp;&nbsp;&nbsp;memcpy(out, buf, retlen + 1);
 
-&nbsp;&nbsp;&nbsp;for (x=0; buf[x]!=0x00; x++);
+&nbsp;&nbsp;&nbsp;for (x = 0; buf[x] != 0x00; x++);
 
 &nbsp;&nbsp;&nbsp;return x;
 }
 </pre>
 </li>
- 
-	<li>Insert a record into the database.
-	<p>To insert data to the database, use the <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function. A query is prepared with common C functions. The encrypted variable is stored in the database and indicates whether the DATA field in the database is encrypted.</p>
-	<pre class="prettyprint">
+
+<li>Execute the database insertion with the <span style="font-family: Courier New,Courier,monospace">InsertRecord()</span> function.
+<p>To insert data to the database, use the <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function. A query is prepared with common C functions. The encrypted variable is stored in the database and indicates whether the DATA field in the database is encrypted.</p>
+<pre class="prettyprint">
 static int 
 InsertRecord(unsigned char *msg, int encrypted,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int part, int len)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int part, int len)
 {
 &nbsp;&nbsp;&nbsp;char sqlbuff[BUFLEN];
 &nbsp;&nbsp;&nbsp;char *ErrMsg; 
@@ -296,40 +275,38 @@ InsertRecord(unsigned char *msg, int encrypted,
 }
 </pre>
 	</li>
+</ol>
 
-	<li>Store long messages.
-	<p>Any message longer than 16 characters has to be split into shorter parts. In this scenario, each part is stored in its own record to simplify the decoding procedure.</p>
-	<pre class="prettyprint">ret = InsertMessage((unsigned char *)text);	
-</pre>
-	
-	<p>A message is divided into blocks 16 characters long. Each block is tagged by its own number with a <span style="font-family: Courier New,Courier,monospace">parts</span> variable. A tag is stored in the database in the PART field.</p>
-	<pre class="prettyprint">
+<p>To store longer messages (more than 16 characters), split them into shorter parts. In the following example, the message is divided into blocks 16 characters long. Each block is tagged by its own number with a <span style="font-family: Courier New,Courier,monospace">parts</span> variable, and the tag is stored in the database in the <span style="font-family: Courier New,Courier,monospace">PART</span> field. Each block is then stored in its own record to simplify the decoding procedure.</p>
+<pre class="prettyprint">
+ret = InsertMessage((unsigned char *)text);	
+
 static int 
 InsertMessage(unsigned char* text)
 {
 &nbsp;&nbsp;&nbsp;unsigned char encrypted_out[BUFLEN];
 &nbsp;&nbsp;&nbsp;int ret = 0;
 &nbsp;&nbsp;&nbsp;int x;
-&nbsp;&nbsp;&nbsp;int len, retlen, parts=0, pos;
+&nbsp;&nbsp;&nbsp;int len, retlen, parts = 0, pos;
 &nbsp;&nbsp;&nbsp;char membuf[17];
 
-&nbsp;&nbsp;&nbsp;for (len = 0; text[len]!=0x00; len++);
+&nbsp;&nbsp;&nbsp;for (len = 0; text[len] != 0x00; len++);
 
-&nbsp;&nbsp;&nbsp;for (pos = 0; (len-pos)&gt;16; pos+=16)
+&nbsp;&nbsp;&nbsp;for (pos = 0; (len - pos) &gt; 16; pos += 16)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(membuf, &amp;text[pos], 16);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;membuf[16] = 0x00;
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EncryptMsg((char *)membuf, encrypted_out, password, salt, iv);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; encrypted_out[x]!=0x00; x++);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; encrypted_out[x] != 0x00; x++);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InsertRecord(encrypted_out, 1, parts, x);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts++;
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;if (len-pos&gt;0)
+&nbsp;&nbsp;&nbsp;if (len - pos &gt; 0)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;retlen = EncryptMsg((char *)&amp;text[pos],
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encrypted_out, password, salt, iv);
@@ -342,17 +319,21 @@ InsertMessage(unsigned char* text)
 	</li>
 	
 	<li>List the database content.
-	<p>After previous actions, the database contains AES encrypted content, stored in a Base64 notation.</p>
-	<pre class="prettyprint">
-ShowRecords();
-</pre>
-<p>Example database content:</p>
+	<p>After the previous step, the database contains AES-encrypted content, stored in a Base64 notation. For example:</p>
 <pre class="prettyprint">
 0: DATA = xPRnJYwvQTc4VJKkW4EroQ==  
 1: DATA = EZI+uOGxcnUseJnbH57/Bg== 
 </pre>
-
-<p>To list all records, use the <span style="font-family: Courier New,Courier,monospace">SELECT * FROM EncryptedData</span> query. The callback function is invoked for each record returned by SQLite. SQLite allows passing user data to the callback function. User data is the 4th parameter of <span style="font-family: Courier New,Courier,monospace">sqlite3_exec(..., ..., ..., &amp;counter, ...)</span>.</p>
+<p>To list the records in the database, use the <span style="font-family: Courier New,Courier,monospace">ShowRecords()</span> function:</p>
+<ul>
+<li>To list all records, use the <span style="font-family: Courier New,Courier,monospace">SELECT * FROM EncryptedData</span> query. 
+<p>The callback function is invoked for each record returned by SQLite. To pass user data to the callback, use the fourth parameter of the <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function.</p></li>
+<li>The callback simply prints the obtained record. 
+<p>The record is passed in the form of a few arrays of strings: the <span style="font-family: Courier New,Courier,monospace">argv</span> array contains the column content and <span style="font-family: Courier New,Courier,monospace">azColName</span> the column name. The <span style="font-family: Courier New,Courier,monospace">argc</span> parameter is the number of columns.</p>
+<p>The first parameter, <span style="font-family: Courier New,Courier,monospace">counter</span>, is the user data, which in this example is used to indicate the record number in a row (not a SQL primary key) while listing.</p>
+<p>If the content of any column is empty, the <span style="font-family: Courier New,Courier,monospace">NULL</span> string is printed.</p>
+</li>
+</ul>
 <pre class="prettyprint">
 static void 
 ShowRecords()
@@ -365,9 +346,7 @@ ShowRecords()
 
 &nbsp;&nbsp;&nbsp;return;
 }
-</pre>
-<p>Callback simply prints an obtained record. The record is passed in the form of a few arrays of strings. <span style="font-family: Courier New,Courier,monospace">Argv</span> contains the column content, <span style="font-family: Courier New,Courier,monospace">azColName</span> contains the column name. <span style="font-family: Courier New,Courier,monospace">Argc</span> is the number of columns. Counter is user data. Here it is used to indicate the record number in a row (not an SQL primary key) while listing. If the content of any column is empty, the <span style="font-family: Courier New,Courier,monospace">NULL</span> string is printed.</p>
-<pre class="prettyprint">
+
 static int 
 callback(void *counter, int argc, char **argv, char **azColName)
 {
@@ -376,7 +355,7 @@ callback(void *counter, int argc, char **argv, char **azColName)
 
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;-%d: &quot;, *localcounter);
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i&lt;argc; i++) 
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; argc; i++) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s = %s | &quot;, azColName[i], argv[i] ? argv[i] : &quot;NULL&quot;);
 
 &nbsp;&nbsp;&nbsp;(*localcounter)++;
@@ -387,11 +366,15 @@ callback(void *counter, int argc, char **argv, char **azColName)
 </pre>
 </li>
 
-<li>Decrypt.
-<p>All encrypted records are selected from database, and they are decrypted and listed.</p>
-<pre class="prettyprint">DecryptRecords();</pre>
-
-<p>The <span style="font-family: Courier New,Courier,monospace">SELECT * FROM EncryptedData</span> query where <span style="font-family: Courier New,Courier,monospace">ENCRYPTED=&#39;1&#39;</span> lists all encrypted records. The <span style="font-family: Courier New,Courier,monospace">callbackdecrypt()</span> function is invoked for each record returned by the <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function. In case of an error, the SQLite API requires releasing error message memory with the <span style="font-family: Courier New,Courier,monospace">sqlite3_free()</span> function.</p>
+<li>Decrypt the database records.
+<p>Use the <span style="font-family: Courier New,Courier,monospace">DecryptRecords()</span> function to select all encrypted records from the database, and decrypt and list them:</p>
+<ul>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">SELECT * FROM EncryptedData</span> query where <span style="font-family: Courier New,Courier,monospace">ENCRYPTED=&#39;1&#39;</span> query to retrieve all encrypted records.</li> 
+<li>The <span style="font-family: Courier New,Courier,monospace">callbackdecrypt()</span> callback is invoked for each found record. In case of an error, the SQLite API requires you to release the error message memory with the <span style="font-family: Courier New,Courier,monospace">sqlite3_free()</span> function.</li>
+<li>The callback is similar to the earlier callback used to list the database content. 
+<p>There is an action added for the <span style="font-family: Courier New,Courier,monospace">argv[ i ] &amp;&amp; i == 0</span> case, which includes the encrypted content in columns that are not empty and are DATA.</p>
+<p>To decrypt the message, decode the data from Base 64, add a delimiting character, perform the actual decryption with the <span style="font-family: Courier New,Courier,monospace">DecryptMsg()</span> function, and list the decrypted data.</p></li>
+</ul>
 <pre class="prettyprint">
 static void 
 DecryptRecords()
@@ -408,18 +391,7 @@ DecryptRecords()
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_free(ErrMsg);
 &nbsp;&nbsp;&nbsp;}
 }
-</pre>
 
-<p>The callback function is similar to the function used to list records. There is an action added for the <span style="font-family: Courier New,Courier,monospace">argv[ i ] &amp;&amp; i==0</span> case. It means that if a column is not empty and the column is DATA, you must perform further actions. From an SQL query, we know that the DATA content is encrypted.</p>
-
-<p>To decrypt the message:</p>
-<ul>
-<li>Data is decoded from Base64</li>
-<li>Delimiting character is added</li>
-<li><span style="font-family: Courier New,Courier,monospace">DecryptMsg()</span> is called for decryption</li>
-<li>Decrypted data is listed</li>
-</ul>
-<pre class="prettyprint">
 static int 
 callbackdecrypt(void *counter, int argc, char **argv, char **azColName)
 {
@@ -430,14 +402,14 @@ callbackdecrypt(void *counter, int argc, char **argv, char **azColName)
 
 &nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;-%d: &quot;, *localcounter);
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i&lt;argc; i++)
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; argc; i++)
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (argv[i]&amp;&amp;i == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (argv[i] &amp;&amp; i == 0)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *basebuffer = base64_decode(argv[i], strlen(argv[i]), &amp;olen);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *decryptbuffer = malloc(sizeof(char)* olen +1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *decryptbuffer = malloc(sizeof(char)* olen + 1);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memset(decryptbuffer, 0x00, olen+1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memset(decryptbuffer, 0x00, olen + 1);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(decryptbuffer, basebuffer, olen);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decryptbuffer[olen] = 0x00;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(basebuffer);
@@ -448,7 +420,7 @@ callbackdecrypt(void *counter, int argc, char **argv, char **azColName)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(decryptbuffer);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s = %s  |  &quot;, azColName[i], 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(char*)decrypted_out);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(char*)decrypted_out);
        
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
@@ -463,14 +435,15 @@ callbackdecrypt(void *counter, int argc, char **argv, char **azColName)
 &nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
-<p>The decryption routine is similar to encryption:</p>
+<p>The actual decryption routine is similar to encryption:</p>
 <pre class="prettyprint">
 static int 
-DecryptMsg(unsigned char* in, unsigned char * out, const unsigned char* password, unsigned char* localsalt, unsigned char* vector)
+DecryptMsg(unsigned char* in, unsigned char* out, const unsigned char* password, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char* localsalt, unsigned char* vector)
 {
 &nbsp;&nbsp;&nbsp;AES_KEY decryption_key;
 &nbsp;&nbsp;&nbsp;int iter = (int)vector[0];
-&nbsp;&nbsp;&nbsp;unsigned char key[key_len+1];
+&nbsp;&nbsp;&nbsp;unsigned char key[key_len + 1];
 &nbsp;&nbsp;&nbsp;int x;
 
 &nbsp;&nbsp;&nbsp;memset(out, 0x00, BUFLEN);
@@ -486,32 +459,34 @@ DecryptMsg(unsigned char* in, unsigned char * out, const unsigned char* password
 &nbsp;&nbsp;&nbsp;AES_set_decrypt_key(key, key_len, &amp;decryption_key);
 &nbsp;&nbsp;&nbsp;AES_decrypt((unsigned char *)in, out, &amp;decryption_key);
 
-&nbsp;&nbsp;&nbsp;for (x = 0; out[x]!=0x00; x++);
+&nbsp;&nbsp;&nbsp;for (x = 0; out[x] != 0x00; x++);
 
 &nbsp;&nbsp;&nbsp;return x;
 }
 </pre>
 </li>
 
-<li>Clean up.
-<p>The SQLite library has to be closed properly when no longer needed:</p>
+<li>When no longer needed, close the SQLite library properly:
 <pre class="prettyprint">
 base64_cleanup();
 sqlite3_close(db);
 sqlite3_shutdown();
 </pre>
 </li>
-<li>Base64 
-<p>The following example shows the Base 64 encoding and decoding interface:</p>
+</ol>
+<p id="base64">The following code snippets illustrate the functions related to the Base64 encoding and decoding operations, and the main function that performs the entire process of encrypting, storing, listing, and decrypting:</p>
+<ul>
+<li>Base64 functions:
 <pre class="prettyprint">
-static char encoding_table[] = {&#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;E&#39;, &#39;F&#39;, &#39;G&#39;, &#39;H&#39;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;I&#39;, &#39;J&#39;, &#39;K&#39;, &#39;L&#39;, &#39;M&#39;, &#39;N&#39;, &#39;O&#39;, &#39;P&#39;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;Q&#39;, &#39;R&#39;, &#39;S&#39;, &#39;T&#39;, &#39;U&#39;, &#39;V&#39;, &#39;W&#39;, &#39;X&#39;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;Y&#39;, &#39;Z&#39;, &#39;a&#39;, &#39;b&#39;, &#39;c&#39;, &#39;d&#39;, &#39;e&#39;, &#39;f&#39;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;g&#39;, &#39;h&#39;, &#39;i&#39;, &#39;j&#39;, &#39;k&#39;, &#39;l&#39;, &#39;m&#39;, &#39;n&#39;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;o&#39;, &#39;p&#39;, &#39;q&#39;, &#39;r&#39;, &#39;s&#39;, &#39;t&#39;, &#39;u&#39;, &#39;v&#39;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;w&#39;, &#39;x&#39;, &#39;y&#39;, &#39;z&#39;, &#39;0&#39;, &#39;1&#39;, &#39;2&#39;, &#39;3&#39;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;4&#39;, &#39;5&#39;, &#39;6&#39;, &#39;7&#39;, &#39;8&#39;, &#39;9&#39;, &#39;+&#39;, &#39;/&#39;};
+static char 
+encoding_table[] = {&#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;E&#39;, &#39;F&#39;, &#39;G&#39;, &#39;H&#39;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;I&#39;, &#39;J&#39;, &#39;K&#39;, &#39;L&#39;, &#39;M&#39;, &#39;N&#39;, &#39;O&#39;, &#39;P&#39;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;Q&#39;, &#39;R&#39;, &#39;S&#39;, &#39;T&#39;, &#39;U&#39;, &#39;V&#39;, &#39;W&#39;, &#39;X&#39;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;Y&#39;, &#39;Z&#39;, &#39;a&#39;, &#39;b&#39;, &#39;c&#39;, &#39;d&#39;, &#39;e&#39;, &#39;f&#39;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;g&#39;, &#39;h&#39;, &#39;i&#39;, &#39;j&#39;, &#39;k&#39;, &#39;l&#39;, &#39;m&#39;, &#39;n&#39;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;o&#39;, &#39;p&#39;, &#39;q&#39;, &#39;r&#39;, &#39;s&#39;, &#39;t&#39;, &#39;u&#39;, &#39;v&#39;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;w&#39;, &#39;x&#39;, &#39;y&#39;, &#39;z&#39;, &#39;0&#39;, &#39;1&#39;, &#39;2&#39;, &#39;3&#39;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;4&#39;, &#39;5&#39;, &#39;6&#39;, &#39;7&#39;, &#39;8&#39;, &#39;9&#39;, &#39;+&#39;, &#39;/&#39;};
 static char *decoding_table = NULL;
 static int mod_table[] = {0, 2, 1};
 
@@ -545,7 +520,8 @@ char
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 0 * 6) &amp; 0x3F];
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; mod_table[input_length % 3]; i++)encoded_data[*output_length - 1 - i] = &#39;=&#39;;
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; mod_table[input_length % 3]; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[*output_length - 1 - i] = &#39;=&#39;;
 
 &nbsp;&nbsp;&nbsp;return encoded_data;
 }
@@ -573,10 +549,8 @@ unsigned char
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_c = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_d = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t triple = (sextet_a &lt;&lt; 3 * 6)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (sextet_b &lt;&lt; 2 * 6)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (sextet_c &lt;&lt; 1 * 6)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (sextet_d &lt;&lt; 0 * 6);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t triple = (sextet_a &lt;&lt; 3 * 6) + (sextet_b &lt;&lt; 2 * 6)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (sextet_c &lt;&lt; 1 * 6) + (sextet_d &lt;&lt; 0 * 6);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (j &lt; *output_length) decoded_data[j++] = (triple &gt;&gt; 2 * 8) &amp; 0xFF;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (j &lt; *output_length) decoded_data[j++] = (triple &gt;&gt; 1 * 8) &amp; 0xFF;
@@ -594,8 +568,7 @@ base64_cleanup()
 }
 </pre>
 </li>
-
-<li>Main function source code:
+<li>Main function:
 
 <pre class="prettyprint">
 int 
@@ -649,7 +622,7 @@ OpenSQL_AES_example_1(void)
 }
 </pre>
 </li>
-</ol>
+</ul>
 	
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>

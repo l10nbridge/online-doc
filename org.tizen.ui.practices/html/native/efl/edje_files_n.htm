@@ -23,15 +23,15 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-		<li><a href="#init">Initializing the Application</a></li>
-		<li><a href="#load">Loading the Collection List from an EDJ File</a></li>
+		<li><a href="#init">Initializing the Application Window</a></li>
+		<li><a href="#load">Loading Styles from an EDJ File</a></li>
 		<li><a href="#create">Creating an Edje Object</a></li>
 		</ul>	
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
 			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
 			<li><a href="../../../../org.tizen.native.mobile.apireference/group__Elementary.html">Elementary API for Mobile Native</a></li>
-			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Edje.html">Edje API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Edje__Group.html">Edje API for Wearable Native</a></li>
 			<li><a href="../../../../org.tizen.native.wearable.apireference/group__Elementary.html">Elementary API for Wearable Native</a></li>	
 		</ul>
 	</div></div>
@@ -40,11 +40,17 @@
 <div id="container"><div id="contents"><div class="content">
 <h1>Handling Edje Files</h1>
 
-<p>This tutorial demonstrates how you can manage EDJ files. An EDJ file is a specific eet file that collects layouts. The Edje layout is called <span style="font-family: Courier New,Courier,monospace">Style</span> and created using the <a href="edc_part_block_n.htm">EDC language</a>. The file that contains the layout collection called <span style="font-family: Courier New,Courier,monospace">Theme</span>. </p>
+<p>An Edje (EDJ) file is a specific eet file that collects layouts. Since the file is a collection of layouts, it is also called a &quot;theme&quot;. A single Edje layout within the theme is called a &quot;style&quot;, and it is defined as a group block in the <a href="edc_part_block_n.htm">EDC language</a>. </p>
 
-<h2 id="init" name="init">Initializing the Application</h2>
+<p>The following example creates an application window with a genlist component. It loads the styles from an EDJ file, and displays them (the names of the group blocks) as the genlist items. When the user selects an item, an Edje object is created, the related style is loaded to the object, and the object is displayed on the screen.</p>
 
-<p>The following example shows a typical Elementary application that creates a window entitled <span style="font-family: Courier New,Courier,monospace">Genlist Basic Tutorial</span>. It is consisted of a conformant widget that contains a naviframe widget. The genlist goes inside the naviframe.</p>
+<h2 id="init" name="init">Initializing the Application Window</h2>
+
+<p>The following example shows a typical Elementary application:</p>
+<ul>
+<li>A window is created, and a callback is added for it, to be called when the window is deleted.</li>
+<li>Conformant and naviframe components are added to the window.</li>
+<li>A genlist component is added to the naviframe.</li></ul>
 
 <pre class="prettyprint">static void
 create_base_gui(appdata_s *ad)
@@ -61,6 +67,7 @@ create_base_gui(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = {0, 90, 180, 270};
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
 &nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Callback for window deletion
 &nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, ad);
 
 &nbsp;&nbsp;&nbsp;// Conformant
@@ -84,7 +91,7 @@ create_base_gui(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;genlist, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
 &nbsp;&nbsp;&nbsp;elm_naviframe_item_simple_push(ad-&gt;navifr, ad-&gt;genlist);
 
-&nbsp;&nbsp;&nbsp;// Show window after base GUI is set up
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
 &nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
 }
 
@@ -92,7 +99,7 @@ static bool
 app_create(void *data)
 {
 &nbsp;&nbsp;&nbsp;// Initialize UI resources and application data
-&nbsp;&nbsp;&nbsp;// If this function returns true, the main loop of application starts
+&nbsp;&nbsp;&nbsp;// If this function returns true, the application main loop starts
 &nbsp;&nbsp;&nbsp;// If this function returns false, the application is terminated
 &nbsp;&nbsp;&nbsp;appdata_s *ad = data;
 
@@ -101,7 +108,7 @@ app_create(void *data)
 &nbsp;&nbsp;&nbsp;return true;
 }</pre>
 
-<p>Declare the <span style="font-family: Courier New,Courier,monospace">struct appdata</span>:</p>
+<p>Declare the application data in the <span style="font-family: Courier New,Courier,monospace">appdata</span> struct:</p>
 
 <pre class="prettyprint">typedef struct appdata
 {
@@ -114,29 +121,44 @@ app_create(void *data)
 } 
 appdata_s;</pre>
 
-<h2 id="load" name="load">Loading the Collection List from an EDJ File</h2>
+<h2 id="load" name="load">Loading Styles from an EDJ File</h2>
 
-<p>Edje provides the functionality to manipulate the EDJ files.</p>
+<p>To show the available styles as genlist items, you must load the styles from an EDJ file as a collection list:</p>
 <ol>
-<li>Get the list of styles from EDJ file:
+<li>Get the styles (collection list) from the EDJ file using the <span style="font-family: Courier New,Courier,monospace">edje_file_collection_list()</span> function. The function returns a list of group block names present in the EDJ file.
  
-<pre class="prettyprint">// Get the collection list from the EDJ file
+<pre class="prettyprint">
+// Get the collection list from the EDJ file
 app_get_resource(EDJ_FILE, edj_path, (int)PATH_MAX);
 ad-&gt;list = edje_file_collection_list(edj_path);</pre>
 </li>
 
 <li>
-<p>Add the item in the genlist to display the list:</p>
+<p>Add the style names as items to the genlist:</p>
 
-<pre class="prettyprint">EINA_LIST_FOREACH(ad-&gt;list, l, str)
+<pre class="prettyprint">
+EINA_LIST_FOREACH(ad-&gt;list, l, str)
 {
-&nbsp;&nbsp;&nbsp;elm_genlist_item_append(ad-&gt;genlist, ad-&gt;itc, str, NULL, ELM_GENLIST_ITEM_NONE, _genlist_clicked, ad);
+&nbsp;&nbsp;&nbsp;elm_genlist_item_append(ad-&gt;genlist, ad-&gt;itc, str, NULL, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, _genlist_clicked, ad);
 }</pre>
 </li>
 <li>
-<p>When you do not use the collection list, delete it:</p>
+<p>When no longer needed, delete the collection list.</p>
+ <table class="note"> 
+<tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The list returned from the <span style="font-family: Courier New,Courier,monospace">edje_file_collection_list()</span> function must be deleted using the <span style="font-family: Courier New,Courier,monospace">edje_file_collection_list_free()</span> function.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+<p>In this example, the list is deleted in the callback that is triggered when the window is deleted.</p>
 
-<pre class="prettyprint">static void
+<pre class="prettyprint">
+static void
 win_delete_request_cb(void *data, Evas_Object *obj, void *event_info)
 {
 &nbsp;&nbsp;&nbsp;appdata_s *ad = data;
@@ -144,25 +166,22 @@ win_delete_request_cb(void *data, Evas_Object *obj, void *event_info)
 &nbsp;&nbsp;&nbsp;edje_file_collection_list_free(ad-&gt;list);
 &nbsp;&nbsp;&nbsp;ui_app_exit();
 }</pre>
-
- <table class="note"> 
-<tbody> 
-    <tr> 
-     <th class="note">Note</th> 
-    </tr> 
-    <tr> 
-     <td class="note">The list returned after using the <span style="font-family: Courier New,Courier,monospace">edje_file_collection_list()</span> function must only be deleted using the <span style="font-family: Courier New,Courier,monospace">edje_file_collection_list_free()</span> function.</td> 
-    </tr> 
-   </tbody> 
-  </table>
 </li>
 </ol>
 
 <h2 id="create" name="create">Creating an Edje Object</h2>
 
-<p>Implement callbacks for the clicked (tapped) event. Check that the required style exists using the <span style="font-family: Courier New,Courier,monospace">edje_file_group_exists()</span> function. The first argument is the path to EDJ file and style name. Create the Edje object and load the given style.</p>
+<p>Implement the <span style="font-family: Courier New,Courier,monospace">_genlist_clicked()</span> callback that was defined above when adding items to the genlist. The callback is triggered when the user selects an item from the genlist.</p>
+<p>Within the callback:</p>
+<ol>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">edje_file_group_exists()</span> function to check that the style named in the item exists.</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">edje_object_add()</span> function to create an Edje object.</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">edje_object_file_set()</span> function to load the given style to the object.</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">elm_naviframe_item_simple_push()</span> function to display the object on the screen.</li>
+</ol>
 
-<pre class="prettyprint">static void
+<pre class="prettyprint">
+static void
 _genlist_clicked(void *data, Evas_Object *obj, void *event_info)
 {
 &nbsp;&nbsp;&nbsp;appdata_s *ad = data;
@@ -175,14 +194,14 @@ _genlist_clicked(void *data, Evas_Object *obj, void *event_info)
 &nbsp;&nbsp;&nbsp;eoi = elm_genlist_selected_item_get(obj);
 
 &nbsp;&nbsp;&nbsp;str = elm_object_item_part_text_get(eoi, &quot;elm.text&quot;);
-&nbsp;&nbsp;&nbsp;// Check whether a group matching glob exists in an edje file
-&nbsp;&nbsp;&nbsp;// If there is no matching group
+&nbsp;&nbsp;&nbsp;// Check whether a group matching the style named in the item exists in an edje file
+&nbsp;&nbsp;&nbsp;// If there is no matching group, return
 &nbsp;&nbsp;&nbsp;if (!edje_file_group_exists(edj_path, str)) return;
 
-&nbsp;&nbsp;&nbsp;// Load the given style to the object
+&nbsp;&nbsp;&nbsp;// Create the object and load the given style
 &nbsp;&nbsp;&nbsp;edje_object = edje_object_add(evas_object_evas_get(ad-&gt;win));
 &nbsp;&nbsp;&nbsp;edje_object_file_set(edje_object, edj_path, str);
-&nbsp;&nbsp;&nbsp;// Check object loading errors
+&nbsp;&nbsp;&nbsp;// Check for object loading errors
 &nbsp;&nbsp;&nbsp;if (edje_object_load_error_get(edje_object) != EDJE_LOAD_ERROR_NONE)
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(edje_object);
@@ -190,6 +209,7 @@ _genlist_clicked(void *data, Evas_Object *obj, void *event_info)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(edje_object, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;// Display the object on the screen
 &nbsp;&nbsp;&nbsp;elm_naviframe_item_simple_push(ad-&gt;navifr, edje_object);
 }</pre>
 
