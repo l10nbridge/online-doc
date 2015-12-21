@@ -53,8 +53,69 @@ The general idea behind this sample application is to share the health informati
 
 <h2>Implementation</h2>
 
+<h3>Service initialization and termination</h3>
 
+<h4>Initialization</h4>
 
+<p>
+Before the service starts its operation, the availability of relevant Bluetooth interfaces is checked by calling the following functions:
+	<ul>
+		<li><span style="font-family: Courier New,Courier,monospace">bt_common_is_bluetooth_supported()</span> - General Bluetooth adapter;</li>
+		<li><span style="font-family: Courier New,Courier,monospace">bt_common_is_bluetooth_le_supported()</span> - Low Energy Bluetooth adapter.</li>
+	</ul>
+If both of them are available, the Heart Rate sensor listener is created with <span style="font-family: Courier New,Courier,monospace">sensor_listener_create()</span> function. Finally, the Bluetooth
+interface is initialized with the <span style="font-family: Courier New,Courier,monospace">__bt_init()</span> function.
+</p>
+
+<pre class="prettyprint">
+static bool __bt_init(void)
+{
+&nbsp;&nbsp;&nbsp;bool is_enabled = false;
+
+&nbsp;&nbsp;&nbsp;/* Access to the H/W Bluetooth adapter is initialized. */
+&nbsp;&nbsp;&nbsp;if (bt_common_init()) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* The __bt_device_state_changed_cb() callback function is registered to be invoked on Bluetooth adapter state change. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_common_set_state_change_callback(__bt_device_state_changed_cb);
+
+&nbsp;&nbsp;&nbsp;/* The current state of the Bluetooth adapter is obtained.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If it is enabled the the __bt_device_state_changed_cb() callback function is artificially invoked. */
+&nbsp;&nbsp;&nbsp;bt_common_get_state(&is_enabled);
+&nbsp;&nbsp;&nbsp;if (is_enabled)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_device_state_changed_cb(BT_ERROR_NONE, BT_ADAPTER_ENABLED, NULL);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return is_enabled;
+}
+</pre>
+
+<p>
+See the <a href="#ref">References</a> section for details of all undescribed functions.
+</p>
+
+<h4>Termination</h4>
+
+<p>
+In the service termination procedure, the Heart Rate sensor listener and data advertizer are destroyed, the assigned callback function is unset and, finally, the access to the Bluetooth adapter is deinitialized.
+</p>
+
+<pre class="prettyprint">
+void controller_terminate(void)
+{
+&nbsp;&nbsp;&nbsp;sensor_listener_delete();
+
+&nbsp;&nbsp;&nbsp;bt_advertiser_delete(&__ctrldata.adv_hrm_h);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Heart Rate Measurement advertiser stopped.");
+
+&nbsp;&nbsp;&nbsp;bt_common_unset_state_change_callback();
+&nbsp;&nbsp;&nbsp;bt_common_deinit();
+}
+</pre>
+
+<p>
+See the <a href="#ref">References</a> section for the details of all the undescribed functions.
+</p>
+
+<h3 id="ref">References</h3>
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
