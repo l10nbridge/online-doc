@@ -75,6 +75,129 @@ The first 4 features are delivered to the user via the UI (<a href="#app-screens
 To ensure proper service execution, <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/bluetooth</span> privilege must be set.
 </p>
 
+<h2>Implementation</h2>
+
+<p>
+The entire application's workflow is described in subsections below.
+</p>
+
+<h3 id="init-terminate">Application's initialization and termination</h3>
+
+<p>
+The application is initialized on application's startup with <span style="font-family: Courier New,Courier,monospace">controller_create()</span> function invoked from the
+<span style="font-family: Courier New,Courier,monospace">create</span> callback assigned in the <span style="font-family: Courier New,Courier,monospace">main()</span> function.
+</p>
+
+<pre class="prettyprint">
+bool controller_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;vd->scan_start_cb = __scan_start_request_cb;
+&nbsp;&nbsp;&nbsp;vd->scan_cancel_cb = __scan_cancel_request_cb;
+&nbsp;&nbsp;&nbsp;vd->peer_select_cb = __peer_select_request_cb;
+
+&nbsp;&nbsp;&nbsp;if (!view_main_create(vd))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (__is_feature_supported(FEATURE_BLUETOOTH)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (__is_feature_supported(FEATURE_BLUETOOTH_LE)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!__init()) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_state(VS_DEACTIVE);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_main_display_message("Bluetooth activation error.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_main_display_message("Bluetooth Low Energy is not supported.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_main_display_message("Bluetooth is not supported.");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+At the beginning, the following callback functions responsible for handling requests from the UI are assigned:
+	<ul>
+		<li><span style="font-family: Courier New,Courier,monospace">__scan_start_request_cb()</span> - starts Bluetooth LE network scanning; is called on "Scan" button tap;</li>
+		<li><span style="font-family: Courier New,Courier,monospace">__scan_cancel_request_cb()</span> - cancels Bluetooth LE network scanning; is called on "Cancel" button tap;</li>
+		<li><span style="font-family: Courier New,Courier,monospace">__peer_select_request_cb()</span> - selects the advertiser's device for its detailed information acquisition;
+			is called on remote device selection from the list of available advertisers.</li>
+	</ul>
+Next, the application's main view is created with <span style="font-family: Courier New,Courier,monospace">view_main_create()</span> function which is not described here as it is not the subject of this
+document. Afterwards, the availability of Bluetooth and Bluetooth LE features is checked using <span style="font-family: Courier New,Courier,monospace">__is_feature_supported()</span> function with
+<span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth</span> and
+<span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth.le</span> arguments, respectively. If the Bluetooth related features' verification is passed,
+the Bluetooth adapter is initialized with the <span style="font-family: Courier New,Courier,monospace">__init()</span> function. Otherwise, an appropriate error message is displayed and the UI is updated
+with <span style="font-family: Courier New,Courier,monospace">__set_state()</span> function.
+</p>
+
+<pre class="prettyprint">
+static bool __init(void)
+{
+&nbsp;&nbsp;&nbsp;bool is_enabled = false;
+
+&nbsp;&nbsp;&nbsp;if (bt_init()) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_set_callbacks(__bt_device_state_changed_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_get_state(&is_enabled);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (is_enabled)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_state(VS_ACTIVE);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+The <span style="font-family: Courier New,Courier,monospace">__init()</span> function initializes the Bluetooth adapter and sets
+<span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback function for its state change handling (updating the UI to reflect the current adapter's state).
+Finally, the Bluetooth adapter's state is verified with <span style="font-family: Courier New,Courier,monospace">bt_get_state()</span> function to acknowledge its successful initialization.
+At the end, the UI is updated with the <span style="font-family: Courier New,Courier,monospace">__set_state()</span> function.
+</p>
+
+<p>
+At the end of the application's lifecycle, the <span style="font-family: Courier New,Courier,monospace">controller_terminate()</span> function is invoked from the
+<span style="font-family: Courier New,Courier,monospace">terminate</span> callback assigned in the <span style="font-family: Courier New,Courier,monospace">main()</span> function.
+</p>
+
+<pre class="prettyprint">
+void controller_terminate(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;bt_unset_callbacks();
+&nbsp;&nbsp;&nbsp;bt_deinit();
+&nbsp;&nbsp;&nbsp;view_main_destroy(vd);
+&nbsp;&nbsp;&nbsp;model_free();
+}
+</pre>
+
+<p>
+The application's termination procedure is very simple and relies on Bluetooth adapter deinitialization (<span style="font-family: Courier New,Courier,monospace">bt_deinit()</span>), allocated
+resources cleaning (<span style="font-family: Courier New,Courier,monospace">bt_unset_callbacks()</span>, <span style="font-family: Courier New,Courier,monospace">model_free()</span>)
+and view destroying (<span style="font-family: Courier New,Courier,monospace">view_main_destroy()</span>).
+</p>
+
+<p>
+For undescribed function's reference, see the <a href="#reference">Reference</a> section.
+</p>
+
+
+<!--
+<h3 id="reference">Reference</h3>
+__scan_start_request_cb
+__scan_cancel_request_cb
+__peer_select_request_cb
+
+__is_feature_supported
+__set_state
+bt_init
+bt_deinit
+bt_set_callbacks
+bt_unset_callbacks
+bt_get_state
+model_free
+view_main_destroy
+-->
+
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
 </div></div></div>
