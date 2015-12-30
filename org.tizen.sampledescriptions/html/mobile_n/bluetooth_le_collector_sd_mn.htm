@@ -180,6 +180,141 @@ and view destroying (<span style="font-family: Courier New,Courier,monospace">vi
 For undescribed function's reference, see the <a href="#reference">Reference</a> section.
 </p>
 
+<h3 id="dev-discovery">Devices discovery</h3>
+
+<p>
+Once the application is initialized successfully, the devices discovery procedure starts on "Scan" button press which results in
+<span style="font-family: Courier New,Courier,monospace">__scan_start_request_cb()</span> callback function invocation. Firstly, the data model is prepared to store incoming data by cleaning
+relevant data structures (<span style="font-family: Courier New,Courier,monospace">model_free()</span>). Then, the Bluetooth LE network scanning is initiated with the
+<span style="font-family: Courier New,Courier,monospace">bt_le_start_scan()</span> function. The assigned <span style="font-family: Courier New,Courier,monospace">__bt_le_scan_cb()</span>
+callback function is invoked each time an advertisement or a scan response is received from a peer device.
+
+<pre class="prettyprint">
+static bool __scan_start_request_cb(void)
+{
+&nbsp;&nbsp;&nbsp;model_free();
+
+&nbsp;&nbsp;&nbsp;if (!bt_le_start_scan(__bt_le_scan_cb))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "LE scanning: started.");
+&nbsp;&nbsp;&nbsp;__set_state(VS_SCANNING);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+There is only ony type of callback function defined for received messages so one has to check which type of message was received. This check can be performed by
+<a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/structbt__adapter__le__device__scan__result__info__s.html">
+<span style="font-family: Courier New,Courier,monospace">info</span></a> structure inspection against relevant data existence:
+	<ul>
+		<li>if the <span style="font-family: Courier New,Courier,monospace">adv_data</span> pointer is not <span style="font-family: Courier New,Courier,monospace">NULL</span>
+		and the <span style="font-family: Courier New,Courier,monospace">adv_data_len</span> value is greater than 0 then an advertisement message was received,</li>
+		<li>if the <span style="font-family: Courier New,Courier,monospace">scan_data</span> pointer is not <span style="font-family: Courier New,Courier,monospace">NULL</span>
+		and the <span style="font-family: Courier New,Courier,monospace">scan_data_len</span> value is greater than 0 then a scan response message was received.</li>
+	</ul>
+</p>
+
+<pre class="prettyprint">
+static void __bt_le_scan_cb(int result, bt_adapter_le_device_scan_result_info_s *info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* Advertisement handling. */
+&nbsp;&nbsp;&nbsp;if (info->adv_data && info->adv_data_len > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_le_adv_data_process(info);
+
+&nbsp;&nbsp;&nbsp;/* Scan response handling. */
+&nbsp;&nbsp;&nbsp;if (info->scan_data && info->scan_data_len > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_le_scan_data_process(info);
+}
+</pre>
+
+<p>
+Depending on inspection result, the <span style="font-family: Courier New,Courier,monospace">__bt_le_adv_data_process()</span> and/or
+<span style="font-family: Courier New,Courier,monospace">__bt_le_scan_data_process()</span> functions are invoked.
+</p>
+
+<pre class="prettyprint">
+static void __bt_le_adv_data_process(bt_adapter_le_device_scan_result_info_s *info)
+{
+&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;bool dev_added;
+&nbsp;&nbsp;&nbsp;bt_le_device_info_s *dev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!bt_le_get_adv_device_name(info, &name))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;dev_added = __add_found_le_device((const char *)name, &dev_info);
+&nbsp;&nbsp;&nbsp;free(name);
+
+&nbsp;&nbsp;&nbsp;if (!dev_added)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;__adv_data_process(info, &dev_info);
+}
+</pre>
+
+<p>
+For peer device identification purpose its remote name is used, so the <span style="font-family: Courier New,Courier,monospace">bt_le_get_adv_device_name()</span> function is called in order to extract
+it from the advertisement message. The obtained name is then stored (<span style="font-family: Courier New,Courier,monospace">__add_found_le_device()</span>) and further used to identify the remote device.
+Finally, the entire advertisement message is processed for any additional information acquisition (<span style="font-family: Courier New,Courier,monospace">__adv_data_process()</span>).
+</p>
+
+<pre class="prettyprint">
+static void __adv_data_process(bt_adapter_le_device_scan_result_info_s *info, bt_le_device_info_s **dev_info)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;int manufacturer_id = -1;
+&nbsp;&nbsp;&nbsp;int tx_power_level = 0;
+&nbsp;&nbsp;&nbsp;int appearance = 0;
+&nbsp;&nbsp;&nbsp;int services_count = 0;
+&nbsp;&nbsp;&nbsp;int services_solicitation_count = 0;
+&nbsp;&nbsp;&nbsp;char **services = NULL;
+&nbsp;&nbsp;&nbsp;char **services_solicitation = NULL;
+
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_manufacturer_data(info, &manufacturer_id);
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_tx_power_level(info, &tx_power_level);
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_appearance(info, &appearance);
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_service_uuids(info, &services, &services_count);
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_service_solicitation_uuids(info, &services_solicitation, &services_solicitation_count);
+
+&nbsp;&nbsp;&nbsp;model_set_device_info(dev_info,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tx_power_level,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;appearance,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_count,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_solicitation,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_solicitation_count);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; services_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(services[i]);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; services_solicitation_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(services_solicitation[i]);
+
+&nbsp;&nbsp;&nbsp;free(services);
+&nbsp;&nbsp;&nbsp;free(services_solicitation);
+
+&nbsp;&nbsp;&nbsp;view_main_update_peer_info(*dev_info);
+}
+</pre>
+
+<p>
+The <span style="font-family: Courier New,Courier,monospace">bt_le_get_adv_<b>{adv_info_name}</b>()</span> functions are invoked to acquire the following information from the advertisement message:
+	<ul>
+		<li>manufacturer's data - device's vendor identifier (see the <a href="https://www.bluetooth.com/specifications/assigned-numbers/Company-Identifiers">company identifiers</a> for details);</li>
+		<li>transmition power level - the transmition power expressed in dBm (decibel-milliwatts);</li>
+		<li>appearance code - a value that describes general device usage (see the
+		<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.gap.appearance.xml">external device's appearance</a>
+		for details);</li>
+		<li>services UUIDs - a list of handled services identifiers;</li>
+		<li>solicitation services UUIDs - a list of handled solicitation services identifiers.</li>
+	</ul>
+All the acquired information is binded to the remote device name previously obtained and stored internally for further use.
+<br>
+Finally, the user interface is updated with <span style="font-family: Courier New,Courier,monospace">view_main_update_peer_info()</span> function to reflect received data.
+</p>
 
 <!--
 <h3 id="reference">Reference</h3>
@@ -189,13 +324,23 @@ __peer_select_request_cb
 
 __is_feature_supported
 __set_state
+__add_found_le_device
 bt_init
 bt_deinit
 bt_set_callbacks
 bt_unset_callbacks
 bt_get_state
+bt_le_start_scan
+bt_le_get_adv_device_name
+bt_le_get_adv_manufacturer_data
+bt_le_get_adv_tx_power_level
+bt_le_get_adv_appearance
+bt_le_get_adv_service_uuids
+bt_le_get_adv_service_solicitation_uuids
 model_free
+model_set_device_info
 view_main_destroy
+view_main_update_peer_info
 -->
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
