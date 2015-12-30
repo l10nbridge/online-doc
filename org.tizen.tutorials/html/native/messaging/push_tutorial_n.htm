@@ -334,7 +334,7 @@ _result_cb(push_service_result_e result, const char *msg, void *user_data)
 
 <p>In both cases, the <span style="font-family: Courier New,Courier,monospace;">_state_cb()</span> callback function is called with the <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_STATE_REGISTERED</span> state. The application calls the <span style="font-family: Courier New,Courier,monospace;">_on_state_registered()</span> function immediately, <a href="#state">as shown in the state transitions</a>. When defining the actions inside the function, keep the following points in mind:</p>
 <ul>
-<li>If the application has already been registered, request from the service any unread notifications that have arrived before the application is launched.
+<li>If the application has already been registered, request the push service any unread notifications that have arrived before the application is launched.
 <p>Request the unread notifications asynchronously. If there is such a notification, it can be received through the <span style="font-family: Courier New,Courier,monospace;">_noti_cb()</span> function after the <span style="font-family: Courier New,Courier,monospace;">_on_state_registered()</span> function returns. Once the request for unread notifications is successfully delivered, <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_ERROR_NONE</span> is returned.</p></li>
 <li>If the application is newly registered, send the registration ID issued by the push server to your application server.
 <p>Retrieve the registration ID from the <span style="font-family: Courier New,Courier,monospace;">push_conn</span> connection handle. If the ID is new or updated, you need to send it to your application server. This ID is used as a destination address to the application in a particular device. If the application has already sent the ID, you can skip this step. This logic is implemented in the <span style="font-family: Courier New,Courier,monospace;">_send_reg_id_if_necessary()</span> function.</p></li>
@@ -370,7 +370,7 @@ _on_state_registered(void *user_data)
 </pre>
 
 <p>Compute the hash value of the ID and compare it with the existing hash value in the <span style="font-family: Courier New,Courier,monospace;">_send_reg_id_if_necessary()</span> function:</p>
-<ul><li>If they are different, the current ID is different from the previous one. In that case, send the registration ID to your application server and store the new hash value. For security, it is not safe to keep the ID as a string because it can be easily exposed.</li>
+<ul><li>If they are different, send the current registration ID to your application server and store the new hash value. For security, it is not safe to keep the ID as a string because it can be easily exposed.</li>
 <li>If they are the same, the application server already has this registration ID. In this case, the application exits this function.</li></ul>
 
 <pre class="prettyprint">
@@ -554,12 +554,6 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 <p>The message field takes effect only when the application is not running (more precisely, when the application is not connected to the push service.) If a notification with the above message field arrives at the device where the application is running, the push service delivers the notification directly to the application, neither showing the &quot;Hi&quot; message in the quick panel nor increasing the badge count.</p>
 </li>
 
-
-
-
-
-
-
 <li>Rest APIs for sending push notifications.
 <ol>
 <li>Single request
@@ -569,7 +563,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 <li>URI: URI of the RQM server chosen based on the first 2 digits of the registration ID</li>
 <li>Method: POST</li>
 <li>Data: JSON </li>
-<li>Description: Request a notification push to a push client</li>
+<li>Description: Request a notification push to a push service</li>
 <li>Note: Total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. System default value can be changed as needed.</li>
 <li>Header
 
@@ -588,15 +582,22 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
  <th>Additional information</th>
 </tr>
 <tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">encoding</span></td>
+ <td>Encoding represents how the <span style="font-family: Courier New,Courier,monospace;">regId</span> is encoded. For most cases, the push server issues <span style="font-family: Courier New,Courier,monospace;">regId</span> as hex string by default but if 3rd party providers state they use base64 encoding for <span style="font-family: Courier New,Courier,monospace;">regId</span> at application registration time, <span style="font-family: Courier New,Courier,monospace;">regId</span> will be base64 encoded. If <span style="font-family: Courier New,Courier,monospace;">regId</span> is base64 encoded, fill this field with value of “base64”. Otherwise, leave this field blank then the push server will handle <span style="font-family: Courier New,Courier,monospace;">regId</span> as hex string.</td>
+ <td><ul><li>Optional</li>
+ <li>Type: string</li>
+ <li>Default: null</li></ul></td>
+</tr>
+<tr>
  <td><span style="font-family: Courier New,Courier,monospace;">regID</span></td>
- <td>Distinguish a recipient from other recipients by assigning a unique registration ID to each recipient. <p>The registration ID is assigned when a third party application is installed in a device and marked to use an application service.</p>
+ <td>Distinguish a recipient from other recipients by assigning a unique registration ID to each recipient. <p>The registration ID is assigned when an application is installed in a device and marked to use an application service.</p>
 <p>The current registration ID passing policy is as follows (it can change in the future):</p>
 <ol type="a">
-<li>The preloaded push client connects to the push server and registers the third party application.</li>
-<li>The push server returns the registration ID to the push client.</li>
-<li>The push client passes the ID to the third party application.</li>
-<li>The push server passes the registration ID to a third party server. 
-<p>In other applications, the third party application passes the registration ID to the third party server.</p>
+<li>The preloaded push service connects to the push server and registers the application.</li>
+<li>The push server returns the registration ID to the push service.</li>
+<li>The push service passes the ID to the application.</li>
+<li>The push server passes the registration ID to an application server.
+<p>In other applications, the application passes the registration ID to the application server.</p>
 </li>
 </ol></td>
  <td>
@@ -605,7 +606,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 </tr>
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">requestID</span></td>
- <td>A third party server needs to assign a request ID to each request. It enables you to distinguish one request from the others.</td>
+ <td>An application server needs to assign a request ID to each request. It enables you to distinguish one request from the others.</td>
  <td><ul><li>Required</li>
  <li>Type: string</li></ul></td>
 </tr>
@@ -620,7 +621,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">message</span></td>
  <td>The message the sender wants to deliver. It can be a multibyte character.
- <p>The message goes from a third party server through the push server and push client to the third party application, which can handle the message.</p>
+ <p>The message goes from an application server through the push server and the push service to the application, which can handle the message.</p>
  <p>Maximum message length must be less than 2 kb. Make sure that if there is no message and <span style="font-family: Courier New,Courier,monospace;">appData</span>, the push server rejects the message and returns an error.</p></td>
  <td>
 <ul><li>Conditionally mandatory
@@ -631,7 +632,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 </tr>
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">appData</span></td>
- <td>Third party applications can use this field to carry their own data. The handling of this data depends on the type defined with the <span style="font-family: Courier New,Courier,monospace;">type</span> key. 
+ <td>Applications can use this field to carry their own data. The handling of this data depends on the type defined with the <span style="font-family: Courier New,Courier,monospace;">type</span> key.
  <p>Make sure that if there is no message and no <span style="font-family: Courier New,Courier,monospace;">appData</span>, the push server rejects the message and returns an error.</p></td>
  <td>
  <ul><li>Conditionally mandatory (if message is null, this field is required)</li>
@@ -642,7 +643,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">type</span></td>
- <td>This field lets the push client know how to deal with push notification messages.
+ <td>This field lets the push service know how to deal with push notification messages.
 <p>The possible field values are:</p>
 <ul>
 <li>0: Normal push notification to pass to an application.</li>
@@ -659,7 +660,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 </tr>
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">delayDate</span></td>
- <td>The time how long the server holds the request before sending it to the push client. 
+ <td>The time how long the server holds the request before sending it to the push service.
  <p>This is an optional field, and if it does not exist, the server applies its default values (0 minutes). If <span style="font-family: Courier New,Courier,monospace;">delayTime</span> is 0, the push server delivers as soon as it receives the notification request.</p></td>
  <td>
   <ul><li>Optional</li>
@@ -672,11 +673,11 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
  <td><span style="font-family: Courier New,Courier,monospace;">reliableOption</span></td>
  <td>The push server guarantees reliable message delivery if the <span style="font-family: Courier New,Courier,monospace;">reliableOption</span> is set. The possible options are:
  <ul>
-  <li><span style="font-family: Courier New,Courier,monospace;">NoReliable</span>: Do not send any acknowledgment back to a third party server and do not store the notification in the push server if the push client did not receive the notification.</li>
-  <li><span style="font-family: Courier New,Courier,monospace;">Transport</span>: Send an acknowledgment back to the third party server when the push client receives the notification.</li>
-  <li><span style="font-family: Courier New,Courier,monospace;">Application</span>: Send an acknowledgment back to the third party server when a third party application checks the notification.</li>
+  <li><span style="font-family: Courier New,Courier,monospace;">NoReliable</span>: Do not send any acknowledgement back to an application server and do not store the notification in the push server if the push service did not receive the notification.</li>
+  <li><span style="font-family: Courier New,Courier,monospace;">Transport</span>: Send an acknowledgement back to the application server when the push service receives the notification.</li>
+  <li><span style="font-family: Courier New,Courier,monospace;">Application</span>: Send an acknowledgement back to the application server when an application checks the notification.</li>
  </ul>
- <p>This is an optional field, and if it does not exist, the server applies its default value (<span style="font-family: Courier New,Courier,monospace;">Transport</span>). An acknowledgment at this point does not mean a response to the notification request, but an acknowledgment that the push client has received the notification. When the push client receives the notification, the push server sends this acknowledgment to the application server in a JSON format through HTTP.</p>
+ <p>This is an optional field, and if it does not exist, the server applies its default value (<span style="font-family: Courier New,Courier,monospace;">Transport</span>). An acknowledgement at this point does not mean a response to the notification request, but an acknowledgement that the push service has received the notification. When the push service receives the notification, the push server sends this acknowledgement to the application server in a JSON format through HTTP.</p>
  </td>
  <td>
    <ul><li>Optional</li>
@@ -704,7 +705,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 </tr>
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">connectionTerm</span></td>
- <td>Determine whether the application remains registered with the push client. If the value is 0, it stays registered. If the value is 1, it does not.</td>
+ <td>Determine whether the application remains registered with the push service. If the value is 0, it stays registered. If the value is 1, it does not.</td>
  <td>
      <ul><li>Optional</li>
  <li>Type: int</li>
@@ -743,7 +744,7 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 
 <li>Example response:
 <p>If the push server receives a notification request, the server returns a JSON string that contains the <span style="font-family: Courier New,Courier,monospace;">regID</span>, <span style="font-family: Courier New,Courier,monospace;">requestID</span>, status code, and status message. If the request contains a malformed JSON format, requests are not processed and are returned without the <span style="font-family: Courier New,Courier,monospace;">regID</span> and <span style="font-family: Courier New,Courier,monospace;">requestID</span> values. If the request is of the JSON format but has invalid data, no requests are processed and are considered as an error.</p>
-<p>The response message only shows whether receiving the notification request was successful. The response message does not deal with whether the push client receives the notification. The order of the response message is the same as the request message order.</p>
+<p>The response message only shows whether receiving the notification request was successful. The response message does not deal with whether the push service receives the notification. The order of the response message is the same as the request message order.</p>
 <ul>
 <li>
 <p>The following example shows a response message when the request is successful:</p>
@@ -792,17 +793,13 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 </ul>
 </li>
 
-
-
-
-
 <li> Multiple Request
 <p>You can construct a Multiple Request in a RestAPI call. The following list contains the details:</p>
 <ul>
 <li>URI: URI of the RQM server chosen based on the first 2 digits of the registration ID</li>
 <li>Method: POST</li>
 <li>Data: JSON </li>
-<li>Description: Request a notification push to a push client</li>
+<li>Description: Request a notification push to a push service</li>
 <li>Argument: Refer to single request</li>
 <li>Note: Total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. System default value can be changed as needed.</li>
 <li>Example header:
@@ -919,7 +916,7 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 <li>URI: URI of the RQM server chosen based on the first 2 digits of the registration ID</li>
 <li>Method: POST</li>
 <li>Data: JSON </li>
-<li>Description: Request a notification push to a push client</li>
+<li>Description: Request a notification push to a push service</li>
 <li>Argument: Refer to single request</li>
 <li>Note: Total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. System default value can be changed as needed.</li>
 <li>Example header:
@@ -1025,25 +1022,6 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 </ul>
 </li>
 </ol>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 </ol>
 
  <h2 id="receive_push" name="receive_push">Receiving Push Notifications</h2>
