@@ -250,6 +250,7 @@ static void __bt_le_adv_data_process(bt_adapter_le_device_scan_result_info_s *in
 &nbsp;&nbsp;&nbsp;if (!dev_added)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 
+&nbsp;&nbsp;&nbsp;/* See the next section for details. */
 &nbsp;&nbsp;&nbsp;__adv_data_process(info, &dev_info);
 }
 </pre>
@@ -257,7 +258,58 @@ static void __bt_le_adv_data_process(bt_adapter_le_device_scan_result_info_s *in
 <p>
 For peer device identification purpose its remote name is used, so the <span style="font-family: Courier New,Courier,monospace">bt_le_get_adv_device_name()</span> function is called in order to extract
 it from the advertisement message. The obtained name is then stored (<span style="font-family: Courier New,Courier,monospace">__add_found_le_device()</span>) and further used to identify the remote device.
-Finally, the entire advertisement message is processed for any additional information acquisition (<span style="font-family: Courier New,Courier,monospace">__adv_data_process()</span>).
+Each remote device is represented by a custom <span style="font-family: Courier New,Courier,monospace">bt_le_device_info_s</span> structure referenced by the
+<span style="font-family: Courier New,Courier,monospace">dev_info</span> variable created internally by the <span style="font-family: Courier New,Courier,monospace">__add_found_le_device()</span>
+function. The mentioned structure is described below and maintained by the model module. Finally, the entire advertisement message is processed for any additional information acquisition
+(<span style="font-family: Courier New,Courier,monospace">__adv_data_process()</span> - refer to the <a href="#dev-details">Discovered device's details acquisition</a> section for details).
+</p>
+
+<pre class="prettyprint">
+struct _bt_le_device_data {
+&nbsp;&nbsp;&nbsp;/* The size of the service's data. */
+&nbsp;&nbsp;&nbsp;int size;
+&nbsp;&nbsp;&nbsp;/* The UUID of the service's that the data is carried - integral value. */
+&nbsp;&nbsp;&nbsp;int uuid_value;
+&nbsp;&nbsp;&nbsp;/* The UUID of the service's that the data is carried - hexadecimal representation. */
+&nbsp;&nbsp;&nbsp;char *uuid;
+&nbsp;&nbsp;&nbsp;/* The service's data. */
+&nbsp;&nbsp;&nbsp;char *data;
+};
+
+typedef struct _bt_le_device_data bt_le_device_data_s;
+
+/* The structure below carries all the peer's related information. */
+struct _bt_le_device_info {
+&nbsp;&nbsp;&nbsp;/* Device's name. */
+&nbsp;&nbsp;&nbsp;char *name;
+&nbsp;&nbsp;&nbsp;/* Transmition power level. */
+&nbsp;&nbsp;&nbsp;int tx_power_level;
+&nbsp;&nbsp;&nbsp;/* Device's external appearance identifier. */
+&nbsp;&nbsp;&nbsp;int appearance;
+&nbsp;&nbsp;&nbsp;/* Device's manufacturer identifier. */
+&nbsp;&nbsp;&nbsp;int manufacturer_id;
+&nbsp;&nbsp;&nbsp;/* The number of exposed services. */
+&nbsp;&nbsp;&nbsp;int services_count;
+&nbsp;&nbsp;&nbsp;/* The number of exposed solicitation services. */
+&nbsp;&nbsp;&nbsp;int services_solicitation_count;
+&nbsp;&nbsp;&nbsp;/* The number of exposed services' data. */
+&nbsp;&nbsp;&nbsp;int service_data_count;
+&nbsp;&nbsp;&nbsp;/* The UUIDs of exposed services. */
+&nbsp;&nbsp;&nbsp;char **services;
+&nbsp;&nbsp;&nbsp;/* The UUIDs of exposed solicitation services. */
+&nbsp;&nbsp;&nbsp;char **services_solicitation;
+&nbsp;&nbsp;&nbsp;/* The data binded to the services exposed. */
+&nbsp;&nbsp;&nbsp;bt_le_device_data_s *service_data;
+};
+
+typedef struct _bt_le_device_info bt_le_device_info_s;
+</pre>
+
+<h3 id="dev-details">Discovered device's details acquisition</h3>
+
+<p>
+Once the devices are discovered, their detailed information can be acquired from the advertisement message (refer to the <span style="font-family: Courier New,Courier,monospace">__bt_le_scan_cb()</span>
+callback function described in the <a href="#dev-discovery">Devices discovery</a> section).
 </p>
 
 <pre class="prettyprint">
@@ -311,12 +363,13 @@ The <span style="font-family: Courier New,Courier,monospace">bt_le_get_adv_<b>{a
 		<li>services UUIDs - a list of handled services identifiers;</li>
 		<li>solicitation services UUIDs - a list of handled solicitation services identifiers.</li>
 	</ul>
-All the acquired information is binded to the remote device name previously obtained and stored internally for further use.
+All the acquired information is binded to the remote device name (<span style="font-family: Courier New,Courier,monospace">model_set_device_info()</span>) previously obtained and referenced by the
+<span style="font-family: Courier New,Courier,monospace">dev_info</span> variable.
 <br>
 Finally, the user interface is updated with <span style="font-family: Courier New,Courier,monospace">view_main_update_peer_info()</span> function to reflect received data.
 </p>
 
-<h3 id="dev-details">Discovered device's details acquisition and browsing</h3>
+<h3 id="svc-details">Discovered device's details acquisition and browsing</h3>
 
 <p>
 Once the devices are discovered and the list is populated with available advertisers, the user is able to select one from all discovered peers. After selection, the UI is changed to the device's detailed view where the
