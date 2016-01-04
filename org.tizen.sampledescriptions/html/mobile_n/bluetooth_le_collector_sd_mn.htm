@@ -316,6 +316,136 @@ All the acquired information is binded to the remote device name previously obta
 Finally, the user interface is updated with <span style="font-family: Courier New,Courier,monospace">view_main_update_peer_info()</span> function to reflect received data.
 </p>
 
+<h3 id="dev-details">Discovered device's details acquisition and browsing</h3>
+
+<p>
+Once the devices are discovered and the list is populated with available advertisers, the user is able to select one from all discovered peers. After selection, the UI is changed to the device's detailed view where the
+following information is displayed:
+	<ul>
+		<li>appearance,</li>
+		<li>manufacturer,</li>
+		<li>TX power,</li>
+		<li>number of provided services,</li>
+		<li>number of provided solicitation services.</li>
+	</ul>
+All the above information is gathered by <span style="font-family: Courier New,Courier,monospace">__bt_le_scan_data_process()</span> function invoked from the
+<span style="font-family: Courier New,Courier,monospace">__bt_le_scan_cb()</span> callback function on scan response message received event (for details see the
+<a href="#dev-discovery">Devices discovery</a> section).
+</p>
+
+<pre class="prettyprint">
+static void __bt_le_scan_data_process(bt_adapter_le_device_scan_result_info_s *info)
+{
+&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;bool is_selected = false;
+&nbsp;&nbsp;&nbsp;bt_le_device_info_s *dev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Obtain the sender's name. */
+&nbsp;&nbsp;&nbsp;if (!bt_le_get_scan_device_name(info, &name))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* Check whether the sender is already registered. If so, the control flow goes on, otherwise ...*/
+&nbsp;&nbsp;&nbsp;if (!__bt_le_is_device_registered(name, &dev_info)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... the device is registered as a new one. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__add_found_le_device((const char *)name, &dev_info);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;free(name);
+
+&nbsp;&nbsp;&nbsp;/* Check whether the message concerns the device selected by the user from the list. */
+&nbsp;&nbsp;&nbsp;if (!model_check_device_selected(dev_info->name, &is_selected))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;if (!is_selected)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* If a scan response message concerns a registered and selected device,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then it is further processed. */
+&nbsp;&nbsp;&nbsp;__scan_data_process(info, &dev_info);
+}
+</pre>
+
+<p>
+When a scan response message is received, then one has to obtain the sender's name (<span style="font-family: Courier New,Courier,monospace">bt_le_get_scan_device_name()</span>) and check whether
+it is already registered (<span style="font-family: Courier New,Courier,monospace">__bt_le_is_device_registered()</span>). If a received message concerns the registered and selected device, the
+received data is processed further by <span style="font-family: Courier New,Courier,monospace">__scan_data_process()</span> function. The scan response message may contain the same information set
+as the advertisement message extended with the service/solicitation service data.
+<br>
+This function's implementation is very similar to <span style="font-family: Courier New,Courier,monospace">__adv_data_process()</span> (see the <a href="#dev-discovery">Devices discovery</a> section).
+The only difference concerns the service's data acquisition (<span style="font-family: Courier New,Courier,monospace">bt_le_get_scan_service_data_list()</span>) and its storage in model's structure
+(<span style="font-family: Courier New,Courier,monospace">model_set_device_data()</span>).
+</p>
+
+<pre class="prettyprint">
+static void __scan_data_process(bt_adapter_le_device_scan_result_info_s *info, bt_le_device_info_s **dev_info)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;int manufacturer_id = -1;
+&nbsp;&nbsp;&nbsp;int tx_power_level = 0;
+&nbsp;&nbsp;&nbsp;int appearance = 0;
+&nbsp;&nbsp;&nbsp;int services_count = 0;
+&nbsp;&nbsp;&nbsp;int services_solicitation_count = 0;
+&nbsp;&nbsp;&nbsp;int data_count = 0;
+&nbsp;&nbsp;&nbsp;char **services = NULL;
+&nbsp;&nbsp;&nbsp;char **services_solicitation = NULL;
+&nbsp;&nbsp;&nbsp;bt_adapter_le_service_data_s *data = NULL;
+
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_manufacturer_data(info, &manufacturer_id);
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_tx_power_level(info, &tx_power_level);
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_appearance(info, &appearance);
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_service_uuids(info, &services, &services_count);
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_service_solicitation_uuids(info, &services_solicitation, &services_solicitation_count);
+&nbsp;&nbsp;&nbsp;/* Service's data acquisition. If any data is carried by the service then the 'data_count' variable
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;points to the number of services exposing its information carried by the 'data' array. */
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_service_data_list(info, &data, &data_count);
+
+&nbsp;&nbsp;&nbsp;model_set_device_info(dev_info,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tx_power_level,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;appearance,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_count,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_solicitation,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_solicitation_count);
+
+&nbsp;&nbsp;&nbsp;/* For each service ... */
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; data_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model_set_device_data(dev_info,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... identified by UUID ... */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data[i].service_uuid,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... its data is acquired ... */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data[i].service_data,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... of 'service_data_len' size ... */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data[i].service_data_len);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... and stored in model's structure. */
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; services_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(services[i]);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; services_solicitation_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(services_solicitation[i]);
+
+&nbsp;&nbsp;&nbsp;free(services);
+&nbsp;&nbsp;&nbsp;free(services_solicitation);
+
+&nbsp;&nbsp;&nbsp;if (data || data_count > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_le_free_service_data_list(data, data_count);
+
+&nbsp;&nbsp;&nbsp;view_main_update_peer_info(*dev_info);
+}
+</pre>
+
+<p>
+If the number of services/solicitation services is non-zero, then the 'Check' button in device's detailed view becomes enabled. Once clicked, the popup with a list of all available services/solicitation
+services exposed by the advertiser appears.
+<br>
+All the acquired information is binded to the previously obtained remote device name and stored internally for further use.
+<br>
+Finally, the user interface is updated with <span style="font-family: Courier New,Courier,monospace">view_main_update_peer_info()</span> function to reflect received data.
+</p>
+
 <!--
 <h3 id="reference">Reference</h3>
 __scan_start_request_cb
@@ -325,6 +455,7 @@ __peer_select_request_cb
 __is_feature_supported
 __set_state
 __add_found_le_device
+__bt_le_is_device_registered
 bt_init
 bt_deinit
 bt_set_callbacks
@@ -337,8 +468,19 @@ bt_le_get_adv_tx_power_level
 bt_le_get_adv_appearance
 bt_le_get_adv_service_uuids
 bt_le_get_adv_service_solicitation_uuids
+bt_le_get_scan_device_name
+bt_le_get_scan_manufacturer_data
+bt_le_get_scan_tx_power_level
+bt_le_get_scan_appearance
+bt_le_get_scan_service_uuids
+bt_le_get_scan_service_solicitation_uuids
+bt_le_get_scan_service_data_list
+bt_le_free_service_data_list
+
 model_free
 model_set_device_info
+model_set_device_data
+model_check_device_selected
 view_main_destroy
 view_main_update_peer_info
 -->
