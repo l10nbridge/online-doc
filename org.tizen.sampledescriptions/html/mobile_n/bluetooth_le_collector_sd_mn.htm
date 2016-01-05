@@ -498,6 +498,93 @@ All the acquired information and service's data is binded to the remote device n
 Finally, the user interface is updated with <span style="font-family: Courier New,Courier,monospace">view_main_update_peer_info()</span> function to reflect received data.
 </p>
 
+<h3 id="model">Application's model</h3>
+
+<p>
+The general responsibility of the Model module is to:
+	<ol>
+		<li>
+			wrap Bluetooth related API functions calls in order to simplify the application's source code:
+			<ul>
+				<li>
+					file bt.c - handles a subset of the
+					<a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__MODULE.html">Bluetooth</a>
+					and <a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__MODULE.html">Bluetooth Adapter</a>
+					API functions. Due to their simplicity they are not listed here.
+				</li>
+				<li>
+					file bt_le.c - handles a subset of the
+					<a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__LE__MODULE.html">Bluetooth LE Adapter</a>
+					API functions. The general implementation structure is listed below.
+<pre class="prettyprint">
+bool bt_le_<b>#op_type#</b>_<b>#msg_type#</b>_<b>#op_target#</b>(<b>#args_in#</b>, <b>#args_out#</b>)
+{
+&nbsp;&nbsp;&nbsp;return __<b>#op_type#</b>_<b>#op_target#</b>(<b>#args_in#</b>, <b>#arg_msg_type#</b>, <b>#args_out#</b>);
+}
+</pre>
+
+<pre class="prettyprint">
+bool __<b>#op_type#</b>_<b>#op_target#</b>(<b>#args_in#</b>, <b>#arg_msg_type#</b>, <b>#args_out#</b>)
+{
+&nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;if (!<b>#args_out#</b>) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Function __<b>#op_type#</b>_<b>#op_target#</b>() failed due to wrong argument.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;*<b>#args_out#</b> = NULL;
+
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_<b>#op_type#</b>_scan_result_<b>#op_target#</b>(<b>#args_in#</b>, <b>#arg_msg_type#</b>, <b>#args_out#</b>);
+&nbsp;&nbsp;&nbsp;if (ret == BT_ERROR_NO_DATA) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;} else if (ret != BT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Function bt_adapter_le_<b>#op_type#</b>_scan_result_<b>#op_target#</b>() failed with error: %s.", get_error_message(ret));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+					where,
+					<ul>
+						<li><b>#op_type#</b> = get/set/free;</li>
+						<li><b>#msg_type#</b> = adv/scan;</li>
+						<li><b>#op_target#</b> = operation target, ex: device_name;</li>
+						<li><b>#args_in#</b> = input arguments;</li>
+						<li><b>#args_out#</b> = output arguments;</li>
+						<li><b>#arg_msg_type#</b> = BT_ADAPTER_LE_PACKET_ADVERTISING/BT_ADAPTER_LE_PACKET_SCAN_RESPONSE.</li>
+					</ul>
+				</li>
+			</ul>
+		</li>
+		<li>
+			manage the acquired information and data (model.c).
+			<br>
+			This portion of source code is responsible for discovered devices (referenced with
+			<span style="font-family: Courier New,Courier,monospace">bt_le_device_info_s</span> data structure - see the <a href="#dev-discovery">Devices discovery</a> section)
+			as well as the advertiser's information and broadcasted service's data storage.
+			<br>
+			These functions implementation's details are irrelevant from the application's subject point of view.
+		</li>
+		<li>
+			decode the acquired data (model_heart_rate_measurement.c, model_body_sensor_location.c).
+			<br>
+			The data decoding complies to the following standards and directly implements its decomposition:
+			<ul>
+				<li>
+					<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml">
+					Heart Rate Measurement</a>;
+				</li>
+				<li>
+					<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.body_sensor_location.xml">
+					Body Sensor Location</a>.
+				</li>
+			</ul>
+		</li>
+	</ol>
+</p>
+
 <!--
 <h3 id="reference">Reference</h3>
 __scan_start_request_cb
