@@ -176,10 +176,6 @@ resources cleaning (<span style="font-family: Courier New,Courier,monospace">bt_
 and view destroying (<span style="font-family: Courier New,Courier,monospace">view_main_destroy()</span>).
 </p>
 
-<p>
-For undescribed function's reference, see the <a href="#reference">Reference</a> section.
-</p>
-
 <h3 id="dev-discovery">Devices discovery</h3>
 
 <p>
@@ -304,6 +300,75 @@ struct _bt_le_device_info {
 
 typedef struct _bt_le_device_info bt_le_device_info_s;
 </pre>
+
+<p>
+Each discovered device is added to the application's model with <span style="font-family: Courier New,Courier,monospace">__add_found_le_device()</span> function listed below.
+</p>
+
+<pre class="prettyprint">
+static bool __add_found_le_device(const char *name, bt_le_device_info_s **dev_info)
+{
+&nbsp;&nbsp;&nbsp;int index = -1;
+
+&nbsp;&nbsp;&nbsp;*dev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Check whether a device's name is already registered.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If so, the function returns. */
+&nbsp;&nbsp;&nbsp;if (model_check_device_exist(name, &index))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* Otherwise, the new bt_le_device_info_s structure is
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;created for unregistered device's name. */
+&nbsp;&nbsp;&nbsp;if (!model_add_device(name)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed to add device %s.", name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Obtain the index of newly added device. */
+&nbsp;&nbsp;&nbsp;if (!model_check_device_exist(name, &index)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Device does not exist.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Get the bt_le_device_info_s device's structure by its index. */
+&nbsp;&nbsp;&nbsp;if (!model_get_device(index, dev_info)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Could not get the device info.");
+&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The UI is updated. */
+&nbsp;&nbsp;&nbsp;view_main_add_device((*dev_info)->name, index);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Device %s added.", (*dev_info)->name);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+The devices discovery procedure is stopped on "Cancel" button press which results in <span style="font-family: Courier New,Courier,monospace">__scan_cancel_request_cb()</span> callback function invocation.
+</p>
+
+<pre class="prettyprint">
+static bool __scan_cancel_request_cb(void)
+{
+&nbsp;&nbsp;&nbsp;if (!bt_le_stop_scan())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "LE scanning: finished.");
+
+&nbsp;&nbsp;&nbsp;if (model_get_device_count() == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_state(VS_ACTIVE);
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_state(VS_OPERATION);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+After the Bluetooth LE scan procedure is stopped, the UI is updated according to the number of discovered devices. In this state no messages are received.
+</p>
 
 <h3 id="dev-details">Discovered device's details acquisition</h3>
 
@@ -584,45 +649,6 @@ bool __<b>#op_type#</b>_<b>#op_target#</b>(<b>#args_in#</b>, <b>#arg_msg_type#</
 		</li>
 	</ol>
 </p>
-
-<!--
-<h3 id="reference">Reference</h3>
-__scan_start_request_cb
-__scan_cancel_request_cb
-__peer_select_request_cb
-
-__is_feature_supported
-__set_state
-__add_found_le_device
-__bt_le_is_device_registered
-bt_init
-bt_deinit
-bt_set_callbacks
-bt_unset_callbacks
-bt_get_state
-bt_le_start_scan
-bt_le_get_adv_device_name
-bt_le_get_adv_manufacturer_data
-bt_le_get_adv_tx_power_level
-bt_le_get_adv_appearance
-bt_le_get_adv_service_uuids
-bt_le_get_adv_service_solicitation_uuids
-bt_le_get_scan_device_name
-bt_le_get_scan_manufacturer_data
-bt_le_get_scan_tx_power_level
-bt_le_get_scan_appearance
-bt_le_get_scan_service_uuids
-bt_le_get_scan_service_solicitation_uuids
-bt_le_get_scan_service_data_list
-bt_le_free_service_data_list
-
-model_free
-model_set_device_info
-model_set_device_data
-model_check_device_selected
-view_main_destroy
-view_main_update_peer_info
--->
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
