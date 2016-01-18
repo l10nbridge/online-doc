@@ -117,11 +117,13 @@ See the <a href="#ref">References</a> section for the details of all the undescr
 
 <h3 id="adv-creation">Advertiser creation</h3>
 
-<h3 id="data-adv">Data advertising</h3>
-
 <p>
 Once the Bluetooth adapter state is changed to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_ENABLED</span> and the
-<span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback function is invoked, the advertiser is created and the service starts its normal operation.
+<span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback function is invoked, the advertiser creation procedure takes place.
+<br>
+In case the <span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback function is invoked with the
+<span style="font-family: Courier New,Courier,monospace">adapter_state</span> argument set to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_DISABLED</span>,
+the currently running advertiser is deleted (<span style="font-family: Courier New,Courier,monospace">bt_advertiser_delete()</span>).
 </p>
 
 <pre class="prettyprint">
@@ -141,9 +143,56 @@ static void __bt_device_state_changed_cb(int result, bt_adapter_state_e adapter_
 </pre>
 
 <p>
-In the advertiser creation procedure (<span style="font-family: Courier New,Courier,monospace">bt_advertiser_create()</span>) its initial configuration takes place and the advertising is started
-(see the <a href="#adv-creation">Advertiser creation</a> section).
+The <span style="font-family: Courier New,Courier,monospace">bt_advertiser_create()</span> function creates the advertiser handle, performs its initial configuration and starts advertising.
 </p>
+
+<pre class="prettyprint">
+bool bt_advertiser_create(bt_advertiser_h *adv_h, int appearance)
+{
+&nbsp;&nbsp;&nbsp;if (!__create_advertizer(adv_h, appearance))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (!bt_common_start_advertising(*adv_h, NULL)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__delete_advertizer(adv_h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;__advertizer_appearance = appearance;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+The advertiser's handle's creation and initial configuration is performed by the <span style="font-family: Courier New,Courier,monospace">__create_advertizer()</span> function listed below.
+Once the function succeeds, the advertising starts (<span style="font-family: Courier New,Courier,monospace">bt_common_start_advertising()</span>).
+</p>
+
+<pre class="prettyprint">
+static bool __create_advertizer(bt_advertiser_h *adv_h, int appearance)
+{
+&nbsp;&nbsp;&nbsp;*adv_h = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!bt_common_create_advertizer(adv_h))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (!bt_common_set_advertising_mode(*adv_h, BT_ADAPTER_LE_ADVERTISING_MODE_LOW_LATENCY))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (!bt_common_set_connectable(*adv_h))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (!__set_advertizing_properties(*adv_h))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (!__set_scan_response_properties(*adv_h, appearance))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<h3 id="data-adv">Data advertising</h3>
 
 <p>
 Each time data is received from the Heart Rate sensor, the <span style="font-family: Courier New,Courier,monospace">__sensor_data_read_cb()</span> callback function is invoked.
