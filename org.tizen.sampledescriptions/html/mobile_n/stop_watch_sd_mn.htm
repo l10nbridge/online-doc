@@ -1,0 +1,206 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Stop Watch Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+  <h1>Stop Watch Sample Overview</h1>
+
+<p>The Stop watch sample application demonstrates how you can implement a simple stop watch application. The application's user interface consists of a single window, two layouts
+and five buttons.</p>
+
+  <p class="figure">Figure: Application views</p>
+  <p align="center">
+    <img alt="Stop watch view" src="../images/stop_watch_0.png" />
+  </p>
+
+<p>
+
+<p>This application lets you measure the total time and up to 999 laps' times.</p>
+
+<h2>Implementation</h2>
+
+<h3>Main controller</h3>
+
+<p>The time measurement is based on <span style="font-family: Courier New,Courier,monospace">Ecore_Timer</span>.
+The <span style="font-family: Courier New,Courier,monospace">__timer_cb()</span> callback function is called roughly every 10 ms. It is used to
+increment the total time that has passed. It does so by calling the <span style="font-family: Courier New,Courier,monospace">tm_add_milis()</span>
+function from the model module.</p>
+
+<pre class="prettyprint">
+static Eina_Bool __timer_cb(void *data)
+{
+&nbsp;&nbsp;double tmp = 0.0;
+
+&nbsp;&nbsp;if (last_timestamp &lt; 0.0)
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+
+&nbsp;&nbsp;tmp = 1000.0 * ecore_time_get();
+&nbsp;&nbsp;tm_add_milis((int)(tmp - last_timestamp));
+&nbsp;&nbsp;last_timestamp = tmp;
+&nbsp;&nbsp;view_update_time(tm_get_milis());
+
+&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+</pre>
+
+<p>Another important function is the <span style="font-family: Courier New,Courier,monospace">__ui_cb()</span> callback function. It responds to any UI events, such as:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_START_RESUME</span>,</li>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_STOP</span>,</li>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_LAP</span>,</li>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_RESET</span>.</li>
+</ul>
+
+<pre class="prettyprint">
+static void __ui_cb(ui_event_e event)
+{
+&nbsp;&nbsp;int id = 0;
+&nbsp;&nbsp;int time = 0;
+&nbsp;&nbsp;int mark = 0;
+
+&nbsp;&nbsp;switch (event) {
+&nbsp;&nbsp;case UI_EVENT_START_RESUME:
+&nbsp;&nbsp;&nbsp;&nbsp;last_timestamp = 1000.0 * ecore_time_get();
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;case UI_EVENT_STOP:
+&nbsp;&nbsp;&nbsp;&nbsp;last_timestamp = -1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;case UI_EVENT_LAP:
+&nbsp;&nbsp;&nbsp;&nbsp;if (!tm_store_lap()) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_warn("Maximum number of stopwatch records 999 reached");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;view_toggle_laps_list(true);
+&nbsp;&nbsp;&nbsp;&nbsp;if (tm_get_last_lap(&id, &time, &mark))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_add_lap(id, time, mark);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;case UI_EVENT_RESET:
+&nbsp;&nbsp;&nbsp;&nbsp;tm_reset_milis();
+&nbsp;&nbsp;&nbsp;&nbsp;view_update_time(tm_get_milis());
+&nbsp;&nbsp;&nbsp;&nbsp;view_toggle_laps_list(false);
+&nbsp;&nbsp;&nbsp;&nbsp;view_clear_laps();
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;}
+}
+</pre>
+
+<h3>Model</h3>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">tm_add_milis()</span> function is used to update the total time counter.</p>
+
+<pre class="prettyprint">
+void tm_add_milis(int miliseconds)
+{
+&nbsp;&nbsp;if (miliseconds &lt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;if (((int64_t)data.current_milis + (int64_t)miliseconds) >= (int64_t)INT_MAX) {
+&nbsp;&nbsp;&nbsp;&nbsp;data.current_milis = INT_MAX;
+&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;data.current_milis += miliseconds;
+&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">tm_store_lap()</span> function stores the current lap in the list.</p>
+<pre class="prettyprint">
+bool tm_store_lap(void)
+{
+&nbsp;&nbsp;int base = 0;
+&nbsp;&nbsp;lap_t *new_lap = NULL;
+
+&nbsp;&nbsp;if (eina_list_count(data.laps) >= MAX_NUM_OF_LAPS)
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;if (eina_list_count(data.laps) &lt;= 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;base = data.current_milis;
+&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;base = ((lap_t *)eina_list_data_get(data.laps))->lap_mark;
+&nbsp;&nbsp;}
+
+&nbsp;&nbsp;new_lap = (lap_t *)malloc(sizeof(lap_t));
+
+&nbsp;&nbsp;if (!new_lap)
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;new_lap->lap_mark = data.current_milis;
+&nbsp;&nbsp;new_lap->lap_time = data.current_milis - base;
+&nbsp;&nbsp;data.laps = eina_list_prepend(data.laps, new_lap);
+
+&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">tm_get_last_lap()</span> function is useful when it is necessary to obtain the last lap's parameters,
+for example when you want to extend the view list.</p>
+<pre class="prettyprint">
+bool tm_get_last_lap(int *id, int *time, int *mark)
+{
+&nbsp;&nbsp;int list_len = 0;
+&nbsp;&nbsp;lap_t *lap = NULL;
+
+&nbsp;&nbsp;list_len = eina_list_count(data.laps);
+
+&nbsp;&nbsp;if (list_len == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;if (id)
+&nbsp;&nbsp;&nbsp;&nbsp;*id = list_len;
+
+&nbsp;&nbsp;lap = eina_list_nth(data.laps, 0);
+
+&nbsp;&nbsp;if (!lap)
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;if (time)
+&nbsp;&nbsp;&nbsp;&nbsp;*time = lap->lap_time;
+
+&nbsp;&nbsp;if (mark)
+&nbsp;&nbsp;&nbsp;&nbsp;*mark = lap->lap_mark;
+
+&nbsp;&nbsp;return true;
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
