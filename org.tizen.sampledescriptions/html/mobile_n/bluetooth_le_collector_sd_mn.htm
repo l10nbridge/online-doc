@@ -1,0 +1,675 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Bluetooth LE Collector Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation"></div>
+
+<div id="container"><div id="contents"><div class="content">
+  <div id="profile">
+    <p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+  </div>
+
+<h1>Bluetooth LE Collector Sample Overview</h1>
+
+<p>
+The Bluetooth LE Collector sample application demonstrates how to discover remote advertisers and consume the data they broadcast over the Bluetooth Low Energy network. In order to achieve the goal,
+the <a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__LE__MODULE.html">Bluetooth LE Adapter</a> API is used.
+This sample application is able to discover any device which advertises itself in the Bluetooth LE network, but only the data provided by the
+<a href="https://developer.tizen.org/development/sample/2.4/sample-mobile-applications">Bluetooth LE Service</a> can be consumed.
+<br>
+The general idea behind this sample application is to gather and display the health information broadcasted by the wearable device through the
+<a href="https://developer.tizen.org/development/sample/2.4/sample-mobile-applications">Bluetooth LE Service</a>. There are two types of advertized information:
+	<ul>
+		<li>Heart Rate Measurement - the number of heart beats per second;</li>
+		<li>Body Sensor Location - the point of heart rate measurement.</li>
+	</ul>
+</p>
+
+<p>
+The following figures illustrate the view of the application:
+</p>
+
+<p id="app-screenshot" class="figure">Figure: Bluetooth LE Collector application screens.</p>
+<p align="center">
+	<img alt="Initial view of the application" src="../images/bluetooth_le_collector_main_view_1.png" />
+	<img alt="Devices discovery view" src="../images/bluetooth_le_collector_main_view_2.png" />
+	<img alt="Detailed view of the selected device" src="../images/bluetooth_le_collector_main_view_3.png" />
+	<img alt="Available services view" src="../images/bluetooth_le_collector_main_view_4.png" />
+	<img alt="Heart Rate service view" src="../images/bluetooth_le_collector_main_view_5.png" />
+	<img alt="Body Sensor Location view" src="../images/bluetooth_le_collector_main_view_6.png" />
+</p>
+
+<p>
+The application's workflow can be divided into five major pipelines:
+	<ol>
+		<li>application's initialization;</li>
+		<li>devices discovery;</li>
+		<li>discovered device's details acquisition and browsing;</li>
+		<li>discovered device's service data acquisition and display;</li>
+		<li>application's termination.</li>
+	</ol>
+The first 4 features are delivered to the user via the UI (<a href="#app-screenshot">Bluetooth LE Collector application screens</a>) and briefly described by the figure below.
+</p>
+
+<p id="app-screenshot" class="figure">Figure: Application's workflow.</p>
+<p align="center">
+	<img alt="Application's workflow" width="70%" src="../images/bluetooth_le_collector_workflow_sd.png" />
+</p>
+
+<h2>Prerequisites</h2>
+
+<p>
+To ensure proper service execution, <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/bluetooth</span> privilege must be set.
+</p>
+
+<h2>Implementation</h2>
+
+<p>
+The entire application's workflow is described in subsections below.
+</p>
+
+<h3 id="init-terminate">Application's initialization and termination</h3>
+
+<p>
+The application is initialized on application's startup with <span style="font-family: Courier New,Courier,monospace">controller_create()</span> function invoked from the
+<span style="font-family: Courier New,Courier,monospace">create</span> callback assigned in the <span style="font-family: Courier New,Courier,monospace">main()</span> function.
+</p>
+
+<pre class="prettyprint">
+bool controller_create(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;vd->scan_start_cb = __scan_start_request_cb;
+&nbsp;&nbsp;&nbsp;vd->scan_cancel_cb = __scan_cancel_request_cb;
+&nbsp;&nbsp;&nbsp;vd->peer_select_cb = __peer_select_request_cb;
+
+&nbsp;&nbsp;&nbsp;if (!view_main_create(vd))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;if (__is_feature_supported(FEATURE_BLUETOOTH)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (__is_feature_supported(FEATURE_BLUETOOTH_LE)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!__init()) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_state(VS_DEACTIVE);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_main_display_message("Bluetooth activation error.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_main_display_message("Bluetooth Low Energy is not supported.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_main_display_message("Bluetooth is not supported.");
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+At the beginning, the following callback functions responsible for handling requests from the UI are assigned:
+	<ul>
+		<li><span style="font-family: Courier New,Courier,monospace">__scan_start_request_cb()</span> - starts Bluetooth LE network scanning; is called on "Scan" button tap;</li>
+		<li><span style="font-family: Courier New,Courier,monospace">__scan_cancel_request_cb()</span> - cancels Bluetooth LE network scanning; is called on "Cancel" button tap;</li>
+		<li><span style="font-family: Courier New,Courier,monospace">__peer_select_request_cb()</span> - selects the advertiser's device for its detailed information acquisition;
+			is called on remote device selection from the list of available advertisers.</li>
+	</ul>
+Next, the application's main view is created with <span style="font-family: Courier New,Courier,monospace">view_main_create()</span> function which is not described here as it is not the subject of this
+document. Afterwards, the availability of Bluetooth and Bluetooth LE features is checked using <span style="font-family: Courier New,Courier,monospace">__is_feature_supported()</span> function with
+<span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth</span> and
+<span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.bluetooth.le</span> arguments, respectively. If the Bluetooth related features' verification is passed,
+the Bluetooth adapter is initialized with the <span style="font-family: Courier New,Courier,monospace">__init()</span> function. Otherwise, an appropriate error message is displayed and the UI is updated
+with <span style="font-family: Courier New,Courier,monospace">__set_state()</span> function.
+</p>
+
+<pre class="prettyprint">
+static bool __init(void)
+{
+&nbsp;&nbsp;&nbsp;bool is_enabled = false;
+
+&nbsp;&nbsp;&nbsp;if (bt_init()) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_set_callbacks(__bt_device_state_changed_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_get_state(&is_enabled);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (is_enabled)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_state(VS_ACTIVE);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+The <span style="font-family: Courier New,Courier,monospace">__init()</span> function initializes the Bluetooth adapter and sets
+<span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback function for its state change handling (updating the UI to reflect the current adapter's state).
+Finally, the Bluetooth adapter's state is verified with <span style="font-family: Courier New,Courier,monospace">bt_get_state()</span> function to acknowledge its successful initialization.
+At the end, the UI is updated with the <span style="font-family: Courier New,Courier,monospace">__set_state()</span> function.
+</p>
+
+<p>
+At the end of the application's lifecycle, the <span style="font-family: Courier New,Courier,monospace">controller_terminate()</span> function is invoked from the
+<span style="font-family: Courier New,Courier,monospace">terminate</span> callback assigned in the <span style="font-family: Courier New,Courier,monospace">main()</span> function.
+</p>
+
+<pre class="prettyprint">
+void controller_terminate(viewdata_s *vd)
+{
+&nbsp;&nbsp;&nbsp;bt_unset_callbacks();
+&nbsp;&nbsp;&nbsp;bt_deinit();
+&nbsp;&nbsp;&nbsp;view_main_destroy(vd);
+&nbsp;&nbsp;&nbsp;model_free();
+}
+</pre>
+
+<p>
+The application's termination procedure is very simple and relies on Bluetooth adapter deinitialization (<span style="font-family: Courier New,Courier,monospace">bt_deinit()</span>), allocated
+resources cleaning (<span style="font-family: Courier New,Courier,monospace">bt_unset_callbacks()</span>, <span style="font-family: Courier New,Courier,monospace">model_free()</span>)
+and view destroying (<span style="font-family: Courier New,Courier,monospace">view_main_destroy()</span>).
+</p>
+
+<h3 id="dev-discovery">Devices discovery</h3>
+
+<p>
+Once the application is initialized successfully, the devices discovery procedure starts on "Scan" button press which results in
+<span style="font-family: Courier New,Courier,monospace">__scan_start_request_cb()</span> callback function invocation. Firstly, the data model is prepared to store incoming data by cleaning
+relevant data structures (<span style="font-family: Courier New,Courier,monospace">model_free()</span>). Then, the Bluetooth LE network scanning is initiated with the
+<span style="font-family: Courier New,Courier,monospace">bt_le_start_scan()</span> function. The assigned <span style="font-family: Courier New,Courier,monospace">__bt_le_scan_cb()</span>
+callback function is invoked each time an advertisement or a scan response is received from a peer device.
+
+<pre class="prettyprint">
+static bool __scan_start_request_cb(void)
+{
+&nbsp;&nbsp;&nbsp;model_free();
+
+&nbsp;&nbsp;&nbsp;if (!bt_le_start_scan(__bt_le_scan_cb))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "LE scanning: started.");
+&nbsp;&nbsp;&nbsp;__set_state(VS_SCANNING);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+There is only ony type of callback function defined for received messages so one has to check which type of message was received. This check can be performed by
+<a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/structbt__adapter__le__device__scan__result__info__s.html">
+<span style="font-family: Courier New,Courier,monospace">info</span></a> structure inspection against relevant data existence:
+	<ul>
+		<li>if the <span style="font-family: Courier New,Courier,monospace">adv_data</span> pointer is not <span style="font-family: Courier New,Courier,monospace">NULL</span>
+		and the <span style="font-family: Courier New,Courier,monospace">adv_data_len</span> value is greater than 0 then an advertisement message was received,</li>
+		<li>if the <span style="font-family: Courier New,Courier,monospace">scan_data</span> pointer is not <span style="font-family: Courier New,Courier,monospace">NULL</span>
+		and the <span style="font-family: Courier New,Courier,monospace">scan_data_len</span> value is greater than 0 then a scan response message was received.</li>
+	</ul>
+</p>
+
+<pre class="prettyprint">
+static void __bt_le_scan_cb(int result, bt_adapter_le_device_scan_result_info_s *info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;/* Advertisement handling. */
+&nbsp;&nbsp;&nbsp;if (info->adv_data && info->adv_data_len > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_le_adv_data_process(info);
+
+&nbsp;&nbsp;&nbsp;/* Scan response handling. */
+&nbsp;&nbsp;&nbsp;if (info->scan_data && info->scan_data_len > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_le_scan_data_process(info);
+}
+</pre>
+
+<p>
+Depending on inspection result, the <span style="font-family: Courier New,Courier,monospace">__bt_le_adv_data_process()</span> and/or
+<span style="font-family: Courier New,Courier,monospace">__bt_le_scan_data_process()</span> functions are invoked.
+</p>
+
+<pre class="prettyprint">
+static void __bt_le_adv_data_process(bt_adapter_le_device_scan_result_info_s *info)
+{
+&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;bool dev_added;
+&nbsp;&nbsp;&nbsp;bt_le_device_info_s *dev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!bt_le_get_adv_device_name(info, &name))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;dev_added = __add_found_le_device((const char *)name, &dev_info);
+&nbsp;&nbsp;&nbsp;free(name);
+
+&nbsp;&nbsp;&nbsp;if (!dev_added)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* See the next section for details. */
+&nbsp;&nbsp;&nbsp;__adv_data_process(info, &dev_info);
+}
+</pre>
+
+<p>
+For peer device identification purpose its remote name is used, so the <span style="font-family: Courier New,Courier,monospace">bt_le_get_adv_device_name()</span> function is called in order to extract
+it from the advertisement message. The obtained name is then stored (<span style="font-family: Courier New,Courier,monospace">__add_found_le_device()</span>) and further used to identify the remote device.
+Each remote device is represented by a custom <span style="font-family: Courier New,Courier,monospace">bt_le_device_info_s</span> structure referenced by the
+<span style="font-family: Courier New,Courier,monospace">dev_info</span> variable created internally by the <span style="font-family: Courier New,Courier,monospace">__add_found_le_device()</span>
+function. The mentioned structure is described below and maintained by the model module. Finally, the entire advertisement message is processed for any additional information acquisition
+(<span style="font-family: Courier New,Courier,monospace">__adv_data_process()</span> - refer to the <a href="#dev-details">Discovered device's details acquisition</a> section for details).
+</p>
+
+<pre class="prettyprint">
+struct _bt_le_device_data {
+&nbsp;&nbsp;&nbsp;/* The size of the service's data. */
+&nbsp;&nbsp;&nbsp;int size;
+&nbsp;&nbsp;&nbsp;/* The UUID of the service's that the data is carried - integral value. */
+&nbsp;&nbsp;&nbsp;int uuid_value;
+&nbsp;&nbsp;&nbsp;/* The UUID of the service's that the data is carried - hexadecimal representation. */
+&nbsp;&nbsp;&nbsp;char *uuid;
+&nbsp;&nbsp;&nbsp;/* The service's data. */
+&nbsp;&nbsp;&nbsp;char *data;
+};
+
+typedef struct _bt_le_device_data bt_le_device_data_s;
+
+/* The structure below carries all the peer's related information. */
+struct _bt_le_device_info {
+&nbsp;&nbsp;&nbsp;/* Device's name. */
+&nbsp;&nbsp;&nbsp;char *name;
+&nbsp;&nbsp;&nbsp;/* Transmition power level. */
+&nbsp;&nbsp;&nbsp;int tx_power_level;
+&nbsp;&nbsp;&nbsp;/* Device's external appearance identifier. */
+&nbsp;&nbsp;&nbsp;int appearance;
+&nbsp;&nbsp;&nbsp;/* Device's manufacturer identifier. */
+&nbsp;&nbsp;&nbsp;int manufacturer_id;
+&nbsp;&nbsp;&nbsp;/* The number of exposed services. */
+&nbsp;&nbsp;&nbsp;int services_count;
+&nbsp;&nbsp;&nbsp;/* The number of exposed solicitation services. */
+&nbsp;&nbsp;&nbsp;int services_solicitation_count;
+&nbsp;&nbsp;&nbsp;/* The number of exposed services' data. */
+&nbsp;&nbsp;&nbsp;int service_data_count;
+&nbsp;&nbsp;&nbsp;/* The UUIDs of exposed services. */
+&nbsp;&nbsp;&nbsp;char **services;
+&nbsp;&nbsp;&nbsp;/* The UUIDs of exposed solicitation services. */
+&nbsp;&nbsp;&nbsp;char **services_solicitation;
+&nbsp;&nbsp;&nbsp;/* The data binded to the services exposed. */
+&nbsp;&nbsp;&nbsp;bt_le_device_data_s *service_data;
+};
+
+typedef struct _bt_le_device_info bt_le_device_info_s;
+</pre>
+
+<p>
+Each discovered device is added to the application's model with <span style="font-family: Courier New,Courier,monospace">__add_found_le_device()</span> function listed below.
+</p>
+
+<pre class="prettyprint">
+static bool __add_found_le_device(const char *name, bt_le_device_info_s **dev_info)
+{
+&nbsp;&nbsp;&nbsp;int index = -1;
+
+&nbsp;&nbsp;&nbsp;*dev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Check whether a device's name is already registered.
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If so, the function returns. */
+&nbsp;&nbsp;&nbsp;if (model_check_device_exist(name, &index))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* Otherwise, the new bt_le_device_info_s structure is
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;created for unregistered device's name. */
+&nbsp;&nbsp;&nbsp;if (!model_add_device(name)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Failed to add device %s.", name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Obtain the index of newly added device. */
+&nbsp;&nbsp;&nbsp;if (!model_check_device_exist(name, &index)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Device does not exist.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* Get the bt_le_device_info_s device's structure by its index. */
+&nbsp;&nbsp;&nbsp;if (!model_get_device(index, dev_info)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Could not get the device info.");
+&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;/* The UI is updated. */
+&nbsp;&nbsp;&nbsp;view_main_add_device((*dev_info)->name, index);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Device %s added.", (*dev_info)->name);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+The devices discovery procedure is stopped on "Cancel" button press which results in <span style="font-family: Courier New,Courier,monospace">__scan_cancel_request_cb()</span> callback function invocation.
+</p>
+
+<pre class="prettyprint">
+static bool __scan_cancel_request_cb(void)
+{
+&nbsp;&nbsp;&nbsp;if (!bt_le_stop_scan())
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "LE scanning: finished.");
+
+&nbsp;&nbsp;&nbsp;if (model_get_device_count() == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_state(VS_ACTIVE);
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_state(VS_OPERATION);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+After the Bluetooth LE scan procedure is stopped, the UI is updated according to the number of discovered devices. In this state no messages are received.
+</p>
+
+<h3 id="dev-details">Discovered device's details acquisition</h3>
+
+<p>
+Once the devices are discovered, their detailed information can be acquired from the advertisement message (refer to the <span style="font-family: Courier New,Courier,monospace">__bt_le_scan_cb()</span>
+callback function described in the <a href="#dev-discovery">Devices discovery</a> section).
+</p>
+
+<pre class="prettyprint">
+static void __adv_data_process(bt_adapter_le_device_scan_result_info_s *info, bt_le_device_info_s **dev_info)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;int manufacturer_id = -1;
+&nbsp;&nbsp;&nbsp;int tx_power_level = 0;
+&nbsp;&nbsp;&nbsp;int appearance = 0;
+&nbsp;&nbsp;&nbsp;int services_count = 0;
+&nbsp;&nbsp;&nbsp;int services_solicitation_count = 0;
+&nbsp;&nbsp;&nbsp;char **services = NULL;
+&nbsp;&nbsp;&nbsp;char **services_solicitation = NULL;
+
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_manufacturer_data(info, &manufacturer_id);
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_tx_power_level(info, &tx_power_level);
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_appearance(info, &appearance);
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_service_uuids(info, &services, &services_count);
+&nbsp;&nbsp;&nbsp;bt_le_get_adv_service_solicitation_uuids(info, &services_solicitation, &services_solicitation_count);
+
+&nbsp;&nbsp;&nbsp;model_set_device_info(dev_info,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tx_power_level,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;appearance,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_count,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_solicitation,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_solicitation_count);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; services_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(services[i]);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; services_solicitation_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(services_solicitation[i]);
+
+&nbsp;&nbsp;&nbsp;free(services);
+&nbsp;&nbsp;&nbsp;free(services_solicitation);
+
+&nbsp;&nbsp;&nbsp;view_main_update_peer_info(*dev_info);
+}
+</pre>
+
+<p>
+The <span style="font-family: Courier New,Courier,monospace">bt_le_get_adv_<b>{adv_info_name}</b>()</span> functions are invoked to acquire the following information from the advertisement message:
+	<ul>
+		<li>manufacturer's data - device's vendor identifier (see the <a href="https://www.bluetooth.com/specifications/assigned-numbers/Company-Identifiers">company identifiers</a> for details);</li>
+		<li>transmition power level - the transmition power expressed in dBm (decibel-milliwatts);</li>
+		<li>appearance code - a value that describes general device usage (see the
+		<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.gap.appearance.xml">external device's appearance</a>
+		for details);</li>
+		<li>services UUIDs - a list of handled services identifiers;</li>
+		<li>solicitation services UUIDs - a list of handled solicitation services identifiers.</li>
+	</ul>
+All the acquired information is binded to the remote device name (<span style="font-family: Courier New,Courier,monospace">model_set_device_info()</span>) previously obtained and referenced by the
+<span style="font-family: Courier New,Courier,monospace">dev_info</span> variable.
+<br>
+Finally, the user interface is updated with <span style="font-family: Courier New,Courier,monospace">view_main_update_peer_info()</span> function to reflect received data.
+</p>
+
+<h3 id="svc-details">Discovered device's service data acquisition</h3>
+
+<p>
+The device's service data acquisition procedure is very similar to that described in <a href="#dev-details">Discovered device's details acquisition</a> section. The process starts in
+<span style="font-family: Courier New,Courier,monospace">__bt_le_scan_cb()</span> callback function (refer to the <a href="#dev-discovery">Devices discovery</a> section) with the
+<span style="font-family: Courier New,Courier,monospace">__bt_le_scan_data_process()</span> function invocation.
+</p>
+
+<pre class="prettyprint">
+static void __bt_le_scan_data_process(bt_adapter_le_device_scan_result_info_s *info)
+{
+&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;bool is_selected = false;
+&nbsp;&nbsp;&nbsp;bt_le_device_info_s *dev_info = NULL;
+
+&nbsp;&nbsp;&nbsp;/* Obtain the sender's name. */
+&nbsp;&nbsp;&nbsp;if (!bt_le_get_scan_device_name(info, &name))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* Check whether the sender is already registered. If so, the control flow goes on, otherwise ...*/
+&nbsp;&nbsp;&nbsp;if (!__bt_le_is_device_registered(name, &dev_info)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... the device is registered as a new one. */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__add_found_le_device((const char *)name, &dev_info);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;free(name);
+
+&nbsp;&nbsp;&nbsp;/* Check whether the message concerns the device selected by the user from the list. */
+&nbsp;&nbsp;&nbsp;if (!model_check_device_selected(dev_info->name, &is_selected))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;if (!is_selected)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;/* If a scan response message concerns a registered and selected device,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;then it is further processed. */
+&nbsp;&nbsp;&nbsp;__scan_data_process(info, &dev_info);
+}
+</pre>
+
+<p>
+When a scan response message is received, then one has to obtain the sender's name (<span style="font-family: Courier New,Courier,monospace">bt_le_get_scan_device_name()</span>) and check whether
+it is already registered (<span style="font-family: Courier New,Courier,monospace">__bt_le_is_device_registered()</span>). If a received message concerns the registered and selected device, the
+received data is processed further by <span style="font-family: Courier New,Courier,monospace">__scan_data_process()</span> function. The scan response message may contain the same information set
+as the advertisement message extended with the service/solicitation service data.
+</p>
+
+<p>
+This function's implementation is very similar to <span style="font-family: Courier New,Courier,monospace">__adv_data_process()</span> (see the
+<a href="#dev-details">Discovered device's details acquisition</a> section). The only difference concerns the service's data acquisition
+(<span style="font-family: Courier New,Courier,monospace">bt_le_get_scan_service_data_list()</span>) and its storage in model's structure
+(<span style="font-family: Courier New,Courier,monospace">model_set_device_data()</span>).
+</p>
+
+<pre class="prettyprint">
+static void __scan_data_process(bt_adapter_le_device_scan_result_info_s *info, bt_le_device_info_s **dev_info)
+{
+&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;int manufacturer_id = -1;
+&nbsp;&nbsp;&nbsp;int tx_power_level = 0;
+&nbsp;&nbsp;&nbsp;int appearance = 0;
+&nbsp;&nbsp;&nbsp;int services_count = 0;
+&nbsp;&nbsp;&nbsp;int services_solicitation_count = 0;
+&nbsp;&nbsp;&nbsp;int data_count = 0;
+&nbsp;&nbsp;&nbsp;char **services = NULL;
+&nbsp;&nbsp;&nbsp;char **services_solicitation = NULL;
+&nbsp;&nbsp;&nbsp;bt_adapter_le_service_data_s *data = NULL;
+
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_manufacturer_data(info, &manufacturer_id);
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_tx_power_level(info, &tx_power_level);
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_appearance(info, &appearance);
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_service_uuids(info, &services, &services_count);
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_service_solicitation_uuids(info, &services_solicitation, &services_solicitation_count);
+&nbsp;&nbsp;&nbsp;/* Service's data acquisition. If any data is carried by the service then the 'data_count' variable
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;points to the number of services exposing its information carried by the 'data' array. */
+&nbsp;&nbsp;&nbsp;bt_le_get_scan_service_data_list(info, &data, &data_count);
+
+&nbsp;&nbsp;&nbsp;model_set_device_info(dev_info,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tx_power_level,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;appearance,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;manufacturer_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_count,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_solicitation,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;services_solicitation_count);
+
+&nbsp;&nbsp;&nbsp;/* For each service ... */
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; data_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;model_set_device_data(dev_info,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... identified by UUID ... */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data[i].service_uuid,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... its data is acquired ... */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data[i].service_data,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... of 'service_data_len' size ... */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data[i].service_data_len);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* ... and stored in model's structure. */
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; services_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(services[i]);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; services_solicitation_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(services_solicitation[i]);
+
+&nbsp;&nbsp;&nbsp;free(services);
+&nbsp;&nbsp;&nbsp;free(services_solicitation);
+
+&nbsp;&nbsp;&nbsp;if (data || data_count > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_le_free_service_data_list(data, data_count);
+
+&nbsp;&nbsp;&nbsp;view_main_update_peer_info(*dev_info);
+}
+</pre>
+
+<p>
+In contrast to <span style="font-family: Courier New,Courier,monospace">__adv_data_process()</span> function (see the <a href="#dev-details">Discovered device's details acquisition</a> section),
+the <span style="font-family: Courier New,Courier,monospace">bt_le_get_scan_<b>{scan_info_name}</b>()</span> functions are invoked to acquire the same set of information as from the advertisement
+message extended with service's data acquisition (<span style="font-family: Courier New,Courier,monospace">bt_le_get_scan_service_data_list()</span>).
+</p>
+
+<p>
+All the acquired information and service's data is binded to the remote device name (<span style="font-family: Courier New,Courier,monospace">model_set_device_info()</span> and
+<span style="font-family: Courier New,Courier,monospace">model_set_device_data()</span>, respectively) previously obtained and referenced by the
+<span style="font-family: Courier New,Courier,monospace">dev_info</span> variable.
+<br>
+Finally, the user interface is updated with <span style="font-family: Courier New,Courier,monospace">view_main_update_peer_info()</span> function to reflect received data.
+</p>
+
+<h3 id="model">Application's model</h3>
+
+<p>
+The general responsibility of the Model module is to:
+	<ol>
+		<li>
+			wrap Bluetooth related API functions calls in order to simplify the application's source code:
+			<ul>
+				<li>
+					file bt.c - handles a subset of the
+					<a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__MODULE.html">Bluetooth</a>
+					and <a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__MODULE.html">Bluetooth Adapter</a>
+					API functions. Due to their simplicity they are not listed here.
+				</li>
+				<li>
+					file bt_le.c - handles a subset of the
+					<a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__LE__MODULE.html">Bluetooth LE Adapter</a>
+					API functions. The general implementation structure is listed below.
+<pre class="prettyprint">
+bool bt_le_<b>#op_type#</b>_<b>#msg_type#</b>_<b>#op_target#</b>(<b>#args_in#</b>, <b>#args_out#</b>)
+{
+&nbsp;&nbsp;&nbsp;return __<b>#op_type#</b>_<b>#op_target#</b>(<b>#args_in#</b>, <b>#arg_msg_type#</b>, <b>#args_out#</b>);
+}
+</pre>
+
+<pre class="prettyprint">
+bool __<b>#op_type#</b>_<b>#op_target#</b>(<b>#args_in#</b>, <b>#arg_msg_type#</b>, <b>#args_out#</b>)
+{
+&nbsp;&nbsp;&nbsp;int ret = BT_ERROR_NONE;
+
+&nbsp;&nbsp;&nbsp;if (!<b>#args_out#</b>) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Function __<b>#op_type#</b>_<b>#op_target#</b>() failed due to wrong argument.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;*<b>#args_out#</b> = NULL;
+
+&nbsp;&nbsp;&nbsp;ret = bt_adapter_le_<b>#op_type#</b>_scan_result_<b>#op_target#</b>(<b>#args_in#</b>, <b>#arg_msg_type#</b>, <b>#args_out#</b>);
+&nbsp;&nbsp;&nbsp;if (ret == BT_ERROR_NO_DATA) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;} else if (ret != BT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, "Function bt_adapter_le_<b>#op_type#</b>_scan_result_<b>#op_target#</b>() failed with error: %s.", get_error_message(ret));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+					where,
+					<ul>
+						<li><b>#op_type#</b> = get/set/free;</li>
+						<li><b>#msg_type#</b> = adv/scan;</li>
+						<li><b>#op_target#</b> = operation target, ex: device_name;</li>
+						<li><b>#args_in#</b> = input arguments;</li>
+						<li><b>#args_out#</b> = output arguments;</li>
+						<li><b>#arg_msg_type#</b> = BT_ADAPTER_LE_PACKET_ADVERTISING/BT_ADAPTER_LE_PACKET_SCAN_RESPONSE.</li>
+					</ul>
+				</li>
+			</ul>
+		</li>
+		<li>
+			manage the acquired information and data (model.c).
+			<br>
+			This portion of source code is responsible for discovered devices (referenced with
+			<span style="font-family: Courier New,Courier,monospace">bt_le_device_info_s</span> data structure - see the <a href="#dev-discovery">Devices discovery</a> section)
+			as well as the advertiser's information and broadcasted service's data storage.
+			<br>
+			These functions implementation's details are irrelevant from the application's subject point of view.
+		</li>
+		<li>
+			decode the acquired data (model_heart_rate_measurement.c, model_body_sensor_location.c).
+			<br>
+			The data decoding complies to the following standards and directly implements its decomposition:
+			<ul>
+				<li>
+					<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml">
+					Heart Rate Measurement</a>;
+				</li>
+				<li>
+					<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.body_sensor_location.xml">
+					Body Sensor Location</a>.
+				</li>
+			</ul>
+		</li>
+	</ol>
+</p>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
