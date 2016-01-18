@@ -192,6 +192,82 @@ static bool __create_advertizer(bt_advertiser_h *adv_h, int appearance)
 }
 </pre>
 
+<p>
+Within the <span style="font-family: Courier New,Courier,monospace">__create_advertizer()</span> function:
+	<ul>
+		<li>the advertiser's handle is created with <span style="font-family: Courier New,Courier,monospace">bt_common_create_advertizer()</span> function;</li>
+		<li>the advertiser mode is set to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_ADVERTISING_MODE_LOW_LATENCY</span> which sets the lowest possible
+		interval between subsequent packets sending with the cost of higher energy consumption (<span style="font-family: Courier New,Courier,monospace">bt_common_set_advertising_mode()</span>);</li>
+		<li>the advertiser remains connectable by other peers (<span style="font-family: Courier New,Courier,monospace">bt_common_set_connectable()</span>);</li>
+		<li>the advertiser's properties are defined and set:
+			<ul>
+				<li>for advertising mode (<span style="font-family: Courier New,Courier,monospace">__set_advertizing_properties()</span>);</li>
+				<li>for scan response mode (<span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span>).</li>
+			</ul>
+		</li>
+	</ul>
+The advertiser's properties setting determines the amount and the category of information to be broadcasted over the Bluetooth LE adapter. It is assumed that:
+	<ul>
+		<li>
+		an advertising packet (<span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_PACKET_ADVERTISING</span>) is a carrier of the following information:
+			<ul>
+				<li>device's name (obtained automatically by the internal implementation of the Bluetooth LE Adapter module);</li>
+				<li>manufacturer's identifier: 0x0075 (complies with the <a href="https://www.bluetooth.com/specifications/assigned-numbers/Company-Identifiers">company identifiers</a>
+				assigned by the Bluetooth SIG, Inc.). The assigned value identifies Samsung Electronics Co. Ltd. company.</li>
+			</ul>
+		The role of this type of packet is to introduce the device (advertise its existence) within the Bluetooth LE network. The one who receives such a packet can send a scan request to query detailed data
+		carried by the device.
+		</li>
+		<li>
+		a scan response packet (<span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_PACKET_SCAN_RESPONSE</span>) is a carrier of the following information:
+			<ul>
+				<li>device's name (obtained automatically by the internal implementation of the Bluetooth LE Adapter module);</li>
+				<li>appearance: 832 (complies with the
+				<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.gap.appearance.xml">external device's appearance</a>
+				assigned by the Bluetooth SIG, Inc.). The assigned value identifies the device as a Generic Heart Rate Sensor.</li>
+				<li>manufacturer's identifier (see the itemization above for details).</li>
+			</ul>
+		The role of this type of packet is to provide detailed data acquired during the service lifecycle (heart rate measuremet and body sensor location values). This packet is sent in response to a scan request.
+		</li>
+	</ul>
+The <span style="font-family: Courier New,Courier,monospace">__set_advertizing_properties()</span> and the
+<span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span> functions are only convenient wrappers and call the
+<span style="font-family: Courier New,Courier,monospace">__set_properties()</span> function with appropriately adjusted arguments. For reference of properties' setting, see the code listing below.
+</p>
+
+<pre class="prettyprint">
+static bool __set_properties(bt_advertiser_h adv_h, struct _adv_properties properties)
+{
+&nbsp;&nbsp;&nbsp;/* Sets whether the device's name is to be included in the packet. */
+&nbsp;&nbsp;&nbsp;if (!bt_common_set_device_name(adv_h, properties.pkt_type, properties.name))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* Sets the device's appearance value if provided. */
+&nbsp;&nbsp;&nbsp;if (properties.appearance > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!bt_common_set_appearance(adv_h, properties.pkt_type, properties.appearance))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* Sets the device's manufacturer identifier if provided. */
+&nbsp;&nbsp;&nbsp;if (properties.manufacturer_id > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!bt_common_set_manufacturer(adv_h,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;properties.pkt_type,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;properties.manufacturer_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(const char *)&properties.manufacturer_data,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(struct _manufacturer_data)))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;/* Sets whether the transmition power level is to be included in the packet. */
+&nbsp;&nbsp;&nbsp;if (!bt_common_set_tx_power_level(adv_h, properties.pkt_type, properties.tx_power))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+See the <a href="#ref">References</a> section for details of all undescribed functions.
+</p>
+
 <h3 id="data-adv">Data advertising</h3>
 
 <p>
