@@ -115,6 +115,121 @@ void controller_terminate(void)
 See the <a href="#ref">References</a> section for the details of all the undescribed functions.
 </p>
 
+<h3 id="adv-creation">Advertiser creation</h3>
+
+<h3 id="data-adv">Data advertising</h3>
+
+<p>
+Once the Bluetooth adapter state is changed to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_ENABLED</span> and the
+<span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback function is invoked, the advertiser is created and the service starts its normal operation.
+</p>
+
+<pre class="prettyprint">
+static void __bt_device_state_changed_cb(int result, bt_adapter_state_e adapter_state, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (adapter_state == BT_ADAPTER_ENABLED) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_advertiser_create(&__ctrldata.adv_hrm_h, APPEARANCE_GENERIC_HEART_RATE_SENSOR)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Heart Rate Measurement advertiser started.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Failed to start Heart Rate Measurement advertiser.");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertiser_delete(&__ctrldata.adv_hrm_h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Heart Rate Measurement advertiser stopped.");
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>
+In the advertiser creation procedure (<span style="font-family: Courier New,Courier,monospace">bt_advertiser_create()</span>) its initial configuration takes place and the advertising is started
+(see the <a href="#adv-creation">Advertiser creation</a> section).
+</p>
+
+<p>
+Each time data is received from the Heart Rate sensor, the <span style="font-family: Courier New,Courier,monospace">__sensor_data_read_cb()</span> callback function is invoked.
+Within this function, the Heart Rate measurement value is packed into the advertiser buffer and broadcasted over the Bluetooth network with the relevant UUID value. Together with the obtained measurement,
+the body sensor location data package is created and handled similarly.
+<br>
+The structure of both types of data is implemented according to HDP (Health Device Profile) Bluetooth standard. For details, see the official characteristics defined by the
+Bluetooth SIG, Inc.:
+	<ul>
+		<li><a href="https://developer.bluetooth.org/gatt/services/Pages/ServiceViewer.aspx?u=org.bluetooth.service.heart_rate.xml">Heart Rate</a> service specification.
+		According to the standard, the Heart Rate Control Point is omitted as the Energy Expanded flag is set to disabled state in the Heart Rate Measurement service;</li>
+		<li><a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml">Heart Rate
+		Measurement</a> service specification;</li>
+		<li><a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.body_sensor_location.xml">Body Sensor
+		Location</a> service specification.</li>
+	</ul>
+</p>
+
+<pre class="prettyprint">
+static void __sensor_data_read_cb(float *data, int data_count)
+{
+&nbsp;&nbsp;&nbsp;int buffer_size = 0;
+&nbsp;&nbsp;&nbsp;char *buffer = NULL;
+&nbsp;&nbsp;&nbsp;const char *uuid = NULL;
+
+&nbsp;&nbsp;&nbsp;if (!__ctrldata.adv_hrm_h)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;if (__pack_heart_rate_measurement_data(data[HEART_RATE_SENSOR_DATA_INDEX], &buffer, &buffer_size)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uuid = heart_rate_measurement_model_get_uuid();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertizer_set_data(&__ctrldata.adv_hrm_h, uuid, (const char *)buffer, buffer_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(buffer);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (__pack_body_sensor_location_data(&buffer, &buffer_size)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uuid = body_sensor_location_model_get_uuid();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertizer_set_data(&__ctrldata.adv_hrm_h, uuid, (const char *)buffer, buffer_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(buffer);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>
+The data is packed into the buffers using the following functions:
+	<ul>
+		<li><span style="font-family: Courier New,Courier,monospace">__pack_heart_rate_measurement_data()</span> - handles Heart Rate Measurement value obtained from the Heart Rate sensor;</li>
+		<li><span style="font-family: Courier New,Courier,monospace">__pack_body_sensor_location_data()</span> - handles Body Sensor Location defined as a constant value respective to the
+		device the software runs on.</li>
+	</ul>
+Once the data is packed into the internal buffer according to the adopted standard, it is added to the advertiser (together with the relevant UUID value) using the
+<span style="font-family: Courier New,Courier,monospace">bt_advertizer_set_data()</span> function.
+<br>
+From now on, the data is advertised over the Bluetooth network as long as it is altered in subsequent calls of the <span style="font-family: Courier New,Courier,monospace">__sensor_data_read_cb()</span>
+callback function.
+<br>
+The procedure of adding data to the advertiser is shown below.
+</p>
+
+<pre class="prettyprint">
+bool bt_advertizer_set_data(bt_advertiser_h *adv_h, const char *uuid, const char *data, int data_size)
+{
+&nbsp;&nbsp;&nbsp;bt_common_stop_advertising(*adv_h);
+
+&nbsp;&nbsp;&nbsp;if (bt_common_clear_advertizer(*adv_h, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_scan_response_properties(*adv_h, __advertizer_appearance);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_common_add_service_solicitation_uuid(*adv_h, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, uuid))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (data_size > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_common_set_service_data(*adv_h, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, uuid, data, data_size);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;bt_common_start_advertising(*adv_h, NULL);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>
+In order to add new data to the advertiser, it must first be stopped (<span style="font-family: Courier New,Courier,monospace">bt_common_stop_advertising()</span>) and internal data buffers responsible for
+responding to scan request have to be cleared (<span style="font-family: Courier New,Courier,monospace">bt_common_clear_advertizer()</span>). The initial configuration of the advertiser's scan response buffer
+must be configured again (<span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span>). Now it is ready to accept new data which will be provided to the requester
+in a scan response message. The <span style="font-family: Courier New,Courier,monospace">bt_common_add_service_solicitation_uuid()</span> function creates a new service buffer for the relevant data
+(identified by the provided UUID) added with the <span style="font-family: Courier New,Courier,monospace">bt_common_set_service_data()</span> function. At the end, the advertiser is started
+(<span style="font-family: Courier New,Courier,monospace">bt_common_start_advertising()</span>).
+</p>
+
 <h3 id="ref">References</h3>
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
