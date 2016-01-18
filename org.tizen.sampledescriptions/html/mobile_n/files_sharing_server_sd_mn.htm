@@ -29,7 +29,7 @@
   <p>The Files Sharing Server sample application demonstrates how you can use Bluetooth OPP (Object Push Profile) API to receive files from other devices.</p>
   <p>The following figure illustrates the application view:</p>
   <p class="figure">Figure: Main view</p>
-  <p align="center"><img alt="Main view" src="../images/files_sharing_server_main_view.png" />
+  <p align="center"><img alt="Main view" src="../images/files_sharing_server_main_view.png" border="1"/>
   </p>
 
   <h2>Prerequisites</h2>
@@ -52,9 +52,121 @@
 <p align="center"> <img alt="Sample structure" src="../images/files_sharing_server_structure.png" /></p>
 <p>The application uses a simple MVC (Model-View-Controller) architectural pattern. The application model consists of a media and Bluetooth module.</p>
 
-<h3>View</h3>
-<h3>Model</h3>
 <h3>Controller</h3>
+<p>The controller module connects the view and the model. It delivers the following set of functions:</p>
+<pre class="prettyprint">
+/*Function initializes all application modules and event listeners.*/
+bool controller_init_application_modules(app_data_t *ad)
+{
+&nbsp;&nbsp;&nbsp;ad->vd = view_init();
+&nbsp;&nbsp;&nbsp;if (!ad->vd)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+&nbsp;&nbsp;&nbsp;ad->md = model_init();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling*/
+&nbsp;&nbsp;&nbsp;__controller_init_events(ad);
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<pre class="prettyprint">
+/*Event handlers are stored in an Eina_List which is used to release allocated memory on application terminate event.*/
+static void __controller_init_events(app_data_t *ad)
+{
+&nbsp;&nbsp;&nbsp;ad->app_events = eina_list_append(ad->app_events,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_event_handler_add(app_utils_get_event_type(EVENT_CONNECTION_REQUEST),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__controller_handle_connection_request_event, ad));
+&nbsp;&nbsp;&nbsp;ad->app_events = eina_list_append(ad->app_events,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_event_handler_add(app_utils_get_event_type(EVENT_TRANSFER_IN_PROGRESS),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__controller_handle_transfer_in_progress_event, ad));
+&nbsp;&nbsp;&nbsp;ad->app_events = eina_list_append(ad->app_events,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_event_handler_add(app_utils_get_event_type(EVENT_ACCEPT_BUTTON_CLICKED),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__controller_handle_accept_button_clicked_event, ad));
+&nbsp;&nbsp;&nbsp;ad->app_events = eina_list_append(ad->app_events,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_event_handler_add(app_utils_get_event_type(EVENT_REJECT_BUTTON_CLICKED),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__controller_handle_reject_button_clicked_event, ad));
+&nbsp;&nbsp;&nbsp;ad->app_events = eina_list_append(ad->app_events,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_event_handler_add(app_utils_get_event_type(EVENT_TRANSFER_STARTED),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__controller_handle_transfer_started_event, ad));
+}
+</pre>
+
+<p>The event listeners described above are used to accept a file transfer, update the sending progress and handle user interaction. When the application receives the connection request from another device, custom event defined in the <span st="font-family: Courier New,Courier,monospace">app_utils.c</span> file is emitted. Callback function invoked in that case changes the state of the accept button.</p>
+
+<pre class="prettyprint">
+/*Callback enables the accept button.*/
+static Eina_Bool __controller_handle_connection_request_event(void *data, int type, void *event)
+{
+&nbsp;&nbsp;&nbsp;app_data_t *ad = (app_data_t *) data;
+&nbsp;&nbsp;&nbsp;if (!ad)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+&nbsp;&nbsp;&nbsp;view_enable_accept_button(ad->vd);
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p> When the accept button is enabled, the user can press it to confirm the files transfer. The <span style="font-family: Courier New,Courier,monospace">__controller_handle_accept_button_clicked_event()</span> function listed below changes the view state and starts the exchange process.</p>
+
+<pre class="prettyprint">
+static Eina_Bool __controller_handle_accept_button_clicked_event(void *data, int type, void *event)
+{
+&nbsp;&nbsp;&nbsp;app_data_t *ad = (app_data_t *) data;
+&nbsp;&nbsp;&nbsp;bt_module_transfer_accept(ad->md);
+&nbsp;&nbsp;&nbsp;view_disable_accept_button(ad->vd);
+&nbsp;&nbsp;&nbsp;view_enable_reject_button(ad->vd);
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p>The <span st="font-family: Courier New,Courier,monospace">__controller_handle_transfer_started_event()</span> callback function is used to create an item in the received files list. It is called when a new file transfer starts.</p>
+
+<pre class="prettyprint">
+static Eina_Bool __controller_handle_transfer_started_event(void *data, int type, void *event)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item *new_item = NULL;
+&nbsp;&nbsp;&nbsp;app_data_t *ad = (app_data_t *) data;
+&nbsp;&nbsp;&nbsp;file_t *recv_file = (file_t *) event;
+&nbsp;&nbsp;&nbsp;if (!ad || !recv_file)
+&nbsp;&nbsp;&nbsp&nbsp;&nbsp;&nbsp;/*Error handling*/
+&nbsp;&nbsp;&nbsp;/*Adding new item into the files list.*/
+&nbsp;&nbsp;&nbsp;new_item = view_append_new_file(ad->vd, recv_file->file_name, &(recv_file->progress));
+&nbsp;&nbsp;&nbsp;if (!new_item)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+&nbsp;&nbsp;&nbsp;/*Bind the model with the view. New item is used later to update the sending progress.*/
+&nbsp;&nbsp;&nbsp;file_data_set(recv_file, (void *) new_item);
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p>The <span st="font-family: Courier New,Courier,monospace">__controller_handle_transfer_in_progress_event()</span> function is used to update the sending progress for each file. It is called when the <span st="font-family: Courier New,Courier,monospace">bt_module</span> emits the signal for item update. It uses the data stored in the internal <span st="font-family: Courier New,Courier,monospace">file</span> object.
+
+<pre class="prettyprint">
+static Eina_Bool __controller_handle_transfer_in_progress_event(void *data, int type, void *event)
+{
+&nbsp;&nbsp;&nbsp;app_data_t *ad = (app_data_t *) data;
+&nbsp;&nbsp;&nbsp;file_t *file = (file_t *) event;
+&nbsp;&nbsp;&nbsp;if(!file || !ad)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling*/
+&nbsp;&nbsp;&nbsp;view_update_progress((Elm_Object_Item *) file->data, (double) file->progress / 100.0);
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+
+<p>When transfer starts, the application enables the reject button. It can be used by the user to stop the files exchange.</p>
+
+<pre class="prettyprint">
+static Eina_Bool __controller_handle_reject_button_clicked_event(void *data, int type, void *event)
+{
+&nbsp;&nbsp;&nbsp;app_data_t *ad = (app_data_t *) data;
+&nbsp;&nbsp;&nbsp;if (!ad)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*Error handling.*/
+&nbsp;&nbsp;&nbsp;bt_module_transfer_reject(ad->md);
+&nbsp;&nbsp;&nbsp;view_disable_reject_button(ad->vd);
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre>
+<h3>View</h3>
+
+<h3>Model</h3>
 
 
 
