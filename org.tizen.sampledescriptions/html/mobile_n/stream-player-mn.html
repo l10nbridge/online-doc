@@ -78,7 +78,7 @@
 <!-- ********************************************************************************** -->
 
 <h2>Implementation</h2>
-<h3>Type Definitions:</h3>
+<h3>Type Definitions</h3>
 <p> The <span style="font-family: Courier New,Courier,monospace">view_info_s</span> structure contains references to objects created by the view module.</p>
 <pre class="prettyprint">
 struct view_info_s {
@@ -141,7 +141,7 @@ struct player_callback_s {
 </ul>
 
 <!-- ********************************************************************************** -->
-<h3>Application Initialization:</h3>
+<h3>Application Initialization</h3>
 <p>The entire application life-cycle is implemented in the main.c file, using the common Tizen application structure:</p>
 
 <pre class="prettyprint">
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
 }
 </pre>
 
-The Stream-Player application's initialization is done within the <span style="font-family: Courier New,Courier,monospace">__app_create()</span> callback function where the <span style="font-family: Courier New,Courier,monospace">player_model_init()</span> function is responsible for the model's initialization. The <span style="font-family: Courier New,Courier,monospace">view_create_base_gui()</span> function is used to initialize the view module. On the application's termination, the <span style="font-family: Courier New,Courier,monospace">__app_terminate()</span> callback function is invoked, and all resources allocated within the model are freed.
+<p>The Stream-Player application's initialization is done within the <span style="font-family: Courier New,Courier,monospace">__app_create()</span> callback function where the <span style="font-family: Courier New,Courier,monospace">player_model_init()</span> function is responsible for the model's initialization. The <span style="font-family: Courier New,Courier,monospace">view_create_base_gui()</span> function is used to initialize the view module. On the application's termination, the <span style="font-family: Courier New,Courier,monospace">__app_terminate()</span> callback function is invoked, and all resources allocated within the model are freed.</p>
 
 <!-- ********************************************************************************** -->
 
@@ -391,6 +391,115 @@ static Eina_Bool __add_option_panel(void)
 		</tr>
 	</tbody>
 </table>
+
+<!-- ********************************************************************************** -->
+
+<h3>Model</h3>
+
+<p>The image below describes the typical state changes of the player.</p>
+<p class="figure">Figure 4: Stream-Player state changes</p>
+<p id="state-changes" style="text-align:center;">
+	<img alt="Stream-Player state changes" height="550" hspace="80" src="../images/stream-player/stream-player-state-changes.png" />
+</p>
+
+<h5>Initialization</h5>
+
+<pre class="prettyprint">
+void player_model_init(Player_Status_Changed_cb_t player_status_changed_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Player_Progress_Changed_cb_t player_progress_changed_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Player_Progress_End_cb_t player_progress_end_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Player_Screen_cb_t player_screen_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Player_Message_cb_t player_msg_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Player_Buffer_progress_cb_t player_buffer_progress_cb)
+{
+&nbsp;&nbsp;&nbsp;int error_code = player_create(&s_info.player);
+&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;s_info.callbacks.player_status_changed_cb = player_status_changed_cb;
+&nbsp;&nbsp;&nbsp;s_info.callbacks.player_progress_changed_cb = player_progress_changed_cb;
+&nbsp;&nbsp;&nbsp;s_info.callbacks.player_progress_end_cb = player_progress_end_cb;
+&nbsp;&nbsp;&nbsp;s_info.callbacks.player_screen_cb = player_screen_cb;
+&nbsp;&nbsp;&nbsp;s_info.callbacks.player_msg_cb = player_msg_cb;
+&nbsp;&nbsp;&nbsp;s_info.callbacks.player_buffer_progress_cb = player_buffer_progress_cb;
+
+&nbsp;&nbsp;&nbsp;if (player_set_interrupted_cb(s_info.player, __player_interrupted_cb, NULL) != PLAYER_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_completed_cb(s_info.player, __player_completed_cb, NULL) != PLAYER_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_error_cb(s_info.player, __player_error_cb, NULL) != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_buffering_cb(s_info.player, __player_buffering_cb, NULL) != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_progressive_download_message_cb(s_info.player, __progressive_download_message_cb, NULL) != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_video_stream_changed_cb(s_info.player, __video_stream_changed_cb, NULL) != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_media_stream_buffer_status_cb (s_info.player,  PLAYER_STREAM_TYPE_AUDIO, __media_stream_buffer_status_cb, (void *)PLAYER_STREAM_TYPE_AUDIO) != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_media_stream_buffer_status_cb (s_info.player, PLAYER_STREAM_TYPE_VIDEO, __media_stream_buffer_status_cb, (void *)PLAYER_STREAM_TYPE_VIDEO) != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_media_stream_seek_cb(s_info.player, PLAYER_STREAM_TYPE_AUDIO, __media_stream_seek_cb, (void *)PLAYER_STREAM_TYPE_AUDIO) != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (player_set_media_stream_seek_cb(s_info.player, PLAYER_STREAM_TYPE_VIDEO, __media_stream_seek_cb, (void *)PLAYER_STREAM_TYPE_VIDEO) != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+}
+</pre>
+
+<p>First of all, a player object has to be created using the <span style="font-family: Courier New,Courier,monospace">player_create()</span> function. If the player is created successfully, we can set all required player callbacks. Check the <a href="https://developer.tizen.org/development/api-references/native-application?redirect=https%3A//developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/index.html">API documentation</a> for callback's details. Also, the <span style="font-family: Courier New,Courier,monospace">view</span> module callbacks are assigned here.</p>
+
+<h5>Playing a file</h5>
+
+<pre class="prettyprint">
+player_error_e player_model_play_file(const char *file_path)
+{
+&nbsp;&nbsp;&nbsp;// Variables declaration
+
+&nbsp;&nbsp;&nbsp;if (!s_info.player)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (!s_info.display)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;player_model_set_mute(EINA_FALSE);
+
+&nbsp;&nbsp;&nbsp;error_code = player_get_state(s_info.player, &state);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;if (state != PLAYER_STATE_IDLE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (state != PLAYER_STATE_IDLE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Setting player state to idle");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_unprepare(s_info.player);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;error_code = player_set_uri(s_info.player, file_path);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;error_code = player_set_display(s_info.player, PLAYER_DISPLAY_TYPE_EVAS, GET_DISPLAY(s_info.display));
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;error_code = player_prepare(s_info.player);
+&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;error_code = player_start(s_info.player);
+&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;return PLAYER_ERROR_NONE;
+}
+</pre>
+
+<p>The function above is used to play a given file. Note that there is no difference between a video or audio local file and an online file when it comes to the implementation. Only a correct URI is required. Note that if the player state is different than <span style="font-family: Courier New,Courier,monospace">PLAYER_STATE_IDLE</span>, the <span style="font-family: Courier New,Courier,monospace">player_state_unprepare()</span> has to be called first. If not, the previously loaded file will be played instead of the given one. Also, the mute mode has to be turned off before the new file is loaded. After that, the player is ready to load a new file. The file can be loaded using the <span style="font-family: Courier New,Courier,monospace">player_set_uri()</span> function. Also, the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> used as the display object can now be set using the <span style="font-family: Courier New,Courier,monospace">player_set_display()</span> function. Finally, the player can be set to <span style="font-family: Courier New,Courier,monospace">PLAYER_STATE_READY</span> state using <span style="font-family: Courier New,Courier,monospace"> player_prepare()</span> function and the playback can be started by invoking the <span style="font-family: Courier New,Courier,monospace">player_start()</span> function.</p>
+
+<!-- ********************************************************************************** -->
 
 <script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../scripts/showhide.js"></script>
