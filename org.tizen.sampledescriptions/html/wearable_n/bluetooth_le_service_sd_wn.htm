@@ -27,133 +27,136 @@
 <h1>Bluetooth LE Service Sample Overview</h1>
 
 <p>
-The Bluetooth LE Service sample application demonstrates how to implement a service that continuously broadcasts data using the Bluetooth Low Energy adapter. In order to achive the goal, the
-<a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__LE__MODULE.html">Bluetooth LE Adapter</a>
-API is used. The continuous data broadcast using the mentioned method is called advertising. The service advertises small packets of data to identify a device within the Bluetooth network.
-Once the advertisment is received by any other device, one can query the advertiser for detailed service data. The query process is called scanning. In a scan response the service data, identified by preassigned UUID,
-is returned.
-</p>
+The Bluetooth LE Service sample application demonstrates how to implement a service that continuously broadcasts data using the Bluetooth Low Energy (LE) adapter and the <a href="../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__LE__MODULE.html">Bluetooth LE Adapter</a> API.</p>
 
-<p>
-The general idea behind this sample application is to share the health information gathered from the Heart Rate sensor which is built into the wearable device. There are two types of advertized information:
+<p>This kind of continuous data broadcast is called advertising. The service advertises small packets of data to identify a device within the Bluetooth network. Once the advertisement is received by any other device, they can query the advertiser for detailed service data. The query process is called scanning. The scan response returns the service data, identified by a preassigned UUID.</p>
+
+<p>The purpose of this sample application is to share health information gathered from the heart rate sensor built into the wearable device. There are 2 types of advertised information:</p>
 	<ul>
-		<li>Heart Rate Measurement - the number of heart beats per second (acquired directly from the Heart Rate sensor). This data is identified by the UUID = 0x2A37;</li>
-		<li>Body Sensor Location - the point of measurement which is fixed for the entire lifecycle of the service. This data is identified by the UUID = 0x2A38.</li>
+		<li>Heart rate measurement
+<p>The number of heart beats per second, which is acquired directly from the heart rate sensor. This data is identified by <span style="font-family: Courier New,Courier,monospace">UUID = 0x2A37</span>.</p></li>
+		<li>Body sensor location
+<p>The point of the measurement, which is fixed for the entire life-cycle of the service. This data is identified by <span style="font-family: Courier New,Courier,monospace">UUID = 0x2A38</span>.</p></li>
 	</ul>
-</p>
+
 
 <h2>Prerequisites</h2>
 
-<p>To ensure proper service execution, the following privileges must be set:</p>
+<p>To ensure proper application  execution, the following privileges must be set:</p>
 	<ul>
-		<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/bluetooth,</span></li>
-		<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/healthinfo.</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/bluetooth</span></li>
+		<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/healthinfo</span></li>
 	</ul>
-</p>
 
 <h2>Implementation</h2>
 
-<h3>Service initialization and termination</h3>
+<p>For the details of undescribed function within the following sections, see <a href="#ref">References</a>.</p>
 
-<h4>Initialization</h4>
+<h3>Service Initialization and Termination</h3>
 
-<p>
-Before the service starts its operation, the availability of relevant Bluetooth interfaces is checked by calling the following functions:
+<p>The service application must be properly initialized and terminated:</p>
+
+<ul>
+<li>Initialization
+<p>Before the service starts its operation, the availability of relevant Bluetooth interfaces is checked by calling the following functions:</p>
 	<ul>
-		<li><span style="font-family: Courier New,Courier,monospace">bt_common_is_bluetooth_supported()</span> - General Bluetooth adapter;</li>
-		<li><span style="font-family: Courier New,Courier,monospace">bt_common_is_bluetooth_le_supported()</span> - Low Energy Bluetooth adapter.</li>
+		<li><span style="font-family: Courier New,Courier,monospace">bt_common_is_bluetooth_supported()</span> (general Bluetooth adapter)</li>
+		<li><span style="font-family: Courier New,Courier,monospace">bt_common_is_bluetooth_le_supported()</span> (LE Bluetooth adapter)</li>
 	</ul>
-If both of them are available, the Heart Rate sensor listener is created with <span style="font-family: Courier New,Courier,monospace">sensor_listener_create()</span> function. Finally, the Bluetooth
-interface is initialized with the <span style="font-family: Courier New,Courier,monospace">__bt_init()</span> function.
-</p>
+<p>If both adapters are available, the heart rate sensor listener is created with the <span style="font-family: Courier New,Courier,monospace">sensor_listener_create()</span> function. Finally, the Bluetooth interface is initialized with the <span style="font-family: Courier New,Courier,monospace">__bt_init()</span> function.</p>
+
 
 <pre class="prettyprint">
-static bool __bt_init(void)
+static bool 
+__bt_init(void)
 {
 &nbsp;&nbsp;&nbsp;bool is_enabled = false;
 
-&nbsp;&nbsp;&nbsp;/* Access to the H/W Bluetooth adapter is initialized. */
-&nbsp;&nbsp;&nbsp;if (bt_common_init()) {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* The __bt_device_state_changed_cb() callback function is registered to be invoked on Bluetooth adapter state change. */
+&nbsp;&nbsp;&nbsp;// Initialize access to the hardware Bluetooth adapter
+&nbsp;&nbsp;&nbsp;if (bt_common_init()) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Register __bt_device_state_changed_cb() callback for Bluetooth adapter state changes
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_common_set_state_change_callback(__bt_device_state_changed_cb);
 
-&nbsp;&nbsp;&nbsp;/* The current state of the Bluetooth adapter is obtained.
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;If it is enabled the the __bt_device_state_changed_cb() callback function is artificially invoked. */
-&nbsp;&nbsp;&nbsp;bt_common_get_state(&is_enabled);
-&nbsp;&nbsp;&nbsp;if (is_enabled)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_device_state_changed_cb(BT_ERROR_NONE, BT_ADAPTER_ENABLED, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Obtain the current state of the Bluetooth adapter
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// If it is enabled, the __bt_device_state_changed_cb() callback is artificially invoked
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_common_get_state(&amp;is_enabled);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (is_enabled)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__bt_device_state_changed_cb(BT_ERROR_NONE, BT_ADAPTER_ENABLED, NULL);
 &nbsp;&nbsp;&nbsp;}
 
 &nbsp;&nbsp;&nbsp;return is_enabled;
 }
-</pre>
+</pre></li>
 
-<p>
-See the <a href="#ref">References</a> section for details of all undescribed functions.
-</p>
+<li>Termination
 
-<h4>Termination</h4>
-
-<p>
-In the service termination procedure, the Heart Rate sensor listener and data advertizer are destroyed, the assigned callback function is unset and, finally, the access to the Bluetooth adapter is deinitialized.
-</p>
+<p>In the service termination procedure, the heart rate sensor listener and data advertiser are destroyed, the assigned callback function is unset and, finally, the access to the Bluetooth adapter is deinitialized.</p>
 
 <pre class="prettyprint">
-void controller_terminate(void)
+void 
+controller_terminate(void)
 {
 &nbsp;&nbsp;&nbsp;sensor_listener_delete();
 
-&nbsp;&nbsp;&nbsp;bt_advertiser_delete(&__ctrldata.adv_hrm_h);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Heart Rate Measurement advertiser stopped.");
+&nbsp;&nbsp;&nbsp;bt_advertiser_delete(&amp;__ctrldata.adv_hrm_h);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, &quot;Heart Rate Measurement advertiser stopped.&quot;);
 
 &nbsp;&nbsp;&nbsp;bt_common_unset_state_change_callback();
 &nbsp;&nbsp;&nbsp;bt_common_deinit();
 }
 </pre>
+</li></ul>
 
-<p>
-See the <a href="#ref">References</a> section for details of all undescribed functions.
-</p>
+<h3 id="adv-creation">Creating the Advertiser</h3>
 
-<h3 id="adv-creation">Advertiser creation</h3>
+<p>To create the advertiser:</p>
 
-<p>
-Once the Bluetooth adapter state is changed to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_ENABLED</span> and the
-<span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback function is invoked, the advertiser creation procedure takes place.
-<br>
-In case the <span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback function is invoked with the
-<span style="font-family: Courier New,Courier,monospace">adapter_state</span> argument set to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_DISABLED</span>,
-the currently running advertiser is deleted (<span style="font-family: Courier New,Courier,monospace">bt_advertiser_delete()</span>).
-</p>
+<ol>
+<li>
+<p>When the Bluetooth adapter state changes to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_ENABLED</span> and the <span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback is invoked, the advertiser is created.</p>
+
+<p>In case the <span style="font-family: Courier New,Courier,monospace">__bt_device_state_changed_cb()</span> callback is invoked with the <span style="font-family: Courier New,Courier,monospace">adapter_state</span> parameter set to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_DISABLED</span>, the currently running advertiser is deleted (<span style="font-family: Courier New,Courier,monospace">bt_advertiser_delete()</span>).</p>
 
 <pre class="prettyprint">
-static void __bt_device_state_changed_cb(int result, bt_adapter_state_e adapter_state, void *user_data)
+static void 
+__bt_device_state_changed_cb(int result, bt_adapter_state_e adapter_state, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (adapter_state == BT_ADAPTER_ENABLED) {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_advertiser_create(&__ctrldata.adv_hrm_h, APPEARANCE_GENERIC_HEART_RATE_SENSOR)) {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, "Heart Rate Measurement advertiser started.");
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Failed to start Heart Rate Measurement advertiser.");
+&nbsp;&nbsp;&nbsp;if (adapter_state == BT_ADAPTER_ENABLED) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_advertiser_create(&amp;__ctrldata.adv_hrm_h, APPEARANCE_GENERIC_HEART_RATE_SENSOR)) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Heart Rate Measurement advertiser started.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, &quot;Failed to start Heart Rate Measurement advertiser.&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;} else {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertiser_delete(&__ctrldata.adv_hrm_h);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, "Heart Rate Measurement advertiser stopped.");
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertiser_delete(&amp;__ctrldata.adv_hrm_h);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_WARN, LOG_TAG, &quot;Heart Rate Measurement advertiser stopped.&quot;);
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
+</li>
 
-<p>
-The <span style="font-family: Courier New,Courier,monospace">bt_advertiser_create()</span> function creates the advertiser handle, performs its initial configuration and starts advertising.
-</p>
+<li>
+<p>The <span style="font-family: Courier New,Courier,monospace">bt_advertiser_create()</span> function creates the advertiser handle, performs its initial configuration, and starts advertising.</p>
+<p>The creation of the advertiser handle and the initial configuration is performed by the <span style="font-family: Courier New,Courier,monospace">__create_advertizer()</span> function. Once the function succeeds, the advertising starts (<span style="font-family: Courier New,Courier,monospace">bt_common_start_advertising()</span>).</p>
 
 <pre class="prettyprint">
-bool bt_advertiser_create(bt_advertiser_h *adv_h, int appearance)
+bool 
+bt_advertiser_create(bt_advertiser_h *adv_h, int appearance)
 {
 &nbsp;&nbsp;&nbsp;if (!__create_advertizer(adv_h, appearance))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 
-&nbsp;&nbsp;&nbsp;if (!bt_common_start_advertising(*adv_h, NULL)) {
+&nbsp;&nbsp;&nbsp;if (!bt_common_start_advertising(*adv_h, NULL)) 
+&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__delete_advertizer(adv_h);
+
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 &nbsp;&nbsp;&nbsp;}
 
@@ -162,14 +165,25 @@ bool bt_advertiser_create(bt_advertiser_h *adv_h, int appearance)
 &nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
+</li>
 
-<p>
-The advertiser's handle's creation and initial configuration is performed by the <span style="font-family: Courier New,Courier,monospace">__create_advertizer()</span> function listed below.
-Once the function succeeds, the advertising starts (<span style="font-family: Courier New,Courier,monospace">bt_common_start_advertising()</span>).
-</p>
+<li>
+<p>Within the <span style="font-family: Courier New,Courier,monospace">__create_advertizer()</span> function:</p>
+	<ul>
+		<li>The advertiser handle is created with the <span style="font-family: Courier New,Courier,monospace">bt_common_create_advertizer()</span> function.</li>
+		<li>The advertiser mode is set to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_ADVERTISING_MODE_LOW_LATENCY</span>, which sets the lowest possible interval between subsequent packet sending with the cost of higher energy consumption (<span style="font-family: Courier New,Courier,monospace">bt_common_set_advertising_mode()</span>).</li>
+		<li>The advertiser remains connectable by other peers (<span style="font-family: Courier New,Courier,monospace">bt_common_set_connectable()</span>).</li>
+		<li>The advertiser properties are defined and set:
+			<ul>
+				<li>For the advertising mode (<span style="font-family: Courier New,Courier,monospace">__set_advertizing_properties()</span>)</li>
+				<li>For the scan response mode (<span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span>)</li>
+			</ul>
+		</li>
+	</ul>
 
 <pre class="prettyprint">
-static bool __create_advertizer(bt_advertiser_h *adv_h, int appearance)
+static bool 
+__create_advertizer(bt_advertiser_h *adv_h, int appearance)
 {
 &nbsp;&nbsp;&nbsp;*adv_h = NULL;
 
@@ -191,104 +205,79 @@ static bool __create_advertizer(bt_advertiser_h *adv_h, int appearance)
 &nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
-
-<p>
-Within the <span style="font-family: Courier New,Courier,monospace">__create_advertizer()</span> function:
+</li>
+<li>
+<p>The advertiser properties determine the amount and category of information to be broadcast over the Bluetooth LE adapter. It is assumed that:</p>
 	<ul>
-		<li>the advertiser's handle is created with <span style="font-family: Courier New,Courier,monospace">bt_common_create_advertizer()</span> function;</li>
-		<li>the advertiser mode is set to <span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_ADVERTISING_MODE_LOW_LATENCY</span> which sets the lowest possible
-		interval between subsequent packets sending with the cost of higher energy consumption (<span style="font-family: Courier New,Courier,monospace">bt_common_set_advertising_mode()</span>);</li>
-		<li>the advertiser remains connectable by other peers (<span style="font-family: Courier New,Courier,monospace">bt_common_set_connectable()</span>);</li>
-		<li>the advertiser's properties are defined and set:
+		<li>An advertising packet (<span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_PACKET_ADVERTISING</span>) is a carrier of the following information:
 			<ul>
-				<li>for advertising mode (<span style="font-family: Courier New,Courier,monospace">__set_advertizing_properties()</span>);</li>
-				<li>for scan response mode (<span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span>).</li>
+				<li>Device name (obtained automatically by the internal implementation of the Bluetooth LE Adapter module)</li>
+				<li>Manufacturer identifier: <span style="font-family: Courier New,Courier,monospace">0x0075</span> (complies with the <a href="https://www.bluetooth.com/specifications/assigned-numbers/Company-Identifiers" target="_blank">company identifiers</a> assigned by the Bluetooth SIG, Inc., so that the assigned value identifies the Samsung Electronics Co. Ltd. company)</li>
 			</ul>
+		<p>The role of this packet type is to introduce the device (advertise its existence) within the Bluetooth LE network. The devices that receive such a packet can send a scan request to query the detailed data carried by the device.</p>
+		</li>
+		<li>A scan response packet (<span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_PACKET_SCAN_RESPONSE</span>) is a carrier of the following information:
+			<ul>
+				<li>Device name (obtained automatically by the internal implementation of the Bluetooth LE Adapter module)</li>
+				<li>Appearance: <span style="font-family: Courier New,Courier,monospace">832</span> (complies with the
+				<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.gap.appearance.xml" target="_blank">external device appearance</a> assigned by the Bluetooth SIG, Inc., so that the assigned value identifies the device as a generic heart rate sensor)</li>
+				<li>Manufacturer identifier (same as in the advertising packet)</li>
+			</ul>
+		<p>The role of this packet type is to provide detailed data acquired during the service life-cycle (heart rate measurement and body sensor location values). This packet is sent in response to a scan request.</p>
 		</li>
 	</ul>
-The advertiser's properties setting determines the amount and the category of information to be broadcasted over the Bluetooth LE adapter. It is assumed that:
-	<ul>
-		<li>
-		an advertising packet (<span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_PACKET_ADVERTISING</span>) is a carrier of the following information:
-			<ul>
-				<li>device's name (obtained automatically by the internal implementation of the Bluetooth LE Adapter module);</li>
-				<li>manufacturer's identifier: 0x0075 (complies with the <a href="https://www.bluetooth.com/specifications/assigned-numbers/Company-Identifiers">company identifiers</a>
-				assigned by the Bluetooth SIG, Inc.). The assigned value identifies Samsung Electronics Co. Ltd. company.</li>
-			</ul>
-		The role of this type of packet is to introduce the device (advertise its existence) within the Bluetooth LE network. The one who receives such a packet can send a scan request to query detailed data
-		carried by the device.
-		</li>
-		<li>
-		a scan response packet (<span style="font-family: Courier New,Courier,monospace">BT_ADAPTER_LE_PACKET_SCAN_RESPONSE</span>) is a carrier of the following information:
-			<ul>
-				<li>device's name (obtained automatically by the internal implementation of the Bluetooth LE Adapter module);</li>
-				<li>appearance: 832 (complies with the
-				<a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.gap.appearance.xml">external device's appearance</a>
-				assigned by the Bluetooth SIG, Inc.). The assigned value identifies the device as a Generic Heart Rate Sensor.</li>
-				<li>manufacturer's identifier (see the itemization above for details).</li>
-			</ul>
-		The role of this type of packet is to provide detailed data acquired during the service lifecycle (heart rate measuremet and body sensor location values). This packet is sent in response to a scan request.
-		</li>
-	</ul>
-The <span style="font-family: Courier New,Courier,monospace">__set_advertizing_properties()</span> and the
-<span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span> functions are only convenient wrappers and call the
-<span style="font-family: Courier New,Courier,monospace">__set_properties()</span> function with appropriately adjusted arguments. For reference of properties' setting, see the code listing below.
-</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">__set_advertizing_properties()</span> and the <span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span> functions are only convenient wrappers and call the <span style="font-family: Courier New,Courier,monospace">__set_properties()</span> function with appropriately adjusted parameters.</p>
 
 <pre class="prettyprint">
-static bool __set_properties(bt_advertiser_h adv_h, struct _adv_properties properties)
+static bool 
+__set_properties(bt_advertiser_h adv_h, struct _adv_properties properties)
 {
-&nbsp;&nbsp;&nbsp;/* Sets whether the device's name is to be included in the packet. */
+&nbsp;&nbsp;&nbsp;// Set whether the device name is to be included in the packet
 &nbsp;&nbsp;&nbsp;if (!bt_common_set_device_name(adv_h, properties.pkt_type, properties.name))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 
-&nbsp;&nbsp;&nbsp;/* Sets the device's appearance value if provided. */
-&nbsp;&nbsp;&nbsp;if (properties.appearance > 0)
+&nbsp;&nbsp;&nbsp;// Set the device appearance value, if provided
+&nbsp;&nbsp;&nbsp;if (properties.appearance &gt; 0)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!bt_common_set_appearance(adv_h, properties.pkt_type, properties.appearance))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 
-&nbsp;&nbsp;&nbsp;/* Sets the device's manufacturer identifier if provided. */
-&nbsp;&nbsp;&nbsp;if (properties.manufacturer_id > 0)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!bt_common_set_manufacturer(adv_h,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;properties.pkt_type,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;properties.manufacturer_id,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(const char *)&properties.manufacturer_data,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(struct _manufacturer_data)))
+&nbsp;&nbsp;&nbsp;// Set the device manufacturer identifier, if provided
+&nbsp;&nbsp;&nbsp;if (properties.manufacturer_id &gt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!bt_common_set_manufacturer(adv_h, properties.pkt_type, properties.manufacturer_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(const char *)&amp;properties.manufacturer_data,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(struct _manufacturer_data)))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 
-&nbsp;&nbsp;&nbsp;/* Sets whether the transmition power level is to be included in the packet. */
+&nbsp;&nbsp;&nbsp;// Set whether the transmission power level is to be included in the packet
 &nbsp;&nbsp;&nbsp;if (!bt_common_set_tx_power_level(adv_h, properties.pkt_type, properties.tx_power))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
 
 &nbsp;&nbsp;&nbsp;return true;
 }
-</pre>
+</pre></li>
+</ol>
 
-<p>
-See the <a href="#ref">References</a> section for details of all undescribed functions.
-</p>
+<h3 id="data-adv">Advertising Data</h3>
 
-<h3 id="data-adv">Data advertising</h3>
+<p>Each time data is received from the heart rate sensor, the <span style="font-family: Courier New,Courier,monospace">__sensor_data_read_cb()</span> callback is invoked. Within the callback, the heart rate measurement value is packed into the advertiser buffer and broadcast over the Bluetooth network with the relevant UUID value. Together with the obtained measurement, the body sensor location data package is created and handled similarly.</p>
 
-<p>
-Each time data is received from the Heart Rate sensor, the <span style="font-family: Courier New,Courier,monospace">__sensor_data_read_cb()</span> callback function is invoked.
-Within this function, the Heart Rate measurement value is packed into the advertiser buffer and broadcasted over the Bluetooth network with the relevant UUID value. Together with the obtained measurement,
-the body sensor location data package is created and handled similarly.
-<br>
-The structure of both types of data is implemented according to HDP (Health Device Profile) Bluetooth standard. For details, see the official characteristics defined by the
-Bluetooth SIG, Inc.:
+<p>The structure of both data types is implemented according to the HDP (Health Device Profile) Bluetooth standard. For details, see the official characteristics defined by the Bluetooth SIG, Inc.:</p>
 	<ul>
-		<li><a href="https://developer.bluetooth.org/gatt/services/Pages/ServiceViewer.aspx?u=org.bluetooth.service.heart_rate.xml">Heart Rate</a> service specification.
-		According to the standard, the Heart Rate Control Point is omitted as the Energy Expanded flag is set to disabled state in the Heart Rate Measurement service;</li>
-		<li><a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml">Heart Rate
-		Measurement</a> service specification;</li>
-		<li><a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.body_sensor_location.xml">Body Sensor
-		Location</a> service specification.</li>
+		<li><a href="https://developer.bluetooth.org/gatt/services/Pages/ServiceViewer.aspx?u=org.bluetooth.service.heart_rate.xml" target="_blank">Heart Rate</a> service specification.
+		<p>According to the standard, the Heart Rate Control Point is omitted as the Energy Expanded flag is set to the disabled state in the Heart Rate Measurement service.</p></li>
+		<li><a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml" target="_blank">Heart Rate Measurement</a> service specification</li>
+		<li><a href="https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.body_sensor_location.xml" target="_blank">Body Sensor Location</a> service specification</li>
 	</ul>
-</p>
 
+<p>The data is packed into the buffers using the following functions:</p>
+	<ul>
+		<li><span style="font-family: Courier New,Courier,monospace">__pack_heart_rate_measurement_data()</span> handles the heart rate measurement value obtained from the heart rate sensor.</li>
+		<li><span style="font-family: Courier New,Courier,monospace">__pack_body_sensor_location_data()</span> handles the body sensor location defined as a constant value respective to the device the software runs on.</li>
+	</ul>	
+	
 <pre class="prettyprint">
-static void __sensor_data_read_cb(float *data, int data_count)
+static void 
+__sensor_data_read_cb(float *data, int data_count)
 {
 &nbsp;&nbsp;&nbsp;int buffer_size = 0;
 &nbsp;&nbsp;&nbsp;char *buffer = NULL;
@@ -297,46 +286,45 @@ static void __sensor_data_read_cb(float *data, int data_count)
 &nbsp;&nbsp;&nbsp;if (!__ctrldata.adv_hrm_h)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 
-&nbsp;&nbsp;&nbsp;if (__pack_heart_rate_measurement_data(data[HEART_RATE_SENSOR_DATA_INDEX], &buffer, &buffer_size)) {
+&nbsp;&nbsp;&nbsp;if (__pack_heart_rate_measurement_data(data[HEART_RATE_SENSOR_DATA_INDEX], &amp;buffer, &amp;buffer_size)) 
+&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uuid = heart_rate_measurement_model_get_uuid();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertizer_set_data(&__ctrldata.adv_hrm_h, uuid, (const char *)buffer, buffer_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertizer_set_data(&amp;__ctrldata.adv_hrm_h, uuid, (const char *)buffer, buffer_size);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(buffer);
 &nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;if (__pack_body_sensor_location_data(&buffer, &buffer_size)) {
+&nbsp;&nbsp;&nbsp;if (__pack_body_sensor_location_data(&amp;buffer, &amp;buffer_size)) 
+&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uuid = body_sensor_location_model_get_uuid();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertizer_set_data(&__ctrldata.adv_hrm_h, uuid, (const char *)buffer, buffer_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_advertizer_set_data(&amp;__ctrldata.adv_hrm_h, uuid, (const char *)buffer, buffer_size);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(buffer);
 &nbsp;&nbsp;&nbsp;}
 }
 </pre>
 
-<p>
-The data is packed into the buffers using the following functions:
-	<ul>
-		<li><span style="font-family: Courier New,Courier,monospace">__pack_heart_rate_measurement_data()</span> - handles Heart Rate Measurement value obtained from the Heart Rate sensor;</li>
-		<li><span style="font-family: Courier New,Courier,monospace">__pack_body_sensor_location_data()</span> - handles Body Sensor Location defined as a constant value respective to the
-		device the software runs on.</li>
-	</ul>
-Once the data is packed into the internal buffer according to the adopted standard, it is added to the advertiser (together with the relevant UUID value) using the
-<span style="font-family: Courier New,Courier,monospace">bt_advertizer_set_data()</span> function.
-<br>
-From now on, the data is advertised over the Bluetooth network as long as it is altered in subsequent calls of the <span style="font-family: Courier New,Courier,monospace">__sensor_data_read_cb()</span>
-callback function.
-<br>
-The procedure of adding data to the advertiser is shown below.
-</p>
+<p>Once the data is packed into the internal buffer according to the adopted standard, it is added to the advertiser (together with the relevant UUID value) using the <span style="font-family: Courier New,Courier,monospace">bt_advertizer_set_data()</span> function.</p>
+<p>From now on, the data is advertised over the Bluetooth network as long as it is altered in subsequent calls of the <span style="font-family: Courier New,Courier,monospace">__sensor_data_read_cb()</span> callback.</p>
+<p>To add data to the advertiser:</p>
+
+<ol>
+<li>Stop the advertiser (<span style="font-family: Courier New,Courier,monospace">bt_common_stop_advertising()</span>) and clear the internal data buffers responsible for responding to scan requests (<span style="font-family: Courier New,Courier,monospace">bt_common_clear_advertizer()</span>).</li>
+<li>Configure the initial properties of the advertiser scan response buffer again (<span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span>) to make it ready to accept new data which is provided to the requester in a scan response message.</li>
+<li>The <span style="font-family: Courier New,Courier,monospace">bt_common_add_service_solicitation_uuid()</span> function creates a new service buffer for the relevant data (identified by the provided UUID) added with the <span style="font-family: Courier New,Courier,monospace">bt_common_set_service_data()</span> function.</li>
+<li>Start the advertiser (<span style="font-family: Courier New,Courier,monospace">bt_common_start_advertising()</span>).</li>
+</ol>
 
 <pre class="prettyprint">
-bool bt_advertizer_set_data(bt_advertiser_h *adv_h, const char *uuid, const char *data, int data_size)
+bool 
+bt_advertizer_set_data(bt_advertiser_h *adv_h, const char *uuid, const char *data, int data_size)
 {
 &nbsp;&nbsp;&nbsp;bt_common_stop_advertising(*adv_h);
 
-&nbsp;&nbsp;&nbsp;if (bt_common_clear_advertizer(*adv_h, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE)) {
+&nbsp;&nbsp;&nbsp;if (bt_common_clear_advertizer(*adv_h, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE)) 
+&nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__set_scan_response_properties(*adv_h, __advertizer_appearance);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (bt_common_add_service_solicitation_uuid(*adv_h, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, uuid))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (data_size > 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (data_size &gt; 0)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bt_common_set_service_data(*adv_h, BT_ADAPTER_LE_PACKET_SCAN_RESPONSE, uuid, data, data_size);
 &nbsp;&nbsp;&nbsp;}
 
@@ -346,61 +334,39 @@ bool bt_advertizer_set_data(bt_advertiser_h *adv_h, const char *uuid, const char
 }
 </pre>
 
-<p>
-In order to add new data to the advertiser, it must first be stopped (<span style="font-family: Courier New,Courier,monospace">bt_common_stop_advertising()</span>) and internal data buffers responsible for
-responding to scan requests have to be cleared (<span style="font-family: Courier New,Courier,monospace">bt_common_clear_advertizer()</span>). The initial properties of the advertiser's scan response buffer
-must be configured again (<span style="font-family: Courier New,Courier,monospace">__set_scan_response_properties()</span>). Now it is ready to accept new data which will be provided to the requester
-in a scan response message. The <span style="font-family: Courier New,Courier,monospace">bt_common_add_service_solicitation_uuid()</span> function creates a new service buffer for the relevant data
-(identified by the provided UUID) added with the <span style="font-family: Courier New,Courier,monospace">bt_common_set_service_data()</span> function. At the end, the advertiser is started
-(<span style="font-family: Courier New,Courier,monospace">bt_common_start_advertising()</span>).
-</p>
-
-<p>
-See the <a href="#ref">References</a> section for details of all undescribed functions.
-</p>
-
 <h3 id="ref">References</h3>
 
-<p>
-For developer's convenience, the controller module contains a set of functions wrapping
-<a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__ADAPTER__LE__MODULE.html">Bluetooth LE Adapter</a>
-(<span style="font-family: Courier New,Courier,monospace">bt_common.c</span> source file) and <a href="https://developer.tizen.org/dev-guide/2.4.0/org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">Sensor API</a>
-(<span style="font-family: Courier New,Courier,monospace">sensor_listener.c</span> source file).
-These functions are not listed in this document due to their simplicity.
-</p>
+<p>For your convenience, the controller module contains a set of functions wrapping the Bluetooth LE Adapter API (<span style="font-family: Courier New,Courier,monospace">bt_common.c</span> source file) and the <a href="../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">Sensor API</a> (<span style="font-family: Courier New,Courier,monospace">sensor_listener.c</span> source file). These functions are not listed in this topic due to their simplicity.</p>
 
-<p>
-The <span style="font-family: Courier New,Courier,monospace">__pack_heart_rate_measurement_data()</span> and
-<span style="font-family: Courier New,Courier,monospace">__pack_body_sensor_location_data()</span> functions are not listed here as they simply encode the provided values according to
-adopted Bluetooth SIG standards.
-</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">__pack_heart_rate_measurement_data()</span> and <span style="font-family: Courier New,Courier,monospace">__pack_body_sensor_location_data()</span> functions are not listed here as they simply encode the provided values according to the adopted Bluetooth SIG standards.</p>
+
+<p>The following functions are used in the above sections:</p>
 
 <pre class="prettyprint">
-void bt_advertiser_delete(bt_advertiser_h *adv_h)
+void 
+bt_advertiser_delete(bt_advertiser_h *adv_h)
 {
-&nbsp;&nbsp;&nbsp;/* Stops advertising and responding to scan requests. *.
+&nbsp;&nbsp;&nbsp;// Stops advertising and responding to scan requests
 &nbsp;&nbsp;&nbsp;bt_common_stop_advertising(*adv_h);
 &nbsp;&nbsp;&nbsp;__delete_advertizer(adv_h);
 }
-</pre>
 
-<pre class="prettyprint">
-static void __delete_advertizer(bt_advertiser_h *adv_h)
+static void 
+__delete_advertizer(bt_advertiser_h *adv_h)
 {
-&nbsp;&nbsp;&nbsp;/* Deletes the advertiser's handle. */
+&nbsp;&nbsp;&nbsp;// Delete the advertiser handle
 &nbsp;&nbsp;&nbsp;bt_common_delete_advertizer(*adv_h);
-&nbsp;&nbsp;&nbsp;/* Variables clearing. */
+&nbsp;&nbsp;&nbsp;// Clear variables
 &nbsp;&nbsp;&nbsp;*adv_h = NULL;
 &nbsp;&nbsp;&nbsp;__advertizer_appearance = 0;
 }
-</pre>
 
-<pre class="prettyprint">
-bool __set_advertizing_properties(bt_advertiser_h adv_h)
+bool 
+__set_advertizing_properties(bt_advertiser_h adv_h)
 {
 &nbsp;&nbsp;&nbsp;struct _adv_properties properties = {0,};
 
-&nbsp;&nbsp;&nbsp;/* Advertising message configuration. */
+&nbsp;&nbsp;&nbsp;// Advertising message configuration
 &nbsp;&nbsp;&nbsp;properties.pkt_type = BT_ADAPTER_LE_PACKET_ADVERTISING;
 &nbsp;&nbsp;&nbsp;properties.name = true;
 &nbsp;&nbsp;&nbsp;properties.tx_power = false;
@@ -408,17 +374,16 @@ bool __set_advertizing_properties(bt_advertiser_h adv_h)
 &nbsp;&nbsp;&nbsp;properties.manufacturer_id = MANUFACTURER_ID_SAMSUNG;
 &nbsp;&nbsp;&nbsp;properties.manufacturer_data.id = MANUFACTURER_ID_SAMSUNG;
 
-&nbsp;&nbsp;&nbsp;/* The configuration is applied to the advertiser. */
+&nbsp;&nbsp;&nbsp;// Configuration is applied to the advertiser
 &nbsp;&nbsp;&nbsp;return __set_properties(adv_h, properties);
 }
-</pre>
 
-<pre class="prettyprint">
-bool __set_scan_response_properties(bt_advertiser_h adv_h, int appearance)
+bool 
+__set_scan_response_properties(bt_advertiser_h adv_h, int appearance)
 {
 &nbsp;&nbsp;&nbsp;struct _adv_properties properties = {0,};
 
-&nbsp;&nbsp;&nbsp;/* Scan response message configuration. */
+&nbsp;&nbsp;&nbsp;// Scan response message configuration
 &nbsp;&nbsp;&nbsp;properties.pkt_type = BT_ADAPTER_LE_PACKET_SCAN_RESPONSE;
 &nbsp;&nbsp;&nbsp;properties.name = true;
 &nbsp;&nbsp;&nbsp;properties.tx_power = false;
@@ -426,23 +391,21 @@ bool __set_scan_response_properties(bt_advertiser_h adv_h, int appearance)
 &nbsp;&nbsp;&nbsp;properties.manufacturer_id = MANUFACTURER_ID_SAMSUNG;
 &nbsp;&nbsp;&nbsp;properties.manufacturer_data.id = MANUFACTURER_ID_SAMSUNG;
 
-&nbsp;&nbsp;&nbsp;/* The configuration is applied to the advertiser. */
+&nbsp;&nbsp;&nbsp;// Configuration is applied to the advertiser
 &nbsp;&nbsp;&nbsp;return __set_properties(adv_h, properties);
 }
-</pre>
 
-<pre class="prettyprint">
-const char *heart_rate_measurement_model_get_uuid(void)
+const char 
+*heart_rate_measurement_model_get_uuid(void)
 {
-&nbsp;&nbsp;&nbsp;/* HRM_UUID is defined as string constant: "2A37". */
+&nbsp;&nbsp;&nbsp;// HRM_UUID is defined as string constant: &quot;2A37&quot;
 &nbsp;&nbsp;&nbsp;return HRM_UUID;
 }
-</pre>
 
-<pre class="prettyprint">
-const char *body_sensor_location_model_get_uuid(void)
+const char 
+*body_sensor_location_model_get_uuid(void)
 {
-&nbsp;&nbsp;&nbsp;/* BSL_UUID is defined as string constant: "2A38". */
+&nbsp;&nbsp;&nbsp;// BSL_UUID is defined as string constant: &quot;2A38&quot;
 &nbsp;&nbsp;&nbsp;return BSL_UUID;
 }
 </pre>
