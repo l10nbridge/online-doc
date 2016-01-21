@@ -1,0 +1,320 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>(Circle) Settings Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+
+<div id="container"><div id="contents"><div class="content">
+
+	<div id="profile">
+		<p><img alt="Wearable native" src="../images/wearable_s_n.png"/></p>
+	</div>
+	
+</div>	
+
+
+<h1>(Circle) Settings Sample Overview</h1> 
+
+<p>The Settings sample application shows you how you can create a settings application. Especially, it demonstrates how to manage the naviframe and genlist components to create a complete view of settings application.</p>
+<p>The following figure illustrates the main screen of the Settings application.</p>
+<p class="figure">Figure: Settings main view</p>
+<p align="center"><img src="../images/settings_wearable_sd.png" alt="Settings main view" /></p>
+
+
+
+<h2>Implementation</h2> 
+
+<p>To create the settings application:</p>
+<ol>
+<li>Create the Settings UI.
+<p>The application starts with the <span style="font-family: Courier New,Courier,monospace;">main()</span> function, where the life-cycle callbacks are registered. The <span style="font-family: Courier New,Courier,monospace;">app_create()</span> callback function is called first. After that, the <span style="font-family: Courier New,Courier,monospace;">view_create()</span> function creates the base UI of the application.</p>
+<pre class="prettyprint">
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;// Hook to take necessary actions before main event loop starts
+&nbsp;&nbsp;&nbsp;// Initialize UI resources and application data
+&nbsp;&nbsp;&nbsp;// If this function returns true, the main loop of application starts
+&nbsp;&nbsp;&nbsp;// If this function returns false, the application is terminated
+&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;int i = 0;
+
+&nbsp;&nbsp;&nbsp;view_create(ad);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;genlist = view_create_circle_genlist(ad-&gt;nf, ad-&gt;circle_surface);
+
+&nbsp;&nbsp;&nbsp;view_append_item_to_genlist(ad-&gt;genlist, &quot;menu.title&quot;, NULL, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;for (i = 0; menu_its[i]; i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_append_item_to_genlist(ad-&gt;genlist, &quot;1text.1icon&quot;, (void *)i, _create_sub_list, (void *)i);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;evas_object_data_set(ad-&gt;genlist, &quot;appdata&quot;, ad);
+
+&nbsp;&nbsp;&nbsp;view_append_item_to_genlist(ad-&gt;genlist, &quot;padding&quot;, NULL, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;view_push_item_to_naviframe(ad-&gt;nf, ad-&gt;genlist, _naviframe_pop_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace;">view_create()</span> function creates the base UI that is composed of window, conformant, layout, and naviframe components.</p>
+<p>The wearable profile does not support the indicator function, so use a conformant that does not set the indicator mode. After that, create a <span style="font-family: Courier New,Courier,monospace;">circle_surface</span> to display a circular genlist.</p>
+<pre class="prettyprint">
+void 
+view_create(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;ad-&gt;win = view_create_win(PACKAGE);
+&nbsp;&nbsp;&nbsp;if (ad-&gt;win == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to create a window.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ad-&gt;conform = view_create_conformant_without_indicator(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;if (ad-&gt;conform == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to create a conformant&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(ad-&gt;win);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Create the Eext Circle Surface
+&nbsp;&nbsp;&nbsp;ad-&gt;circle_surface = eext_circle_surface_conformant_add(ad-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;layout = view_create_layout_for_conformant(ad-&gt;conform, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;nf = view_create_naviframe(ad-&gt;layout);
+&nbsp;&nbsp;&nbsp;if (ad-&gt;nf == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to create a naviframe.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(ad-&gt;win);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Show the window after the base GUI is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre>
+<p>When it comes to layout, there are 2 methods to create layout component. One of them involves creating an edje file that you can customize, and the other uses a premade edje file. This layout is created using the premade edje file. The style can be changed with the <span style="font-family: Courier New,Courier,monospace;">elm_layout_theme_set()</span> function.</p>
+<pre class="prettyprint">
+Evas_Object* 
+view_create_layout_by_theme(Evas_Object *parent, const char *file_name, const char *group_name)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *layout = NULL;
+
+&nbsp;&nbsp;&nbsp;if (parent == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;parent is NULL.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;layout = elm_layout_add(parent);
+&nbsp;&nbsp;&nbsp;elm_layout_theme_set(layout, &quot;layout&quot;, &quot;application&quot;, &quot;default&quot;);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+&nbsp;&nbsp;&nbsp;evas_object_show(layout);
+
+&nbsp;&nbsp;&nbsp;return layout;
+}
+</pre>
+</li>
+<li>Create the genlist. 
+<p>The <span style="font-family: Courier New,Courier,monospace;">view_create_circle_genlist()</span> function creates the  genlist component. The genlist component sets the list mode with the <span style="font-family: Courier New,Courier,monospace;">elm_genlist_mode_set()</span> function. To display a circular genlist, create circular genlist component supported by EFL Extension. The <span style="font-family: Courier New,Courier,monospace;">eext_circle_object_genlist_scroller_policy_set()</span> function sets the scrollbar visibility policy.</p>
+<pre class="prettyprint">
+Evas_Object*
+view_create_circle_genlist(Evas_Object *parent, Eext_Circle_Surface *circle_surface)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *genlist = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *circle_genlist = NULL;
+
+&nbsp;&nbsp;&nbsp;if (parent == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;parent is NULL.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (circle_surface == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;circle surface is NULL.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;genlist = elm_genlist_add(parent);
+&nbsp;&nbsp;&nbsp;elm_genlist_mode_set(genlist, ELM_LIST_COMPRESS);
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(genlist, &quot;selected&quot;, _gl_selected_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;circle_genlist = eext_circle_object_genlist_add(genlist, circle_surface);
+&nbsp;&nbsp;&nbsp;eext_circle_object_genlist_scroller_policy_set(circle_genlist, ELM_SCROLLER_POLICY_OFF, ELM_SCROLLER_POLICY_AUTO);
+&nbsp;&nbsp;&nbsp;eext_rotary_object_event_activated_set(circle_genlist, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;evas_object_show(genlist);
+
+&nbsp;&nbsp;&nbsp;return genlist;
+}
+</pre>
+</li>
+<li>Insert an item to the genlist.
+<p>An item is inserted into genlist using the <span style="font-family: Courier New,Courier,monospace;">view_append_item_to_genlist()</span> function.</p>
+<pre class="prettyprint">
+void 
+view_append_item_to_genlist(Evas_Object *genlist, const char *style,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const void *data, Evas_Smart_Cb _clicked_cb, const void *cb_data)
+{
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *item_class = NULL;
+
+&nbsp;&nbsp;&nbsp;if (genlist == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;genlist is NULL.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (style == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;item style is NULL.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;item_class = _set_genlist_item_class(style);
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, item_class, data, NULL, ELM_GENLIST_ITEM_NONE, _clicked_cb, cb_data);
+
+&nbsp;&nbsp;&nbsp;elm_genlist_item_class_free(item_class);
+}
+</pre>
+<p>Before the item is inserted into genlist, the item class must be set. The <span style="font-family: Courier New,Courier,monospace;">_set_genlist_item_class()</span> function sets the class for each item and registers the functions to get the text and contents. These functions are called when the <span style="font-family: Courier New,Courier,monospace;">elm_genlist_item_append()</span> function runs, and they receive data as a parameter.</p>
+<pre class="prettyprint">
+static Elm_Genlist_Item_Class* 
+_set_genlist_item_class(const char *style)
+{
+&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *item_class = NULL;
+
+&nbsp;&nbsp;&nbsp;if (style == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;style is NULL.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;item_class = elm_genlist_item_class_new();
+
+&nbsp;&nbsp;&nbsp;if (!strcmp(style, &quot;menu.title&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;item_style = &quot;title&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;func.text_get = data_get_menu_title_text;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (!strcmp(style, &quot;display.title&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;item_style = &quot;title&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;func.text_get = data_get_display_title_text;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (!strcmp(style, &quot;1text&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;item_style = &quot;1text&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;func.text_get = data_get_display_text;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (!strcmp(style, &quot;1text.1icon&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;item_style = &quot;1text.1icon&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;func.text_get = data_get_menu_text;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;func.content_get = _get_menu_icon;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (!strcmp(style, &quot;1text.1icon.1&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;item_style = &quot;1text.1icon.1&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;func.text_get = data_get_display_text;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;func.content_get = _get_display_icon;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (!strcmp(style, &quot;2text&quot;)) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;item_style = &quot;2text&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_class-&gt;func.text_get = data_get_display_text;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (!strcmp(style, &quot;padding&quot;))
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// @note
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// &quot;padding&quot; style does nothing
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// But it makes genlist item placed in the middle of the screen
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return item_class;
+}
+</pre>
+</li>
+<li>Insert the genlist into the naviframe.
+<p>The genlist component is inserted into the naviframe component to be shown on the screen. </p>
+<pre class="prettyprint">
+void 
+view_push_item_to_naviframe(Evas_Object *nf, Evas_Object *item, Elm_Naviframe_Item_Pop_Cb _pop_cb, void *cb_data)
+{
+&nbsp;&nbsp;&nbsp;Elm_Object_Item* nf_it = NULL;
+
+&nbsp;&nbsp;&nbsp;if (nf == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;naviframe is NULL.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;if (item == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;item is NULL.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;nf_it = elm_naviframe_item_push(nf, NULL, NULL, NULL, item, &quot;empty&quot;);
+&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop_cb_set(nf_it, _pop_cb, cb_data);
+}
+</pre>
+</li>
+</ol>
+
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+
