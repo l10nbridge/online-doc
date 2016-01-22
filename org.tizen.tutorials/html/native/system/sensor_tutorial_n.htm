@@ -24,8 +24,8 @@
 		<p class="toc-title">Content</p>
 		<ul class="toc">
 			<li><a href="#retrieve">Retrieving a Sensor</a></li>
-			<li><a href="#event">Registering a Sensor Event</a></li>
-			<li><a href="#accuracy">Registering the Accuracy Changed Callback</a>
+			<li><a href="#event">Retrieving Sensor Details and Measurements</a></li>
+			<li><a href="#accuracy">Monitoring Accuracy Changes</a>
 			</li>
 		</ul>
 		<p class="toc-title">Related Info</p>
@@ -49,15 +49,15 @@
 	<ul>
 	<li><a href="#retrieve">Retrieving a Sensor</a>
 	<p>Check the sensor support and retrieve the sensor.</p></li>
-	<li><a href="#event">Registering a Sensor Event</a>
-	<p>Get a specific sensor using criteria such as vendor and name.</p></li>
-	<li><a href="#accuracy">Registering the Accuracy Changed Callback</a>
+	<li><a href="#event">Retrieving Sensor Details and Measurements</a>
+	<p>Access sensor details and the measurement data.</p></li>
+	<li><a href="#accuracy">Monitoring Accuracy Changes</a>
 	<p>Create an event which is called when the accuracy is changed.</p>
 	</li></ul>
 
 <h2 id="retrieve" name="retrieve">Retrieving a Sensor</h2>
 
-<p>To declare the variables and get a sensor handle:</p>
+<p>To check whether a sensor is supported, and get a handle for the supported sensor:</p>
 
 <ol>
 <li>To use the functions and data types of the Sensor API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;sensor.h&gt;</span> header file in your application:
@@ -65,7 +65,7 @@
 #include &lt;sensor.h&gt;
 </pre>
 </li>
-<li>Check whether a sensor is supported:
+<li>To check whether a sensor is supported, use the <span style="font-family: Courier New,Courier,monospace">sensor_is_supported()</span> function:
 <pre class="prettyprint">
 int error;
 bool supported;
@@ -77,28 +77,29 @@ error = sensor_is_supported(type, &amp;supported);
 <li>Get a handle of the default sensor or a sensor list:
 <pre class="prettyprint">
 int error;
+
+// Get default sensor handle
 sensor_type_e type = SENSOR_ACCELEROMETER;
 sensor_h sensor;
 
 error = sensor_get_default_sensor(type, &amp;sensor);
-</pre>
-<pre class="prettyprint">
-int error;
+
+// Get sensor list
 sensor_type_e type = SENSOR_ALL;
 sensor_h *list;
 int sensor_count;
 
 error = sensor_get_sensor_list(type, &amp;list, &amp;sensor_count);
 
-// API caller must explicitly free this list after use
-// free(list);
+// Free the list after use
+free(list);
 </pre>
 </li>
 </ol>  
 
-<h2 id="event" name="event">Registering a Sensor Event</h2>
+<h2 id="event" name="event">Retrieving Sensor Details and Measurements</h2>
 
-<p>To set and unset callback functions for sensor events:</p>
+<p>To access sensor details and measurements:</p>
 
 <ol>
 <li>To use the functions and data types of the Sensor API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;sensor.h&gt;</span> header file in your application:
@@ -106,20 +107,21 @@ error = sensor_get_sensor_list(type, &amp;list, &amp;sensor_count);
 #include &lt;sensor.h&gt;
 </pre>
 </li>
-<li>Create an event listener:
+<li>To create an event listener, use the <span style="font-family: Courier New,Courier,monospace">sensor_create_listener()</span> function:
 <pre class="prettyprint">
 sensor_h sensor;
 
 sensor_listener_h listener;
 error = sensor_create_listener(sensor, &amp;listener);</pre>
 </li>
-<li>Register a callback: 
+<li>Register a callback for the listener.
+<p>The callback returns information about the sensor measurements (events) in a <span style="font-family: Courier New,Courier,monospace">sensor_event_s</span> structure (in <a href="../../../../org.tizen.native.mobile.apireference/structsensor__event__s.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/structsensor__event__s.html">wearable</a> applications) in its second parameter:</p>
 <pre class="prettyprint">
 void 
 on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data)
 {
 &nbsp;&nbsp;&nbsp;// Select a specific sensor with a sensor handle
-&nbsp;&nbsp;&nbsp;// This example uses sensor type, assuming there is only 1 sensor for each type
+&nbsp;&nbsp;&nbsp;// This example uses the sensor type, assuming there is only 1 sensor for each type
 &nbsp;&nbsp;&nbsp;sensor_type_e type;
 &nbsp;&nbsp;&nbsp;sensor_get_type(sensor, &amp;type);
 &nbsp;&nbsp;&nbsp;switch (type) 
@@ -131,65 +133,37 @@ on_sensor_event(sensor_h sensor, sensor_event_s *event, void *user_data)
 
 error = sensor_listener_set_event_cb(listener, 100, on_sensor_event, user_data);
 </pre>
-<p>The following example shows the use of <span style="font-family: Courier New,Courier,monospace">sensor_event_s</span>:</p>
-<pre class="prettyprint">
-// In sensor.h
-typedef struct                   
-{                                
-&nbsp;&nbsp;&nbsp;int accuracy;                
-&nbsp;&nbsp;&nbsp;unsigned long long timestamp;
-&nbsp;&nbsp;&nbsp;int value_count;             
-&nbsp;&nbsp;&nbsp;float values[MAX_VALUE_SIZE];
-} sensor_event_s;</pre>
-
 </li>
-<li>Reset the interval (in milliseconds) (optional): 
-<p>In case of the proximity sensor, the setting interval has no effect. The proximity event occurs when the value changes.</p>
+<li>Reset the optional sensor measurement interval (in milliseconds).
+<p>In case of the proximity sensor, the interval setting has no effect. The proximity event only occurs when the value changes.</p>
 <pre class="prettyprint">
 error = sensor_listener_set_interval(listener, 100);
 </pre>
 
 </li>
-<li>Set the optional sensor option (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html#gaf517b61e58b872f985fc2fc2a26aa56a">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html#gaf517b61e58b872f985fc2fc2a26aa56a">wearable</a> applications):
+<li>Set the optional sensor option.
+<p>The <span style="font-family: Courier New,Courier,monospace">sensor_option_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html#gaf517b61e58b872f985fc2fc2a26aa56a">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html#gaf517b61e58b872f985fc2fc2a26aa56a">wearable</a> applications) defines the available options.</p>
 <pre class="prettyprint">
 error = sensor_listener_set_option(listener, SENSOR_OPTION_ALWAYS_ON);
 </pre>
 
 
 </li>
-<li>Start a sensor listener: 
+<li>Start the sensor listener: 
 <pre class="prettyprint">
 error = sensor_listener_start(listener);
 </pre>
-
+<p>While the listener is running, the registered callback is triggered at defined intervals and returns information on the sensor measurements.</p>
 </li>
-<li>Read sensor data (optional).
-<p>In order to read sensor data, the sensor listener needs to be started in advance using sensor_listener_read_data() function:</p>
+<li>To read the sensor measurements immediately, instead of waiting till the end of the measurement interval when the callback is triggered, use the <span style="font-family: Courier New,Courier,monospace">sensor_listener_read_data()</span> function. 
+<p>You must start the listener with the <span style="font-family: Courier New,Courier,monospace">sensor_listener_start()</span> function before you can read sensor data.</p>
 <pre class="prettyprint">
 sensor_event_s event;
 error = sensor_listener_read_data(listener, &amp;event);
 </pre>
 
 </li>
-<li>Unset the callback:
-<pre class="prettyprint">
-error = sensor_listener_unset_event_cb(listener);
-</pre>
-
-</li>
-<li>Stop the listener:
-<pre class="prettyprint">
-error = sensor_listener_stop(listener);
-</pre>
-
-</li>
-<li>Destroy the listener:
-<pre class="prettyprint">
-error = sensor_destroy_listener(listener);
-</pre>
-
-</li>
-<li>Read sensor details (optional):
+<li>You can optionally access various sensor details using the <span style="font-family: Courier New,Courier,monospace">sensor_get_XXX()</span> functions: 
 <pre class="prettyprint">
 char *name;
 char *vendor;
@@ -209,11 +183,20 @@ error = sensor_get_min_interval(listener, &amp;min_interval);
 </pre>
 
 </li>
+<li>When no longer needed, unset the callback, and stop and destroy the listener: 
+<pre class="prettyprint">
+error = sensor_listener_unset_event_cb(listener);
+
+error = sensor_listener_stop(listener);
+
+error = sensor_destroy_listener(listener);
+</pre>
+</li>
 </ol>
 
-<h2 id="accuracy" name="accuracy">Registering the Accuracy Changed Callback</h2>
+<h2 id="accuracy" name="accuracy">Monitoring Accuracy Changes</h2>
 
-<p>To register the accuracy changed callback:</p>
+<p>To monitor accuracy changes:</p>
 
 <ol>
 <li>To use the functions and data types of the Sensor API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sensor.h&gt;</span> header file in your application:
@@ -230,9 +213,10 @@ error = sensor_create_listener(sensor, &amp;listener);
 </pre>
 
 </li>
-<li>Register the accuracy changed callback: 
+<li>Register and define a callback that is triggered when the sensor accuracy changes: 
 <pre class="prettyprint">
 error = sensor_listener_set_accuracy_cb(listener, sensor_accuracy_changed_cb, user_data);
+
 void 
 sensor_accuracy_changed_cb(sensor_h sensor, unsigned long long timestamp, 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sensor_data_accuracy_e accuracy, void *data)

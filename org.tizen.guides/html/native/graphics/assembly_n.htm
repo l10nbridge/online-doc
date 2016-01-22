@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Primitive Assembly and Rasterization</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#back_face">Back Face Culling</a></li>
+			<li><a href="#viewport">Viewport Transform</a></li>
+			<li><a href="#rasterization">Rasterization (Scan Conversion)</a></li>
+            </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/opengl_tutorial_n.htm">OpenGL ES Tutorial</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>Primitive Assembly and Rasterization</h1> 
+
+<p>The vertex shader passes the clip-space vertices to the next stage named <strong>primitive assembly and rasterization</strong>. The goal of the primitive assembly is to combine the clip-space vertices into a sequence of <strong>primitives</strong>. The primitives are classified into points, lines, and triangles. Then, various operations are performed on each primitive. The operations include back-face culling, viewport transform, and scan conversion. The last operation, scan conversion, is a key in real-time graphics and is often called rasterization. The stage for primitive assembly and rasterization is hardwired, but to control the behaviors, it is necessary to understand how its substages work.</p>
+
+<h2 id="back_face">Back Face Culling</h2>
+
+<p><strong>Back faces</strong> are polygons facing away from the eye whereas polygons facing towards the eye are called <strong>front faces</strong>. In general, the front faces are to be accepted, but the back faces are discarded. The following figure compares a back face (<span style="font-family: Courier New,Courier,monospace">t<sub>1</sub></span>) and a front face (<span style="font-family: Courier New,Courier,monospace">t<sub>2</sub></span>).</p>
+
+<p class="figure">Figure: Seen from the eye position, <span style="font-family: Courier New,Courier,monospace">t<sub>1</sub></span> is a back face whereas <span style="font-family: Courier New,Courier,monospace">t<sub>2</sub></span> is a front face</p>
+<p align="center"><img src="../../images/front_back_face.png" alt="Back face and front face" /></p>
+
+<p>By default, vertices of every 3D triangle are in a counter-clockwise (CCW) order. In the above figure, for example, the vertices are ordered as (<span style="font-family: Courier New,Courier,monospace">v<sub>1</sub></span>, <span style="font-family: Courier New,Courier,monospace">v<sub>2</sub></span>, <span style="font-family: Courier New,Courier,monospace">v<sub>3</sub></span>). While maintaining the view direction in the figure, consider only the x- and y-coordinates of the vertices. Then, <span style="font-family: Courier New,Courier,monospace">t<sub>1</sub></span> and <span style="font-family: Courier New,Courier,monospace">t<sub>2</sub></span> can be illustrated as in the following figure. Observe that <span style="font-family: Courier New,Courier,monospace">t<sub>1</sub></span> (back face) has the clockwise (CW)-ordered vertices while <span style="font-family: Courier New,Courier,monospace">t<sub>2</sub></span> (front face) has the CCW-ordered vertices.</p>
+
+<p class="figure">Figure: Vertices of a 2D back face are in a clockwise order (left) and the vertices of a 2D front face are in counter-clockwise order (right)</p>
+<p align="center"><img src="../../images/2d_front_back_face.png" alt="2D back face and front face" /></p>
+
+<p>To determine whether such a projected (2D) triangle has CW- or CCW-ordered vertices, use the <strong>determinant</strong> shown below. The first row is the vector connecting <span style="font-family: Courier New,Courier,monospace">v<sub>1</sub></span> and <span style="font-family: Courier New,Courier,monospace">v<sub>2</sub></span> and the second one connects <span style="font-family: Courier New,Courier,monospace">v<sub>1</sub></span> and <span style="font-family: Courier New,Courier,monospace">v<sub>3</sub></span>. If the determinant is negative, the triangle is a back face; if positive, it is a front face.</p>
+
+<p class="figure">Figure: Example of a determinant</p>
+<p align="center"><img src="../../images/determinant.png" alt="Example of a determinant" /></p>
+
+<p>Note that back faces are not always culled, but often need to be rendered. Consider rendering a translucent sphere. For the back faces to show through the front faces, no face can be culled. On the other hand, consider culling only the front faces of a hollow sphere to obtain the cross-section view of the sphere.</p>
+<p>Face culling is disabled by default. However, it can be activated by the <span style="font-family: Courier New,Courier,monospace">glEnable(GL_CULL_FACE)</span> function. When face culling is enabled, the <span style="font-family: Courier New,Courier,monospace">glCullFace()</span> function is used to specify which face is to be culled. The parameter can be <span style="font-family: Courier New,Courier,monospace">GL_FRONT</span>, <span style="font-family: Courier New,Courier,monospace">GL_BACK</span> (default value), or <span style="font-family: Courier New,Courier,monospace">GL_FRONT_AND_BACK</span>. Then, the <span style="font-family: Courier New,Courier,monospace">glFrontFace()</span> function specifies the orientation of the front face vertices. Either <span style="font-family: Courier New,Courier,monospace">GL_CW</span> or <span style="font-family: Courier New,Courier,monospace">GL_CCW</span> is given to the <span style="font-family: Courier New,Courier,monospace">glFrontFace()</span> function. The default value is <span style="font-family: Courier New,Courier,monospace">GL_CCW</span>.</p>
+
+
+<h2 id="viewport">Viewport Transform</h2>
+
+<p>A window at the computer screen is associated with its own <strong>window space</strong>. A <strong>viewport</strong> is defined in the window space, as shown in the following figure.</p>
+
+<p class="figure">Figure: Viewport in the window space is defined by its lower left corner point (MinX, MinY), height H, width W, and the depth range [MinZ,MaxZ]</p>
+<p align="center"><img src="../../images/viewport.png" alt="Viewport" /></p>
+
+<p>A viewport is created by the <span style="font-family: Courier New,Courier,monospace">glViewport()</span> function. Then, the <span style="font-family: Courier New,Courier,monospace">glDepthRangef()</span> function is called to specify the desired depth range. The initial values for the first and second parameter are 0.0 and 1.0, respectively. The process of converting the scene object (within the 2<sup>3</sup>-sized box in the View frustrum figure) into the viewport of the window space is called <strong>viewport transform</strong>.</p>
+
+<h2 id="rasterization">Rasterization (Scan Conversion)</h2>
+
+<p>The viewport transform has converted every primitive into the window space. Considering only the x- and y-coordinates of a triangle, the last substage, rasterizer, breaks up each window-space triangle into a set of <strong>fragments</strong>.</p>
+
+<p class="figure">Figure: Fragments for a triangle are colored in yellow</p>
+<p align="center"><img src="../../images/triangle_fragments.png" alt="Fragments for a triangle are colored in yellow" /></p>
+
+<p>The per-vertex attributes are interpolated to determine the per-fragment attributes. If colors are assigned to the vertices, they are interpolated across the triangle. The following figure shows color-interpolated triangle examples.</p>
+
+<p class="figure">Figure: Color-interpolated triangles</p>
+<p align="center"><img src="../../images/triangle_color.png" alt="Color-interpolated triangles" /></p>
+
+<p>In reality, however, the per-vertex attributes rarely include colors. In general, vertex normals and texture coordinates are interpolated. The following figure visualizes the interpolated normals. These per-fragment attributes are passed to the fragment shader.</p>
+
+<p class="figure">Figure: Interpolated normals (the blue per-vertex normals are first interpolated along the green triangle edges and then interpolated along the red scanlines)</p>
+<p align="center"><img src="../../images/interpolated_normals.png" alt="Interpolated normals" /></p>
+
+	  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

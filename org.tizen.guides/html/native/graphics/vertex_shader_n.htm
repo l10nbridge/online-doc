@@ -1,0 +1,395 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Vertex Shader</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#object_world_space">Object Space, World Space, and World Transform</a></li>
+			<li><a href="#view_space">View Space and View Transform</a></li>
+			<li><a href="#view_frustum">View Frustum and Projection Transform</a></li>
+			<li><a href="#vertex_shader">Vertex Shader Input and Output</a></li>
+			<li><a href="#shader_program_objects">Shader and Program Objects</a></li>
+			<li><a href="#uniforms_attributes">Uniforms and Attributes in OpenGL ES</a></li>
+			<li><a href="#drawcalls">Drawcalls</a></li>
+			<li><a href="#glview_example">GLView Example</a></li>
+            </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/opengl_tutorial_n.htm">OpenGL ES Tutorial</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>Vertex Shader</h1> 
+ 
+<p>The GPU rendering pipeline is split into <strong>programmable</strong> stages (vertex and fragment shaders) and <strong>hard-wired</strong> stages (&quot;primitive assembler &amp; rasterizer&quot; and &quot;output merger&quot;). </p>
+
+<p class="figure">Figure: Stages of the GPU rendering pipeline</p>
+<p align="center"><img src="../../images/gpu_stages.png" alt="Stages of the GPU rendering pipeline" /></p>
+
+<p>You have to provide programs for the vertex and fragment shaders. Without them, OpenGL ES (GL) cannot draw anything. The vertex shader operates on every vertex stored in the vertex array and performs various operations. The essential among them is applying a series of <strong>transforms</strong> to the vertices.</p>
+
+<p class="figure">Figure: Spaces and transforms for vertex shader</p>
+<p align="center"><img src="../../images/vertex_shader_spaces.png" alt="Spaces and transforms for vertex shader" /></p>
+
+<h2 id="object_world_space">Object Space, World Space, and World Transform</h2>
+
+<p>Whereas the coordinate system used for creating an object is named <strong>object space</strong>, the virtual world containing all required objects is associated with the <strong>world space</strong>. The size, position, and orientation of an object in the world space are determined by what is called <strong>world transform</strong>. (GL calls this <strong>model transform</strong>.) Its main components are scaling, translation, and rotation. A distinct object has its own world transform. The following figure shows a world-transform example.</p>
+<p>In the world space, many objects can exist. Among them, consider a teapot. In this example, its world transform is the combination of &quot;rotation about the Y axis by 90 degrees&quot; and &quot;translation along the X axis by seven units&quot;.</p>
+<p class="figure">Figure: Transformation of a teapot object</p>
+<p align="center"><img src="../../images/teapot_transformation.png" alt="Transformation of a teapot object" /></p>
+
+<h2 id="view_space">View Space and View Transform</h2>
+
+<p>To capture the world, a virtual eye or camera is defined in the world space with 3 parameters:</p>
+<ul>
+<li><strong>EYE</strong>: eye position</li>
+<li><strong>AT</strong>: reference point which the eye looks at</li>
+<li><strong>UP</strong>: view up vector describing where the top of the eye points</li>
+</ul>
+<p>The following figure shows how to create a new space, <span style="font-family: Courier New,Courier,monospace">{EYE, u, v, n}</span>, called <strong>view space</strong>.</p>
+
+<p class="figure">Figure: Computing the view space</p>
+<p align="center"><img src="../../images/view_space.png" alt="Computing the view space" /></p>
+
+<p>There are 2 coordinate systems, world space and view space. Note that a point is given different coordinates in different spaces. Suppose that, as shown in the following figure, <strong>AT</strong> is located at the teapot&#39;s mouth end (10,2,0) and <strong>EYE</strong> is at (18,8,0). Then, the teapot&#39;s mouth end has the view-space coordinates (0,0,-10) whereas its world-space coordinates are (10,2,0).</p>
+<p>The red dot is on the end of the teapot&#39;s mouth. It has been taken as <strong>AT</strong> and so its u and v coordinates are 0. If <strong>EYE</strong> is located at (18,8,0), the distance between <strong>EYE</strong> and <strong>AT</strong> is 10 and so the red dot&#39;s n coordinate is -10.</p>
+
+<p class="figure">Figure: Different coordinates in different spaces</p>
+<p align="center"><img src="../../images/coord_space.png" alt="Different coordinates in different spaces" /></p>
+
+<p>It becomes much easier to develop the rendering algorithms if all the world-space objects are newly defined in terms of the view space in the manner of the teapot&#39;s mouth end. This is done by the <strong>view transform</strong>, which is defined as a translation followed by a rotation. The following view matrix applies to all objects in the world space. </p>
+
+<p class="figure">Figure: View matrix</p>
+<p align="center"><img src="../../images/view_matrix.png" alt="View matrix" /></p>
+
+
+<h2 id="view_frustum">View Frustum and Projection Transform</h2>
+
+<p>Because the world space is no longer needed, denote the basis of the view space by <span style="font-family: Courier New,Courier,monospace">{x, y, z}</span> instead of <span style="font-family: Courier New,Courier,monospace">{u, v, n}</span> simply because <span style="font-family: Courier New,Courier,monospace">{x, y, z}</span> is more familiar. In the view space, define how much of the space to see. For this, give 4 parameters:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">fovy</span> which stands for the field of view along the Y axis</li>
+<li><span style="font-family: Courier New,Courier,monospace">aspect</span> for the field of view&#39;s aspect ratio</li>
+<li><span style="font-family: Courier New,Courier,monospace">n</span> for the distance from <strong>EYE</strong> to the &#39;near clipping plane&#39;</li>
+<li><span style="font-family: Courier New,Courier,monospace">f</span> for the distance from <strong>EYE</strong> to the &#39;far clipping plane&#39;</li>
+</ul>
+<p>This set of 4 parameters defines a truncated pyramid whose apex is located at <strong>EYE</strong>, as shown in the following figure. It is called <strong>view frustum</strong>.</p>
+
+<p class="figure">Figure: View frustum</p>
+<p align="center"><img src="../../images/view_frustum.png" alt="View frustum" /></p>
+
+<p>In the figure above, the teapot intersects the view frustum. The part of the teapot outside the view frustum needs to be <strong>clipped</strong> so that only the remaining is processed for display. Transform the view frustum to an axis-aligned box, and the transform is applied to all vertices in the view space, performing clipping with respect to the box. The transform is called projection transform. The following figure shows the result of the <strong>projection transform</strong>. The box has the dimension of 2<sup>3</sup> and its center is located at the origin. The clip space is assumed to be a left-hand coordinate system by convention.</p>
+
+<p class="figure">Figure: Projection transform M<sub>proj</sub> from the view space to the clip space</p>
+<p align="center"><img src="../../images/projection_transform.png" alt="Projection transform from the view space to the clip space" /></p>
+
+<p>The projection matrix is defined using the view frustum parameters, <span style="font-family: Courier New,Courier,monospace">fovy</span>, <span style="font-family: Courier New,Courier,monospace">aspect</span>, <span style="font-family: Courier New,Courier,monospace">n</span>, and <span style="font-family: Courier New,Courier,monospace">f</span>, as shown in the following figure.</p>
+
+<p class="figure">Figure: Projection matrix</p>
+<p align="center"><img src="../../images/projection_matrix.png" alt="Projection matrix" /></p>
+
+<h2 id="vertex_shader">Vertex Shader Input and Output</h2>
+
+<p>The vertex shader runs for each vertex of the polygon mesh. Its main inputs are attributes and uniforms:</p>
+<ul>
+<li>Attributes: Per-vertex data provided in a vertex array</li>
+<li>Uniforms: Read-only values, such as the transform matrix, to be uniformly applied to the vertices</li>
+</ul>
+<p class="figure">Figure: Input and output of the vertex shader</p>
+<p align="center"><img src="../../images/input_output_vertex.png" alt="Input and output of the vertex shader" /></p>
+
+<p>The following code shows an example vertex shader. The shader language is C-like but provides specialized types. For example, <span style="font-family: Courier New,Courier,monospace">mat4 </span> is a 4x4 matrix and <span style="font-family: Courier New,Courier,monospace">vec3</span> is a 3D vector. The following vertex shader example has 5 input values: <span style="font-family: Courier New,Courier,monospace">viewProjMat</span> and <span style="font-family: Courier New,Courier,monospace">worldMat</span> are &#39;uniforms&#39; described by the keyword uniform, whereas <span style="font-family: Courier New,Courier,monospace">position</span>, <span style="font-family: Courier New,Courier,monospace">normal</span>, and <span style="font-family: Courier New,Courier,monospace">texCoord</span> are &#39;attributes&#39; described by the keyword attribute.</p>
+<pre class="prettyprint">
+uniform mat4 viewProjMat; // 4x4 matrix for view+projection transforms
+uniform mat4 worldMat; // 4x4 matrix for world transform
+
+attribute vec3 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+
+varying vec3 v_normal;
+varying vec2 v_texCoord;
+
+void 
+main() 
+{
+&nbsp;&nbsp;&nbsp;gl_Position = viewProjMat * worldMat * vec4(position, 1.0);
+&nbsp;&nbsp;&nbsp;v_normal = mat3(worldMat) * normal;
+&nbsp;&nbsp;&nbsp;v_texCoord = texCoord;
+}
+</pre>
+<p>The output of the vertex shader must include the built-in variable, <span style="font-family: Courier New,Courier,monospace">gl_Position</span>, which stores the <strong>clip-space</strong> vertex position. This is the only required output of the vertex shader. Optional output variables are described with the keyword <span style="font-family: Courier New,Courier,monospace">varying</span>. The output usually includes vertex normal and texture coordinates. In the above example, the object-space vertex normal is transformed to the world space and output to <span style="font-family: Courier New,Courier,monospace">v_normal</span>. On the other hand, the texture coordinates, <span style="font-family: Courier New,Courier,monospace">texCoord</span>, is simply copied to <span style="font-family: Courier New,Courier,monospace">v_texCoord</span>.</p>
+
+
+<h2 id="shader_program_objects">Shader and Program Objects</h2>
+
+<p>Using a vertex or fragment shader stored in a file, create a <strong>shader object</strong>:</p>
+<ol>
+<li>Load its source code into the GL program.</li>
+<li>Create a new shader object using the <span style="font-family: Courier New,Courier,monospace">glCreateShader()</span> function, which takes either the <span style="font-family: Courier New,Courier,monospace">GL_VERTEX_SHADER</span> or <span style="font-family: Courier New,Courier,monospace">GL_FRAGMENT_SHADER</span> attribute and returns the ID of the shader object.</li>
+<li>Store the source code into the shader object using the <span style="font-family: Courier New,Courier,monospace">glShaderSource()</span> function with the vertex or fragment shader&#39;s source code and the shader object ID.</li>
+<li>Compile the shader object using the <span style="font-family: Courier New,Courier,monospace">glCompileShader()</span> function.</li>
+</ol>
+<p>Using the shader objects, create the <strong>program object</strong>:</p>
+<ol>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">glCreateProgram()</span> function, which takes no parameters and simply returns the ID of a new program object.</li>
+<li>Give the shader and program object IDs to the <span style="font-family: Courier New,Courier,monospace">glAttachShader()</span> function, which attaches the shader object to the program object.</li>
+<li>Link the program object using the <span style="font-family: Courier New,Courier,monospace">glLinkProgram()</span> function.</li>
+<li>Invoke the <span style="font-family: Courier New,Courier,monospace">glUseProgram()</span> function to use the program object for rendering.</li>
+</ol>
+
+<h2 id="uniforms_attributes">Uniforms and Attributes in OpenGL ES</h2>
+
+<p>Consider a dynamic environment, where the scene objects continuously move. In the example vertex shader, worldMat must be updated per frame. On the other hand, <span style="font-family: Courier New,Courier,monospace">viewProjMat</span> must be updated if the eye moves. The GL program must update and provide them for the vertex shader. For this purpose, first find the uniform locations that have been determined during the link phase. Given a uniform name in the shader, the <span style="font-family: Courier New,Courier,monospace">glGetUniformLocation()</span> function returns its location (denoted by an integer) in the program.</p>
+<pre class="prettyprint">
+// mProgram denotes the program object
+GLint mWHandle = glGetUniformLocation(mProgram, &quot;worldMat&quot;)
+</pre>
+<p>Then, use the <span style="font-family: Courier New,Courier,monospace">glUniformMatrix4fv()</span> function to load the uniform with the updated <span style="font-family: Courier New,Courier,monospace">matrix</span>, <span style="font-family: Courier New,Courier,monospace">worldMat</span>. A list of functions for loading various uniforms is available and is collectively named <span style="font-family: Courier New,Courier,monospace">glUniformXXX()</span>, representing a set of variations including the <span style="font-family: Courier New,Courier,monospace">glUniform3f()</span> and <span style="font-family: Courier New,Courier,monospace">glUniformMatrix4x3fv()</span> functions.</p>
+
+<p>Next, consider the attributes.</p>
+<p>The vertex and index arrays for a polygon mesh are stored in the CPU memory, which is often called <strong>client memory</strong>. For rendering a mesh, make a <strong>drawcall</strong>. For every drawcall, the arrays have to be &#39;copied&#39; from the client memory to the GPU memory.</p>
+<p>Instead of resending the arrays every time a mesh is drawn, a more efficient way is to cache the data in the GPU memory. The arrays are transferred only once, and the rendering is done from the GPU memory cache. To achieve this, use <strong>vertex buffer objects</strong> (VBO).</p>
+<p>There are 2 types of buffer objects in GL:</p>
+<ul>
+<li><strong>Array buffer object</strong> represents the vertex array and is specified by <span style="font-family: Courier New,Courier,monospace">GL_ARRAY_BUFFER</span>.</li>
+<li><strong>Element array buffer object</strong> represents the index array and is specified by <span style="font-family: Courier New,Courier,monospace">GL_ELEMENT_ARRAY_BUFFER</span>.</li>
+</ul>
+
+<p>To create and bind VBOs:</p>
+<ol>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">glGenBuffers()</span> function, which is asked for <span style="font-family: Courier New,Courier,monospace">n</span> buffer objects and returns them in buffers. In general, <span style="font-family: Courier New,Courier,monospace">n</span> is 2: one for vertices and the other for indices.</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">glBindBuffer()</span> function, where the first parameter is either <span style="font-family: Courier New,Courier,monospace">GL_ARRAY_BUFFER</span> or <span style="font-family: Courier New,Courier,monospace">GL_ELEMENT_ARRAY_BUFFER</span>. This specifies what the buffer is used for. The <span style="font-family: Courier New,Courier,monospace">glBindBuffer()</span> function call creates a VBO.</li>
+<li>The buffer object is filled with data using the glBufferData() function, where the first parameter is either GL_ARRAY_BUFFER or GL_ELEMENT_ARRAY_BUFFER and the third parameter points to the vertex or index array.</li>
+</ol>
+<p>The GL program shown in the following example creates 2 VBOs:</p>
+<pre class="prettyprint">
+glGenBuffers(2, &amp;VBO);
+glBindBuffer(GL_ARRAY_BUFFER, // Target
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VBO[0]); // Buffer
+glBufferData(GL_ARRAY_BUFFER, // Target
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(vertices), // Size
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;vertices, // Data
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_STATIC_DRAW); // Usage
+
+glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, VBO[1]);
+glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;indices, GL_STATIC_DRAW));
+</pre>
+<p>The vertex array is often described as an &quot;array of structures&quot;, where a structure contains a set of attributes: position, normal, and texCoord in the example shader.</p>
+<p class="figure">Figure: Array of vertex structures</p>
+<p align="center"><img src="../../images/vertex_structure_array.png" alt="Array of vertex structures" /></p>
+
+<p>Such a structure must be presented to the shader. For this purpose, the GL program first invokes the <span style="font-family: Courier New,Courier,monospace">glEnableVertexAttribArray()</span> function to enable each parameter. After that, the <span style="font-family: Courier New,Courier,monospace">glVertexAttribPointer()</span> function is called. In this function, the first parameter denotes the parameter index, the second specifies the number (1, 2, 3, or 4) of components per parameter, fifth specifies the byte distance between the consecutive parameters of the same kind, and the sixth points to the first occurrence of the parameter in bytes. The GL program shown in the following example details <span style="font-family: Courier New,Courier,monospace">position</span>, <span style="font-family: Courier New,Courier,monospace">normal</span>, and <span style="font-family: Courier New,Courier,monospace">texCoord</span> parameters.</p>
+<pre class="prettyprint">
+int stride = sizeof(VertexStruct); // VertexStruct with 3 attributes
+int offset = 0;
+
+// position attribute
+glEnableVertexAttribArray(0); // Position index = 0
+glVertexAttribPointer(0, // Index
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3, // Size
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_FLOAT, // Type
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_FALSE, stride, (GLvoid*)offset);
+
+offset += sizeof(vec3); // For accessing normal
+glEnableVertexAttribArray(1); // Normal index = 1
+glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (GLvoid*)offset);
+
+offset += sizeof(vec3); // For accessing texCoord
+glEnableVertexAttribArray(2); // texCoord index = 2
+glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (GLvoid*)offset);
+</pre>
+
+
+<h2 id="drawcalls">Drawcalls</h2>
+
+<p>All parameters and uniforms are now available. If you have a good fragment shader, you can draw a polygon mesh. For rendering a polygon mesh, you can make a drawcall. There are 2 options:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">glDrawArrays()</span> for non-indexed mesh representation</li>
+<li><span style="font-family: Courier New,Courier,monospace">glDrawElements()</span> for indexed mesh representation</li>
+</ul>
+<p>Assuming that you have only the vertex array for the low-resolution sphere, the <span style="font-family: Courier New,Courier,monospace">glDrawArrays()</span> function is invoked. In the following example, the first parameter specifies what kind of primitives to render. Valid values include, for example, <span style="font-family: Courier New,Courier,monospace">GL_POINTS</span>, GL_LINES, GL_TRIANGLES, and GL_TRIANGLE_FAN. The second parameter specifies the starting index &quot;in the vertex array&quot;. The last parameter specifies the number of vertices to be drawn.</p>
+<pre class="prettyprint">
+glDrawArrays(GL_TRIANGLES, // Mode
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0, // First
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;144); // Count
+</pre>
+
+<p>When you have both the vertex array and index array, the <span style="font-family: Courier New,Courier,monospace">glDrawElements()</span> function is invoked. The first parameter is the same as in the <span style="font-family: Courier New,Courier,monospace">glDrawArrays()</span> function. The second parameter specifies the number of elements &quot;in the index array&quot;. The third parameter specifies the type of the values in the indices. It must be <span style="font-family: Courier New,Courier,monospace">GL_UNSIGNED_BYTE</span> or <span style="font-family: Courier New,Courier,monospace">GL_UNSIGNED_SHORT</span>. The last parameter points to the offset in bytes into the storage allocated by the <span style="font-family: Courier New,Courier,monospace">glBufferData()</span> function.</p>
+<pre class="prettyprint">
+glDrawElements(GL_TRIANGLES, // Mode 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;144, // Count
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_UNSIGNED_SHORT, // Type
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0); // Indices
+</pre>
+
+
+<h2 id="glview_example">GLView Example</h2>
+
+<p>The following example code presents how to use GL APIs in the callbacks of the GLView. In the <span style="font-family: Courier New,Courier,monospace">init_glview()</span> callback function, compile and link the shaders, and create VBOs.</p>
+<pre class="prettyprint">
+// GL initialization callback
+static void 
+init_glview(Evas_Object *glview) 
+{
+&nbsp;&nbsp;&nbsp;// Set GL state color to black
+&nbsp;&nbsp;&nbsp;glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *) evas_object_data_get(glview, &quot;ad&quot;);
+
+&nbsp;&nbsp;&nbsp;if (!ad-&gt;initialized) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;init_shader_program(ad); // Compile and link shader
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create_vbo(ad); // Create vertex buffer object
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;texture = create_texture(ad-&gt;win, &quot;tizen_noalpha.png&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;glEnable(GL_DEPTH_TEST);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;initialized = EINA_TRUE;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Initialize application variables
+}
+
+static void
+init_shader_program(appdata_s *ad) 
+{
+&nbsp;&nbsp;&nbsp;const char *p;
+
+&nbsp;&nbsp;&nbsp;p = vertex_tex_shader;
+&nbsp;&nbsp;&nbsp;ad-&gt;vtx_shader = glCreateShader(GL_VERTEX_SHADER);
+&nbsp;&nbsp;&nbsp;glShaderSource(ad-&gt;vtx_shader, 1, &amp;p, NULL);
+&nbsp;&nbsp;&nbsp;glCompileShader(ad-&gt;vtx_shader);
+
+&nbsp;&nbsp;&nbsp;p = fragment_tex_shader;
+&nbsp;&nbsp;&nbsp;ad-&gt;fgmt_shader = glCreateShader(GL_FRAGMENT_SHADER);
+&nbsp;&nbsp;&nbsp;glShaderSource(ad-&gt;fgmt_shader, 1, &amp;p, NULL);
+&nbsp;&nbsp;&nbsp;glCompileShader(ad-&gt;fgmt_shader);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;program = glCreateProgram();
+&nbsp;&nbsp;&nbsp;glAttachShader(ad-&gt;program, ad-&gt;vtx_shader);
+&nbsp;&nbsp;&nbsp;glAttachShader(ad-&gt;program, ad-&gt;fgmt_shader);
+
+&nbsp;&nbsp;&nbsp;glLinkProgram(ad-&gt;program);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;idx_a_position = glGetAttribLocation(ad-&gt;program, &quot;a_position&quot;);
+&nbsp;&nbsp;&nbsp;ad-&gt;idx_a_tex = glGetAttribLocation(ad-&gt;program, &quot;a_tex&quot;);
+
+&nbsp;&nbsp;&nbsp;ad-&gt;idx_wvp = glGetUniformLocation(ad-&gt;program, &quot;u_wvpMatrix&quot;);
+&nbsp;&nbsp;&nbsp;ad-&gt;idx_tex = glGetUniformLocation(ad-&gt;program, &quot;u_texSampler&quot;);
+
+&nbsp;&nbsp;&nbsp;glUseProgram(ad-&gt;program);
+}
+
+static void 
+create_vbo(appdata_s *ad) 
+{
+&nbsp;&nbsp;&nbsp;glGenBuffers(1, &amp;ad-&gt;vbo_vertex);
+&nbsp;&nbsp;&nbsp;glGenBuffers(1, &amp;ad-&gt;vbo_color);
+&nbsp;&nbsp;&nbsp;glGenBuffers(1, &amp;ad-&gt;vbo_texture);
+
+&nbsp;&nbsp;&nbsp;glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vbo_vertex);
+&nbsp;&nbsp;&nbsp;glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_STATIC_DRAW);
+&nbsp;&nbsp;&nbsp;glVertexAttribPointer(ad-&gt;idx_a_position, 3, GL_FLOAT, GL_FALSE, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3 * sizeof(float), 0);
+
+&nbsp;&nbsp;&nbsp;glBindBuffer(GL_ARRAY_BUFFER, ad-&gt;vbo_texture);
+&nbsp;&nbsp;&nbsp;glBufferData(GL_ARRAY_BUFFER, sizeof(cube_texs), cube_texs, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_STATIC_DRAW);
+&nbsp;&nbsp;&nbsp;glVertexAttribPointer(ad-&gt;idx_a_tex, 2, GL_FLOAT, GL_FALSE, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2 * sizeof(float), 0);
+
+&nbsp;&nbsp;&nbsp;glEnableVertexAttribArray(ad-&gt;idx_a_position);
+&nbsp;&nbsp;&nbsp;glEnableVertexAttribArray(ad-&gt;idx_a_tex);
+
+&nbsp;&nbsp;&nbsp;glGenBuffers(1, &amp;ad-&gt;vbo_index);
+&nbsp;&nbsp;&nbsp;glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ad-&gt;vbo_index);
+&nbsp;&nbsp;&nbsp;glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(cube_indices), 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cube_indices, GL_STATIC_DRAW);
+}
+</pre>
+
+<p>In the <span style="font-family: Courier New,Courier,monospace">draw_glview()</span> callback, calculate the world, view, and projection matrices and then pass the combined matrix to the vertex shader through the <span style="font-family: Courier New,Courier,monospace">glUniformXXX()</span> function. When all uniforms are passed to the shader, the GL drawcall is made.</p>
+<pre class="prettyprint">
+// GL drawing callback
+static void
+draw_glview(Evas_Object *glview) 
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *) evas_object_data_get(glview, &quot;ad&quot;);
+&nbsp;&nbsp;&nbsp;float world[16], viewproj[16];
+&nbsp;&nbsp;&nbsp;float aspect;
+
+&nbsp;&nbsp;&nbsp;if (!ad)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;init_matrix(world);
+&nbsp;&nbsp;&nbsp;init_matrix(viewproj);
+
+&nbsp;&nbsp;&nbsp;aspect = (float) ad-&gt;glview_w / (float) ad-&gt;glview_h;
+    
+&nbsp;&nbsp;&nbsp;// View matrix is the identity matrix
+&nbsp;&nbsp;&nbsp;view_set_perspective(viewproj, 60.0f, aspect, 1.0f, 20.0f);
+
+&nbsp;&nbsp;&nbsp;translate_xyz(world, 0.0f, 0.0f, -2.5f);
+&nbsp;&nbsp;&nbsp;rotate_xyz(world, ad-&gt;xangle, ad-&gt;yangle, 0.0f);
+
+&nbsp;&nbsp;&nbsp;multiply_matrix(ad-&gt;wvp, viewproj, world);
+
+&nbsp;&nbsp;&nbsp;glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+&nbsp;&nbsp;&nbsp;glUniformMatrix4fv(ad-&gt;idx_wvp, 1, GL_FALSE, ad-&gt;wvp);
+
+&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, ad-&gt;texture);
+&nbsp;&nbsp;&nbsp;glActiveTexture(GL_TEXTURE0);
+&nbsp;&nbsp;&nbsp;glUniform1i(ad-&gt;idx_tex, 0);
+
+&nbsp;&nbsp;&nbsp;glDrawElements(GL_TRIANGLES, cube_indices_count, GL_UNSIGNED_SHORT, 0);
+
+&nbsp;&nbsp;&nbsp;glFlush();
+}
+</pre>
+	  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Advanced Performance</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/opengl_tutorial_n.htm">OpenGL ES Tutorial</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>Advanced Performance</h1>
+ 
+<p>The following general principles can help you to resolve performance problems on Tizen devices. (Some principles are valid for general embedded systems.)</p>
+
+<p>The first 2 principles are very basic, but still quite important, since the CPU-GPU bandwidth and memory capacity of embedded systems are limited in general.</p>
+
+<ol>
+<li>As presented in <a href="polygon_mesh_n.htm">Polygon Mesh in OpenGL ES</a>, although the vertex array is intuitive, it is inefficient to use only the vertex array. It is almost always recommended to use an <strong>index array</strong> and the <span style="font-family: Courier New,Courier,monospace">glDrawElements()</span> function. This reduces the amount of data transferring from CPU to GPU. The bigger the model is, the more efficient the index array approach is.</li>
+<li>If the polygon mesh is not frequently changed, you can use <strong>vertex buffer objects</strong> (VBO) in order to cache the data into the GPU memory, as illustrated in <a href="vertex_shader_n.htm#uniforms_attributes">Uniforms and Attributes in OpenGL ES</a>.</li>
+<li>In general, you do not need to call the <span style="font-family: Courier New,Courier,monospace">glFinish()</span> function. As drawing commands are requested by the <span style="font-family: Courier New,Courier,monospace">draw_glview()</span> callback and are executed in the background, it is enough to call the <span style="font-family: Courier New,Courier,monospace">glFlush()</span> function at the end of the <span style="font-family: Courier New,Courier,monospace">draw_glview()</span> callback.</li>
+<li>You are not required to clear every buffer, or to clear them at the same time. Instead, you can obtain the best performance by calling the <span style="font-family: Courier New,Courier,monospace">glClear()</span> function once per frame with all the buffers to be simultaneously cleared.</li>
+<li>Do not create and destroy the graphic resources (such as textures and FBO) per frame. You can create and store them in the app_data structure in the <span style="font-family: Courier New,Courier,monospace">init_glview()</span> callback and re-use them later.</li>
+<li>Try to avoid using the <span style="font-family: Courier New,Courier,monospace">if</span> statement in the shader code. Since the vertex and fragment shaders are executed in parallel (in batches) on most GPU architectures, <span style="font-family: Courier New,Courier,monospace">if-then-else</span> statement can block some other batches to determine which one can be run next. It means that parallel processing cannot be fully implemented.</li>
+<li>Try to avoid writing a heavy fragment shader. If the same data apply to all fragments, do not compute the data in the fragment shader but compute them at the CPU side and provide them as uniforms. On the other hand, whenever the data can be computed at the vertex shader, use it.</li>  
+<li>In general, the <span style="font-family: Courier New,Courier,monospace">glReadPixels()</span> function is quite slow, because it reinforces CPU-GPU synchronization, drastically decreasing the overall performance. In most cases, it is possible to obtain the desired result with the framebuffer object (FBO), avoiding the use of <span style="font-family: Courier New,Courier,monospace">glReadPixels()</span>. With FBO, you can access the pixels of the framebuffer (the output of GPU processing) through a texture object (render-to-texture). Since it uses texture data from a GPU stage to another GPU stage, CPU does not have to be synchronized. If the application must use the <span style="font-family: Courier New,Courier,monospace">glReadPixels()</span>function, use another thread to avoid blocking the main thread.</li>
+<li>With FBO, various effects can be made. Consider an application requiring a number of rendering chains for making a complex effect: A framebuffer is mapped to a texture, the texture is used to render another framebuffer, the framebuffer is mapped to another texture, and so on. This enables you to create a very complex scene, but unfortunately the rendering chain cannot be parallelized. Make the rendering chains as small as possible.</li>
+<li>According to the <a href="../app/application_n.htm#state_trans">application life-cycle</a>, the application gets the <span style="font-family: Courier New,Courier,monospace">app_pause()</span> callback when the application runs at the background. Then, you must stop calling drawcalls during the pause state. 
+<p>As presented in <a href="interactive_ui_n.htm">Interactive UI</a>, the application can control the rendering loop by using an animator internally and then stop the animator in the <span style="font-family: Courier New,Courier,monospace">app_pause()</span> callback.</p></li>
+</ol>
+
+ 
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

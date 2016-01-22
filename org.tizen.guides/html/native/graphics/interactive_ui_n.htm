@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Interactive UI</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#touch">Touch Event Handling</a></li>
+			<li><a href="#update">Automatic Update</a></li>
+			<li><a href="#scene">Integrating 3D Scene and 2D UI Components</a></li>
+            </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/opengl_tutorial_n.htm">OpenGL ES Tutorial</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+
+<h1>Interactive UI</h1>
+
+<p>The 2D canvas in Tizen (the <span style="font-family: Courier New,Courier,monospace">Evas object</span>) has been designed to draw scenes optimally. This means that when drawing a new frame, it does not always read the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> data. This mechanism can cause a problem for a 3D scene, because the 3D scene is updated by the external module, such as the GPU, and <span style="font-family: Courier New,Courier,monospace">Evas</span> does not know whether the 3D scene is updated.</p> 
+<p>To solve the problem, GLView provides the <span style="font-family: Courier New,Courier,monospace">elm_glview_changed_set()</span> function to notify Evas that the 3D scene must be updated in the next frame. The <span style="font-family: Courier New,Courier,monospace">draw_glview()</span> callback is then invoked while Evas renders the next frame. The application must call the <span style="font-family: Courier New,Courier,monospace">elm_glview_changed_set()</span> function whenever necessary:</p>
+<ul>
+<li><a href="#touch">Touch Event Handling</a> updates the scene by touch event, and you have to invoke the <span style="font-family: Courier New,Courier,monospace">elm_glview_changed_set()</span> function.</li>
+<li><a href="#update">Automatic Update</a> must be enabled to be used, and also requires calling the <span style="font-family: Courier New,Courier,monospace">elm_glview_changed_set()</span> function.</li>
+</ul>
+
+<h2 id="touch" name="touch">Touch Event Handling</h2> 
+<p>To handle touch events in Tizen, you must connect the event callback functions with <span style="font-family: Courier New,Courier,monospace">Evas_object</span>. The functions are registered by the <span style="font-family: Courier New,Courier,monospace">evas_object_event_callback_add()</span> function for a set of specific events which are already defined in EFL. To learn more about EFL event handling, see the <a href="../../../../org.tizen.ui.practices/html/native/efl/event_handling_n.htm">Event Handling</a>.</p> 
+<p>The following examples show how to register callback functions for handling touch information and rotating a cube object:</p>
+
+<ol><li>Registering callback functions
+<p>The following code shows how to add callback functions to <span style="font-family: Courier New,Courier,monospace">Evas_object</span>. The parameters, <span style="font-family: Courier New,Courier,monospace">EVAS_CALLBACK_MOUSE_DOWN</span>, <span style="font-family: Courier New,Courier,monospace">EVAS_CALLBACK_MOUSE_UP</span>, and <span style="font-family: Courier New,Courier,monospace">EVAS_CALLBACK_MOUSE_MOVE</span>, represent the specific events for which callbacks must be called. These events are defined in <span style="font-family: Courier New,Courier,monospace">Evas_Callback_Type</span>.</p>
+
+<pre class="prettyprint">
+static Evas_Object *
+add_glview(Evas_Object *parent, appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *glview;
+
+&nbsp;&nbsp;&nbsp;// Create and initialize GLView
+&nbsp;&nbsp;&nbsp;glview = elm_glview_add(parent);
+
+
+&nbsp;&nbsp;&nbsp;// Initialize elm_GLView and set the rendering callback functions
+
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(glview, EVAS_CALLBACK_MOUSE_DOWN, mouse_down_cb, ad);
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(glview, EVAS_CALLBACK_MOUSE_UP, mouse_up_cb, ad);
+&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(glview, EVAS_CALLBACK_MOUSE_MOVE, mouse_move_cb, ad);
+}
+</pre>
+</li>
+<li>Handling touch events in callback functions
+
+<p>The following code shows how to define the registered callback functions:</p>
+<pre class="prettyprint">
+static void
+mouse_down_cb(void *data, Evas *e, Evas_Object *obj, void *event_info) 
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *) data;
+&nbsp;&nbsp;&nbsp;ad-&gt;mouse_down = EINA_TRUE;
+&nbsp;&nbsp;&nbsp;elm_glview_changed_set(obj);
+}
+
+static void
+mouse_move_cb(void *data, Evas *e, Evas_Object *obj, void *event_info) 
+{
+&nbsp;&nbsp;&nbsp;Evas_Event_Mouse_Move *ev;
+&nbsp;&nbsp;&nbsp;ev = (Evas_Event_Mouse_Move *) event_info;
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *) data;
+
+&nbsp;&nbsp;&nbsp;float dx = 0, dy = 0;
+
+&nbsp;&nbsp;&nbsp;if (ad-&gt;mouse_down) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dx = ev-&gt;cur.canvas.x - ev-&gt;prev.canvas.x;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dy = ev-&gt;cur.canvas.y - ev-&gt;prev.canvas.y;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;xangle += dy;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;yangle += dx;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;elm_glview_changed_set(obj);
+}
+
+static void
+mouse_up_cb(void *data, Evas *e, Evas_Object *obj, void *event_info) 
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *) data;
+
+&nbsp;&nbsp;&nbsp;ad-&gt;mouse_down = EINA_FALSE;
+&nbsp;&nbsp;&nbsp;elm_glview_changed_set(obj);
+}
+</pre>
+
+<p>Each callback function has the <span style="font-family: Courier New,Courier,monospace">void *event_info</span> parameter in their signature. However, the parameter works differently depending on the registered events. In the <span style="font-family: Courier New,Courier,monospace">mouse_move_cb()</span> function, the void pointer <span style="font-family: Courier New,Courier,monospace">event_info</span> is cast to the <span style="font-family: Courier New,Courier,monospace">Evas_Event_Mouse_Move</span> type, which is associated with <span style="font-family: Courier New,Courier,monospace">EVAS_CALLBACK_MOUSE_MOVE</span>. Therefore, you can get the information about the screen point when the user touches the screen. Using this information, the angles, <span style="font-family: Courier New,Courier,monospace">xangle</span> and <span style="font-family: Courier New,Courier,monospace">yangle</span>, are accumulated and the accumulated data are used for calculating the rotation matrix in the <span style="font-family: Courier New,Courier,monospace">draw_glview()</span> callback functions.</p> 
+<p>Notice the <span style="font-family: Courier New,Courier,monospace">elm_glview_changed_set()</span> function. It notifies EFL that there has been a change in GLView. Then, the main loop of EFL invokes the rendering callback functions in GLView.</p></li></ol>
+
+<h2 id="update" name="update">Automatic Update</h2> 
+<p>In order to allow GLView to update scenes continuously, you must trigger the GLView rendering at every frame. The <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> represents a method to enable the automatic update. It invokes the registered callback at every <span style="font-family: Courier New,Courier,monospace">N</span> seconds where <span style="font-family: Courier New,Courier,monospace">N</span> is the frametime interval set by the <span style="font-family: Courier New,Courier,monospace">ecore_animator_frametime_set()</span> function. Then you can call the <span style="font-family: Courier New,Courier,monospace">elm_glview_changed_set()</span> function at the animator&#39;s callback to keep the 3D scene being rendered while the animator works.</p> 
+<p>The <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> instance can be replaced by <span style="font-family: Courier New,Courier,monospace">Ecore_Timer</span>, which produces the same result as <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span>. However, since <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> provides more advantages in maintaining the updating loop, prefer <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span> instead of <span style="font-family: Courier New,Courier,monospace">Ecore_Timer</span>. For more information, see the Ecore Animator API (in <a href="../../../../org.tizen.native.mobile.apireference/group__Ecore__Animator__Group.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__Ecore__Animator__Group.html">wearable</a> applications).</p> 
+<p>The following example adds and deletes an animator with the callback function:</p>
+<ol><li>Adding <span style="font-family: Courier New,Courier,monospace">Ecore_Animator</span>
+<pre class="prettyprint">
+// Add an animator so that the app regularly
+// triggers updates of the GLView using elm_glview_changed_set()
+ 
+// NOTE: If you delete OpenGL ES (GL), the animator keeps running trying to access GL
+// To prevent it, delete the animator with ecore_animator_del()
+
+Ecore_Animator *ani = ecore_animator_add(anim_cb, glview);
+evas_object_data_set(glview, &quot;ani&quot;, ani);
+evas_object_event_callback_add(glview, EVAS_CALLBACK_DEL, del_anim_cb, ad);
+</pre>
+</li>
+<li>Setting up callback functions
+<pre class="prettyprint">
+static void 
+del_anim_cb(void *data, Evas *evas, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;Ecore_Animator *ani = (Ecore_Animator *)evas_object_data_get(obj, &quot;ani&quot;);
+&nbsp;&nbsp;&nbsp;ecore_animator_del(ani);
+}
+
+static Eina_Bool 
+anim_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;elm_glview_changed_set((Evas_Object *)data);
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+</pre></li></ol>
+
+<h2 id="scene" name="scene">Integrating 3D Scene and 2D UI Components</h2> 
+<p>GLView can be used together with Elementary UI components. The following example creates a GLView and Elementary button component together in a simple box container. It is also possible to support interactions between 2D components and 3D scene.</p>
+<pre class="prettyprint">
+// Create the box
+Evas_Object *box = elm_box_add(parent);
+
+// Set the box to vertical
+elm_box_horizontal_set(box, EINA_FALSE);
+// Box expands when its contents need more space
+evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+// Box fills the available space
+evas_object_size_hint_align_set(box, EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+// Add glview to the box container
+ad-&gt;glview = add_glview(box, ad);
+elm_box_pack_end(box, ad-&gt;glview);
+
+// Add button to the box container
+Evas_Object *button = elm_button_add(box);
+evas_object_size_hint_weight_set(button, EVAS_HINT_EXPAND, EVAS_HINT_FILL);
+evas_object_size_hint_align_set(button, EVAS_HINT_FILL, 1);
+elm_object_text_set(button, &quot;Reset Animation&quot;);
+evas_object_smart_callback_add(button, &quot;clicked&quot;, clicked_cb, ad);
+evas_object_show(button);
+elm_box_pack_end(box, button);
+
+static void
+clicked_cb(void *user_data, Evas_Object *obj, void *event_info) 
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *) user_data;
+
+&nbsp;&nbsp;&nbsp;// It is possible to change the 3D scene
+&nbsp;&nbsp;&nbsp;// For example, start animator to rotate the cube
+&nbsp;&nbsp;&nbsp;if (!ad-&gt;reset_anim) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;reset_anim = EINA_TRUE;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Setting animation angle for 0.75 seconds
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;tic_xangle = (ad-&gt;xangle - 45.0f) / 45.0f;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;tic_yangle = (ad-&gt;yangle - 45.0f) / 45.0f;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Add animator which calls elm_glview_changed_set() per frame
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// This rotates the object tic_x(y)angle along X(Y)-axis
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// until object reaches the initial angle
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;ani = ecore_animator_add(anim_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;glview, EVAS_CALLBACK_DEL, del_anim, ad);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

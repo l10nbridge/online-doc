@@ -334,7 +334,7 @@ _result_cb(push_service_result_e result, const char *msg, void *user_data)
 
 <p>In both cases, the <span style="font-family: Courier New,Courier,monospace;">_state_cb()</span> callback function is called with the <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_STATE_REGISTERED</span> state. The application calls the <span style="font-family: Courier New,Courier,monospace;">_on_state_registered()</span> function immediately, <a href="#state">as shown in the state transitions</a>. When defining the actions inside the function, keep the following points in mind:</p>
 <ul>
-<li>If the application has already been registered, request the push service any unread notifications that have arrived before the application is launched.
+<li>If the application has already been registered, request the push service for any unread notifications that have arrived before the application is launched.
 <p>Request the unread notifications asynchronously. If there is such a notification, it can be received through the <span style="font-family: Courier New,Courier,monospace;">_noti_cb()</span> function after the <span style="font-family: Courier New,Courier,monospace;">_on_state_registered()</span> function returns. Once the request for unread notifications is successfully delivered, <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_ERROR_NONE</span> is returned.</p></li>
 <li>If the application is newly registered, send the registration ID issued by the push server to your application server.
 <p>Retrieve the registration ID from the <span style="font-family: Courier New,Courier,monospace;">push_conn</span> connection handle. If the ID is new or updated, you need to send it to your application server. This ID is used as a destination address to the application in a particular device. If the application has already sent the ID, you can skip this step. This logic is implemented in the <span style="font-family: Courier New,Courier,monospace;">_send_reg_id_if_necessary()</span> function.</p></li>
@@ -554,8 +554,8 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 <p>The message field takes effect only when the application is not running (more precisely, when the application is not connected to the push service.) If a notification with the above message field arrives at the device where the application is running, the push service delivers the notification directly to the application, neither showing the &quot;Hi&quot; message in the quick panel nor increasing the badge count.</p>
 </li>
 
-<li>Rest APIs for sending push notifications.
-<ol>
+<li>Use the Rest APIs for sending push notifications.
+<ul>
 <li>Single request
 
 <p>With the created message field, you can construct a notification using a JSON query and send it to the RQM server using the POST method. The following list contains the details:</p>
@@ -563,8 +563,8 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 <li>URI: URI of the RQM server chosen based on the first 2 digits of the registration ID</li>
 <li>Method: POST</li>
 <li>Data: JSON </li>
-<li>Description: Request a notification push to a push service</li>
-<li>Note: Total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. System default value can be changed as needed.</li>
+<li>Description: Request a notification push to the push service</li>
+<li>Note: The total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. The system default value can be changed as needed.</li>
 <li>Header
 
 <p>There are 2 required fields: <span style="font-family: Courier New,Courier,monospace;">appID</span> and <span style="font-family: Courier New,Courier,monospace;">appSecret</span>.</p>
@@ -583,20 +583,23 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 </tr>
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">encoding</span></td>
- <td>Encoding represents how the <span style="font-family: Courier New,Courier,monospace;">regId</span> is encoded. For most cases, the push server issues <span style="font-family: Courier New,Courier,monospace;">regId</span> as hex string by default but if 3rd party providers state they use base64 encoding for <span style="font-family: Courier New,Courier,monospace;">regId</span> at application registration time, <span style="font-family: Courier New,Courier,monospace;">regId</span> will be base64 encoded. If <span style="font-family: Courier New,Courier,monospace;">regId</span> is base64 encoded, fill this field with value of “base64”. Otherwise, leave this field blank then the push server will handle <span style="font-family: Courier New,Courier,monospace;">regId</span> as hex string.</td>
+ <td>Encoding defines how the <span style="font-family: Courier New,Courier,monospace;">regId</span> is encoded.
+<p>For most cases, the push server issues the <span style="font-family: Courier New,Courier,monospace;">regId</span> as a hex string by default, but if a 3<sup>rd</sup> party providers state that they use the base64 encoding for the <span style="font-family: Courier New,Courier,monospace;">regId</span> at the application registration time, the <span style="font-family: Courier New,Courier,monospace;">regId</span> is base64-encoded.</p>
+<p>If the <span style="font-family: Courier New,Courier,monospace;">regId</span> is base64-encoded, use the <span style="font-family: Courier New,Courier,monospace;">&quot;base64&quot;</span> value for this field. Otherwise, leave this field blank to allow the push server to handle the <span style="font-family: Courier New,Courier,monospace;">regId</span> as a hex string.</p></td>
  <td><ul><li>Optional</li>
  <li>Type: string</li>
  <li>Default: null</li></ul></td>
 </tr>
+
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">regID</span></td>
- <td>Distinguish a recipient from other recipients by assigning a unique registration ID to each recipient. <p>The registration ID is assigned when an application is installed in a device and marked to use an application service.</p>
+ <td>Distinguish a recipient from other recipients by assigning a unique registration ID to each recipient. <p>The registration ID is assigned when the application is installed in a device and marked to use an application service.</p>
 <p>The current registration ID passing policy is as follows (it can change in the future):</p>
 <ol type="a">
 <li>The preloaded push service connects to the push server and registers the application.</li>
 <li>The push server returns the registration ID to the push service.</li>
 <li>The push service passes the ID to the application.</li>
-<li>The push server passes the registration ID to an application server.
+<li>The push server passes the registration ID to an application server. 
 <p>In other applications, the application passes the registration ID to the application server.</p>
 </li>
 </ol></td>
@@ -621,7 +624,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">message</span></td>
  <td>The message the sender wants to deliver. It can be a multibyte character.
- <p>The message goes from an application server through the push server and the push service to the application, which can handle the message.</p>
+ <p>The message goes from an application server through the push server and push service to the application, which can handle the message.</p>
  <p>Maximum message length must be less than 2 kb. Make sure that if there is no message and <span style="font-family: Courier New,Courier,monospace;">appData</span>, the push server rejects the message and returns an error.</p></td>
  <td>
 <ul><li>Conditionally mandatory
@@ -632,7 +635,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 </tr>
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">appData</span></td>
- <td>Applications can use this field to carry their own data. The handling of this data depends on the type defined with the <span style="font-family: Courier New,Courier,monospace;">type</span> key.
+ <td>Applications can use this field to carry their own data. The handling of this data depends on the type defined with the <span style="font-family: Courier New,Courier,monospace;">type</span> key. 
  <p>Make sure that if there is no message and no <span style="font-family: Courier New,Courier,monospace;">appData</span>, the push server rejects the message and returns an error.</p></td>
  <td>
  <ul><li>Conditionally mandatory (if message is null, this field is required)</li>
@@ -660,7 +663,7 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
 </tr>
 <tr>
  <td><span style="font-family: Courier New,Courier,monospace;">delayDate</span></td>
- <td>The time how long the server holds the request before sending it to the push service.
+ <td>The time how long the server holds the request before sending it to the push service. 
  <p>This is an optional field, and if it does not exist, the server applies its default values (0 minutes). If <span style="font-family: Courier New,Courier,monospace;">delayTime</span> is 0, the push server delivers as soon as it receives the notification request.</p></td>
  <td>
   <ul><li>Optional</li>
@@ -673,11 +676,11 @@ push_service_deregister(push_conn, _dereg_result_cb, NULL);
  <td><span style="font-family: Courier New,Courier,monospace;">reliableOption</span></td>
  <td>The push server guarantees reliable message delivery if the <span style="font-family: Courier New,Courier,monospace;">reliableOption</span> is set. The possible options are:
  <ul>
-  <li><span style="font-family: Courier New,Courier,monospace;">NoReliable</span>: Do not send any acknowledgement back to an application server and do not store the notification in the push server if the push service did not receive the notification.</li>
-  <li><span style="font-family: Courier New,Courier,monospace;">Transport</span>: Send an acknowledgement back to the application server when the push service receives the notification.</li>
-  <li><span style="font-family: Courier New,Courier,monospace;">Application</span>: Send an acknowledgement back to the application server when an application checks the notification.</li>
+  <li><span style="font-family: Courier New,Courier,monospace;">NoReliable</span>: Do not send any acknowledgment back to an application server and do not store the notification in the push server if the push service did not receive the notification.</li>
+  <li><span style="font-family: Courier New,Courier,monospace;">Transport</span>: Send an acknowledgment back to the application server when the push service receives the notification.</li>
+  <li><span style="font-family: Courier New,Courier,monospace;">Application</span>: Send an acknowledgment back to the application server when an application checks the notification.</li>
  </ul>
- <p>This is an optional field, and if it does not exist, the server applies its default value (<span style="font-family: Courier New,Courier,monospace;">Transport</span>). An acknowledgement at this point does not mean a response to the notification request, but an acknowledgement that the push service has received the notification. When the push service receives the notification, the push server sends this acknowledgement to the application server in a JSON format through HTTP.</p>
+ <p>This is an optional field, and if it does not exist, the server applies its default value (<span style="font-family: Courier New,Courier,monospace;">Transport</span>). An acknowledgment at this point does not mean a response to the notification request, but an acknowledgment that the push service has received the notification. When the push service receives the notification, the push server sends this acknowledgment to the application server in a JSON format through HTTP.</p>
  </td>
  <td>
    <ul><li>Optional</li>
@@ -725,19 +728,19 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 </pre></li>
 
 <li>Example request:
-<pre class="prettyprint lang-html">
+<pre class="prettyprint">
 {
-&nbsp;&nbsp;&nbsp;&quot;encoding&quot; : &quot;base64&quot; &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&quot;regID&quot; : &quot;ab123456&quot;,
-&nbsp;&nbsp;&nbsp;&quot;requestID&quot; : &quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&quot;sender&quot; : &quot;oscal&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&quot;type&quot; : 0 &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&quot;message&quot; : &quot;badgeOption=INCREASE&amp;badgeNumber=1&amp;action=ALERT&amp;alertMessage=Hi&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&quot;appData&quot; : &quot;{id:asdf&amp;passwd:1234}&quot;, &lt;!--Optional, (Opaque)--&gt;
-&nbsp;&nbsp;&nbsp;&quot;delayDate&quot; : 60, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&quot;reliableOption&quot; : &quot;Transport&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&quot;sessionInfo&quot; : &quot;002002&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&quot;timeStamp&quot; : 1234567890, &lt;!--Optional--&gt;
+&nbsp;&nbsp;&nbsp;&quot;encoding&quot;: &quot;base64&quot; // Optional
+&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab123456&quot;,
+&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&quot;sender&quot;: &quot;oscal&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&quot;type&quot;: 0 //Optional
+&nbsp;&nbsp;&nbsp;&quot;message&quot;: &quot;badgeOption=INCREASE&amp;badgeNumber=1&amp;action=ALERT&amp;alertMessage=Hi&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&quot;appData&quot;: &quot;{id:asdf&amp;passwd:1234}&quot;, // Optional, (Opaque)
+&nbsp;&nbsp;&nbsp;&quot;delayDate&quot;: 60, // Optional
+&nbsp;&nbsp;&nbsp;&quot;reliableOption&quot;: &quot;Transport&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&quot;sessionInfo&quot;: &quot;002002&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&quot;timeStamp&quot;: 1234567890, // Optional
 }
 </pre>
 </li>
@@ -752,10 +755,10 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab123456&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:1000,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;Success&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab123456&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 1000,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;Success&quot;
 &nbsp;&nbsp;&nbsp;}]
 }
 </pre>
@@ -766,10 +769,10 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:3023,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;error of json mapping exception&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 3023,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;error of json mapping exception&quot;
 &nbsp;&nbsp;&nbsp;}]
 }
 </pre>
@@ -780,10 +783,10 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab123456&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:3008,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;error of not registered regID&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab123456&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 3008,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;error of not registered regID&quot;
 &nbsp;&nbsp;&nbsp;}]
 }
 </pre>
@@ -792,16 +795,15 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 </li>
 </ul>
 </li>
-
-<li> Multiple Request
-<p>You can construct a Multiple Request in a RestAPI call. The following list contains the details:</p>
+<li>Multiple request
+<p>You can construct a multiple request in a Rest API call. The following list contains the details:</p>
 <ul>
 <li>URI: URI of the RQM server chosen based on the first 2 digits of the registration ID</li>
 <li>Method: POST</li>
 <li>Data: JSON </li>
-<li>Description: Request a notification push to a push service</li>
-<li>Argument: Refer to single request</li>
-<li>Note: Total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. System default value can be changed as needed.</li>
+<li>Description: Request a notification push to the push service</li>
+<li>Argument: Refer to the single request</li>
+<li>Note: The total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. The system default value can be changed as needed.</li>
 <li>Example header:
 <pre class="prettyprint">
 appID: 1234567890987654
@@ -809,44 +811,42 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 </pre></li>
 
 <li>Example request:
-<pre class="prettyprint lang-html">
+<pre class="prettyprint">
 {
 &nbsp;&nbsp;&nbsp;&quot;messages&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;encoding&quot; : &quot;base64&quot; &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot; : &quot;ab123456&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot; : &quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sender&quot; : &quot;oscal&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;type&quot; : 0 &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;message&quot; : &quot;example&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;appData&quot; : &quot;{id:asdf&amp;passwd:1234}&quot;, &lt;!--Optional, (Opaque)--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;expiryDate&quot; : 720, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;delayDate&quot; : 60, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;reliableOption&quot; : &quot;Transport&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sessionInfo&quot; : &quot;192.168.0.1-8080-12345567&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;timeStamp&quot; : 1234567890, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;connectionTerm&quot; : 0, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp; }
-&nbsp;&nbsp;&nbsp; {
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;encoding&quot; : &quot;base64&quot; &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot; : &quot;ab234567&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot; : &quot;0000002&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sender&quot; : &quot;oscal&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;type&quot; : 0 &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;message&quot; : &quot;example&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;appData&quot; : &quot;{id:asdf&amp;passwd:1234}&quot;, &lt;!--Optional, (Opaque)--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;expiryDate&quot; : 720, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;delayDate&quot; : 60, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;reliableOption&quot; : &quot;Transport&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sessionInfo&quot; : &quot;192.168.0.1-8080-12345567&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;timeStamp&quot; : 1234567890, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;connectionTerm&quot; : 0, &lt;!--Optional--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;encoding&quot;: &quot;base64&quot; // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab123456&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sender&quot;: &quot;oscal&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;type&quot;: 0 // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;message&quot;: &quot;example&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;appData&quot;: &quot;{id:asdf&amp;passwd:1234}&quot;, // Optional, (Opaque)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;expiryDate&quot;: 720, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;delayDate&quot;: 60, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;reliableOption&quot;: &quot;Transport&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sessionInfo&quot;: &quot;192.168.0.1-8080-12345567&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;timeStamp&quot;: 1234567890, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;connectionTerm&quot;: 0, // Optional
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;encoding&quot;: &quot;base64&quot; // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab234567&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000002&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sender&quot;: &quot;oscal&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;type&quot;: 0 // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;message&quot;: &quot;example&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;appData&quot;: &quot;{id:asdf&amp;passwd:1234}&quot;, // Optional, (Opaque)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;expiryDate&quot;: 720, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;delayDate&quot;: 60, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;reliableOption&quot;: &quot;Transport&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sessionInfo&quot;: &quot;192.168.0.1-8080-12345567&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;timeStamp&quot;: 1234567890, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;connectionTerm&quot;: 0, // Optional
 &nbsp;&nbsp;&nbsp;]}
-
 }
 </pre>
 </li>
-
 
 <li>Example response:
 <ul>
@@ -856,16 +856,16 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab123456&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:1000,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;Success&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab123456&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 1000,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;Success&quot;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab234567&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000002&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:1000,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;Success&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab234567&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000002&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 1000,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;Success&quot;
 &nbsp;&nbsp;&nbsp;}]
 }
 </pre>
@@ -876,31 +876,30 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:3023,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;error of json mapping exception&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 3023,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;error of json mapping exception&quot;
 &nbsp;&nbsp;&nbsp;}]
 }
 </pre>
 </li>
 <li>
-<p>The following example shows a response message when some of multiple request are failed and the others are not:</p>
+<p>The following example shows a response message when some parts of the multiple request have failed and the others have not:</p>
 <pre class="prettyprint">
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab123456&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:1000,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;Success&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab123456&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 1000,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;Success&quot;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab234567&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000002&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:3008,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;error of not registered regID&quot;
-&nbsp;&nbsp;&nbsp;}]
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab234567&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000002&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 3008,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;error of not registered regID&quot;+&nbsp;&nbsp;&nbsp;}]
 }
 </pre>
 </li>
@@ -908,7 +907,6 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 </li>
 </ul>
 </li>
-
 
 <li> Multicast
 <p>You can construct a multicast to send a push notification to multiple applications. The following list contains the details:</p>
@@ -916,9 +914,9 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 <li>URI: URI of the RQM server chosen based on the first 2 digits of the registration ID</li>
 <li>Method: POST</li>
 <li>Data: JSON </li>
-<li>Description: Request a notification push to a push service</li>
-<li>Argument: Refer to single request</li>
-<li>Note: Total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. System default value can be changed as needed.</li>
+<li>Description: Request a notification push to the push service</li>
+<li>Argument: Refer to the single request</li>
+<li>Note: The total request message body must be less than the system default value, 200 kb. If not, &quot;3034 – error of too long chuned message data&quot; is returned. The system default value can be changed as needed.</li>
 <li>Example header:
 <pre class="prettyprint">
 appID: 1234567890987654
@@ -926,25 +924,24 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 </pre></li>
 
 <li>Example request:
-<pre class="prettyprint lang-html">
+<pre class="prettyprint">
 {
 &nbsp;&nbsp;&nbsp;&quot;messages&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;encoding&quot; : &quot;base64&quot; &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot; : [&quot;ab123456&quot;, &quot;ab234567&quot;, &quot;ab345678&quot;]
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot; : &quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sender&quot; : &quot;oscal&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;type&quot; : 0 &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;message&quot; : &quot;example&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;appData&quot; : &quot;{id:asdf&amp;passwd:1234}&quot;, &lt;!--Optional, (Opaque)--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;expiryDate&quot; : 720, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;delayDate&quot; : 60, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;reliableOption&quot; : &quot;Transport&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sessionInfo&quot; : &quot;192.168.0.1-8080-12345567&quot;, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;timeStamp&quot; : 1234567890, &lt;!--Optional--&gt;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;connectionTerm&quot; : 0, &lt;!--Optional--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;encoding&quot;: &quot;base64&quot; // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: [&quot;ab123456&quot;, &quot;ab234567&quot;, &quot;ab345678&quot;]
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sender&quot;: &quot;oscal&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;type&quot;: 0 // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;message&quot;: &quot;example&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;appData&quot;: &quot;{id:asdf&amp;passwd:1234}&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;expiryDate&quot;: 720, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;delayDate&quot;: 60, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;reliableOption&quot;: &quot;Transport&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;sessionInfo&quot;: &quot;192.168.0.1-8080-12345567&quot;, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;timeStamp&quot;: 1234567890, // Optional
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;connectionTerm&quot;: 0, // Optional
 &nbsp;&nbsp;&nbsp;]}
-
 }
 </pre>
 </li>
@@ -957,22 +954,22 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab123456&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:1000,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;Success&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab123456&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 1000,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;Success&quot;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab234567&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000002&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:1000,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;Success&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab234567&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000002&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 1000,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;Success&quot;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab345678&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000002&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:1000,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;Success&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab345678&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000002&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 1000,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;Success&quot;
 &nbsp;&nbsp;&nbsp;}]
 }
 </pre>
@@ -983,36 +980,36 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:3023,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;error of json mapping exception&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 3023,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;error of json mapping exception&quot;
 &nbsp;&nbsp;&nbsp;}]
 }
 </pre>
 </li>
 <li>
-<p>The following example shows a response message when some of multiple request are failed and the others are not:</p>
+<p>The following example shows a response message when some parts of the multicast request have failed and the others have not:</p>
 <pre class="prettyprint">
 {
 &nbsp;&nbsp;&nbsp;&quot;results&quot;:
 &nbsp;&nbsp;&nbsp;[{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab123456&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:1000,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;Success&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab123456&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 1000,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;Success&quot;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab234567&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:3008,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;error of not registered regID&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab234567&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 3008,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;error of not registered regID&quot;
 &nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;:&quot;ab345678&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;:&quot;0000001&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;:3013,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;:&quot;error of impossible to enqueue&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;ab345678&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;0000001&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusCode&quot;: 3013,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;statusMsg&quot;: &quot;error of impossible to enqueue&quot;
 &nbsp;&nbsp;&nbsp;}]
 }
 </pre>
@@ -1021,7 +1018,8 @@ appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
 </li>
 </ul>
 </li>
-</ol>
+</ul>
+</li>
 </ol>
 
  <h2 id="receive_push" name="receive_push">Receiving Push Notifications</h2>

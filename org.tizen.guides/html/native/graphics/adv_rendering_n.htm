@@ -1,0 +1,321 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Advanced Rendering</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#renderer">Sample Applications Using the Renderer Architecture</a></li>
+			<li><a href="#framebuffer">Framebuffer Object and Render-to-texture</a></li>
+			<li><a href="#cube">Cube Mapping</a></li>
+			<li><a href="#normal_map">Normal Mapping with Multi-texturing</a></li>
+            </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.tutorials/html/native/graphics/opengl_tutorial_n.htm">OpenGL ES Tutorial</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+
+<h1>Advanced Rendering</h1>
+
+<p>This topic introduces various advanced methods for rendering.</p>
+
+<h2 id="renderer" name="renderer">Sample Applications Using the Renderer Architecture</h2>
+
+<p>In order to increase reusability, this section presents a simple OpenGL ES (GL)-based renderer and a sample view architecture based on the renderer. Its class diagram is shown in the following figure. SampleLauncher creates a sample view instance, such as TexturingView. Each sample view inherits from the SampleView class, which creates the GLView and BasicRenderer instances.</p>
+
+<p class="figure">Figure: Class diagram for sample views and renderer</p> 
+<p align="center"><img alt="Class diagram for sample views and renderer" src="../../images/adv_render_class.png" /></p> 
+
+<p>The callback functions for GLView are registered as presented in <a href="creating_opengles_n.htm">Creating OpenGL ES Applications</a>. At the initialization stage, the sample view uses the FileLoader class to read the resource files, such as shaders, 3D objects, and texture images, from the Tizen application resource file path. These data are passed to BasicRenderer. At the initialization stage when the <span style="font-family: Courier New,Courier,monospace">init_glview()</span> callback is invoked, BasicRenderer uses the shader code and BasicShader to create, compile, and link the program object. </p>
+<p>In addition to BasicShader, BasicRenderer uses, for example, BasicCamera, vertex array, and texture object ID, for rendering a scene. When rendering is requested by the sample view, BasicRenderer initializes color and depth buffers through the <span style="font-family: Courier New,Courier,monospace">glClear()</span> function, and then computes many data needed for rendering, such as world, view, and projection matrices. These are transferred to BasicShader, which invokes the <span style="font-family: Courier New,Courier,monospace">glUniformXXX()</span> function to pass them to the current program object. Finally, the <span style="font-family: Courier New,Courier,monospace">glDrawElements()</span> function is invoked.</p> 
+<p>For handling texture images, the sample uses the TexData class. The sample application creates a TexData instance and passes it to FileLoader together with the file name of the texture image. Then, FileLoader stores the decoded pixel data into the TexData instance. When the TexData instance is given to BasicRender, GL functions, such as <span style="font-family: Courier New,Courier,monospace">glGenTexture()</span> and <span style="font-family: Courier New,Courier,monospace">glTexImage2D()</span>, are invoked. After the texture object is created and sampler uniforms, such as <span style="font-family: Courier New,Courier,monospace">sampler2D</span> and <span style="font-family: Courier New,Courier,monospace">samplerCube</span>, are passed to the fragment shader, texturing can be done.</p>
+<p>For convenience, use the OpenGL mathematics library, GLM. GLM is a header only C++ mathematics library for graphics software based on the OpenGL shading language (GLSL) specification. GLM provides classes and functions designed and implemented with the same naming conventions and functionalities as in GLSL.</p>
+
+<h2 id="framebuffer" name="framebuffer">Framebuffer Object and Render-to-texture</h2>
+
+<p>In Tizen, the drawing surface is created by GLView. To render a scene, GL receives this surface, which is called &#39;on-screen buffer&#39;. For simple applications, the on-screen-buffer alone is sufficient. However, if the application needs to render to a texture, for example, an &#39;off-screen-buffer&#39; is helpful as it can be used as a texture. In GL, the Framebuffer Object (FBO) can be an &#39;off-screen-buffer&#39; and also supports &#39;render to texture.&#39;</p>
+<p>GL provides functions to generate, bind, and configure an FBO. As shown in the following figure, the FBO consists of color, depth, and stencil attachments. It can be used as a texture by binding a texture object to its color or depth attachment point. On the other hand, GL supports a renderbuffer object, which is a 2D image buffer and can be bound to color, depth or stencil attachment point. FBO is useful for environment mapping, shadow mapping, post-processing and effects, including, for example, motion blur.</p>
+
+<p class="figure">Figure: Framebuffer, renderbuffer, and texture objects</p> 
+<p align="center"><img alt="Framebuffer, renderbuffer, and texture objects" src="../../images/adv_render_framebuffer.png" /></p> 
+
+<p>FBO is defined as follows:</p> 
+
+<ol>
+<li>A texture or renderbuffer object is generated using the <span style="font-family: Courier New,Courier,monospace">glGenTextures()</span> or <span style="font-family: Courier New,Courier,monospace">glGenRenderbuffers()</span> function.</li> 
+<li>Binding is made using the <span style="font-family: Courier New,Courier,monospace">glBindTexture()</span> or <span style="font-family: Courier New,Courier,monospace">glBindRenderbuffer()</span> function before being attached to the FBO.</li> 
+<li>The <span style="font-family: Courier New,Courier,monospace">glTexParameteri()</span> or <span style="font-family: Courier New,Courier,monospace">glRenderbufferStorage()</span> function is called to specify the properties of the object.</li> 
+<li>The <span style="font-family: Courier New,Courier,monospace">glFramebufferRenderbuffer()</span> or <span style="font-family: Courier New,Courier,monospace">glFramebufferTexture2D()</span> function is invoked to attach the object to the FBO.</li>
+</ol>
+
+<p>The following code creates an FBO as an &#39;off-screen-buffer&#39; that enables render-to-texture:</p>
+
+<pre class="prettyprint">
+// This function shows how to create new framebuffer object
+// with texture color buffer and depth render buffer 
+// To render a texture, bind framebuffer to &#39;newFbo&#39; using
+// glBindeFramebuffer() and make a drawcall. Then, just 
+// use &#39;colorTex&#39; as a general texture
+// This function does not make a stencil buffer
+// To use stencil buffer for off-screen-buffer, make another
+// renderbuffer object and attach to framebuffer using
+// glFramebufferRenderbuffer()
+void 
+createFbo() 
+{
+&nbsp;&nbsp;&nbsp;GLuint colorTex, depthRbo, newFbo;
+
+&nbsp;&nbsp;&nbsp;// Size of texture and renderbuffer object
+&nbsp;&nbsp;&nbsp;// Check whether GL_MAX_RENDERBUFFER_SIZE &gt;= width and height
+&nbsp;&nbsp;&nbsp;// using glGetIntegerv(GL_MAX_RENDERBUFFER_SIZE, &amp;maxSize)
+&nbsp;&nbsp;&nbsp;GLint  texWidth = 256, texHeight = 256;
+
+&nbsp;&nbsp;&nbsp;// Generate texture object
+&nbsp;&nbsp;&nbsp;glGenTextures(1, &amp;colorTex);
+&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, colorTex);
+&nbsp;&nbsp;&nbsp;glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;texWidth, texHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+&nbsp;&nbsp;&nbsp;// Set texture wrapping and filtering mode
+&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+&nbsp;&nbsp;&nbsp;// Generate renderbuffer object
+&nbsp;&nbsp;&nbsp;glGenRenderbuffers(1, &amp;depthRbo);
+&nbsp;&nbsp;&nbsp;glBindRenderbuffer(GL_RENDERBUFFER, depthRbo);
+&nbsp;&nbsp;&nbsp;glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16,  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;texWidth, texWidth); // 16-bit depthbuffer
+
+&nbsp;&nbsp;&nbsp;// Generate framebuffer object and bind texture and renderbuffer object to attachment points
+&nbsp;&nbsp;&nbsp;glGenFramebuffers(1, &amp;newFbo);
+&nbsp;&nbsp;&nbsp;glBindFramebuffer(GL_FRAMEBUFFER, newFbo);
+&nbsp;&nbsp;&nbsp;glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_TEXTURE_2D, colorTex, 0);
+&nbsp;&nbsp;&nbsp;glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_RENDERBUFFER, depthRbo);
+
+&nbsp;&nbsp;&nbsp;// Check for framebuffer complete
+&nbsp;&nbsp;&nbsp;if (glCheckFramebufferStatus(GL_FRAMEBUFFER) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!= GL_FRAMEBUFFER_COMPLETE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;FrameBufferObject is not complete!\n&quot;);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+</pre>
+
+<h2 id="cube" name="cube">Cube Mapping</h2>
+
+<p><strong>Environment mapping</strong> is a technique to simulate a shiny object reflecting its surrounding environment, as shown in the following figure. Among several implementations of environment mapping, the most popular is <strong>cube mapping</strong>. It uses a <strong>cube map</strong> composed of 6 square image textures. The images are textured to the surface of the shiny object.</p>
+
+<p class="figure">Figure: Cube mapping example</p> 
+<p align="center"><img alt="Cube mapping example" src="../../images/adv_render_cube.png" /></p>  
+
+
+<p>A cube map is created by positioning a camera at the center of the object and rendering along each positive/negative principal axis directions using a 90-degree field of view. The following figure shows how a cube map texture is composed. For a static environment, this is made at the preprocessing stage.</p>
+
+<p class="figure">Figure: Composition of the cubemap texture</p> 
+<p align="center"><img alt="Composition of the cubemap texture" src="../../images/adv_render_cube_composition.png" /></p>  
+
+
+<p>The <a href="texturing_n.htm">Texturing</a> topic presents how to create texture objects using GL APIs. For using a cube map texture, provide <span style="font-family: Courier New,Courier,monospace">GL_TEXTURE_CUBE_MAP</span> instead of <span style="font-family: Courier New,Courier,monospace">GL_TEXTURE_2D</span> for the <span style="font-family: Courier New,Courier,monospace">glGenTexture()</span> and <span style="font-family: Courier New,Courier,monospace">glBindTexture()</span> functions.</p> 
+<p>The following code creates a cube map texture for environment mapping:</p>
+<pre class="prettyprint">
+void 
+ImlRenderer::CreateCubeTex(const TexData *cubeTex, GLuint &amp;target) 
+{
+&nbsp;&nbsp;&nbsp;glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glPixelStorei&quot;);
+&nbsp;&nbsp;&nbsp;glGenTextures(1, &amp;target);
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glGenTextures&quot;);
+
+&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_CUBE_MAP, target);
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glBindTexture&quot;);
+
+&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; 6; ++i) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TexBuffer((GLenum)GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, cubeTex[i]);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glGenerateMipmap&quot;);
+
+&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_LINEAR_MIPMAP_LINEAR);
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glTexParameteri&quot;);
+&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glTexParameteri&quot;);
+
+&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_REPEAT);
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glTexParameteri&quot;);
+&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_REPEAT);
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glTexParameteri&quot;);
+
+&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+}
+
+void 
+ImlRenderer::TexBuffer(GLenum type, const TexData&amp; newTex)
+{
+&nbsp;&nbsp;&nbsp;LOGI(&quot;ImlRenderer::TexBuffer&quot;);
+
+&nbsp;&nbsp;&nbsp;glTexImage2D(type, 0, newTex.format, newTex.width, newTex.height, 0,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(GLenum)newTex.format, GL_UNSIGNED_BYTE, (void*)newTex.pixels);
+
+&nbsp;&nbsp;&nbsp;checkGlError(&quot;glTexImage2D&quot;);
+}
+</pre>
+<p>In the above code, see <span style="font-family: Courier New,Courier,monospace">GL_TEXTURE_CUBE_MAP_POSITIVE_X</span>, a parameter of the <span style="font-family: Courier New,Courier,monospace">TexBuffer()</span> function. It represents which side of the environment is contained in the cube map texture.</p>
+<p>To access the cube map texture in the fragment shader, compute a reflection vector. The viewing direction vector is reflected with respect to the normal. This vector is used as texture coordinates to fetch the cube map through the <span style="font-family: Courier New,Courier,monospace">textureCube()</span> function. The following shader code calculates the reflection vector and accesses the cube map texture:</p>
+<pre class="prettyprint">
+precision mediump float;
+
+uniform samplerCube s_texCube;
+uniform vec3 eyePos;
+
+varying vec3 v_normal;
+varying vec2 v_texCoord;
+
+void 
+main() 
+{
+&nbsp;&nbsp;&nbsp;vec3 nor = normalize(v_normal);
+&nbsp;&nbsp;&nbsp;vec3 ray = normalize(eyePos);
+
+&nbsp;&nbsp;&nbsp;vec3 reflec = 2.0 * nor * dot(nor, ray) - ray;
+&nbsp;&nbsp;&nbsp;vec4 envColor = textureCube(s_texCube, reflec);
+
+&nbsp;&nbsp;&nbsp;gl_FragColor = envColor;
+}
+</pre>
+
+<h2 id="normal_map" name="normal_map">Normal Mapping with Multi-texturing</h2>
+
+<p>A <strong>normal map</strong> is a 2D texture that stores a normal vector at each texel. The red channel represents the <span style="font-family: Courier New,Courier,monospace">x</span> component, the green channel the <span style="font-family: Courier New,Courier,monospace">y</span> component, and the blue channel the <span style="font-family: Courier New,Courier,monospace">z</span> component. This triple is scaled and biased in the shader to map to a normal, each component of which is in [-1, 1].</p> 
+<p>The normals of a normal map are defined in the <strong>tangent spaces</strong> of the object surface. In a tangent space, the Z axis corresponds to the surface normal. The left side of the following figure shows 2 tangent spaces, one defined for a surface point <span style="font-family: Courier New,Courier,monospace">p</span> and the other for another point <span style="font-family: Courier New,Courier,monospace">q</span>. Observe that the tangent spaces vary across the object surface. Assuming that a tangent space is defined for a surface point to be normal-mapped, the normal fetched from the normal map is taken as being defined in the tangent space of the point. In this respect, it is named the <strong>tangent-space normal</strong>. The tangent-space normals perturb the surface normal.</p> 
+
+<p class="figure">Figure: Tangent spaces</p> 
+<p align="center"><img alt="Tangent spaces" src="../../images/adv_render_tangent1.png" /> <img alt="Tangent spaces" src="../../images/adv_render_tangent2.png" /></p> 
+
+
+<p>The surface normal of a polygon mesh is computed per vertex at the modeling stage. It is the vertex normal. The tangent space is constructed per vertex so that its Z axis corresponds to the vertex normal, as shown in the right side of the above figure.</p> 
+<p>Three orthonormal vectors define the tangent space:</p> 
+<ul>
+<li>Vertex normal denoted by <span style="font-family: Courier New,Courier,monospace">N</span></li>
+<li>Vector denoted by <span style="font-family: Courier New,Courier,monospace">T</span> (for <strong>tangent</strong>)</li>
+<li>Vector denoted by <span style="font-family: Courier New,Courier,monospace">B</span> (for <strong>binormal</strong>)</li>
+</ul>
+<p>Tangent vectors (<span style="font-family: Courier New,Courier,monospace">T</span>) are computed in BasicRenderer. Then, <span style="font-family: Courier New,Courier,monospace">N</span> and <span style="font-family: Courier New,Courier,monospace">T</span> are passed to the vertex shader, where <span style="font-family: Courier New,Courier,monospace">B</span> is computed by taking the cross product of <span style="font-family: Courier New,Courier,monospace">N</span> and <span style="font-family: Courier New,Courier,monospace">T</span> and then a rotation matrix is constructed from the <span style="font-family: Courier New,Courier,monospace">TBN</span> vectors. This <strong>basis-change matrix</strong> converts the world space light vector into the tangent space, so that lighting is computed at the tangent space by the fragment shader.</p> 
+<p>The following vertex shader presents how to construct the basis-change matrix from the <span style="font-family: Courier New,Courier,monospace">TBN</span> vectors:</p>
+
+<pre class="prettyprint">
+uniform mat4 worldMat;
+uniform mat4 viewMat;
+uniform mat4 projMat;
+
+uniform vec3 eyePos;
+uniform vec3 lightPos;
+
+attribute vec3 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+attribute vec3 tangent;
+
+varying vec2 v_texCoord;
+varying vec3 v_lightDirTS;
+varying vec3 v_viewTS;
+
+void 
+main() 
+{
+&nbsp;&nbsp;&nbsp;vec4 world_pos = worldMat * vec4(position, 1.0);
+&nbsp;&nbsp;&nbsp;gl_Position = projMat * viewMat * world_pos;
+&nbsp;&nbsp;&nbsp;v_texCoord = texCoord;
+
+&nbsp;&nbsp;&nbsp;vec3 nor = mat3(worldMat) * normal;
+&nbsp;&nbsp;&nbsp;vec3 tan = mat3(worldMat) * normalize(tangent);
+&nbsp;&nbsp;&nbsp;vec3 bin = cross(nor, tan);
+&nbsp;&nbsp;&nbsp;mat3 worldToTangentSpace = mat3(tan.x, bin.x, nor.x,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tan.y, bin.y, nor.y,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tan.z, bin.z, nor.z);
+
+&nbsp;&nbsp;&nbsp;v_lightDirTS = worldToTangentSpace * (lightPos - world_pos.xyz) ;
+&nbsp;&nbsp;&nbsp;v_viewTS = worldToTangentSpace * (eyePos - world_pos.xyz);
+}
+</pre>
+
+<p>The fragment shader in the following example accepts the per-fragment light vector, fetches the tangent-space normal from the normal map, and computes per-fragment lighting. The result of normal mapping is shown in the following figure.</p>
+
+<pre class="prettyprint">
+precision mediump float;
+
+uniform sampler2D s_tex0;
+uniform sampler2D s_texNor;
+
+varying vec2 v_texCoord;
+varying vec3 v_lightDirTS;
+varying vec3 v_viewTS;
+
+vec3 phongLightFragNormal(vec3 Md, vec3 normal);
+
+void 
+main() 
+{
+&nbsp;&nbsp;&nbsp;vec3 md = texture2D(s_tex0, v_texCoord).xyz;
+&nbsp;&nbsp;&nbsp;vec3 tanNor = normalize(texture2D(s_texNor, v_texCoord).xyz * 2.0 - vec3(1.0));
+&nbsp;&nbsp;&nbsp;gl_FragColor = vec4(phongLightFragNormal(md, tanNor), 1.0);
+}
+</pre>
+
+<p class="figure">Figure: Normal mapping example</p> 
+<p align="center"><img alt="Normal mapping example" src="../../images/adv_render_normal_map.png" /></p>  
+
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
