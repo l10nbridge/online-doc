@@ -186,11 +186,16 @@ cb_add_on_demand_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 {
 &nbsp;&nbsp;&nbsp;viewdata_s* viewData = pData;
 
+&nbsp;&nbsp;&nbsp;bundle *sync_job_user_data = NULL;
+&nbsp;&nbsp;&nbsp;sync_job_user_data = bundle_create();
+&nbsp;&nbsp;&nbsp;bundle_add_str(sync_job_user_data, "option", displayed_option);
+
 &nbsp;&nbsp;&nbsp;int ret = SYNC_ERROR_NONE;
+
 &nbsp;&nbsp;&nbsp;if (is_accountless) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Sync Adapter App: request accountless On Demand Sync&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = sync_manager_on_demand_sync_job(NULL, &quot;OnDemand&quot;, sync_option, NULL, &amp;on_demand_sync_job_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = sync_manager_on_demand_sync_job(NULL, &quot;OnDemand&quot;, sync_option, sync_job_user_data, &amp;on_demand_sync_job_id);
 &nbsp;&nbsp;&nbsp;} 
 &nbsp;&nbsp;&nbsp;else 
 &nbsp;&nbsp;&nbsp;{
@@ -203,7 +208,7 @@ cb_add_on_demand_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;viewData-&gt;account_id = account_id;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = sync_manager_on_demand_sync_job(account, &quot;OnDemand&quot;, sync_option, NULL, &amp;on_demand_sync_job_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = sync_manager_on_demand_sync_job(account, &quot;OnDemand&quot;, sync_option, sync_job_user_data, &amp;on_demand_sync_job_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;account_destroy(account);
 &nbsp;&nbsp;&nbsp;}
@@ -275,12 +280,16 @@ cb_add_periodic_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 {
 &nbsp;&nbsp;&nbsp;viewdata_s* viewData = pData;
 
+&nbsp;&nbsp;&nbsp;bundle *sync_job_user_data = NULL;
+&nbsp;&nbsp;&nbsp;sync_job_user_data = bundle_create();
+&nbsp;&nbsp;&nbsp;bundle_add_str(sync_job_user_data, "interval", displayed_interval);
+
 &nbsp;&nbsp;&nbsp;int ret = SYNC_ERROR_NONE;
 
 &nbsp;&nbsp;&nbsp;if (is_accountless) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Sync Adapter App: request accountless Periodic Sync&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = sync_manager_add_periodic_sync_job(NULL, &quot;Periodic&quot;, sync_interval, sync_option, NULL, &amp;periodic_sync_job_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = sync_manager_add_periodic_sync_job(NULL, &quot;Periodic&quot;, sync_interval, sync_option, sync_job_user_data, &amp;periodic_sync_job_id);
 &nbsp;&nbsp;&nbsp;} 
 &nbsp;&nbsp;&nbsp;else 
 &nbsp;&nbsp;&nbsp;{
@@ -293,7 +302,7 @@ cb_add_periodic_sync(void* pData, Evas_Object* pObj, void* pEvent_info)
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;viewData-&gt;account_id = account_id;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = sync_manager_add_periodic_sync_job(account, &quot;Periodic&quot;, sync_interval, sync_option, NULL, &amp;periodic_sync_job_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = sync_manager_add_periodic_sync_job(account, &quot;Periodic&quot;, sync_interval, sync_option, sync_job_user_data, &amp;periodic_sync_job_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;account_destroy(account);
 &nbsp;&nbsp;&nbsp;}
@@ -511,18 +520,22 @@ sync_adapter_sample_foreach_sync_job_cb(account_h account, const char *sync_job_
 &nbsp;&nbsp;&nbsp;char sync_job_info[MAX_SIZE];
 &nbsp;&nbsp;&nbsp;memset(sync_job_info, 0, sizeof(sync_job_info));
 
+&nbsp;&nbsp;&nbsp;char* value = NULL;
+
 &nbsp;&nbsp;&nbsp;if (sync_job_name) 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(sync_job_name, &quot;OnDemand&quot;)) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bundle_get_str(sync_job_user_data, "option", &amp;value);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on_demand_sync_job_id = sync_job_id;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(sync_job_info, &quot;[%d] %s %s&quot;, sync_job_id, strdup(sync_job_name), strdup(displayed_option));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(sync_job_info, &quot;[%d] %s %s&quot;, sync_job_id, strdup(sync_job_name), strdup(value));
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[%d] %s %s&quot;, sync_job_id, sync_job_name, displayed_option);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (!strcmp(sync_job_name, &quot;Periodic&quot;)) 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bundle_get_str(sync_job_user_data, "interval", &amp;value);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;periodic_sync_job_id = sync_job_id;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(sync_job_info, &quot;[%d] %s %s&quot;, sync_job_id, strdup(sync_job_name), strdup(displayed_interval));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(sync_job_info, &quot;[%d] %s %s&quot;, sync_job_id, strdup(sync_job_name), strdup(value));
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[%d] %s %s&quot;, sync_job_id, sync_job_name, displayed_interval);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on_demand_sync_job_id = -1;
