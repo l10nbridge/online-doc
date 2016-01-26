@@ -83,7 +83,7 @@ Please read the <a href="../../../../../org.tizen.guides/html/web/tizen/applicat
 <td>void <a href="#SQLDataControlConsumer::insert">insert</a> (unsigned long reqId, <a href="#RowData">RowData</a> insertionData, optional <a href="#DataControlInsertSuccessCallback">DataControlInsertSuccessCallback</a>? successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback)<br>
     void <a href="#SQLDataControlConsumer::update">update</a> (unsigned long reqId, <a href="#RowData">RowData</a> updateData, DOMString where, optional <a href="#DataControlSuccessCallback">DataControlSuccessCallback</a>? successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback)<br>
     void <a href="#SQLDataControlConsumer::remove">remove</a> (unsigned long reqId, DOMString where, optional <a href="#DataControlSuccessCallback">DataControlSuccessCallback</a>? successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback)<br>
-    void <a href="#SQLDataControlConsumer::select">select</a> (unsigned long reqId, DOMString[] columns, DOMString where, <a href="#DataControlSelectSuccessCallback">DataControlSelectSuccessCallback</a> successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback, optional unsigned long? page, optional unsigned long? maxNumberPerPage)</td>
+    void <a href="#SQLDataControlConsumer::select">select</a> (unsigned long reqId, DOMString[] columns, DOMString where, <a href="#DataControlSelectSuccessCallback">DataControlSelectSuccessCallback</a> successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback, optional unsigned long? page, optional unsigned long? maxNumberPerPage, optional DOMString? order)</td>
 </tr>
 <tr>
 <td><a href="#MappedDataControlConsumer">MappedDataControlConsumer</a></td>
@@ -323,7 +323,7 @@ The string consists of one or more components, separated by a slash('/').
 
         void select(unsigned long reqId, DOMString[] columns, DOMString where,
                     <a href="#DataControlSelectSuccessCallback">DataControlSelectSuccessCallback</a> successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback,
-                    optional unsigned long? page, optional unsigned long? maxNumberPerPage) raises(<a href="tizen.html#WebAPIException">WebAPIException</a>);
+                    optional unsigned long? page, optional unsigned long? maxNumberPerPage, optional DOMString? order) raises(<a href="tizen.html#WebAPIException">WebAPIException</a>);
     };</pre>
 <p><span class="version">
             Since: </span>
@@ -605,9 +605,9 @@ The string consists of one or more components, separated by a slash('/').
 </dt>
 <dd>
 <div class="brief">
- Selects the specified columns to be queried. The result set of the specified columns is retrieved from a table owned by an SQL-type data control provider.
+ Selects the specified columns to be queried. The result set of the specified columns is retrieved from a table owned by an SQL-type data control provider. If <em>page</em> and <em>maxNumberPerPage</em> parameters are not specified and result set contains more than 20 rows, only first 20 rows are included in the result.
             </div>
-<div class="synopsis"><pre class="signature prettyprint">void select(unsigned long reqId, DOMString[] columns, DOMString where, <a href="#DataControlSelectSuccessCallback">DataControlSelectSuccessCallback</a> successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback, optional unsigned long? page, optional unsigned long? maxNumberPerPage);
+<div class="synopsis"><pre class="signature prettyprint">void select(unsigned long reqId, DOMString[] columns, DOMString where, <a href="#DataControlSelectSuccessCallback">DataControlSelectSuccessCallback</a> successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback, optional unsigned long? page, optional unsigned long? maxNumberPerPage, optional DOMString? order);
              </pre></div>
 <p><span class="version">
             Since: </span>
@@ -620,7 +620,10 @@ The string consists of one or more components, separated by a slash('/').
 <p><span class="privilege">
             Privilege: </span>
  http://tizen.org/privilege/datacontrol.consumer
-            </p>
+</p>
+<p><span class="remark"> Remark : </span>
+  <em>order</em> is supported since Tizen 3.0
+</p>
 <div class="parameters">
 <p><span class="param">Parameters:</span></p>
 <ul>
@@ -650,9 +653,13 @@ The string consists of one or more components, separated by a slash('/').
                 </li>
           <li class="param">
 <span class="name">maxNumberPerPage</span><span class="optional"> [optional]</span><span class="optional"> [nullable]</span>: 
- The maximum number of rows on a page.
-                </li>
-        </ul>
+ The maximum number of rows on a page. The maximum allowed value is equal to 1024.
+</li>
+<li class="param">
+<span class="name">order</span><span class="optional"> [optional]</span><span class="optional"> [nullable]</span>:
+The sorting order of the selected rows. <br>It is an SQL <var>ORDER BY</var> clause excluding the <var>ORDER BY</var> itself such as <var>column1, column2 ASC</var>. If it is set to null, the order in which the rows are returned is undefined.
+</li>
+</ul>
 </div>
 <div class="exceptionlist">
 <p><span class="except">Exceptions:</span></p>
@@ -678,14 +685,17 @@ The string consists of one or more components, separated by a slash('/').
 <div class="example">
 <span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> function getValueSuccessCB(result, id)
  {
+     console.log("getValueSuccessCB result.length: " + result.length);
      var length = result.length;
      for (var i = 0; i &lt; length; i++)
      {
+         var rowData = "| ";
          var j = 0;
          for (j = 0; j &lt; result[i].columns.length; j++)
          {
-             console.log("column: " + result[i].columns[j] + ", value: " + result[i].values[j]);
+             rowData += "column: " + result[i].columns[j] + ", value: " + result[i].values[j] + " | ";
          }
+         console.log(rowData);
      }
  }
 
@@ -695,11 +705,18 @@ The string consists of one or more components, separated by a slash('/').
  }
 
  try {
-     // Defines globalReqId before
+     // globalSQLConsumer and globalReqId should be defined before.
      // Increases globalReqId for uniqueness
-     var array = ["WORD", "WORD_DESC" ];
-     globalReqId++;
-     globalSQLConsumer.select(globalReqId, array, "WORD='tizen1'", getValueSuccessCB, errorcb);
+     var columns = ["WORD", "WORD_DESC" ];
+     var whereClause = "1";
+     console.log("----- Calling for ascending order -----");
+     globalSQLConsumer.select(globalReqId, columns, whereClause, getValueSuccessCB, errorcb,
+              null, null, "WORD_DESC ASC");
+     setTimeout( function() {
+        console.log("----- Calling descending order -----");
+        globalSQLConsumer.select(globalReqId, columns, whereClause, getValueSuccessCB, errorcb,
+                  null, null, "WORD_DESC DESC");
+     }, 1000);
  }
  catch (err) {
      console.log (err.name +": " + err.message);
@@ -1405,7 +1422,7 @@ The string consists of one or more components, separated by a slash('/').
 
         void select(unsigned long reqId, DOMString[] columns, DOMString where,
                     <a href="#DataControlSelectSuccessCallback">DataControlSelectSuccessCallback</a> successCallback, optional <a href="#DataControlErrorCallback">DataControlErrorCallback</a>? errorCallback,
-                    optional unsigned long? page, optional unsigned long? maxNumberPerPage) raises(<a href="tizen.html#WebAPIException">WebAPIException</a>);
+                    optional unsigned long? page, optional unsigned long? maxNumberPerPage, optional DOMString? order) raises(<a href="tizen.html#WebAPIException">WebAPIException</a>);
     };
 
     [NoInterfaceObject] interface MappedDataControlConsumer : <a href="#DataControlConsumerObject">DataControlConsumerObject</a> {
