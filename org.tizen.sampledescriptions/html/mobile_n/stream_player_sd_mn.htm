@@ -36,10 +36,9 @@
 
 <p>The application user interface consists of a single view divided into following sections:</p>
 	<ul>
-		<li>Toolbar: Allows you to choose a file to be played, display information about the file, or capture a screenshot from the played video.</li>
-		<li>Display area: The played video or album art of a music file is displayed here. Note that if the music file does not provide any album art, a musical note image is displayed instead.</li>
-		<li>Option area: Allows you to set the volume level, and select the mute option and looping mode.</li>
-		<li>Playback options area: Allows you to set the play, pause and stop options. You can also use the seek and playback rate options.</li>
+		<li>Toolbar area - Allows the user to choose a file to be played, display information about the file or capture a screenshot from the played video;</li>
+		<li>Playback options area - Allows the user to set the play, pause and stop options as well as set the volume level, mute mode and looping mode;</li>
+		<li>Display / Album art area - The played video or album art of a music file is displayed here. Note that if the music file does not provide any album art, a musical note image is displayed instead.</li>
 	</ul>
 
 
@@ -85,24 +84,27 @@ view_info_s
 &nbsp;&nbsp;&nbsp;Evas_Object *conform;
 &nbsp;&nbsp;&nbsp;Evas_Object *grid;
 &nbsp;&nbsp;&nbsp;Evas_Object *button_panel;
+&nbsp;&nbsp;&nbsp;Evas_Object *bottom_panel;
 &nbsp;&nbsp;&nbsp;Evas_Object *pause_play_btn;
 &nbsp;&nbsp;&nbsp;Evas_Object *toolbar;
 &nbsp;&nbsp;&nbsp;Evas_Object *progress_panel;
 &nbsp;&nbsp;&nbsp;Evas_Object *seek_slider;
-&nbsp;&nbsp;&nbsp;Evas_Object *playback_rate_slider;
-&nbsp;&nbsp;&nbsp;Evas_Object *buffer_progress_bar;
-&nbsp;&nbsp;&nbsp;Evas_Object *option_panel;
-&nbsp;&nbsp;&nbsp;Evas_Object *mute_check;
+&nbsp;&nbsp;&nbsp;Evas_Object *buffer_progress_label;
+&nbsp;&nbsp;&nbsp;Evas_Object *sound_panel;
+&nbsp;&nbsp;&nbsp;Evas_Object *volume_slider;
+&nbsp;&nbsp;&nbsp;Evas_Object *mute_toggle;
 &nbsp;&nbsp;&nbsp;Evas_Object *display;
 &nbsp;&nbsp;&nbsp;Evas_Object *album_art;
 &nbsp;&nbsp;&nbsp;Evas_Object *current_popup;
 &nbsp;&nbsp;&nbsp;Eina_Bool play_btn_play_mode_on;
+&nbsp;&nbsp;&nbsp;Eina_Bool sound_panel_visible;
 &nbsp;&nbsp;&nbsp;int found_storage_id;
 &nbsp;&nbsp;&nbsp;Eina_Stringshare *video_path;
 &nbsp;&nbsp;&nbsp;Eina_Stringshare *audio_path;
 &nbsp;&nbsp;&nbsp;Eina_Stringshare *stream_uri;
 &nbsp;&nbsp;&nbsp;Eina_Bool use_stream_album_art;
 &nbsp;&nbsp;&nbsp;Ecore_Timer *progress_timer;
+&nbsp;&nbsp;&nbsp;Ecore_Timer *buffer_progress_display_timer;
 };
 </pre>
 
@@ -172,9 +174,12 @@ main(int argc, char *argv[])
 
 <h3 id="view">View</h3>
 
-<p>The entire application UI is implemented using Elementary components and containers. As mentioned above, the application layout is divided into the toolbar, display area, playback options area, and option area sections.</p>
-
-<p>All the sections (except for the display) are implemented using an Elementary <span style="font-family: Courier New,Courier,monospace">Box</span> container, filled with Elementary components. The boxes are then packed into a <span style="font-family: Courier New,Courier,monospace">grid</span> container.</p>
+<p>The entire application's GUI is implemented using Elementary widgets and containers. The application's layout structure is shown in Figure 2. As mentioned above, the layout is divided into the following sections:</p>
+<ul>
+	<li>Toolbar section</li>
+	<li>Display section</li>
+	<li>Playback options section</li>
+</ul>
 
 
 <table>
@@ -187,50 +192,54 @@ main(int argc, char *argv[])
 		</tr>
 
 		<tr>
-			<td>The toolbar section is created using the <span style="font-family: Courier New,Courier,monospace">__create_toolbar()</span> function. 
-			<p>The toolbar contains 5 buttons, created using the <span style="font-family: Courier New,Courier,monospace">__create_button()</span> function. The buttons provide you with access to both video and audio files as well as the ability to stream online files. The last 2 buttons allow the user to capture a screenshot of the displayed video and display information about current file.</p></td>
+			<td>The toolbar section is created using the <span style="font-family: Courier New,Courier,monospace">__create_toolbar()</span> function. The created object is an Elm_Toolbar with 5 appended items (see the Figure on the right), each with a different callback function assigned to be invoked when the item is tapped. The functions provide the user with access to both video and audio files as well as the ability to stream online files. The last two items allow the user to capture a screenshot of the displayed video and display information about current file.</td>
 			<td>
 				<pre class="prettyprint">
-static Eina_Bool 
-__create_toolbar(void)
+static Eina_Bool __create_toolbar(void)
 {
-&nbsp;&nbsp;&nbsp;s_info.toolbar = elm_box_add(s_info.grid);
-&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;elm_box_padding_set(s_info.toolbar, 10, 0);
-&nbsp;&nbsp;&nbsp;elm_box_horizontal_set(s_info.toolbar, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;s_info.toolbar = elm_toolbar_add(s_info.grid);
+&nbsp;&nbsp;&nbsp;if (!s_info.toolbar)
+&nbsp;&nbsp;&nbsp;//Error handling
 
-&nbsp;&nbsp;&nbsp;elm_grid_pack(s_info.grid,  s_info.toolbar,
+&nbsp;&nbsp;&nbsp;elm_toolbar_select_mode_set(s_info.toolbar, ELM_OBJECT_SELECT_MODE_NONE);
+&nbsp;&nbsp;&nbsp;elm_toolbar_shrink_mode_set(s_info.toolbar, ELM_TOOLBAR_SHRINK_EXPAND);
+&nbsp;&nbsp;&nbsp;elm_toolbar_transverse_expanded_set(s_info.toolbar, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(s_info.toolbar,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+&nbsp;&nbsp;&nbsp;elm_grid_pack(s_info.grid, s_info.toolbar,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TOOLBAR_GEOMETRY_X, TOOLBAR_GEOMETRY_Y,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TOOLBAR_GEOMETRY_W, TOOLBAR_GEOMETRY_H);
 
-&nbsp;&nbsp;&nbsp;if (!__create_button(s_info.toolbar,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EINA_FALSE,  0.1, EVAS_HINT_EXPAND,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;AUDIO_FILE_PATH, __toolbar_file_open_cb, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void*)EINA_FALSE))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;if (!__create_button(s_info.toolbar,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EINA_FALSE,  0.1, EVAS_HINT_EXPAND,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VIDEO_FILE_PATH, __toolbar_file_open_cb, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void*)EINA_TRUE))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;if (!__create_uri_entry())
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;if (!__create_button(s_info.toolbar, EINA_FALSE, 0.1, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_EXPAND, SCREENSHOT_ICON_FILE, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__screen_capture_btn_clicked_cb, NULL))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;if (!__create_button(s_info.toolbar, EINA_FALSE, 0.1, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_EXPAND, INFO_ICON_FILE, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__info_display_btn_clicked_cb, NULL))
+&nbsp;&nbsp;&nbsp;if (!__append_item(s_info.toolbar, AUDIO_FILE_PATH, ITEM_NAME_AUDIO_FILE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__toolbar_file_open_cb, (void*)EINA_FALSE) ||
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!__append_item(s_info.toolbar, VIDEO_FILE_PATH, ITEM_NAME_VIDEO_FILE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__toolbar_file_open_cb, (void*)EINA_TRUE) ||
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!__append_item(s_info.toolbar, URL_ICON_FILE, ITEM_NAME_ONLINE_FILE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__url_popup_display_btn_clicked_cb, NULL) ||
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!__append_item(s_info.toolbar, SCREENSHOT_ICON_FILE, ITEM_NAME_CAPTURE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__screen_capture_btn_clicked_cb, NULL) ||
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;!__append_item(s_info.toolbar, INFO_ICON_FILE, ITEM_NAME_INFO,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__info_display_btn_clicked_cb, NULL))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
 
 &nbsp;&nbsp;&nbsp;evas_object_show(s_info.toolbar);
 
 &nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+
+static Eina_Bool __append_item(Evas_Object *toolbar, char *icon_file, char *label,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Smart_Cb func, const void *data)
+{
+&nbsp;&nbsp;&nbsp;Eina_Bool res = EINA_FALSE;
+&nbsp;&nbsp;&nbsp;Eina_Stringshare *icon_path = NULL;
+
+&nbsp;&nbsp;&nbsp;icon_path = __get_app_resource(icon_file);
+
+&nbsp;&nbsp;&nbsp;res = (elm_toolbar_item_append(toolbar, icon_path, label, func, data) != NULL);
+&nbsp;&nbsp;&nbsp;eina_stringshare_del(icon_path);
+
+&nbsp;&nbsp;&nbsp;return res;
 }
 </pre>
 			</td>
@@ -300,21 +309,22 @@ __add_album_art(void)
 		</tr>
 
 		<tr id="playback-options-section-layout">
-			<td>The playback options area section is created from the following objects:
+			<td>The playback options section is created from the following objects:
 				<ul>
-					<li><span style="font-family: Courier New,Courier,monospace">Elm_Slider</span>: Used to set the seek position.</li>
-					<li><span style="font-family: Courier New,Courier,monospace">Elm_Button</span>: Used to stop the playback.</li>
-					<li><span style="font-family: Courier New,Courier,monospace">Elm_Button</span>: Used to toggle the pause mode.</li>
+					<li>Elm_Slider - used to set seek position;</li>
+					<li>custom push buttons - used to pause/stop/resume the playback. A custom button is created with <span style="font-family: Courier New,Courier,monospace">__create_button()</span> function. The custom button's layout defines its look and behaviour (a specified icon, highlight on tap);</li>
+					<li>custom toggle button - used to toggle mute mode and loop mode created with <span style="font-family: Courier New,Courier,monospace">__create_toggle()</span> function. Apart from defining its look, the layout also stores the toggle's on/off state,</li>
+					<li>custom layout - used for sound panel implementation (see the next row).</li>
 				</ul>
-				<p>The Player API does not provide a callback to be invoked when playback progress changes. In order to update the progress slider, an <span style="font-family: Courier New,Courier,monospace">Ecore_Timer</span> is used. The current playback position is read using the <span style="font-family: Courier New,Courier,monospace">player_model_get_progress()</span> function. See <a href="#model-playback-control">Playback Control</a> for details.</p>
+
+				<p>The Player API does not provide a callback to be invoked when playback progress changes. In order to update the progress slider, an <span style="font-family: Courier New,Courier,monospace">Ecore_Timer</span> is used. The current playback position is read using the <span style="font-family: Courier New,Courier,monospace">player_model_get_progress()</span> function. Check <a href="#model-playback-control">playback-controls</a> for details.</p>
 			</td>
 			<td>
-			
-	
 				<pre class="prettyprint">
-static Eina_Bool 
-__create_button_panel(void)
+static Eina_Bool __create_button_panel(void)
 {
+&nbsp;&nbsp;&nbsp;Evas_Object *loop_toggle = NULL;
+
 &nbsp;&nbsp;&nbsp;s_info.button_panel = elm_box_add(s_info.grid);
 &nbsp;&nbsp;&nbsp;// Error handling
 
@@ -328,19 +338,51 @@ __create_button_panel(void)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BUTTON_PANEL_GEOMETRY_X, BUTTON_PANEL_GEOMETRY_Y,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BUTTON_PANEL_GEOMETRY_W, BUTTON_PANEL_GEOMETRY_H);
 
-&nbsp;&nbsp;&nbsp;if (!__create_button(s_info.button_panel,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EINA_TRUE, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;BTN_ICON_STOP, __button_stop_clicked_cb, NULL))
+&nbsp;&nbsp;&nbsp;if (!__create_button(s_info.button_panel, SIGNAL_SET_SOUND_ICON,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__show_sound_panel, NULL))
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
 
-&nbsp;&nbsp;&nbsp;s_info.pause_play_btn = __create_button(s_info.button_panel,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EINA_TRUE, EVAS_HINT_EXPAND, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_EXPAND, BTN_ICON_PLAY, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__button_pause_play_clicked_cb, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
-&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;if (!__create_button(s_info.button_panel, SIGNAL_SET_STOP_ICON,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__button_stop_clicked_cb, NULL))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;s_info.pause_play_btn = __create_button(s_info.button_panel, SIGNAL_SET_PLAY_ICON,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__button_pause_play_clicked_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (!s_info.pause_play_btn)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;loop_toggle = __create_toggle(s_info.button_panel, EINA_FALSE, LOOP_ICON_FILE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__playback_looping_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(s_info.button_panel, loop_toggle);
+
 &nbsp;&nbsp;&nbsp;evas_object_show(s_info.button_panel);
+
+&nbsp;&nbsp;&nbsp;return EINA_TRUE;
+}
+
+static Eina_Bool __add_seek_slider(void)
+{
+&nbsp;&nbsp;&nbsp;if (!s_info.progress_panel)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;s_info.seek_slider = elm_slider_add(s_info.progress_panel);
+&nbsp;&nbsp;&nbsp;if (!s_info.seek_slider)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(s_info.seek_slider,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(s_info.seek_slider,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+&nbsp;&nbsp;&nbsp;elm_slider_step_set(s_info.seek_slider, 1.0);
+
+&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(s_info.seek_slider, "changed",
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__seek_slider_changed_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;elm_box_pack_end(s_info.progress_panel, s_info.seek_slider);
+&nbsp;&nbsp;&nbsp;evas_object_show(s_info.seek_slider);
 
 &nbsp;&nbsp;&nbsp;return EINA_TRUE;
 }
@@ -357,46 +399,49 @@ __create_button_panel(void)
 		</tr>
 
 		<tr>
-			<td>The option area section is created from the following objects:
-				<ul>
-					<li><span style="font-family: Courier New,Courier,monospace">Elm_Slider</span>: Used to set the volume level.</li>
-					<li><span style="font-family: Courier New,Courier,monospace">Elm_Checkbox</span>: Used to set the mute mode.</li>
-					<li><span style="font-family: Courier New,Courier,monospace">Elm_Checkbox</span>: Used to set the loop mode.</li>
-				</ul>
+			<td><p>The sound panel is a custom layout containing an Elm_Slider for controlling the playback's volume and a custom toggle button for switching the mute mode on/off.</p>
 			</td>
 			<td>
 				<pre class="prettyprint">
-static Eina_Bool 
-__add_option_panel(void)
+static Eina_Bool __add_sound_panel(void)
 {
-&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;Eina_Stringshare *edj_path = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *mute_toggle = NULL;
+&nbsp;&nbsp;&nbsp;Eina_Bool res = EINA_FALSE;
 
-&nbsp;&nbsp;&nbsp;s_info.option_panel = elm_box_add(s_info.grid);
-&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;s_info.sound_panel = elm_layout_add(s_info.grid);
+&nbsp;&nbsp;&nbsp;if (!s_info.sound_panel)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Error handling
 
-&nbsp;&nbsp;&nbsp;elm_grid_pack(s_info.grid, s_info.option_panel,
+&nbsp;&nbsp;&nbsp;edj_path = __get_app_resource(EDJ_FILE_SOUND_PANEL);
+&nbsp;&nbsp;&nbsp;res = elm_layout_file_set(s_info.sound_panel, edj_path, EDJ_GROUP_MAIN);
+&nbsp;&nbsp;&nbsp;eina_stringshare_del(edj_path);
+&nbsp;&nbsp;&nbsp;if (!res)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Error handling
+
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(s_info.sound_panel,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(s_info.sound_panel,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EVAS_HINT_FILL, EVAS_HINT_FILL);
+
+&nbsp;&nbsp;&nbsp;elm_grid_pack(s_info.grid, s_info.sound_panel,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SOUND_PANEL_GEOMETRY_X, SOUND_PANEL_GEOMETRY_Y,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SOUND_PANEL_GEOMETRY_W, SOUND_PANEL_GEOMETRY_H);
 
-&nbsp;&nbsp;&nbsp;if (!__add_option_panel_icon(SOUND_ICON_FILE))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;s_info.volume_slider = __create_volume_slider(s_info.sound_panel);
+&nbsp;&nbsp;&nbsp;if (!s_info.volume_slider)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Error handling
 
-&nbsp;&nbsp;&nbsp;if (!__add_sound_slider())
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;
-&nbsp;&nbsp;&nbsp;if (!__add_option_panel_icon(MUTE_ICON_FILE))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(s_info.sound_panel, EDJ_SOUND_PANEL_PART_SLIDER,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.volume_slider);
 
-&nbsp;&nbsp;&nbsp;s_info.mute_check = __add_option_panel_check(__sound_mute_check_changed_cb);
-&nbsp;&nbsp;&nbsp;// Error handling
+&nbsp;&nbsp;&nbsp;mute_toggle = __create_toggle(s_info.sound_panel, EINA_TRUE, MUTE_ICON_FILE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__sound_mute_toggle_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;if (!mute_toggle)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//Error handling
 
-&nbsp;&nbsp;&nbsp;if (!__add_option_panel_icon(LOOP_ICON_FILE))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;if (!__add_option_panel_check(__playback_looping_changed_cb))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-
-&nbsp;&nbsp;&nbsp;evas_object_show(s_info.option_panel);
+&nbsp;&nbsp;&nbsp;elm_object_part_content_set(s_info.sound_panel, EDJ_SOUND_PANEL_PART_TOGGLE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mute_toggle);
 
 &nbsp;&nbsp;&nbsp;return EINA_TRUE;
 }
