@@ -568,11 +568,9 @@ The sent messages will be ignored without any notice, unless the target applicat
                 </li>
           <li class="param">
 <span class="name">localMessagePort</span><span class="optional"> [optional]</span><span class="optional"> [nullable]</span>: 
- <em>LocalMessagePort<em> object that gives local message port of the current application
-It can be used to receive reply messages from the other end of the message port.
-The order of items in this array is not guaranteed to be preserved during data transfer, and values of <em>key</em> within this
+ <em>LocalMessagePort</em> object that gives local message port of the current application<br>It can be used to receive reply messages from the other end of the message port.<br>The order of items in this array is not guaranteed to be preserved during data transfer, and values of <em>key</em> within this
 array must not be duplicated or empty.
-</em></em>                </li>
+                </li>
         </ul>
 </div>
 <div class="exceptionlist">
@@ -594,22 +592,29 @@ array must not be duplicated or empty.
 </li></ul>
         </div>
 <div class="example">
-<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> // Sends message
- var localMsgPort = tizen.messageport.requestLocalMessagePort('MessagePortA');
- // Let's assume that the aplication with id '6xaeuflskd.App1' is installed
- var remoteMsgPort = tizen.messageport.requestRemoteMessagePort('6xaeuflskd.App1', 'MessagePortB');
- localMsgPort.addMessagePortListener(function(items, remoteport) {
-   // ...
-   if(remoteport !== null) {
-     remoteport.sendMessage([{key:'RESULT', value:'OK'}]);
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var currApp = tizen.application.getCurrentApplication();
+ var currAppId = currApp.appInfo.id;
+ function onListInstalledApps(appsInfo) {
+   if (appsInfo[0].id != currAppId) {
+     // Sends message
+     var localMsgPort = tizen.messageport.requestLocalMessagePort('MessagePortA');
+     var remoteMsgPort = tizen.messageport.requestRemoteMessagePort(appsInfo[0].id, 'MessagePortB');
+     localMsgPort.addMessagePortListener(function(items, remoteport) {
+       // ...
+       if(remoteport !== null) {
+         remoteport.sendMessage([{key:'RESULT', value:'OK'}]);
+       }
+     });
+     remoteMsgPort.sendMessage(
+       [
+         { key:'CMD', value:'openWindow' },
+         { key:'OPTION', value:'bx' }
+       ]
+       , localMsgPort);
    }
- });
- remoteMsgPort.sendMessage(
-   [
-     { key:'CMD', value:'openWindow' },
-     { key:'OPTION', value:'bx' }
-   ]
-   , localMsgPort);
+ }
+
+ tizen.application.getAppsInfo(onListInstalledApps);
  </pre>
 </div>
 </dd>
@@ -670,6 +675,16 @@ array must not be duplicated or empty.
  RemoteMessagePort port that can be used to reply for the received message
                 </li>
         </ul>
+</div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> // MessagePortCallback instance
+ function onreceived(data, remoteMsgPort) {
+   console.log('Received data to \'' + remoteMsgPort.messagePortName + '\'');
+ }
+
+ var localMsgPort = tizen.messageport.requestLocalMessagePort('MessagePortA');
+ var watchId = localMsgPort.addMessagePortListener(onreceived);
+ </pre>
 </div>
 </dd>
 </dl>

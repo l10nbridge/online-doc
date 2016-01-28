@@ -1268,15 +1268,15 @@ applications on a device.
         </div>
 <div class="example">
 <span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var appEventCallback = {
-    oninstalled: function(appInfo) {
-       console.log('The application ' + appInfo.name + ' is installed');
-    },
-    onupdated: function(appInfo) {
-       console.log('The application ' + appInfo.name + ' is updated');
-    },
-    onuninstalled: function(appid) {
-       console.log('The application ' + appid + ' is uninstalled');
-    }
+   oninstalled: function(appInfo) {
+     console.log('The application ' + appInfo.name + ' is installed');
+   },
+   onupdated: function(appInfo) {
+     console.log('The application ' + appInfo.name + ' is updated');
+   },
+   onuninstalled: function(appid) {
+     console.log('The application ' + appid + ' is uninstalled');
+   }
  };
  var watchId = tizen.application.addAppInfoEventListener(appEventCallback);
  tizen.application.removeAppInfoEventListener(watchId);
@@ -1465,11 +1465,11 @@ System events do not require an application identifier to be specified. Therefor
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">event</span>:
+<span class="name">event</span>: 
  Event which will invoke the callback
                 </li>
           <li class="param">
-<span class="name">callback</span>:
+<span class="name">callback</span>: 
  Callback function to be invoked when the event occurs
                 </li>
         </ul>
@@ -1493,12 +1493,25 @@ System events do not require an application identifier to be specified. Therefor
 <div class="example">
 <span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var app = tizen.application.getCurrentApplication();
 
- // for user events: sender's application ID and event name must be provided by using a dictionary
- // Let's assume that there is another application installed with id "a234567890.TestWidget"
- var watchId = app.addEventListener({"appId": "a234567890.TestWidget", "name": "custom_user_event"}, function(event, data) {
-   console.log("Data: " + JSON.stringify(data));
-   // do something
- });
+ // for user events: sender's application ID  and event name must be provided by using a dictionary
+ // Let's assume that at least two applications are installed
+ function onListInstalledApps(appsInfo) {
+   var appId = null;
+
+   if (appsInfo.length &gt; 0 &amp;&amp; app.appInfo.id != appsInfo[0].id) {
+     appId = appsInfo[0].id;
+   } else if (appsInfo.length &gt; 1) {
+     appId = appsInfo[1].id;
+   }
+
+   if (appId) {
+     var watchId = app.addEventListener({"appId": appId, "name": "custom_user_event"}, function(event, data) {
+       console.log("Data: " + JSON.stringify(data));
+       // do something
+     });
+   }
+ }
+ tizen.application.getAppsInfo(onListInstalledApps);
  </pre>
 </div>
 </dd>
@@ -1519,7 +1532,7 @@ System events do not require an application identifier to be specified. Therefor
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">watchId</span>:
+<span class="name">watchId</span>: 
  Listener identifier
                 </li>
         </ul>
@@ -1532,16 +1545,30 @@ System events do not require an application identifier to be specified. Therefor
 </li></ul>
         </div>
 <div class="example">
-<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var watchId, app = tizen.application.getCurrentApplication();
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var app = tizen.application.getCurrentApplication();
 
- function eventListenerCallback(event, data) {
-   console.log("Data: " + JSON.stringify(data));
-   // do something and then remove the listener
-   app.removeEventListener(watchId);
+ // for user events: sender's application ID  and event name must be provided by using a dictionary
+ // Let's assume that at least two applications are installed
+ function onListInstalledApps(appsInfo) {
+   var appId = null;
+   var watchId = null;
+
+   if (appsInfo.length &gt; 0 &amp;&amp; app.appInfo.id != appsInfo[0].id) {
+     appId = appsInfo[0].id;
+   } else if (appsInfo.length &gt; 1) {
+     appId = appsInfo[1].id;
+   }
+
+   if (appId) {
+     watchId = app.addEventListener({"appId": appId, "name": "custom_user_event"}, function(event, data) {
+       if (watchId) {
+         app.removeEventListener(watchId);
+         watchId = null;
+       }
+     });
+   }
  }
-
- // Let's assume that there is another application installed with id "a234567890.TestWidget"
- watchId = app.addEventListener({"appId": "a234567890.TestWidget", "name": "custom_user_event"}, eventListenerCallback);
+ tizen.application.getAppsInfo(onListInstalledApps);
  </pre>
 </div>
 </dd>
@@ -1567,11 +1594,11 @@ An application can listen to events from other applications. However, it can onl
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">event</span>:
+<span class="name">event</span>: 
  Event to broadcast
                 </li>
           <li class="param">
-<span class="name">data</span>:
+<span class="name">data</span>: 
  User defined event data to broadcast
                 </li>
         </ul>
@@ -1624,11 +1651,11 @@ An application can listen to events from other applications. However, it can onl
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">event</span>:
+<span class="name">event</span>: 
  Trusted event to broadcast
                 </li>
           <li class="param">
-<span class="name">data</span>:
+<span class="name">data</span>: 
  User defined trusted event data to broadcast
                 </li>
         </ul>
@@ -2581,11 +2608,11 @@ Platform modules will be able to broadcast system events in a future Tizen relea
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">event</span>:
+<span class="name">event</span>: 
  Broadcasted event which invokes this callback
                 </li>
           <li class="param">
-<span class="name">data</span>:
+<span class="name">data</span>: 
  Broadcasted event data
                 </li>
         </ul>

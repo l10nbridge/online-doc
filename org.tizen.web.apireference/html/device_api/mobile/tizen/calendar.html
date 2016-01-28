@@ -2798,7 +2798,7 @@ The <em>CalendarItem </em>object returned by the <em>clone()</em> method will ha
                   dueDate: new tizen.TZDate(2011, 5, 30, 10, 0),
                   completedDate: new tizen.TZDate(2011, 4, 30, 10, 0),
                   progress: "0" };
-
+ 
  var ev = new tizen.CalendarTask(taskInit);
  </pre>
 </div>
@@ -2936,11 +2936,11 @@ The default value is <var>0</var>, implies that the task has not been started.
 </div>
 <div class="example">
 <span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var eventInit = { description: "HTML5 Introduction",
-                  summary: "HTML5 Webinar",
-                  startDate: new tizen.TZDate(2011, 3, 30, 10, 0),
-                  duration: new tizen.TimeDuration(1, "HOURS"),
-                  location: "Huesca" };
-
+                   summary: "HTML5 Webinar",
+                   startDate: new tizen.TZDate(2011, 3, 30, 10, 0),
+                   duration: new tizen.TimeDuration(1, "HOURS"),
+                   location: "Huesca" };
+ 
  var ev = new tizen.CalendarEvent(eventInit);
  </pre>
 </div>
@@ -3657,13 +3657,11 @@ By default, this attribute is set to <var>null</var>.
  1.0
           </p>
 <div class="example">
-<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint">  // Creates a sound alarm at the specified time
-  var alarm = new tizen.CalendarAlarm(new tizen.TZDate(2011, 3, 30, 10, 0), "SOUND");
- </pre>
-</div>
-<div class="example">
-<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint">  // Creates a sound alarm 30 minutes before the event's start time.
-  var alarm = new tizen.CalendarAlarm(new tizen.TimeDuration(30, "MINS"), "SOUND");
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> // Creates a sound alarm at the specified time
+ var alarm1 = new tizen.CalendarAlarm(new tizen.TZDate(2011, 3, 30, 10, 0), "SOUND");
+
+ // Creates a sound alarm before an event starts
+ var alarm2 = new tizen.CalendarAlarm(new tizen.TimeDuration(1, "MINS"), "SOUND");
  </pre>
 </div>
 <div class="constructors">
@@ -3780,6 +3778,31 @@ The default value is an empty string.
                 </li>
         </ul>
 </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint">  // eventId should be set to ID of event obtained with the find function.
+  var eventId;
+  // Defines the error callback.
+  function errorCallback(response) {
+    console.log( 'The following error occurred: ' +  response.name);
+  }
+
+  // CalendarEventArraySuccessCallback instance
+  function calendarEventArraySuccessCB(events) {
+    console.log(events.length + ' event instances were returned.');
+  }
+
+  var calendar = tizen.calendar.getDefaultCalendar();
+  var event = calendar.get(eventId);
+
+  if (event.recurrenceRule != null) {
+    // This is a recurring event. Expands all the instances during August 2011.
+    event.expandRecurrence(new tizen.TZDate(2011, 7, 1),
+                          new tizen.TZDate(2011, 7, 31),
+                          calendarEventArraySuccessCB,
+                          errorCallback);
+  }
+ </pre>
+</div>
 </dd>
 </dl>
 </div>
@@ -3822,6 +3845,29 @@ The default value is an empty string.
                 </li>
         </ul>
 </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint">  // Defines the error callback.
+  function errorCallback(response) {
+    console.log( 'The following error occurred: ' +  response.name);
+  }
+
+  // CalendarItemArraySuccessCallback instance
+  function calendarItemArraySuccessCB(events) {
+    console.log("Successfully added " + events.length + " events!");
+  }
+
+  // Gets the default calendar.
+  var calendar = tizen.calendar.getDefaultCalendar("EVENT");
+
+  var ev = new tizen.CalendarEvent({description:'HTML5 Introduction',
+                                   summary:'HTML5 Webinar ',
+                                   startDate: new tizen.TZDate(2011, 3, 30, 10, 0),
+                                   duration: new tizen.TimeDuration(1, "HOURS"),
+                                   location:'Huesca'});
+
+  calendar.addBatch([ev],  calendarItemArraySuccessCB, errorCallback);
+ </pre>
+</div>
 </dd>
 </dl>
 </div>
@@ -3863,6 +3909,47 @@ The default value is an empty string.
  Array of <em>Calendar </em>objects
                 </li>
         </ul>
+</div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint">  var calendar;
+
+  function eventFoundCallback(events) {
+    // The event has been successfully found.
+    // Changes the summary.
+    events[0].summary = 'HTML6 Webinar';
+    calendar.update(events[0]);
+    console.log('First event was updated!');
+  }
+
+  // Defines the error callback for all the asynchronous calls.
+  function errorCallback(response) {
+    console.log( 'The following error occurred: ' +  response.name);
+  }
+
+  // CalendarArraySuccessCallback instance
+  function calendarArraySuccessCB(calendars) {
+    if(calendars.length &gt; 0) {
+      calendar = calendars[0];
+      console.log('The calendar id is ' + calendar.id + ' and name ' + calendar.name);
+
+      var ev = new tizen.CalendarEvent({description:'HTML5 Introduction',
+                                         summary:'HTML5 Webinar',
+                                         startDate: new tizen.TZDate(2011, 3, 30, 10, 0),
+                                         duration: new tizen.TimeDuration(1, "HOURS"),
+                                         location:'Huesca'});
+      calendar.add(ev);
+
+      // The event has been successfully added.
+      // Checks whether the added event can be retrieved from the calendar.
+      // If the calendar was empty, only the item added through add() should be returned.
+      var filter = new tizen.AttributeFilter('summary', 'CONTAINS', 'HTML5');
+      calendar.find(eventFoundCallback, errorCallback, filter);
+    }
+  }
+
+  // Gets a list of available calendars.
+  tizen.calendar.getCalendars("EVENT",  calendarArraySuccessCB, errorCallback);
+ </pre>
 </div>
 </dd>
 </dl>
@@ -3909,6 +3996,32 @@ The default value is an empty string.
                 </li>
         </ul>
 </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint">  var watcherId = 0; // watcher identifier
+  var calendar; // This example assumes calendar is initialized
+
+  var watcher = {
+    onitemsadded: function(items) {
+      console.log('New item ' + items[0].id + ' added');
+    },
+    onitemsupdated: function(items) {
+      // ...
+    },
+    onitemsremoved: function(ids) {
+      // ...
+    }
+  };
+
+  // Registers to be notified when the calendar changes.
+  watcherId = calendar.addChangeListener(watcher);
+
+  var ev = new tizen.CalendarEvent({description:'HTML5 Introduction',
+                                    summary:'HTML5 Webinar ',
+                                    startDate: new tizen.TZDate(2011, 3, 30, 10, 0),
+                                    duration: new tizen.TimeDuration(1, "HOURS"),
+                                    location:'Huesca'});
+ </pre>
+</div>
 </dd>
 <dt class="method" id="CalendarChangeCallback::onitemsupdated">
 <a class="backward-compatibility-anchor" name="::Calendar::CalendarChangeCallback::onitemsupdated"></a><code><b><span class="methodName">onitemsupdated</span></b></code>
@@ -3932,6 +4045,34 @@ The default value is an empty string.
                 </li>
         </ul>
 </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint">  var watcherId = 0; // watcher identifier
+  var calendar; // This example assumes calendar is initialized
+
+  var watcher = {
+    onitemsadded: function(items) {
+      if (calendar.update) {
+        items[0].location = 'New York';
+        calendar.update(items[0]);
+      }
+    },
+    onitemsupdated: function(items) {
+      console.log('Item updated');
+    },
+    onitemsremoved: function(ids) {
+      // ...
+    }
+  };
+
+  // Registers to be notified when the calendar changes.
+  watcherId = calendar.addChangeListener(watcher);
+  var ev = new tizen.CalendarEvent({description:'HTML5 Introduction',
+                                    summary:'HTML5 Webinar ',
+                                    startDate: new tizen.TZDate(2011, 3, 30, 10, 0),
+                                    duration: new tizen.TimeDuration(1, "HOURS"),
+                                    location:'Huesca'});
+ </pre>
+</div>
 </dd>
 <dt class="method" id="CalendarChangeCallback::onitemsremoved">
 <a class="backward-compatibility-anchor" name="::Calendar::CalendarChangeCallback::onitemsremoved"></a><code><b><span class="methodName">onitemsremoved</span></b></code>
@@ -3954,6 +4095,34 @@ The default value is an empty string.
  List of identifiers for the items that were removed
                 </li>
         </ul>
+</div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint">  var watcherId = 0; // watcher identifier
+  var calendar; // This example assumes calendar is initialized
+
+  var watcher = {
+    onitemsadded: function(items) {
+      if (calendar.remove) {
+        calendar.remove(items[0].id);
+      }
+    },
+    onitemsupdated: function(items) {
+      // ...
+    },
+    onitemsremoved: function(ids) {
+      console.log('Item removed');
+    }
+  };
+
+  // Registers to be notified when the calendar changes.
+  watcherId = calendar.addChangeListener(watcher);
+
+  var ev = new tizen.CalendarEvent({description:'HTML5 Introduction',
+                                    summary:'HTML5 Webinar ',
+                                    startDate: new tizen.TZDate(2011, 3, 30, 10, 0),
+                                    duration: new tizen.TimeDuration(1, "HOURS"),
+                                    location:'Huesca'});
+ </pre>
 </div>
 </dd>
 </dl>
