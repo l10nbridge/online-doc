@@ -1268,15 +1268,15 @@ applications on a device.
         </div>
 <div class="example">
 <span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var appEventCallback = {
-    oninstalled: function(appInfo) {
-       console.log('The application ' + appInfo.name + ' is installed');
-    },
-    onupdated: function(appInfo) {
-       console.log('The application ' + appInfo.name + ' is updated');
-    },
-    onuninstalled: function(appid) {
-       console.log('The application ' + appid + ' is uninstalled');
-    }
+   oninstalled: function(appInfo) {
+     console.log('The application ' + appInfo.name + ' is installed');
+   },
+   onupdated: function(appInfo) {
+     console.log('The application ' + appInfo.name + ' is updated');
+   },
+   onuninstalled: function(appid) {
+     console.log('The application ' + appid + ' is uninstalled');
+   }
  };
  var watchId = tizen.application.addAppInfoEventListener(appEventCallback);
  tizen.application.removeAppInfoEventListener(watchId);
@@ -1465,11 +1465,11 @@ System events do not require an application identifier to be specified. Therefor
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">event</span>:
+<span class="name">event</span>: 
  Event which will invoke the callback
                 </li>
           <li class="param">
-<span class="name">callback</span>:
+<span class="name">callback</span>: 
  Callback function to be invoked when the event occurs
                 </li>
         </ul>
@@ -1493,12 +1493,25 @@ System events do not require an application identifier to be specified. Therefor
 <div class="example">
 <span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var app = tizen.application.getCurrentApplication();
 
- // for user events: sender's application ID and event name must be provided by using a dictionary
- // Let's assume that there is another application installed with id "a234567890.TestWidget"
- var watchId = app.addEventListener({"appId": "a234567890.TestWidget", "name": "custom_user_event"}, function(event, data) {
-   console.log("Data: " + JSON.stringify(data));
-   // do something
- });
+ // for user events: sender's application ID  and event name must be provided by using a dictionary
+ // Let's assume that at least two applications are installed
+ function onListInstalledApps(appsInfo) {
+   var appId = null;
+
+   if (appsInfo.length &gt; 0 &amp;&amp; app.appInfo.id != appsInfo[0].id) {
+     appId = appsInfo[0].id;
+   } else if (appsInfo.length &gt; 1) {
+     appId = appsInfo[1].id;
+   }
+
+   if (appId) {
+     var watchId = app.addEventListener({"appId": appId, "name": "custom_user_event"}, function(event, data) {
+       console.log("Data: " + JSON.stringify(data));
+       // do something
+     });
+   }
+ }
+ tizen.application.getAppsInfo(onListInstalledApps);
  </pre>
 </div>
 </dd>
@@ -1519,7 +1532,7 @@ System events do not require an application identifier to be specified. Therefor
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">watchId</span>:
+<span class="name">watchId</span>: 
  Listener identifier
                 </li>
         </ul>
@@ -1532,16 +1545,30 @@ System events do not require an application identifier to be specified. Therefor
 </li></ul>
         </div>
 <div class="example">
-<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var watchId, app = tizen.application.getCurrentApplication();
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var app = tizen.application.getCurrentApplication();
 
- function eventListenerCallback(event, data) {
-   console.log("Data: " + JSON.stringify(data));
-   // do something and then remove the listener
-   app.removeEventListener(watchId);
+ // for user events: sender's application ID  and event name must be provided by using a dictionary
+ // Let's assume that at least two applications are installed
+ function onListInstalledApps(appsInfo) {
+   var appId = null;
+   var watchId = null;
+
+   if (appsInfo.length &gt; 0 &amp;&amp; app.appInfo.id != appsInfo[0].id) {
+     appId = appsInfo[0].id;
+   } else if (appsInfo.length &gt; 1) {
+     appId = appsInfo[1].id;
+   }
+
+   if (appId) {
+     watchId = app.addEventListener({"appId": appId, "name": "custom_user_event"}, function(event, data) {
+       if (watchId) {
+         app.removeEventListener(watchId);
+         watchId = null;
+       }
+     });
+   }
  }
-
- // Let's assume that there is another application installed with id "a234567890.TestWidget"
- watchId = app.addEventListener({"appId": "a234567890.TestWidget", "name": "custom_user_event"}, eventListenerCallback);
+ tizen.application.getAppsInfo(onListInstalledApps);
  </pre>
 </div>
 </dd>
@@ -1567,11 +1594,11 @@ An application can listen to events from other applications. However, it can onl
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">event</span>:
+<span class="name">event</span>: 
  Event to broadcast
                 </li>
           <li class="param">
-<span class="name">data</span>:
+<span class="name">data</span>: 
  User defined event data to broadcast
                 </li>
         </ul>
@@ -1624,11 +1651,11 @@ An application can listen to events from other applications. However, it can onl
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">event</span>:
+<span class="name">event</span>: 
  Trusted event to broadcast
                 </li>
           <li class="param">
-<span class="name">data</span>:
+<span class="name">data</span>: 
  User defined trusted event data to broadcast
                 </li>
         </ul>
@@ -2027,19 +2054,6 @@ required action requested by the calling application.
             Since: </span>
  2.0
           </p>
-<div class="example">
-<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var reqAppControl = tizen.application.getCurrentApplication().getRequestedAppControl();
- if (reqAppControl) {
-     console.log("Requester AppID : " + reqAppControl.callerAppId);
-
-     var appControl = reqAppControl.appControl;
-     if (appControl.operation == "http://tizen.org/appcontrol/operation/pick") {
-         var data = new tizen.ApplicationControlData("http://tizen.org/appcontrol/data/selected", ["Image1.jpg"]);
-         reqAppControl.replyResult([data]);
-     }
- }
- </pre>
-</div>
 <div class="attributes">
 <h4>Attributes</h4>
 <ul>
@@ -2106,6 +2120,19 @@ It contains the information that the calling application passed to <em>launchApp
 </ul>
 </li></ul>
         </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var reqAppControl = tizen.application.getCurrentApplication().getRequestedAppControl();
+ if (reqAppControl) {
+     console.log("Requester AppID : " + reqAppControl.callerAppId);
+
+     var appControl = reqAppControl.appControl;
+     if (appControl.operation == "http://tizen.org/appcontrol/operation/pick") {
+         var data = new tizen.ApplicationControlData("http://tizen.org/appcontrol/data/selected", ["Image1.jpg"]);
+         reqAppControl.replyResult([data]);
+     }
+ }
+ </pre>
+</div>
 </dd>
 <dt class="method" id="RequestedApplicationControl::replyFailure">
 <a class="backward-compatibility-anchor" name="::Application::RequestedApplicationControl::replyFailure"></a><code><b><span class="methodName">replyFailure</span></b></code>
@@ -2133,6 +2160,18 @@ to perform the requested action.
 </ul>
 </li></ul>
         </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var reqAppControl = tizen.application.getCurrentApplication().getRequestedAppControl();
+ if (reqAppControl) {
+     console.log("Requester AppID : " + reqAppControl.callerAppId);
+
+     var appControl = reqAppControl.appControl;
+     if (appControl.operation == "http://tizen.org/appcontrol/operation/pick") {
+         reqAppControl.replyFailure();
+     }
+ }
+ </pre>
+</div>
 </dd>
 </dl>
 </div>
@@ -2262,6 +2301,15 @@ This callback interface specifies a success method with an array of
                 </li>
         </ul>
 </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> function onListInstalledApps(applications) {
+     for (var i = 0; i &lt; applications.length; i++)
+         console.log("ID : " + applications[i].id);
+ }
+
+ tizen.application.getAppsInfo(onListInstalledApps);
+ </pre>
+</div>
 </dd>
 </dl>
 </div>
@@ -2312,6 +2360,45 @@ It is used in <em>ApplicationManager.findAppControl()</em>.
 <span class="name">appControl</span>: 
  The application control that is passed to <em>ApplicationManager.findAppControl()</em>                </li>
         </ul>
+</div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var appControl = new tizen.ApplicationControl(
+     "http://tizen.org/appcontrol/operation/pick",
+     null,
+     "image/jpeg",
+     null);
+
+ // FindAppControlSuccessCallback instance
+ function successCB(appInfos, appControl)
+ {
+     // appControl is same object with the value passed as first parameter to findAppControl()
+     var appControlReplyCallback = {
+         // callee sent a reply
+         onsuccess: function(data) {
+             for (var i = 0; i &lt; data.length; i++) {
+                 if (data[i].key == "http://tizen.org/appcontrol/data/selected") {
+                     console.log('Selected image is ' + data[i].value[0]);
+                 }
+             }
+         },
+         // callee returned failure
+         onfailure: function() {
+             console.log('The launch application control failed');
+         }
+     }
+
+     var appId = appInfos[0].id; // select first app's id
+
+     tizen.application.launchAppControl(
+         appControl,
+         appId,
+         function() {console.log("launch application control succeed"); },
+        function(e) {console.log("launch application control failed. reason: " + e.message); },
+        appControlReplyCallback );
+ }
+
+ tizen.application.findAppControl(appControl, successCB);
+ </pre>
 </div>
 </dd>
 </dl>
@@ -2389,6 +2476,37 @@ This callback interface specifies two methods:
  <em>onfailure()</em> - Invoked if the callee application calls <em>RequestedApplicationControl.replyFailure()</em>.            </li>
           </ul>
          </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var appControl = new tizen.ApplicationControl(
+     "http://tizen.org/appcontrol/operation/pick",
+     null,
+     "image/jpeg",
+     null);
+
+ // ApplicationControlDataArrayReplyCallback instance
+ var appControlReplyCallback = {
+     // callee sent a reply
+     onsuccess: function(data) {
+         for (var i = 0; i &lt; data.length; i++) {
+             if (data[i].key == "http://tizen.org/appcontrol/data/selected") {
+                 console.log('Selected image is ' + data[i].value[0]);
+             }
+         }
+     },
+     // callee returned failure
+     onfailure: function() {
+         console.log('The launch application control failed');
+     }
+ }
+
+ tizen.application.launchAppControl(
+     appControl,
+     null,
+     function() {console.log("launch application control succeed"); },
+     function(e) {console.log("launch application control failed. reason: " + e.message); },
+     appControlReplyCallback );
+ </pre>
+</div>
 <div class="methods">
 <h4>Methods</h4>
 <dl>
@@ -2455,6 +2573,21 @@ This callback interface specifies methods that are invoked when
 an application is installed, updated, or uninstalled.
           </p>
          </div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var appEventCallback = {
+    oninstalled: function(appInfo) {
+       console.log('The application ' + appInfo.name + ' is installed');
+    },
+    onupdated: function(appInfo) {
+       console.log('The application ' + appInfo.name + ' is updated');
+    },
+    onuninstalled: function(appid) {
+       console.log('The application ' + appid + ' is uninstalled');
+    }
+ };
+ var watchId = tizen.application.addAppInfoEventListener(appEventCallback);
+ </pre>
+</div>
 <div class="methods">
 <h4>Methods</h4>
 <dl>
@@ -2581,14 +2714,40 @@ Platform modules will be able to broadcast system events in a future Tizen relea
 <p><span class="param">Parameters:</span></p>
 <ul>
           <li class="param">
-<span class="name">event</span>:
+<span class="name">event</span>: 
  Broadcasted event which invokes this callback
                 </li>
           <li class="param">
-<span class="name">data</span>:
+<span class="name">data</span>: 
  Broadcasted event data
                 </li>
         </ul>
+</div>
+<div class="example">
+<span class="example"><p>Code example:</p></span><pre name="code" class="examplecode prettyprint"> var app = tizen.application.getCurrentApplication();
+
+ // for user events: sender's application ID  and event name must be provided by using a dictionary
+ // Let's assume that at least two applications are installed
+ function onListInstalledApps(appsInfo) {
+   var appId = null;
+
+   if (appsInfo.length &gt; 0 &amp;&amp; app.appInfo.id != appsInfo[0].id) {
+     appId = appsInfo[0].id;
+   } else if (appsInfo.length &gt; 1) {
+     appId = appsInfo[1].id;
+   }
+
+   var eventCB = function(event, data) {
+     console.log("Data: " + JSON.stringify(data));
+     // do something
+   };
+
+   if (appId) {
+     var watchId = app.addEventListener({"appId": appId, "name": "custom_user_event"}, eventCB);
+   }
+ }
+ tizen.application.getAppsInfo(onListInstalledApps);
+ </pre>
 </div>
 </dd>
 </dl>
