@@ -1,0 +1,245 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Fido-client Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+	<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+</div>
+
+<h1>FIDO Client Sample Overview</h1>
+
+<p>The Fido-client sample application demonstrates how to use <strong>fido</strong> authentication.</p>
+<p>The following figure illustrates the main view of the Fido-client application in its normal state.</p>
+<p>This sample application is done using predefined uaf protocol messages. If you want to test with actual FIDO server then you need to replace the json values with server specific parameters.</p>
+
+<p class="figure"> Figure: Fido-client main view</p>
+<p align="center"><img alt="Fido-client main view" src="../images/fido_client_main.png"/></p>
+
+<h2>Prerequisites</h2>
+<ul>
+<li>FIDO-UAF should be supported by the device.</li>
+</ul>
+
+<h2 id="implementation" name="implementation">Implementation</h2>
+
+<p>We have used hard-coded json value for registeration, authentication and derigsteration. The json files are stored in ../Fido_sample/res.</p>
+<p>In this sample application, information(use) for fido uaf application api's have been provided. For more information, <a href="https://fidoalliance.org/specs/fido-uaf-v1.0-ps-20141208/fido-uaf-client-api-transport-v1.0-ps-20141208.html" target="_blank"> click here.</a></p>
+
+<h3 id="find_authenticator" name="find_authenticator">Find Authenticator</h3>
+
+<p>Find Authenticator function is used to obtain the list of all available authenticators.</p>
+
+<p class="figure">Figure: Find Authenticator </p>
+<p align="center"> <img src="../images/fido_client_find_authenticator.png" alt="Find Authenticator" /></p>
+
+<li><p>After you click <strong>Find Authenticator</strong> on the main screen, the discover response will be displayed as a pop up (as shown in the above figure).</p></li>
+
+<pre class="prettyprint">
+void
+start_discover(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;int ret = fido_foreach_authenticator(auth_list_cb, data);
+
+&nbsp;&nbsp;&nbsp;if (ret != FIDO_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__show_error(ret, (appdata_s *)data);
+}
+</pre>
+
+
+<h3 id="check_uaf" name="check_uaf">Check UAF Message Supported</h3>
+
+<p>This function checks whether the given UAF protocol message can be processed by the device.</p>
+
+<p class="figure">Figure: Check UAF Message Supported</p>
+
+<p align="center"><img src="../images/fido_client_check_uaf_supported.png" alt="Check UAF Message Supported" /></p>
+
+<li><p>After you click <strong>Check UAF Message Supported</strong> on the main screen, on success <strong>'TRUE'</strong> will be displayed in a pop up (as shown in the above figure).</p></li>
+
+<pre class="prettyprint">
+void
+start_check_policy(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;int ret = fido_request_is_supported(json_reg, _policy_cb, data);
+}
+</pre>
+
+<h3 id="protocol_conversation" name="protocol_conversation">Protocol Conversation</h3>
+
+<p>The core UAF protocol consists of conceptual conversations between a FIDO UAF Client and FIDO Server.</p>
+
+<ol><li><p><strong> Registeration.</strong></p></li>
+<p>UAF allows the relying party to register a FIDO Authenticator with the user's account at the relying party. The relying party can specify a policy for supporting various FIDO Authenticator types. A FIDO UAF Client will only register existing authenticators in accordance with that policy.</p>
+
+<p class="figure">Figure: Registeration</p>
+<p align="center"><img src="../images/fido_client_reg.png" alt="Registeration" /></p>
+
+<p>After you click <strong>Registeration</strong> on the main screen, the registeration response message is visible on the home screen as a pop-up (as shown in the above figure).</p>
+
+<pre class="prettyprint">
+void
+start_registration(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;if (json_reg != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_request_get_registration_response(json_reg, NULL, _process_cb, data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char str[2048] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;str[0] = '\0';
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(str, "REGISTRATION RESPONSE | ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char tmp[1024] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(tmp, "ret = [%d] | ", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(str, tmp);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<li><p><strong>Authentication.</strong></p></li>
+<p>UAF allows the relying party to prompt the end user to authenticate using a previously registered FIDO Authenticator. This authentication can be invoked any time, at the relying party's discretion.</p>
+
+<p class="figure">Figure: Authentication</p>
+<p align="center"><img src="../images/fido_client_authentication.png" alt="Authentication" /></p>
+
+<p>After you click <strong>Authentication</strong> on the main screen, authentication response message is visible on the home screen as a pop-up (as shown in the above figure).</p>
+
+<pre class="prettyprint">
+void
+start_auth(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;if (json_auth != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_request_get_authentication_response(json_auth, NULL, _process_cb, data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char str[2048] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;str[0] = '\0';
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(str, "AUTHENTICATION RESPONSE | ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char tmp[1024] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(tmp, "ret = [%d] | ", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(str, tmp);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<li><p><strong>Deregistration.</strong></p></li>
+<p>The relying party can trigger the deletion of the account-related authentication key material.</p>
+
+<p class="figure">Figure: Deregistration</p>
+<p align="center"><img src="../images/fido_client_dereg.png" alt="Deregistration" /></p>
+
+<p>After you click <strong>Deregistration</strong> on the main screen, on successful operation <strong>'SUCCESS'</strong> message response is visible on the home screen as a pop-up (as shownin the above figure).</p>
+
+<pre class="prettyprint">
+void
+start_de_registration(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;if (json_reg != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_request_get_deregistration_response(json_dereg, NULL, _process_dereg_cb, data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char str[2048] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;str[0] = '\0';
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcpy(str, "DE-REGISTRATION RESPONSE | ");
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char tmp[1024] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(tmp, "ret = [%d] | ", ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcat(str, tmp);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></ol>
+
+<h3 id="set_server_result" name="set_server_result">Set Server Result</h3>
+
+<p>Set Server Result is used to indicate the status code resulting from a FIDO UAF message delivered to the remote server.</p>
+<ol><li><p><strong>Set Server Result with Success</strong></p></li>
+<li><p><strong>Set Server Result with Failure</strong></p></li>
+
+<p class="figure">Figure: Set Server Result</p>
+<p align="center"><img src="../images/fido_client_set_server_result.png" alt="Set Server Result" /></p>
+
+<p>After you click <strong>Set Server Result </strong> on the main screen, on successful operation <strong>'SUCCESS'</strong> message response is visible on the home screen as a pop-up (as shown in the above figure).</p></ol>
+
+<ol><li><p><strong>Set Server Result with Success</strong></p></li>
+
+<pre class="prettyprint">
+void
+start_notify_pos(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;if (json_reg != NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_get_response_message(json_reg, NULL, _process_cb_for_notify_pos, data);
+}
+
+static void
+_process_cb_for_notify_pos(fido_error_e tizen_error_code, const char *uaf_response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (tizen_error_code == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_set_server_result(FIDO_SERVER_STATUS_CODE_OK, uaf_response);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *error_string = get_error_code(tizen_error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create_popup(error_string, (appdata_s *) user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(error_string);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__show_error(tizen_error_code, (appdata_s *)user_data);
+&nbsp;&nbsp;&nbsp;}
+}
+
+static void
+__show_error(int tizen_error_code, appdata_s *app_data)
+{
+&nbsp;&nbsp;&nbsp;char *error_string = get_error_code(tizen_error_code);
+&nbsp;&nbsp;&nbsp;create_popup(error_string, app_data);
+&nbsp;&nbsp;&nbsp;free(error_string);
+}
+</pre>
+
+<li><p><strong> Set Server Result with Failure</strong> </p></li>
+
+<pre class="prettyprint">
+void
+start_notify_neg(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;if (json_reg != NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_get_response_message(json_reg, NULL, _process_cb_for_notify_neg, data);
+}
+
+static void
+_process_cb_for_notify_neg(fido_error_e tizen_error_code, const char *uaf_response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;if (tizen_error_code == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_set_server_result(0, uaf_response);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *error_string = get_error_code(tizen_error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create_popup(error_string, (appdata_s *) user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(error_string);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__show_error(tizen_error_code, (appdata_s *)user_data);
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></ol>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+</body>
+</html>
