@@ -22,8 +22,10 @@
 	<div id="toc_border"><div id="toc">
 	<p class="toc-title">Content</p>
 		<ul class="toc">
-				<li><a href="#elm_theme">Elementary Theme</a></li>
-				<li><a href="#customizing_style">Customizing a UI Component Style</a></li>
+				<li><a href="#elm_theme">Customizing and Expanding Themes</a></li>
+				<li><a href="#styles">Using and Customizing Theme Styles</a></li>
+				<li><a href="#check_custom_style">Example of Customizing the Check Component Style</a></li>
+				<li><a href="#genlist_custom_style">Example of Customizing the Genlist Component Item Style</a></li>
 				</ul>	
 	<p class="toc-title">Related Info</p>
 		<ul class="toc">
@@ -38,51 +40,47 @@
   <h1>Customizing Components</h1> 
   
 
-<p>Elementary UI components use the Edje library EDC themes to manage their look.</p>
+<p>Elementary UI components use the EDC themes from the Edje library to manage their look.</p>
 
-<h2 id="elm_theme" name="elm_theme">Elementary Theme</h2>
+<h2 id="elm_theme" name="elm_theme">Customizing and Expanding Themes</h2>
 
-<p>An Elementary theme is an Edje EDC file that contains groups composed of parts and programs. For more information about Edje, see <a href="theme_n.htm">Theme</a>.</p>
+<p>An Elementary theme (consisting of all available styles for the UI components) is an Edje EDC file (<span style="font-family: Courier New,Courier,monospace">.edc</span>) that contains groups composed of part and program blocks. When the application is compiled, the Edje tools compile the EDC file to make an <span style="font-family: Courier New,Courier,monospace">.edj</span> file that is used by the application. For more information on using the EDC language, see <a href="theme_n.htm">Themes</a>.</p>
 
-<h3 id="use_theme_styles" name="use_theme_styles">Using Theme Styles</h3>
+<p>When the application is run, Elementary must load the styles to display the UI components in the application theme. When looking for the correct style to use, Elementary uses the following process:</p>
+<ol>
+<li>Elementary checks the list of overlays, if any are defined.
+<p>An overlay can replace the look of all UI components by overriding the <span style="font-family: Courier New,Courier,monospace">default</span> style of the theme.</p></li>
+<li>If no applicable overlay is found, Elementary checks the theme for the correct style.</li>
+<li>If the style is not found in the theme, Elementary checks the extension list.
+<p>An extension, unlike an overlay, provides styles that can be applied to specific UI components only (not all of them).</p></li>
+<li>If the applicable style is not found in the extension list either, Elementary uses the <span style="font-family: Courier New,Courier,monospace">default</span> style of the theme.</li>
+</ol>
 
-<p>Elementary UI components provide a way to modify only some parts of the styles using the default theme. A style is a part of the EDC theme (a group) that concerns only 1 UI component. For example, you can create a new style for a button component to change its appearance without modifying the default theme.</p>
+<p>To create new themes, overlays, or extensions:</p>
 
-  <table class="note"> 
-   <tbody> 
-    <tr> 
-     <th class="note">Note</th> 
-    </tr> 
-    <tr> 
-     <td class="note">When creating a new style, you need to know how each UI component is themed, because setting another style always replaces the entire group used by the UI component. Important signals and parts must be there for the object to behave properly.</td> 
-    </tr> 
-   </tbody> 
-  </table> 
-
-<p>When several styles are loaded in the current theme, you can set a different style to a specific UI component using the <span style="font-family: Courier New,Courier,monospace">elm_object_style_set()</span> function. It is also possible to see the current style with the <span style="font-family: Courier New,Courier,monospace">elm_object_style_get()</span> function.</p>
-
-<p>The default theme specifies several styles for the button component. The following example shows how to set the <span style="font-family: Courier New,Courier,monospace">&quot;anchor&quot;</span> style for a newly created button component.</p>
+<ul>
+<li>Themes
+<p>To create a new theme object, use the <span style="font-family: Courier New,Courier,monospace">elm_theme_new()</span> function. It creates an empty theme that uses the default theme. It has its own private set of extensions and overlays, which are empty by default.</p>
+<p>Specific themes do not fall back to the themes of parent objects. They are not intended for such use.</p>
 
 <pre class="prettyprint">
-Evas_Object *parent, *button;
-
-// Create a button object 
-button = elm_button_add(parent);
-
-// Set its style to &quot;anchor&quot;
-elm_object_style_set(button, &quot;anchor&quot;);
+Elm_Theme *new_theme = elm_theme_new();
 </pre>
 
-<h3 id="load_theme_styles" name="load_theme_styles">Loading Theme Styles</h3>
+<p>To apply the new theme to a button UI component and its children:</p>
 
-<p>Once written and compiled with Edje tools, the Elementary provides 2 methods to load the style in the application theme: overlays and extensions.</p>
-<p>When looking for a theme, the Elementary checks the list of overlays, if any are defined. Then it takes the default theme, and if it cannot find a theme for the UI component, it looks at the extensions list.</p>
-<p>To load theme styles:</p>
-  <ul>
-   <li>
-   <p>An overlay can replace the look of all UI components by overriding the default style. If a new style called <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> is created for the button component and add it as an overlay, the Elementary uses the overlay for all button components overriding the default theme.</p>
+<pre class="prettyprint">
+// Create a button component 
+Evas_Object *button = elm_button_add();
 
-<p>The following example shows how to add an overlay to the application&#39;s theme.</p>
+// Set the new theme to the button component 
+elm_object_theme_set(button, new_theme);
+</pre>
+</li>
+<li>Overlays
+
+<p>To add an overlay to the application theme, use the <span style="font-family: Courier New,Courier,monospace">elm_theme_overlay_add()</span> function.</p>
+<p>The following example creates an overlay (the <span style="font-family: Courier New,Courier,monospace">theme_button.edj</span> file) with the new <span style="font-family: Courier New,Courier,monospace">default</span> button style that replaces the look of all button components by overriding the <span style="font-family: Courier New,Courier,monospace">default</span> style in the theme:</p>
 
 <pre class="prettyprint">
 elm_theme_overlay_add(NULL, &quot;./theme_button.edj&quot;);
@@ -94,39 +92,27 @@ elm_theme_overlay_add(NULL, &quot;./theme_button.edj&quot;);
      <th class="note">Note</th> 
     </tr> 
     <tr> 
-     <td class="note">In the example it is assumed that the <span style="font-family: Courier New,Courier,monospace">theme_button.edj</span> file only contains a new theme for the button component.
-	 <p>Doing this is not recommended. Adding a file as an overlay makes the Elementary use the new theme for all the button components defined in the application. You must make sure that the <span style="font-family: Courier New,Courier,monospace">theme_button.edj</span> file reimplements everything that was previously defined in the default theme concerning the button component.</p></td> 
+     <td class="note">Be careful when using overlays. For example, in the above example, Elementary uses the new overlay style for all the button components defined in the application. You must make sure that the <span style="font-family: Courier New,Courier,monospace">theme_button.edj</span> file reimplements everything that was previously defined in the theme <span style="font-family: Courier New,Courier,monospace">default</span> style concerning the button component.</td> 
     </tr> 
    </tbody> 
   </table>  
 
-<p>To remove the previously added overlay and to return to the default theme:</p>
+<p>To remove the previously added overlay and return to the default theme:</p>
 
 <pre class="prettyprint">
 elm_theme_overlay_del(NULL, &quot;./theme_button.edj&quot;);
 </pre>
    </li>
-   <li>
-   <p>With extensions, it is possible to write styles that can be applied to some UI components (not all of them) by using the <span style="font-family: Courier New,Courier,monospace">elm_object_style_set()</span> function.</p>
-
-<p>The application adds a theme to the list of extensions with the following call:</p>
+   <li>Extensions
+<p>To create a new extension style and add it to the list of extensions, use the <span style="font-family: Courier New,Courier,monospace">elm_theme_extension_add()</span> function.</p>   
+<p>The following example creates a new <span style="font-family: Courier New,Courier,monospace">custom</span> button style defined in the compiled <span style="font-family: Courier New,Courier,monospace">theme_button_style_custom.edj</span> file:</p>
 
 <pre class="prettyprint">
 elm_theme_extension_add(NULL, &quot;./theme_button_style_custom.edj&quot;);
 </pre>
 
-  <table class="note"> 
-   <tbody> 
-    <tr> 
-     <th class="note">Note</th> 
-    </tr> 
-    <tr> 
-     <td class="note">In the example it is assumed that the <span style="font-family: Courier New,Courier,monospace">theme_button_style_custom.edj</span> file contains a new button style called <span style="font-family: Courier New,Courier,monospace">&quot;custom&quot;</span>.</td> 
-    </tr> 
-   </tbody> 
-  </table> 
+<p>To apply the new <span style="font-family: Courier New,Courier,monospace">custom</span> style to a button component:</p>
 
-<p>To use the new <span style="font-family: Courier New,Courier,monospace">&quot;custom&quot;</span> style on a button component:</p>
 <pre class="prettyprint">
 Evas_Object *parent, *button;
 
@@ -136,6 +122,8 @@ button = elm_button_add(parent);
 // Set its style to &quot;custom&quot; 
 elm_object_style_set(button, &quot;custom&quot;);
 </pre>
+</li>
+  </ul>
 
   <table class="note"> 
    <tbody> 
@@ -143,48 +131,83 @@ elm_object_style_set(button, &quot;custom&quot;);
      <th class="note">Note</th> 
     </tr> 
     <tr> 
-     <td class="note">When using the <span style="font-family: Courier New,Courier,monospace">elm_theme_extension_add()</span> or <span style="font-family: Courier New,Courier,monospace">elm_theme_overlay_add()</span> functions to add a new theme extension or overlay to a Theme object (the default theme), the Elementary calls the <span style="font-family: Courier New,Courier,monospace">elm_theme_flush()</span> function to flush the Elementary theme caches. This means that the theme of all UI components that use the default theme is reloaded.</td> 
+     <td class="note">When using the <span style="font-family: Courier New,Courier,monospace">elm_theme_extension_add()</span> or <span style="font-family: Courier New,Courier,monospace">elm_theme_overlay_add()</span> functions to add a new extension or overlay to the default theme, Elementary calls the <span style="font-family: Courier New,Courier,monospace">elm_theme_flush()</span> function. The function flushes the Elementary theme caches, reloading the theme of all UI components that use the default theme.</td> 
     </tr> 
    </tbody> 
   </table> 
-</li>
-  </ul>
 
-<h3 id="create_new_theme" name="create_new_theme">Creating a New Theme</h3>
+<h2 id="styles" name="styles">Using and Customizing Theme Styles</h2>
 
-<p>To create a new theme object:</p>
+<p>A style is a part of the EDC theme that concerns only 1 UI component. It is defined in the EDC file as a group.</p>
 
-<pre class="prettyprint">
-Elm_Theme *new_theme = elm_theme_new();
-</pre>
+<p>The default theme contains multiple styles for some UI components, such as button. To apply a specific style to a UI component, use the <span style="font-family: Courier New,Courier,monospace">elm_object_style_set()</span> function. To determine the currently used style, use the <span style="font-family: Courier New,Courier,monospace">elm_object_style_get()</span> function.</p>
 
-<p>This function creates an empty specific theme that only uses the default theme. It has its own private set of extensions and overlays, which are empty by default. Specific themes do not fall back to the themes of parent objects. They are not intended for this use.</p>
-
-<p>The following example shows how to apply this theme to a button UI component and its children:</p>
+<p>The following example shows how to set the <span style="font-family: Courier New,Courier,monospace">anchor</span> style for a new button component:</p>
 
 <pre class="prettyprint">
-// Create a button component 
-Evas_Object *button = elm_button_add();
+Evas_Object *parent, *button;
 
-// Set the new theme to the button component 
-elm_object_theme_set(button, new_theme);
+// Create a button object 
+button = elm_button_add(parent);
+
+// Set its style to &quot;anchor&quot;
+elm_object_style_set(button, &quot;anchor&quot;);
 </pre>
 
-<h2 id="customizing_style" name="customizing_style">Customizing a UI Component Style</h2>
 
-<p>UI component themes are written in Edje EDC source files (.edc). These files are compiled with Edje tools to make an <span style="font-family: Courier New,Courier,monospace">.edj</span> file that is used by the application. For more information on using the EDC language, see <a href="theme_n.htm">Theme</a>.</p>
+<p>To modify parts of the default theme without changing the theme itself, you can create new customized styles. For example, you can create a new style for a button component to change its appearance without modifying the default theme.</p>
 
-<p>A new Edje style can be added for a UI component. The best way is to copy the existing <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> style, rename it, and update it to your needs.</p>
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">When creating a new style, you must know how the applicable UI component is themed. A new style (EDC group) always replaces the entire default group used by the UI component. The new style group must contain the same important signals and parts as the default style for the object to behave properly.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
 
-<h3 id="check_custom_style" name="check_custom_style">Creating a Customized Style for the Check Component</h3>
+<p>For example, to create a new <span style="font-family: Courier New,Courier,monospace">custom</span> style for a check UI component:</p>  
 
-<p>To create a customized style:</p>
 <ol>
-<li>
-<p>Create a new style for the <span style="font-family: Courier New,Courier,monospace">check</span> component. The aim is to update the background and the main pictures of this UI component with custom pictures.</p>
+<li>Copy the <span style="font-family: Courier New,Courier,monospace">default</span> style of the check UI component from the default theme to a new <span style="font-family: Courier New,Courier,monospace">check_custom.edc</span> EDC file.</li>
+<li>In the new EDC file, rename the <span style="font-family: Courier New,Courier,monospace">default</span> style to <span style="font-family: Courier New,Courier,monospace">custom</span>.</li>
+<li>Update the style details to fit your needs for the new style.</li>
+<li>Store the <span style="font-family: Courier New,Courier,monospace">check_custom.edc</span> file with the new style in the <span style="font-family: Courier New,Courier,monospace">/res/edje/</span> directory of the application project.</li>
+<li>Add the compiled <span style="font-family: Courier New,Courier,monospace">check_custom.edj</span> file to the application as an extension:
 
-<p>The EDC source file concerning the check component (the <span style="font-family: Courier New,Courier,monospace">check.edc</span> file) is composed of several groups.</p>
-<p>These 2 groups define 2 different styles for the check component (the <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> style and the <span style="font-family: Courier New,Courier,monospace">&quot;toggle&quot;</span> style).</p>
+<pre class="prettyprint">
+char edj_path[PATH_MAX] = {0,};
+
+// Get the full path of the edj file 
+app_get_resource(&quot;/edje/check_custom.edc&quot;, edj_path, (int)PATH_MAX);
+
+// Load the new style as an extension 
+elm_theme_extension_add(NULL, edj_path);
+</pre>
+</li>
+<li>Apply the new <span style="font-family: Courier New,Courier,monospace">custom</span> style to the applicable check UI components with the <span style="font-family: Courier New,Courier,monospace">elm_object_style_set()</span> function:
+
+<pre class="prettyprint">
+Evas_Object *parent, *check;
+
+// Create a check object 
+check = elm_check_add(parent);
+
+// Set its style to &quot;custom&quot; 
+elm_object_style_set(check, &quot;custom&quot;);
+</pre>
+</li>
+</ol>
+  
+<h2 id="check_custom_style" name="check_custom_style">Example of Customizing the Check Component Style</h2>
+
+<p>To create a customized check component style:</p>
+<ol>
+<li>Create a new check component style that changes the background and the check images of the UI component to custom images.
+
+<p>The EDC source file for the check component (the <span style="font-family: Courier New,Courier,monospace">check.edc</span> file) is composed of 2 groups, which define 2 different styles for the check component (the <span style="font-family: Courier New,Courier,monospace">default</span> style and the <span style="font-family: Courier New,Courier,monospace">toggle</span> style):</p>
 <pre class="prettyprint">
 group 
 {
@@ -196,19 +219,19 @@ group
 &nbsp;&nbsp;&nbsp;name: &quot;elm/check/base/toggle&quot;;
 }
 </pre>
-</li>
-<li>
-<p>Copy the group corresponding to the <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> style in a new file to create a new style called <span style="font-family: Courier New,Courier,monospace">&quot;custom&quot;</span>. This new style is saved in the <span style="font-family: Courier New,Courier,monospace">check_custom.edc</span> file.</p>
+
+<p>Copy the group corresponding to the <span style="font-family: Courier New,Courier,monospace">default</span> style to a new file and rename the group to <span style="font-family: Courier New,Courier,monospace">custom</span> to create a new <span style="font-family: Courier New,Courier,monospace">custom</span> style:</p>
 <pre class="prettyprint">
 group 
 {
 &nbsp;&nbsp;&nbsp;name: &quot;elm/check/base/custom&quot;;
-&nbsp;&nbsp;&nbsp;// Here is the copy of the content of &quot;default&quot; style 
+&nbsp;&nbsp;&nbsp;// Copy of the content of &quot;default&quot; style 
 }
 </pre>
 </li>
 <li>
-<p>In the new group (<span style="font-family: Courier New,Courier,monospace">elm/check/base/custom</span>), find the parts to modify. In this example, the appropriate parts are <span style="font-family: Courier New,Courier,monospace">&quot;bg&quot;</span> and <span style="font-family: Courier New,Courier,monospace">&quot;check&quot;</span>.</p>
+<p>In the new <span style="font-family: Courier New,Courier,monospace">elm/check/base/custom</span> group, find the parts you want to modify.</p>
+<p>To modify the background and check images, you must locate the <span style="font-family: Courier New,Courier,monospace">bg</span> and <span style="font-family: Courier New,Courier,monospace">check</span> parts.</p>
 
 <pre class="prettyprint">
 part 
@@ -281,16 +304,24 @@ part
 }
 </pre>
 
-<p>It is assumed that you are familiar with <a href="theme_n.htm">Edje</a> and know Edje basics, and therefore not all options to be modified are detail here.</p>
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">This example assumes that you are familiar with <a href="theme_n.htm">Edje basics</a>, and does not include all the properties to be modified.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+
 </li>
 <li>
-<p>Add the custom pictures in the custom style.</p>
-<p>The custom pictures filenames are:</p>
+<p>Replace the default images with the new custom images by updating the <span style="font-family: Courier New,Courier,monospace">image.normal</span> properties in both parts:</p>
   <ul>
-   <li><span style="font-family: Courier New,Courier,monospace">check_base_custom.png</span> for the background part</li>
-   <li><span style="font-family: Courier New,Courier,monospace">check_custom.png</span> for the check part</li></ul>
-
-<p>You must update the <span style="font-family: Courier New,Courier,monospace">image.normal</span> attribute in both parts with the custom pictures filenames to modify the pictures of this style.</p>
+   <li>In the background part, replace <span style="font-family: Courier New,Courier,monospace">check_base.png</span> with <span style="font-family: Courier New,Courier,monospace">check_base_custom.png</span>.</li>
+   <li>In the check part, replace <span style="font-family: Courier New,Courier,monospace">check.png</span>  with <span style="font-family: Courier New,Courier,monospace">check_custom.png</span>.</li></ul>
 
 <pre class="prettyprint">
 part 
@@ -299,27 +330,22 @@ part
 &nbsp;&nbsp;&nbsp;description 
 &nbsp;&nbsp;&nbsp;{
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
-
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;normal: &quot;check_base_custom.png&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">normal: &quot;check_base_custom.png&quot;;</span>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;border: 5 5 5 5;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;middle: 0;
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-                
 &nbsp;&nbsp;&nbsp;}
 }
 part 
 {
-&nbsp;&nbsp;&nbsp;name: &quot;check&quot;;
-        
+&nbsp;&nbsp;&nbsp;name: &quot;check&quot;;      
 &nbsp;&nbsp;&nbsp;description 
 &nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
-            
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.normal: &quot;check_custom.png&quot;;
-&nbsp;&nbsp;&nbsp;}
-        
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;           
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">image.normal: &quot;check_custom.png&quot;;</span>
+&nbsp;&nbsp;&nbsp;}   
 }
 </pre>
 
@@ -329,7 +355,7 @@ part
      <th class="note">Note</th> 
     </tr> 
     <tr> 
-     <td class="note">In this example, it is assumed that the custom images are the same size as the <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> images.</td> 
+     <td class="note">This example assumes that the custom images are the same size as the <span style="font-family: Courier New,Courier,monospace">default</span> images.</td> 
     </tr> 
    </tbody> 
   </table> 
@@ -337,124 +363,11 @@ part
 </li>
 </ol>
 
-<h3 id="add_theme_to_project" name="add_theme_to_project">Adding the Theme File to Your Project</h3>
+<p>Some parts in the EDC file can interact with Elementary:</p>
+<ul>
+<li>You can modify the content of the <span style="font-family: Courier New,Courier,monospace">TEXT</span> type parts using the <span style="font-family: Courier New,Courier,monospace">elm_object_part_set_text()</span> function.
 
-<p>Once written, the <span style="font-family: Courier New,Courier,monospace">check_custom.edc</span> file is put in the <span style="font-family: Courier New,Courier,monospace">/res/edje/</span> directory of the application project in the SDK.</p>
-
-<p>When building the application, the SDK calls the Edje tools automatically to build the final <span style="font-family: Courier New,Courier,monospace">check_custom.edj</span> file. This file can be loaded from our application.</p>
-
-<h3 id="use_new_style" name="use_new_style">Using the New Style</h3>
-
-<p>To use the new style:</p>
-<ol>
-<li>
-<p>Add the new theme file as an extension in the application:</p>
-
-<pre class="prettyprint">
-char edj_path[PATH_MAX] = {0,};
-
-// Get the full path of the edj file 
-app_get_resource(&quot;/edje/check_custom.edj&quot;, edj_path, (int)PATH_MAX);
-
-// Load check custom style as an extension 
-elm_theme_extension_add(NULL, edj_path);
-</pre>
-</li>
-<li>
-<p>Use the <span style="font-family: Courier New,Courier,monospace">&quot;custom&quot;</span> style on a new check component:</p>
-
-<pre class="prettyprint">
-Evas_Object *parent, *check;
-
-// Create a check object 
-check = elm_check_add(parent);
-
-// Set its style to &quot;custom&quot; 
-elm_object_style_set(check, &quot;custom&quot;);
-</pre>
-</li>
-</ol>
-
-<h3 id="special_theme_parts" name="special_theme_parts">Special Theme Parts</h3>
-
-<p>Some parts of the EDC file can be interacted with the Elementary. The content of parts of the <span style="font-family: Courier New,Courier,monospace">TEXT</span> type are modified using the <span style="font-family: Courier New,Courier,monospace">elm_object_part_set_text()</span> function. The content of <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> parts is updated using the <span style="font-family: Courier New,Courier,monospace">elm_object_part_content_set()</span> function.</p>
-
-<h4 id="swallow_parts" name="swallow_parts">Swallow Parts</h4>
-
-<p>In the previous example (the check component <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> style), there is a part called <span style="font-family: Courier New,Courier,monospace">&quot;elm.swallow.content&quot;</span> that is of the <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> type.</p>
-
-<pre class="prettyprint">
-part 
-{
-&nbsp;&nbsp;&nbsp;name: &quot;elm.swallow.content&quot;;
-&nbsp;&nbsp;&nbsp;type: SWALLOW;
-&nbsp;&nbsp;&nbsp;scale: 1;
-&nbsp;&nbsp;&nbsp;description 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 1 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.0 0.5;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.to_x: &quot;bg&quot;;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 1.0 0.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.offset: 1 1;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.to_x: &quot;bg&quot;;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.offset: 1 -2;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;description
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;visible&quot; 0.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 1 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aspect: 1.0 1.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 16 16;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;description 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;disabled&quot; 0.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 255 255 255 128;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;description 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;disabled_visible&quot; 0.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 255 255 255 128;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 1 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aspect: 1.0 1.0;
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-
-<p>You can push content (<span style="font-family: Courier New,Courier,monospace">Evas_Object</span>) to this part from the application anytime. The size and position of the content pushed is controlled by the EDC theme.</p>
-
-<pre class="prettyprint">
-Evas_Object *parent, *check1, *content;
-
-// Create a check object 
-check1 = elm_check_add(parent);
-
-// Set the content of the check object 
-elm_object_part_content_set(check1, &quot;elm.swallow.content&quot;, content);
-</pre>
-
-  <table class="note"> 
-   <tbody> 
-    <tr> 
-     <th class="note">Note</th> 
-    </tr> 
-    <tr> 
-     <td class="note">You can add new <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> parts when customizing a UI component&#39;s style, if you want to be able to control more content from the application. Note that removing existing <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> parts changes the UI component&#39;s behavior.</td> 
-    </tr> 
-   </tbody> 
-  </table> 
-
-<h4 id="text_parts" name="text_parts">Text Parts</h4>
-
-<p>The same is done with parts of the type <span style="font-family: Courier New,Courier,monospace">TEXT</span>. The check <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> style contains a part named <span style="font-family: Courier New,Courier,monospace">&quot;elm.text&quot;</span>.</p>
+<p>For example, the check component <span style="font-family: Courier New,Courier,monospace">default</span> style has a <span style="font-family: Courier New,Courier,monospace">TEXT</span> type part called <span style="font-family: Courier New,Courier,monospace">elm.text</span>:</p>
 
 <pre class="prettyprint">
 part 
@@ -507,7 +420,7 @@ part
 }
 </pre>
 
-<p>The following example shows how to modify the content of the <span style="font-family: Courier New,Courier,monospace">&quot;elm.text&quot;</span> part from the application. The position of the text, its size, color, look and feel are managed by the EDC theme.</p>
+<p>You can modify the content of the part from the application. The EDC theme controls the position of the text, its size, color, and look and feel.</p>
 
 <pre class="prettyprint">
 Evas_Object *parent, *check2;
@@ -518,9 +431,369 @@ check2 = elm_check_add(parent);
 // Set the text of the check object 
 elm_object_part_text_set(check2, &quot;elm.text&quot;, &quot;Test text&quot;);
 </pre>
+</li>
+<li>You can modify the content of the <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> type parts using the <span style="font-family: Courier New,Courier,monospace">elm_object_part_content_set()</span> function.
+
+<p>For example, the check component <span style="font-family: Courier New,Courier,monospace">default</span> style has a <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> type part called <span style="font-family: Courier New,Courier,monospace">elm.swallow.content</span>:</p>
+
+<pre class="prettyprint">
+part 
+{
+&nbsp;&nbsp;&nbsp;name: &quot;elm.swallow.content&quot;;
+&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 1 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.0 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.to_x: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 1.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.offset: 1 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.to_x: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.offset: 1 -2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;visible&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 1 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aspect: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 16 16;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;disabled&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 255 255 255 128;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;disabled_visible&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 255 255 255 128;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 1 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;aspect: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>You can push content (any kind of <span style="font-family: Courier New,Courier,monospace">Evas_Object</span>) to the part from the application. The EDC theme controls the size and position of the pushed content.</p>
+
+<pre class="prettyprint">
+Evas_Object *parent, *check1, *content;
+
+// Create a check object 
+check1 = elm_check_add(parent);
+
+// Set the content of the check object 
+elm_object_part_content_set(check1, &quot;elm.swallow.content&quot;, content);
+</pre>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">If you want to control more content from the application, you can add new <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> parts when customizing a UI component style. However, remember that removing existing <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> parts changes the UI component behavior.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+</li>
+</ul>
 
 
-<p>For more details about customizing the look and feel of the UI components with custom styles, which are not provided as defaults, see the <a href="../../../../org.tizen.sampledescriptions/html/mobile_n/ui_theme_extension_sd_mn.htm">ThemeExtension</a> sample.</p> 
+<p>For more information on customizing the look and feel of the UI components with custom styles, see the <a href="../../../../org.tizen.sampledescriptions/html/mobile_n/ui_theme_extension_sd_mn.htm">ThemeExtension</a> sample.</p> 
+
+<h2 id="genlist_custom_style" name="genlist_custom_style">Example of Customizing the Genlist Component Item Style</h2>
+
+<p>The genlist component has item styles as well as component styles to enable each item to have various layouts. To customize the item styles:</p>
+
+<ol>
+<li>Name the genlist item group appropriately in the new EDC file.
+
+<p>The genlist item group name in the compiled EDJ file is based on the <span style="font-family: Courier New,Courier,monospace">elm/genlist/item/&lt;item_style&gt;/&lt;genlist_style&gt;</span> structure. For example:</p>
+<ul>
+<li>If the <span style="font-family: Courier New,Courier,monospace">&quot;default&quot;</span> style genlist has the <span style="font-family: Courier New,Courier,monospace">&quot;custom&quot;</span> item style, the item group name is: 
+<p><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/custom/default</span></p></li>
+<li>If the <span style="font-family: Courier New,Courier,monospace">&quot;effect&quot;</span> style genlist has the <span style="font-family: Courier New,Courier,monospace">&quot;custom&quot;</span> item style, the item group name is: 
+<p><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/custom/effect</span></p></li>
+</ul>
+
+<p>To use a specific genlist and item style, set them as in the following example. The following example loads the <span style="font-family: Courier New,Courier,monospace">elm/genlist/item/custom/effect</span> group (the <span style="font-family: Courier New,Courier,monospace">&quot;effect&quot;</span> genlist style and the <span style="font-family: Courier New,Courier,monospace">&quot;custom&quot;</span> item style) for the genlist item. If the <span style="font-family: Courier New,Courier,monospace">&quot;custom&quot;</span> item style for <span style="font-family: Courier New,Courier,monospace">&quot;effect&quot;</span> is missing, it searches for <span style="font-family: Courier New,Courier,monospace">elm/genlist/item/custom/default</span>.</p>
+
+<pre class="prettyprint">
+Evas_Object *genlist = elm_genlist_add(parent);
+elm_object_style_set(genlist, &quot;effect&quot;);
+
+Elm_Genlist_Item_Class *itc = elm_genlist_item_class_new();
+itc-&gt;item_style = &quot;custom&quot;;
+elm_genlist_item_append(genlist, itc, NULL, NULL, ELM_GENLIST_ITEM_NONE, NULL, NULL);
+</pre> 
+</li>
+
+<li>Add the EDJ file with the customized genlist item styles to the theme.
+<p>Before using them, append the customized item styles into the theme hierarchy with the <span style="font-family: Courier New,Courier,monospace">elm_theme_overlay_add()</span> or <span style="font-family: Courier New,Courier,monospace">elm_theme_extension_add()</span> function.</p>
+<p>If you want to overwrite the existing genlist item style, use overlay or extension.</p>
+<pre class="prettyprint">
+elm_theme_extension_add(NULL, &quot;/full/path/of/genlist_item_style_customization.edj&quot;);
+</pre>
+</li>
+
+<li>Customize the genlist item styles. 
+<p>Customizing the genlist item styles is similar to customizing a normal layout. Usually, the item group consists of several <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> and <span style="font-family: Courier New,Courier,monospace">TEXT</span> (or <span style="font-family: Courier New,Courier,monospace">TEXTBLOCK</span>) parts.</p>
+
+<p>The following example shows a simple genlist item style that has a top <span style="font-family: Courier New,Courier,monospace">TEXT</span> part and a bottom <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> part.</p>
+
+<pre class="prettyprint">
+collections 
+{
+&nbsp;&nbsp;&nbsp;group 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;elm/genlist/item/custom/default&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alias: &quot;elm/genlist/item_compress/custom/default&quot;; // Set alias for the ELM_LIST_COMPRESS mode
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// data.item: &quot;banded_bg_area&quot; &quot;elm.swallow.bg&quot;; // Set the background area for the banded UX
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.item: &quot;texts&quot; &quot;elm.text&quot;; // List text parts
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data.item: &quot;contents&quot; &quot;elm.swallow.content&quot;; // List swallow parts
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Add banded_bg_area swallow to use the banded UX
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// { 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// name: &quot;elm.swallow.bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// { 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// }
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// }
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Background part determines the pressed effect
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// See the &quot;programs&quot; block at the end of this example
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 128 128 128 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;pressed&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inherit: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 0 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// top_padding expands from the top edge of the item
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;top_padding&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SPACER;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 0.0; // Top-left point
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 0.0; // Bottom-right point
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 0.0; // Align shows to what direction this part expands
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 0 10; // Minimum size of this part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 0 1; // Height is fixed to  make additional calculation unnecessary
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// left_padding expands from the left edge of the item
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;left_padding&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SPACER;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.0 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 10 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 1 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// right_padding expands from the right edge of the item
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;right_padding&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SPACER;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 1.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 1.0 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 10 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 1 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// bottom_padding expands from the bottom edge of the item
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bottom_padding&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SPACER;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 0 10;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 0 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Separator line is used between items; it overlaps with the bottom_padding part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bottom_line&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 0 2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 0 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 64 64 64 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// elm.text lies between top_padding and mid_padding vertically,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// and between left_padding and right_padding horizontally
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;elm.text&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: TEXT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_x: &quot;left_padding&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_y: &quot;top_padding&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 1.0 1.0; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_x: &quot;right_padding&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_y: &quot;mid_padding&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 0.0 0.0; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;font: &quot;DejaVu Sans&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 12;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 0 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// mid_padding expands upside from the top edge of elm.swallow.content
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// but lies between left_padding and right_padding
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;mid_padding&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SPACER;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_x: &quot;left_padding&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_y: &quot;elm.swallow.content&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 1.0 0.0; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_x: &quot;right_padding&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_y: &quot;elm.swallow.content&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 0.0 0.0; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 0 5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 0 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// elm.swallow.content expands upside from the top edge of bottom_padding
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// but lies between left_padding and right_padding
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;elm.swallow.content&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_x: &quot;left_padding&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_y: &quot;bottom_padding&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 1.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_x: &quot;right_padding&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_y: &quot;bottom_padding&quot;; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 0.0 0.0; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fixed: 0 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;programs 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;program 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signal: &quot;elm,state,selected&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;source: &quot;elm&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;pressed&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;program 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;signal: &quot;elm,state,unselected&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;source: &quot;elm&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;target: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ol>
+
+
   
 <table class="note">
     <tbody>

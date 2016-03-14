@@ -1,0 +1,397 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+
+	<title>(Circle) Buddy UI Sample Overview</title>  
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>	
+<div id="container"><div id="contents"><div class="content">
+
+	<div id="profile">
+		<p><img alt="Wearable native" src="../images/wearable_s_n.png"/></p>
+	</div>
+
+<h1>(Circle) Buddy UI Sample Overview</h1>
+
+<p>The (Circle) Buddy UI sample application demonstrates how you can create a buddy and draw a UI for the buddy.</p>
+
+<p>For information on creating the sample application project in the IDE, see <a href="../cover_page.htm#create">Creating Sample Applications</a>.</p>
+
+<p>The following figure illustrates the main screen of the Buddy UI.</p>
+
+<p class="figure">Figure: (Circle) Buddy UI screens</p>
+<p align="center"><img src="../images/buddy_ui_views_wn.png" alt="(Circle) Buddy UI screens" /></p>
+
+<p>The application opens with the main view where the user can view all buddies in a circular list. To view the details of a specific buddy, click the buddy in the main view.</p>
+
+<h2>Source Files</h2>
+ 
+<p>You can create and view the sample application project including the source files in the IDE.</p>
+
+<table>
+  <caption>Table: Source files</caption>
+<tbody>
+	<tr>
+		<th>File name</th>
+		<th>Description</th>
+	</tr>
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">edje/images/</span></td>
+		<td>This file contains the image files used in the <span style="font-family: Courier New,Courier,monospace">main.edc</span> file.</td>
+	</tr>	
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">inc/buddyui.h</span></td>
+		<td>This file contains information and definition of the variables and functions used in the C files, especially in the <span style="font-family: Courier New,Courier,monospace">buddyui.c</span> file.</td>
+	</tr>
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">inc/data.h</span></td>
+		<td>This file contains information and definition of the variables and functions used in the C files, especially in the <span style="font-family: Courier New,Courier,monospace">data.c</span> file.</td>
+	</tr>	
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">inc/view.h</span></td>
+		<td>This file contains information and definition of the variables and functions used in the C files, especially in the <span style="font-family: Courier New,Courier,monospace">view.c</span> file.</td>
+	</tr>
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">res/edje/main.edc</span></td>
+		<td>This file is for the UI and contains style, image, and position of the sample application.</td>
+	</tr>
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">res/images/</span></td>
+		<td>This directory contains the image files used in the C files.</td>
+	</tr>	
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">src/buddyui.c</span></td>
+		<td>This file contains the functions related to the application life-cycle, callback functions, and view control.</td>
+	</tr>
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">src/data.c</span></td>
+		<td>This file contains the functions for retrieving and creating data for the application.</td>
+	</tr>	
+	<tr>
+		<td><span style="font-family: Courier New,Courier,monospace">src/view.c</span></td>
+		<td>This file contains the functions for implementing the views and handling events.</td>
+	</tr>
+	
+	</tbody>
+</table>
+ 
+<h2>Implementation</h2>
+
+<h3>Application Layout</h3> 
+ 
+<p>To create the basic layout, use the <span style="font-family: Courier New,Courier,monospace">view_create()</span> function. The window and conformant components are essential parts of the application layout.</p> 
+
+<pre class="prettyprint">void 
+view_create(void)
+{
+&nbsp;&nbsp;&nbsp;// Create a window
+&nbsp;&nbsp;&nbsp;s_info.win = view_create_win(PACKAGE);
+&nbsp;&nbsp;&nbsp;if (s_info.win == NULL) 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to create a window.&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Create a conformant
+&nbsp;&nbsp;&nbsp;s_info.conform = view_create_conformant_without_indicator(s_info.win);
+&nbsp;&nbsp;&nbsp;if (s_info.conform == NULL) 
+{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to create a conformant&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// Show the window after the main view is set up
+&nbsp;&nbsp;&nbsp;evas_object_show(s_info.win);
+}</pre>
+
+<p>To manage multiple views efficiently, you need a naviframe component. To create the naviframe and a circular layout, use the <span style="font-family: Courier New,Courier,monospace">view_buddy_create()</span> function:</p>
+
+<pre class="prettyprint">
+void 
+view_buddy_create(void)
+{
+&nbsp;&nbsp;&nbsp;// Create the Eext circle surface
+&nbsp;&nbsp;&nbsp;s_info.circle_surface = eext_circle_surface_conformant_add(s_info.conform);
+&nbsp;&nbsp;&nbsp;// Create a circular layout 
+&nbsp;&nbsp;&nbsp;s_info.layout = view_create_layout_for_conformant_by_theme(s_info.conform);
+
+&nbsp;&nbsp;&nbsp;// Create the naviframe
+&nbsp;&nbsp;&nbsp;s_info.nf = view_create_naviframe(s_info.layout);
+&nbsp;&nbsp;&nbsp;if (s_info.nf == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to create a naviframe.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(s_info.win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.win = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+}</pre>
+
+<h4>Main View</h4>
+
+<p>The application opens with the main view.</p>
+
+<p class="figure">Figure: Main view</p>
+<p align="center"><img src="../images/buddy_ui_main_view_wn.png" alt="Main view" /></p>
+
+<p>To create the main view, use the <span style="font-family: Courier New,Courier,monospace">view_buddy_create()</span> function:</p> 
+
+<pre class="prettyprint">main_view_layout = view_create_layout(win, edj_path, GRP_MAIN, NULL, NULL);</pre>
+
+<p>The following figure shows the view frame created by the above code.</p>
+
+<p class="figure">Figure: Main view frame</p>
+<p align="center"><img src="../images/buddy_ui_main_frame_wn.png" alt="Main view frame" /></p>
+
+<p>To fill out each part of the view, use the <span style="font-family: Courier New,Courier,monospace">_init_view()</span> function:</p>
+
+<ul>
+<li>The <span style="font-family: Courier New,Courier,monospace">view_set_label()</span> function creates a label and sets it to the <span style="font-family: Courier New,Courier,monospace">sw.focus.txt</span> object.</li>
+<li>The third parameter of the <span style="font-family: Courier New,Courier,monospace">view_set_label_text()</span> function determines the focus of this view.</li> </ul>
+
+<pre class="prettyprint">view_set_label(main_view_layout, &quot;sw.focus.txt&quot;);
+view_set_label_text(main_view_layout, &quot;sw.focus.txt&quot;, item_info-&gt;name);</pre>
+
+<p>You can customize the <span style="font-family: Courier New,Courier,monospace">_naviframe_main_view_pop_cb()</span> callback to do something when you press the back key in the main view.</p> 
+
+<p>To manage the buddy list in the main view:</p>
+
+<ul>
+<li>Create the buddy item list in main the view with the following information structure:
+
+<pre class="prettyprint">
+typedef struct 
+_item_info_s 
+{
+&nbsp;&nbsp;&nbsp;int position;
+&nbsp;&nbsp;&nbsp;char *name;
+&nbsp;&nbsp;&nbsp;char *number;
+&nbsp;&nbsp;&nbsp;char *img_path;
+&nbsp;&nbsp;&nbsp;float w;
+&nbsp;&nbsp;&nbsp;float h;
+} 
+item_info_s;</pre>
+</li>
+<li>When the application is launched, the buddy items are created and appended to the item list.
+
+<pre class="prettyprint">
+item_count = data_get_item_total_count();
+for (i = 0; i &lt; item_count; i++) 
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *item_layout = NULL;
+&nbsp;&nbsp;&nbsp;item_info_s *item_info = malloc(sizeof(item_info_s));
+
+&nbsp;&nbsp;&nbsp;item_info-&gt;name = data_get_item_name(i);
+&nbsp;&nbsp;&nbsp;item_info-&gt;number = data_get_item_number(i);
+&nbsp;&nbsp;&nbsp;item_info-&gt;img_path = data_get_item_image(i);
+&nbsp;&nbsp;&nbsp;item_info-&gt;w = 20;
+&nbsp;&nbsp;&nbsp;item_info-&gt;h = 20;
+
+&nbsp;&nbsp;&nbsp;item_layout = view_buddy_create_item_layout(main_view_layout, item_info-&gt;name, edj_path, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_info-&gt;img_path, default_img_path, NULL);
+&nbsp;&nbsp;&nbsp;evas_object_data_set(item_layout, &quot;__ITEM_INFO__&quot;, item_info);
+
+&nbsp;&nbsp;&nbsp;data_push_item_to_list(&amp;item_list, item_layout);
+}
+data_set_item_list(item_list);</pre>
+</li>
+<li>If the application is terminated, the buddy items are destroyed:
+
+<pre class="prettyprint">
+item_list = data_get_item_list();
+EINA_LIST_FREE(item_list, item)
+{
+&nbsp;&nbsp;&nbsp;item_info_s *item_info = evas_object_data_del(item, &quot;__ITEM_INFO__&quot;);
+&nbsp;&nbsp;&nbsp;if (item_info == NULL) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;free(item_info-&gt;name);
+&nbsp;&nbsp;&nbsp;free(item_info-&gt;number);
+&nbsp;&nbsp;&nbsp;free(item_info-&gt;img_path);
+&nbsp;&nbsp;&nbsp;free(item_info);
+}</pre>
+</li></ul>
+
+<p>The position of the buddy on the screen is determined by a position index that a buddy item has.</p>
+
+<p class="figure">Figure: Position index in the main view</p>
+<p align="center"><img src="../images/buddy_ui_position_wn.png" alt="Position index in the main view" /></p>
+
+<p>When a rotary event is detected, buddy items are moved according to the direction of rotation. At this time, the buddy item position, size, transparency, and font size are set according to the location information matched with the index. The animation of the movement is implemented using the <span style="font-family: Courier New,Courier,monospace">_simple_circle_animation()</span> function of the <a href="../../../org.tizen.native.mobile.apireference/group__Ecore__Animator__Group.html">Ecore Animator</a> API.</p> 
+
+<pre class="prettyprint">
+static Eina_Bool 
+_simple_circle_path_animation(void *data)
+{
+&nbsp;&nbsp;&nbsp;Evas_Object *main_view_layout = data;
+&nbsp;&nbsp;&nbsp;Eina_List *item_list = NULL;
+&nbsp;&nbsp;&nbsp;Eina_List *l = NULL;
+&nbsp;&nbsp;&nbsp;Evas_Object *item_layout = NULL;
+&nbsp;&nbsp;&nbsp;static int frame = 0;
+
+&nbsp;&nbsp;&nbsp;// After the last item, the circle path animation is finished
+&nbsp;&nbsp;&nbsp;if (_check_last_item_in_list() == EINA_TRUE) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;frame = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.anim = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.anim_end = EINA_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_CANCEL;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;// If the current frame is over FRAME_MAX, circle path animation is finished
+&nbsp;&nbsp;&nbsp;if (frame &gt; FRAME_MAX) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;frame = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.anim = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;s_info.anim_end = EINA_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_CANCEL;
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else if (frame == 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_change_title_position(main_view_layout);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;s_info.anim_end = EINA_FALSE;
+
+&nbsp;&nbsp;&nbsp;item_list = data_get_item_list();
+&nbsp;&nbsp;&nbsp;EINA_LIST_FOREACH(item_list, l, item_layout)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_info_s *item_info = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int to_deg, to_x, to_y, to_w, to_h, to_opacity;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int from_deg, from_x, from_y, from_w, from_h, from_opacity;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int cur_x, cur_y, cur_w, cur_h;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int index, move_x, move_y, radius, opacity;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int x_coord, y_coord;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;float deg_delta = 0.0f, angle = 0.0f;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_info = evas_object_data_get(item_layout, &quot;__ITEM_INFO__&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;index = item_info-&gt;position;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (frame == 0) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int font_size = data_get_position_font_size(data_get_next_index(s_info.rotary_direction, index));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_buddy_change_item_font_size(item_layout, font_size);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (frame == FRAME_MAX) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_set_item_property(item_layout, data_get_next_index(s_info.rotary_direction, index));
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (data_get_next_index(s_info.rotary_direction, index) == 5) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_set_label_text(main_view_layout, &quot;sw.focus.txt&quot;, item_info-&gt;name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;item info : %s, %s&quot;, item_info-&gt;name, item_info-&gt;img_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;continue;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_get_position_info(index, &amp;from_x, &amp;from_y, &amp;from_w, &amp;from_h, &amp;from_opacity);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_get_position_info(data_get_next_index(s_info.rotary_direction, index), 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;to_x, &amp;to_y, &amp;to_w, &amp;to_h, &amp;to_opacity);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_geometry_get(item_layout, &amp;cur_x, &amp;cur_y, &amp;cur_w, &amp;cur_h);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Get the degree of the item layout
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;from_deg = data_get_position_degree(index);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_deg = data_get_position_degree(data_get_next_index(s_info.rotary_direction, index));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deg_delta = fabs((float) from_deg - (float) to_deg);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Get the size of the item layout
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (index &lt; 0 || index &gt; 10) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_info-&gt;w = 20;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;item_info-&gt;h = 20;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_get_item_size(&amp;item_info-&gt;w, &amp;item_info-&gt;h, from_w, from_h, to_w, to_h, deg_delta);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(item_layout, item_info-&gt;w, item_info-&gt;h);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Get the position of the item layout
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (index &lt; 0 || index &gt; 10) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x_coord = 360;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y_coord = 180;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Calculate angle
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;angle = data_get_item_angle(from_deg, to_deg, deg_delta, frame);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Calculate radius
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radius = data_get_item_radius(index, s_info.rotary_direction, frame);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Calculate position
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_get_simple_circle_path(&amp;move_x, &amp;move_y, radius, angle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x_coord = move_x - (cur_w / 2);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;y_coord = move_y - (cur_h / 2);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(item_layout, x_coord, y_coord);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Get the opacity of the item layout
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;opacity = data_get_item_opacity(item_layout, from_opacity, to_opacity, deg_delta);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(item_layout, opacity, opacity, opacity, opacity);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(item_layout);
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;frame++;
+
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}</pre>
+
+
+
+<h4>Detail View</h4>
+
+<p>To move to the detail view when the user clicks the focused buddy on the main view, register and customize the <span style="font-family: Courier New,Courier,monospace">_focus_clicked_cb()</span> callback:</p> 
+
+<pre class="prettyprint">view_set_customized_event_callback(main_view_layout, &quot;mouse,clicked&quot;, &quot;img.focus.bg&quot;, _focus_clicked_cb, main_view_layout);</pre>
+
+<p>In the callback, the detail view is created and shows the buddy item information.</p>
+
+<p class="figure">Figure: Detail view</p>
+<p align="center"><img src="../images/buddy_ui_detail_view_wn.png" alt="Detail view" /></p>
+
+<p>To manage the view easily, add it to the <span style="font-family: Courier New,Courier,monospace">naviframe</span>:</p> 
+
+<pre class="prettyprint">view_push_item_to_naviframe(naviframe, detail_view_layout, _detail_view_pop_cb, main_view_layout);</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

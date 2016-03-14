@@ -1,0 +1,156 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+	<title>Timer Sample Overview</title>
+</head>
+
+<body class="no-toc" onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/></p>
+	</div>
+  <h1>Timer Sample Overview</h1>
+
+<p>The Timer sample application demonstrates how you can implement a simple time countdown application.</p>
+<p>For information on creating the sample application project in the IDE, see <a href="../cover_page.htm#create">Creating Sample Applications</a>.</p>
+<p>The following figure illustrates the main screen of the Timer.</p>
+
+  <p class="figure">Figure: Timer screen</p>
+  <p align="center">
+    <img alt="Timer screen" src="../images/timer_application_0.png" />
+    <img alt="Timer screen" src="../images/timer_application_1.png" />
+  </p>
+
+<p>The application opens with the main view where the user can set the time for the countdown. To start the timer, click <strong>Start</strong>. When the time elapses, the application plays an alarm sound.</p>
+
+<p>The application user interface consists of a single window, 4 layouts, and a few buttons. The layouts constitute the following UI layers: </p>
+<ul>
+<li>Main application window</li>
+<li>Custom keypad</li>
+<li>Custom keypad key</li>
+<li>Dismiss button</li>
+</ul>
+
+<h2>Implementation</h2>
+
+<h3>Main Controller</h3>
+
+<p>The time countdown is based on the <span style="font-family: Courier New,Courier,monospace">Ecore_Timer</span> object.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">__timer_cb()</span> callback function is invoked roughly every second. It calls the <span style="font-family: Courier New,Courier,monospace">tm_tick()</span>
+function from the model module, and is used to decrement the total time that has been initially set.</p>
+
+<pre class="prettyprint">
+static Eina_Bool 
+__timer_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;tm_tick();
+
+&nbsp;&nbsp;&nbsp;if (tm_get_count() == COUNTDOWN_REACHED) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_show_time_up();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__start_alarm();
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;view_update_time(tm_get_count());
+
+&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+</pre>
+
+<p>Another important function is the <span style="font-family: Courier New,Courier,monospace">__ui_cb()</span> callback, which responds to UI events:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_START_RESUME</span> event is triggered when <strong>Start</strong> or the <strong>Resume</strong> has been clicked.</li>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_PAUSE</span> event is triggered when <strong>Pause</strong> has been clicked.</li>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_CANCEL</span> event is triggered when <strong>Cancel</strong> has been clicked (while in the paused state).</li>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_RESET</span> event is triggered when <strong>Reset</strong> has been clicked (at anytime during the countdown).</li>
+<li><span style="font-family: Courier New,Courier,monospace">UI_EVENT_TIME_SET</span> event is triggered when the countdown time is changed by the user using the keypad.</li>
+</ul>
+
+<pre class="prettyprint">
+static void 
+__ui_cb(ui_event_e event)
+{
+&nbsp;&nbsp;&nbsp;int hh = 0;
+&nbsp;&nbsp;&nbsp;int mm = 0;
+&nbsp;&nbsp;&nbsp;int ss = 0;
+&nbsp;&nbsp;&nbsp;int count_to_set = 0;
+
+&nbsp;&nbsp;&nbsp;switch (event) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case UI_EVENT_START_RESUME:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__start_resume_counting();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case UI_EVENT_PAUSE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__cancel_counting();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case UI_EVENT_CANCEL:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__cancel_counting();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tm_reset_count();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__stop_alarm();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_update_time(tm_get_count());
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case UI_EVENT_RESET:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tm_reset_count();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_update_time(tm_get_count());
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__start_resume_counting();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case UI_EVENT_TIME_SET:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_get_user_time(&amp;hh, &amp;mm, &amp;ss);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count_to_set = ss + 60 * mm + 60 * 60 * hh;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tm_set_countdown(count_to_set);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tm_reset_count();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;view_update_time(tm_get_count());
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h3>Model</h3>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">tm_tick()</span> function is called every time the timer callback function is invoked. It updates the current time count:</p>
+<pre class="prettyprint">
+void 
+tm_tick(void)
+{
+&nbsp;&nbsp;&nbsp;current_sec--;
+}
+</pre>
+
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
