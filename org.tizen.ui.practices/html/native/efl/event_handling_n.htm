@@ -43,20 +43,20 @@
 
   <h1>Event Handling: Managing the Event Flow</h1> 
   
-<p>The EFLs rely on events and callbacks. In case of an event, (for example, a key press, mouse click or a battery running low), the mainloop calls the callback functions that are associated to that specific event. After the callbacks have finished, the mainloop takes over and waits for new events, upon which to trigger new callbacks.</p>
-<p>It is important to do light work in the callbacks and to return to the mainloop relatively quickly. If there is heavy work to do, it is best to use an asynchronous mechanism like Ecore_con for network I/O or threads for CPU-intensive tasks. Failure to return quickly to the mainloop blocks the application&#39;s UI and it appears frozen.</p>
+<p>EFL relies on events and callbacks. In case of an event, such as a key press, mouse click, or a battery running low, the main loop calls the callback functions that are associated with that specific event. After the callbacks have finished, the main loop takes over and waits for new events, upon which to trigger new callbacks.</p>
+<p>It is important to do light work in the callbacks and to return to the main loop relatively quickly. If there is heavy work to do, use an asynchronous mechanism, such as <span style="font-family: Courier New,Courier,monospace">Ecore_con</span> for network I/O, or threads for CPU-intensive tasks. Failing to return quickly to the main loop blocks the application UI and makes it appear frozen.</p>
 
 <h2 id="events_types" name="events_types">EFL Event Types</h2>
-<p>There are several event types in the EFLs, and their use depends on the level of the event. The event types from lower- to higher-level are:</p>
+<p>There are several event types in EFL, and their use depends on the level of the event. The event types from the lowest to the highest level are:</p>
 <ul>
-<li><a href="event_types_n.htm#evas_smart_object">Evas smart events</a> are the most often used and take place on collections of evas objects (which are most typically handled). They are called &quot;smart&quot; because they have internal logic and can define their own events while other event types are fixed.</li>
 <li><a href="event_types_n.htm#ecore">Ecore events</a> are the lowest-level events and come directly from the system. Except for application-wide shortcuts, it is not advisable to use them.</li>
-<li><a href="event_types_n.htm#evas_object">Evas object events</a> concern the objects that are on the canvas.</li>
 <li><a href="event_types_n.htm#evas">Evas events</a> are events on the graphical canvas as a whole. They are fairly low-level and mostly useful when drawing directly on the canvas.</li>
+<li><a href="event_types_n.htm#evas_object">Evas object events</a> concern the objects that are on the canvas. You can also implement <a href="multipoint_touch_n.htm">multi-point touch events</a> for Evas objects.</li>
+<li><a href="event_types_n.htm#evas_smart_object">Evas smart events</a> are the most often used and take place on collections of Evas objects. They are called &quot;smart&quot;, because they have an internal logic and can define their own events, while the other event types are fixed.</li>
 </ul>
 
-  <p class="figure">Figure: Event types in the EFLs: Inner boxes are more specific than outer ones</p> 
-  <p align="center"><img alt="Event types in the EFLs: Inner boxes are more specific than outer ones" src="../../images/events_scope.png" /></p>
+  <p class="figure">Figure: Event types in the EFLs</p> 
+  <p align="center"><img alt="Event types in the EFLs" src="../../images/events_scope.png" /></p>
   
        
 
@@ -66,18 +66,22 @@
      <th class="note">Note</th> 
     </tr> 
     <tr> 
-     <td class="note">There are also <a href="event_types_n.htm#edje">Edje signals</a>, which come from program sections in themes; they can be used from high-level Elementary APIs or a low-level Edje API.</td> 
+     <td class="note">There are also <a href="event_types_n.htm#edje">Edje signals</a>, which come from program blocks in the theme EDC files. They can be used from the high level Elementary APIs or the low level Edje APIs.</td> 
 	 </tr>
    </tbody> 
   </table> 
 
 <h2 id="basic_events_flow" name="basic_events_flow">Basic Event Flow</h2>
 <p>A realistic scenario involving various types of events is an application showing a button, which triggers the download of a file to be processed. There are progress bars for the operations.</p>
-<p>Create the window, create a box, set it vertical and add a button and 2 progress bars. At first, only the button is fully visible.</p>
-<p>When the user clicks on the button, an evas smart object event named &quot;clicked&quot; is emitted. The callback then starts the download in Ecore_con, displays the first progress bar and adds a callback to monitor the download progress. When the download progress changes, the callback updates the progress bar.</p>
-<p>After the download is finished, the second progress bar is displayed and the file processing is offloaded to another thread through Ecore_thread. The processing function regularly updates the progress bar (wrapped in ecore_main_loop_thread_safe_call_async() because GUI operations are not thread-safe).</p>
-<p>Events enable operations taking more than a few milliseconds&#39; time to be executed outside of the mainloop, therefore not blocking UI redraws.</p>
-<p>Below is an illustration for the event flow that follows a click on the screen.</p>
+<p>The following steps are involved in the above basic event flow:</p>
+<ol>
+<li><p>Create a window and box, set the box to be vertical, and add a button and 2 progress bars. At first, only the button is fully visible.</p></li>
+<li><p>When the user clicks the button, an Evas smart object event named <span style="font-family: Courier New,Courier,monospace">clicked</span> is emitted.</p></li>
+<li><p>The callback for the <span style="font-family: Courier New,Courier,monospace">clicked</span> event starts the download in <span style="font-family: Courier New,Courier,monospace">Ecore_con</span>, displays the first progress bar, and adds a callback to monitor the download progress. When the download progress changes, the callback updates the progress bar.</p></li>
+<li><p>After the download is finished, the second progress bar is displayed and the file processing is offloaded to another thread through the <span style="font-family: Courier New,Courier,monospace">Ecore_thread</span>. The processing function regularly updates the progress bar, which wrapped in the <span style="font-family: Courier New,Courier,monospace">ecore_main_loop_thread_safe_call_async()</span> function because GUI operations are not thread-safe.</p></li>
+</ol>
+<p>Events enable operations taking more than a few milliseconds&#39; time to be executed outside of the main loop, therefore not blocking UI redraws.</p>
+<p>The following figure illustrates the event flow that follows a click on the screen.</p>
 
   <p class="figure">Figure: Event flow for a user click</p> 
   <p align="center"><img alt="Event flow for a user click" src="../../images/events_flow.png" /></p>

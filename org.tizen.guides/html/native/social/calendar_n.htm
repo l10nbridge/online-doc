@@ -48,11 +48,13 @@
 <p>A calendar is a system of organizing days for social purposes. It is composed of <a href="#record2">records</a>, such as events and todos. The records consist of subrecords, such as alarms, attendees, or extensions. For example, if an event has a recurrence rule (meaning that it happens multiple times), separate instances are generated for each time the event occurs.</p>
 
 <p>This feature is supported in mobile applications only.</p>
+
+<p>The calendar information is stored in a calendar database. To manage the information in the database, you must <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#init">connect to the calendar service</a>.</p>
  
   <p class="figure">Figure: Calendar model</p> 
   <p align="center"><img alt="Calendar model" src="../../images/calendar_model.png" /></p>
   
-  <p>The Calendar Service supports <a href="#vcal">vCalendars</a>.</p>
+  <p>The calendar service supports <a href="#vcal">vCalendars</a>.</p>
 
 <p>The main features of the Calendar API include:</p>
 	<ul>
@@ -65,9 +67,11 @@
 		</ul>
 		<p>Each account can have multiple calendar books. The calendar book name does not need to be unique on the device because it is handled with an ID. Since the local device address book has no account, its related account ID is zero.</p>
 		</li>
-		<li><a href="#event">Events and tasks</a>
+		<li><a href="#event">Events and todos</a>
 		<ul>
-			<li>Set properties, such as summary, start time, and description.</li>
+			<li>Create <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#create_event">events</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#create">todos</a>, set properties for them, such as summary, start time, and description, and store them in the database.</li>
+			<li>Update <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#update_event">event</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#update">todo</a> details in the database.</li>
+			<li>Delete <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#delete_event">events</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#delete">todos</a> from the database.</li>
 			<li>Set <a href="#remind">reminders</a>.</li>
 			</ul>
 		</li>
@@ -149,7 +153,7 @@ calendar_db_get_all_records(_calendar_calendar_book._uri, 0, 0, &amp;calendar_bo
 
 <h2 id="change" name="change">Database Change Notifications</h2>
 
-<p>To detect the calendar database changes, register a callback with the <span style="font-family: Courier New,Courier,monospace">calendar_db_add_changed_cb()</span> function. To unregister the callback and ignore database changes, use the <span style="font-family: Courier New,Courier,monospace">calendar_db_remove_changed_cb()</span> function.</p>
+<p>To detect the <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#monitor_event">event</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#monitor">todo</a> changes in the calendar database, register a callback with the <span style="font-family: Courier New,Courier,monospace">calendar_db_add_changed_cb()</span> function. To deregister the callback and ignore database changes, use the <span style="font-family: Courier New,Courier,monospace">calendar_db_remove_changed_cb()</span> function.</p>
 <p>Clients wait calendar change notifications on the client side. If the calendar is changed by another module, the server publishes an inotify event. The Inotify module broadcasts to the subscribed modules, and an internal inotify handler is called at the client side. A user callback function is called with the user data.</p>
 <pre class="prettyprint">// Add callback function
 void __event_changed_ cb(const char *view_uri, void *user_data) {}
@@ -163,7 +167,7 @@ calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);</pre
   <p class="figure">Figure: Views and databases</p> 
   <p align="center"><img alt="Views and databases" src="../../images/calendar_db.png" /></p>  
 
-<p>The following table illustrates and example of a recurring event and its instances.</p>
+<p>The following table illustrates an example of a recurring event and its instances.</p>
 
 <table> 
    <caption>
@@ -240,6 +244,8 @@ calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);</pre
    </tbody> 
   </table> 
 
+<p>When you have a recurring event, you can <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#exception_add">remove a specific recurrence instance</a> from it, or <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#exception_modify">add exceptions to the recurrence</a>.</p>  
+  
 <h3 name="exception_rule" id="exception_rule">Exceptions</h3>
 <p>If 1 of the instances of a recurring event is modified (such as its summary or date) or deleted, it is called an exception. For example, if the second instance date is modified from 16<sup>th</sup> to 17<sup>th</sup>, 17<sup>th</sup> is the exception.</p>
 
@@ -272,7 +278,7 @@ calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);</pre
 <p>To get the changes in an exception, use the <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_exception_by_version()</span> function. The instances and exceptions are deleted together when the original event is deleted.</p>
 
 <h2 id="filter2" name="filter2">Filters and Queries</h2>
-<p>Queries are used to retrieve data which satisfies a given criteria, like an integer property being greater than a given value, or a string property containing a given substring. The criteria are defined by creating filters and adding conditions to them, joining them with logical operators. Also, instead of a condition, another filter can be added to create more complex filters.</p>
+<p>Queries are used to retrieve <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#get_event">event</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#get">todo</a> data which satisfies a given criteria, like an integer property being greater than a given value, or a string property containing a given substring. The criteria are defined by creating filters and adding conditions to them, joining them with logical operators. Also, instead of a condition, another filter can be added to create more complex filters.</p>
 <p>When a filter is ready, it can be set as a property of a query. Other query properties allow configuring how the returned results are grouped and sorted.</p>
 <p>The operator precedence in filters is determined by the order in which the conditions and filters are added. The following table shows an example of how the operator precedence works.</p>
 
@@ -383,7 +389,7 @@ calendar_list_destroy(list, true);</pre>
 
 <h2 id="record2" name="record2">Records</h2>
 
-<p>An important concept in the Calendar Service APIs is a record. Although a record represents an actual record in the internal database, you can consider it as a structure describing a single (but complex) entity, like a calendar event or a time zone.</p>
+<p>An important concept in the Calendar APIs is a record. Although a record represents an actual record in the internal database, you can consider it as a structure describing a single (but complex) entity, like a calendar event or a time zone.</p>
 
 <p>A record has many properties, for example, a todo record has the todo description, priority, progress, creation time, last modified and completed time, and many others.</p>
 <p>A record can also contain an identifier field, which holds an ID of another record. Setting this field&#39;s value establishes a relation between the records, for example, a calendar event contains the ID of a calendar book to which it belongs.</p>
@@ -668,7 +674,7 @@ int calendar_db_get_changes_exception_by_version(..., int calendar_db_version, .
 <p>To get the current version, the <span style="font-family: Courier New,Courier,monospace">calendar_db_get_current_version()</span> function is used. The <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_by_version()</span> function retrieves the modified record list. The <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_exception_by_version()</span> function is used to get <a href="#exception_rule">modified instances in a recurring event</a>.</p>
 
 <h2 id="vcal" name="vcal">vCalendar</h2>
-<p>Use vCalendar to exchange personal calendar and schedule information. In order to avoid confusion with this referenced work, this is to be known as the vCalendar specification. vCalendar ver2.0 is known as iCalendar. The following snippet shows an example of the vCalendar.</p>
+<p>Use the vCalendar to exchange personal calendar and schedule information. In order to avoid confusion with this referenced work, this is to be known as the vCalendar specification. vCalendar ver2.0 is known as iCalendar. The following snippet shows an example of the vCalendar.</p>
 <pre class="prettyprint">
 BEGIN:VCALENDAR
 VERSION:2.0
@@ -681,10 +687,10 @@ END:VEVENT
 END:VCALENDAR
 </pre>
 
-<p>The calendar service provides APIs to compose a vCalendar stream. With the stream, it is possible to create files transmit data with JSON data.</p>
+<p>The calendar service provides APIs to <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#make">compose a vCalendar stream</a>. With the stream, it is possible to create files transmit data with JSON data.</p>
 <pre class="prettyprint">
 calendar_list_h list = NULL;
-// Create or get list to make vcalendar stream
+// Create or get list to make a vcalendar stream
 
 char *stream = NULL;
 calendar_vcalendar_make_from_records(list, &amp;stream);
@@ -695,7 +701,7 @@ calendar_vcalendar_make_from_records(list, &amp;stream);
 free(stream);
 </pre>
 
-<p>vCalendar can be parsed with calendar service APIs as well.</p>
+<p>You can <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#parse">parse the vCalendar</a> with calendar APIs as well.</p>
 <pre class="prettyprint">
 // Read stream from file
 

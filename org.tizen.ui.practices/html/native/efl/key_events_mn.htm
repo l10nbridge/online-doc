@@ -30,7 +30,7 @@
 <div id="container"><div id="contents"><div class="content">
 <h1>Managing Menu and Back Key Events</h1>
 
-<p>The <strong>Menu</strong> and <strong>Back</strong> functions are common UX behaviors in applications. Generally, the user taps the <strong>Back</strong> hardware key to return to the previous screen. The applications usually also provide option menus to manipulate their functions through the tapping of the <strong>Menu</strong> hardware key.</p>
+<p>The menu and back functions are common UX behaviors in applications. Generally, the user taps the <strong>Back</strong> hardware key to return to the previous screen. The applications also provide option menus to manipulate their functions through the <strong>Menu</strong> hardware key.</p>
 
 <p>This feature is supported in mobile applications only.</p>
 
@@ -39,14 +39,14 @@
  <p class="figure">Figure: Menu and Back keys</p> 
 <p align="center"><img alt="Menu and Back keys" src="../../images/efl_phone.png" /></p> 
 
-<p>The EFL Extension maintains its own object stack for determining which object to deliver events to. Only visible objects are added to this stack. The stack is based on the Evas layer. It means that if 2 objects are registered for the same EFL Extension event, the object on the higher Evas layer gets the event.</p>
+<p>The EFL Extension library maintains its own object stack to determine which object receives the event. Only visible objects are added to the stack.</p>
 
-<p>The following figure shows an example of objects and their layers. Objects 1, 2, and 3 are registered with EFL Extension callbacks for the same event, such as a <strong>Back</strong> key event. When the event occurs, object 3, which is on the highest layer (layer 3), gets the event callback.</p>
+<p>The stack is based on Evas layers, which means that if 2 objects are registered for the same EFL Extension event, the object on the higher Evas layer gets the event. The following figure shows an example of objects on different layers. Objects 1, 2, and 3 are registered with EFL Extension callbacks for the same event, such as a <strong>Back</strong> key event. When the event occurs, object 3, which is on the highest layer (layer 3), gets the event callback.</p>
 
-<p class="figure">Figure: Objects with layers</p> 
-<p align="center"><img alt="Objects with layers" src="../../images/efl_layers.png" /></p> 
+<p class="figure">Figure: Objects on different layers</p> 
+<p align="center"><img alt="Objects on different layers" src="../../images/efl_layers.png" /></p> 
 
-<p>If objects stay on the same layer, the object which is registered to the callback first gets the event.</p>
+<p>If the objects with callbacks for the same event are on the same layer, the object which is registered the callback first gets the event.</p>
 
 <p>To register a callback for the <strong>Menu</strong> or <strong>Back</strong> key, use the <span style="font-family: Courier New,Courier,monospace;">eext_object_event_callback_add()</span> function with the application callback type:</p>
 <ul>
@@ -60,8 +60,12 @@
 
 <h2 id="hw" name="hw">Managing Hardware Key Events</h2>
 
-<p>The application has a window that contains a naviframe and registers the EFL Extension <strong>Menu</strong> and <strong>Back</strong> key events for the naviframe.</p>
-<p>When the <strong>Menu</strong> key is pressed, a popup is created and an EFL Extension <strong>Back</strong> key event for this popup is registered. If the popup is shown and the <strong>Back</strong> key is pressed, the popup is removed. Otherwise, if the <strong>Back</strong> key is pressed and there is no popup, the application is hidden.</p>
+<p>The following example application has a window with a naviframe, and registers the EFL Extension <strong>Menu</strong> and <strong>Back</strong> key events for the naviframe. When the <strong>Menu</strong> key is pressed, the <span style="font-family: Courier New,Courier,monospace">_create_popup()</span> callback creates a popup and registers an EFL Extension <strong>Back</strong> key event for the popup. When the <strong>Back</strong> key is pressed:</p>
+
+<ul>
+<li>If the popup is shown, the <span style="font-family: Courier New,Courier,monospace">eext_popup_back_cb()</span> callback registered for the popup is triggered, because the popup is located on a higher level than the naviframe. The callback removes the popup.</li>
+<li>If the popup is not shown, the <span style="font-family: Courier New,Courier,monospace">_nf_back_cb()</span> callback registered for the naviframe is triggered. The callback hides the application.</li>
+</ul>
 
 <p>To manage hardware key events:</p>
 <ol>
@@ -72,7 +76,7 @@
 </pre>
 </li>
 
-<li>Create objects using the window and naviframe:
+<li>Create a window, naviframe, and label, and show the window:
 <pre class="prettyprint">
 static void
 create_base_gui(appdata_s *ad)
@@ -90,7 +94,7 @@ create_base_gui(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, nf);
 &nbsp;&nbsp;&nbsp;evas_object_show(nf);
 
-&nbsp;&nbsp;&nbsp;// Content
+&nbsp;&nbsp;&nbsp;// Create a label
 &nbsp;&nbsp;&nbsp;Evas_Object *label = NULL;
 &nbsp;&nbsp;&nbsp;label = elm_label_add(nf);
 &nbsp;&nbsp;&nbsp;elm_object_text_set(label, &quot;Press menu key to show popup,&lt;br/&gt;back key to exit.&quot;);
@@ -98,48 +102,58 @@ create_base_gui(appdata_s *ad)
 
 &nbsp;&nbsp;&nbsp;// Show the window
 &nbsp;&nbsp;&nbsp;evas_object_show(win);
-}
 </pre>
 </li>
 
 <li>Register EFL Extension callbacks for the naviframe:
 <pre class="prettyprint">
-static void
-create_base_gui(appdata_s *ad)
-{
-&nbsp;&nbsp;&nbsp;// Register the EFL extension callbacks for Menu and Back key events
+&nbsp;&nbsp;&nbsp;// Register the Menu key event callback
 &nbsp;&nbsp;&nbsp;eext_object_event_callback_add(nf, EEXT_CALLBACK_MORE, _create_popup, NULL);
+&nbsp;&nbsp;&nbsp;// Register the Back key event callback
 &nbsp;&nbsp;&nbsp;eext_object_event_callback_add(nf, EEXT_CALLBACK_BACK, _nf_back_cb, win);
 }
 </pre>
 </li>
 
-<li>Create a popup and register EFL Extension <strong>Back</strong> key event callbacks for it:
+<li>In the <strong>Menu</strong> key callback, create a popup and register an EFL Extension <strong>Back</strong> key event callback for it:
 <pre class="prettyprint">
 static void
 _create_popup(void *data, Evas_Object *obj, void *event_info)
 {
 &nbsp;&nbsp;&nbsp;Evas_Object *parent = obj;
 
+&nbsp;&nbsp;&nbsp;// Create the popup
 &nbsp;&nbsp;&nbsp;Evas_Object *popup = NULL, *content = NULL;
 &nbsp;&nbsp;&nbsp;popup = elm_popup_add(parent);
 &nbsp;&nbsp;&nbsp;elm_object_part_text_set(popup, &quot;title,text&quot;, &quot;Title&quot;);
 &nbsp;&nbsp;&nbsp;elm_popup_orient_set(popup, ELM_POPUP_ORIENT_CENTER);
 
-&nbsp;&nbsp;&nbsp;// Popup content
+&nbsp;&nbsp;&nbsp;// Add a label to the popup
 &nbsp;&nbsp;&nbsp;content = elm_label_add(parent);
 &nbsp;&nbsp;&nbsp;elm_object_text_set(content, &quot;Press back key to remove popup.&quot;);
 &nbsp;&nbsp;&nbsp;elm_object_content_set(popup, content);
 
-&nbsp;&nbsp;&nbsp;// Register the EFL extension callback for the Back key event
+&nbsp;&nbsp;&nbsp;// Register the Back key event callback
 &nbsp;&nbsp;&nbsp;eext_object_event_callback_add(popup, EEXT_CALLBACK_BACK, eext_popup_back_cb, NULL);
+&nbsp;&nbsp;&nbsp;// Show the popup
 &nbsp;&nbsp;&nbsp;evas_object_show(popup);
 }
 </pre>
+</li>
 
-<p>To remove the popup when a <strong>Back</strong> key event occurs, use the <span style="font-family: Courier New,Courier,monospace;">eext_popup_back_cb</span> callback.</p>
-
-<p>The callback function for menu key callback:</p>
+<li>In the <strong>Back</strong> key callbacks:
+<ul>
+<li>The <span style="font-family: Courier New,Courier,monospace;">eext_popup_back_cb()</span> callback is a macro function that removes the popup.
+<p>To use a hide effect in dismissing the popup, use the <span style="font-family: Courier New,Courier,monospace;">elm_popup_dismiss()</span> function in the callback:</p>
+<pre class="prettyprint">
+static void
+eext_ctxpopup_back_cb(void *data EINA_UNUSED, Evas_Object *obj, void *event_info EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;elm_ctxpopup_dismiss(obj);
+}
+</pre>
+</li>
+<li>To hide the application window, use the <span style="font-family: Courier New,Courier,monospace;">elm_win_lower()</span> function in the <span style="font-family: Courier New,Courier,monospace;">_nf_back_cb()</span> callback:
 <pre class="prettyprint">
 static void
 _nf_back_cb(void *data, Evas_Object *obj, void *event_info)
@@ -150,6 +164,7 @@ _nf_back_cb(void *data, Evas_Object *obj, void *event_info)
 &nbsp;&nbsp;&nbsp;elm_win_lower(win);
 }
 </pre>
+</li></ul>
 </li>
 </ol>
     
