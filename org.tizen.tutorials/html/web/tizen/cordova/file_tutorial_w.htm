@@ -10,7 +10,7 @@
     <script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
     <script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
-    <title>File Transfer</title>
+    <title>File</title>
 </head>
 
 <body onload="prettyPrint()" style="overflow: auto;">
@@ -22,7 +22,7 @@
     <div id="toc_border"><div id="toc">
         <p class="toc-title">Content</p>
         <ul class="toc">
-            <li><a href="#filesystemresolve">Resolving filesystem</a></li>
+            <li><a href="#filesystemresolve">Resolving filesystem entries</a></li>
             <li><a href="#directories">Directories operations</a></li>
             <li><a href="#files">Files operations</a></li>
             <li><a href="#readwrite">Reading/writing files content</a></li>
@@ -54,19 +54,57 @@
       </ul>
 
 <!-------------------------------------------------- filesystemresolve -------------------------------------------------->
-<h2 id="filesystemresolve">Resolving filesystem</h2>
+<h2 id="filesystemresolve">Resolving filesystem entries</h2>
 <p>
-Description.
+Resolving inital root for other filesystem operations could be performed in two ways.
 </p>
-<pre class="prettyprint">
-//////////////////// some code
-</pre>
+  <ol>
+    <li><p>By using <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#LocalFileSystem::requestFileSystem">requestFileSystem()</a> global async method. First it is needed to prepare callback for handling success and failure of operation.</p>
+        <pre class="prettyprint">
+ successCallback = function(fs) {
+     console.log('File system name ' + fs.name);
+ };
+
+ errorCallback = function(err) {
+     console.log(err.code);
+ };
+        </pre>
+        <p>Second step is to call method with created callbacks. Filesystem request could use temporary or persistent filesystem with defined size.</p>
+        <pre class="prettyprint">
+ requestFileSystem(TEMPORARY, 1024*1024, successCallback, errorCallback);
+        </pre>
 <p>
 The output:
 </p>
 <pre class="prettyprint">
-///////////////// some output
+  File system name temporary
 </pre>
+    </li>
+    <li><p>By using <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#LocalFileSystem::resolveLocalFileSystemURL">
+resolveLocalFileSystemURL()</a> global async method. This method could be used to retrieve <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#DirectoryEntry">DirectoryEntry</a>
+ or <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#FileEntry">FileEntry</a> objects using local URI. First prepare callbacks.</p>
+        <pre class="prettyprint">
+ successCallback = function(entry) {
+     console.log('Entry name ' + entry.name);
+ };
+
+ errorCallback = function(err) {
+     console.log(err.code);
+ };
+        </pre>
+        <p>Second step is to call method with provided valid uri for existing file or directory, we would like to work with.</p>
+        <pre class="prettyprint">
+ var uri = 'file:///home/owner/content/Documents/example.txt';
+ resolveLocalFileSystemURL(uri, successCallback, errorCallback);
+        </pre>
+<p>
+The output:
+</p>
+<pre class="prettyprint">
+  Entry name example.txt
+</pre>
+    </li>
+  </ol>
 <!-------------------------------------------------- filesystemresolve -------------------------------------------------->
 
 <!-------------------------------------------------- directories -------------------------------------------------->
@@ -88,17 +126,42 @@ The output:
 <!-------------------------------------------------- files -------------------------------------------------->
 <h2 id="files">Files operations</h2>
 <p>
-Description.
+One could perform operations on files resolved using methods of <a href="#filesystemresolve">resolving file entries</a>. File specific operations are:
 </p>
-<pre class="prettyprint">
-//////////////////// some code
-</pre>
+  <ol>
+    <li><p><a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#FileEntry::createWriter">createWriter()</a> which alows to create
+    <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#FileWriter">FileWriter</a> object.</p>
+        <pre class="prettyprint">
+ var f; // it needs to be FileEntry object resolved using methods presented before
+ f.createWriter(function(fileWriter) {
+         console.log ('created fileWriter object for ' + fileWriter.fileName);
+       });
+        </pre>
 <p>
 The output:
 </p>
 <pre class="prettyprint">
-///////////////// some output
+ created fileWriter object for testFile.txt
 </pre>
+    </li>
+    <li><p>By using <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#FileEntry::file">
+file()</a> one can get a <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#File">File</a> object  that represents the current state of the file that this FileEntry represents.
+     </p>
+        <pre class="prettyprint">
+ var f; // it needs to be FileEntry object resolved using methods presented before
+ f.file(function (file) {
+         console.log ('created file object for ' + file.name);
+       });
+        </pre>
+<p>
+The output:
+</p>
+<pre class="prettyprint">
+ created file object for example.txt
+</pre>
+    </li>
+  </ol>
+  </ol>
 <!-------------------------------------------------- files -------------------------------------------------->
 
 <!-------------------------------------------------- readwrite -------------------------------------------------->
