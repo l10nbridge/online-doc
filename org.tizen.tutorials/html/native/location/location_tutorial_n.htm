@@ -85,10 +85,13 @@ location_manager_create(LOCATIONS_METHOD_GPS, &amp;manager);
 
 <li><p>Start the location service using the <span style="font-family: Courier New,Courier,monospace">location_manager_start()</span> function. This call is asynchronous and only initiates the process of starting the location manager service. Once the manager is started, the registered callbacks are invoked when their corresponding events take place. To know when the service becomes enabled, use the <span style="font-family: Courier New,Courier,monospace">location_manager_set_service_state_changed_cb()</span> function.</p>
 <pre class="prettyprint">
-location_manager_start(manager);</pre></li>
+location_manager_start(manager);
+</pre></li>
 
 <li><p>Using the location service is power consuming, so if the service is not used, stop updating the location using the <span style="font-family: Courier New,Courier,monospace">location_manager_stop()</span> function. Call the <span style="font-family: Courier New,Courier,monospace">location_manager_start()</span> function again if the update position information is needed.</p>
-<pre class="prettyprint">location_manager_stop(manager);</pre></li>
+<pre class="prettyprint">
+location_manager_stop(manager);
+</pre></li>
 
 <li><p>At the end of the application, destroy all used resources, such as the location manager (<span style="font-family: Courier New,Courier,monospace">location_manager_destroy()</span>):</p>
 <pre class="prettyprint">
@@ -99,51 +102,64 @@ manager = NULL;
 
 <h2 id="last_known" name="last_known">Getting the Last Known Location</h2>
 
-				  <p>To retrieve synchronously the last known location of the device:</p>
-  <ol>
+<p>To retrieve synchronously the last known location of the device:</p>
+<ol>
 <li>Register a callback function for location service state changes and start the Location Manager:
-	<pre class="prettyprint">
+<pre class="prettyprint">
 ret = location_manager_set_service_state_changed_cb(manager, __state_changed_cb, NULL);
-ret = location_manager_start(manager);</pre>
+ret = location_manager_start(manager);
+</pre>
 	<p>The <span style="font-family: Courier New,Courier,monospace">__state_changed_cb()</span> function is a callback, which is called when the status of the location service state changes. </p>
-	<pre class="prettyprint">
+<pre class="prettyprint">
 static location_service_state_e service_state;
-static void 
+static void
 __state_changed_cb(location_service_state_e state, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;service_state = state;
+&nbsp;&nbsp;&nbsp;&nbsp;service_state = state;
 }
 </pre>
 </li>
 <li>After starting the Location Manager, call the <span style="font-family: Courier New,Courier,monospace">location_manager_get_last_location()</span> function to get the last location information, including the altitude, latitude, and direction:
 <pre class="prettyprint">
-double altitude, latitude, longitude, climb, direction, speed;
-double horizontal, vertical;
+double altitude;
+double latitude;
+double longitude;
+double climb;
+double direction;
+double speed;
+double horizontal;
+double vertical;
 location_accuracy_level_e level;
 time_t timestamp;
 ret = location_manager_get_last_location(manager, &amp;altitude, &amp;latitude, &amp;longitude,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;climb, &amp;direction, &amp;speed, &amp;level, &amp;horizontal, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;vertical, &amp;timestamp);</pre>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;climb, &amp;direction, &amp;speed, &amp;level, &amp;horizontal,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;vertical, &amp;timestamp);
+</pre>
 
 <p>The function returns the last location stored in the system. When the current location is not fixed, the last location may not be the current location, but the old location.</p> 
 <p>Use this function instead of repeatedly requesting current locations to spare the Location Manager from running costly positioning systems.</p></li>
 
 <li>To get the current location information, call the <span style="font-family: Courier New,Courier,monospace">location_manager_get_location()</span> function after the service is enabled:
 <pre class="prettyprint">
-static void 
+static void
 __state_changed_cb(location_service_state_e state, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;double altitude, latitude, longitude, climb, direction, speed;
-&nbsp;&nbsp;&nbsp;double horizontal, vertical;
-&nbsp;&nbsp;&nbsp;location_accuracy_level_e level;
-&nbsp;&nbsp;&nbsp;time_t timestamp;
+&nbsp;&nbsp;&nbsp;&nbsp;double altitude;
+&nbsp;&nbsp;&nbsp;&nbsp;double latitude;
+&nbsp;&nbsp;&nbsp;&nbsp;double longitude;
+&nbsp;&nbsp;&nbsp;&nbsp;double climb;
+&nbsp;&nbsp;&nbsp;&nbsp;double direction;
+&nbsp;&nbsp;&nbsp;&nbsp;double speed;
+&nbsp;&nbsp;&nbsp;&nbsp;double horizontal;
+&nbsp;&nbsp;&nbsp;&nbsp;double vertical;
+&nbsp;&nbsp;&nbsp;&nbsp;location_accuracy_level_e level;
+&nbsp;&nbsp;&nbsp;&nbsp;time_t timestamp;
 
-&nbsp;&nbsp;&nbsp;if (state == LOCATIONS_SERVICE_ENABLED) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = location_manager_get_location(manager, &amp;altitude, &amp;latitude, &amp;longitude,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;climb, &amp;direction, &amp;speed, &amp;level, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;horizontal, &amp;vertical, &amp;timestamp);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (state == LOCATIONS_SERVICE_ENABLED) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = location_manager_get_location(manager, &amp;altitude, &amp;latitude, &amp;longitude,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;climb, &amp;direction, &amp;speed, &amp;level,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;horizontal, &amp;vertical, &amp;timestamp);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre>
 </li>
@@ -157,17 +173,20 @@ location_manager_unset_service_state_changed_cb(manager);
 
 <p>You can get a notification of the position update using the position update callback. The callback is invoked periodically, receiving the device&#39;s current position with every call. You can use the callback to retrieve the device position (given as coordinates) and convert it to the corresponding address.</p>
 <ol><li><p>Register the callback using the <span style="font-family: Courier New,Courier,monospace">location_manager_set_position_updated_cb()</span> function:</p>
-<pre class="prettyprint">location_manager_set_position_updated_cb(manager, position_updated, 2, NULL);</pre>
+<pre class="prettyprint">
+location_manager_set_position_updated_cb(manager, position_updated, 2, NULL);
+</pre>
 <p>The third parameter determines the frequency of callback calls. In this example, the callback is called every 2 seconds.</p></li>
 <li><p>When the update is received, you can, for example, update the variables that store the current position:</p>
 <pre class="prettyprint">
-static double user_latitude, user_longitude;
-static void 
-position_updated(double latitude, double longitude, double altitude, 
+static double user_latitude;
+static double user_longitude;
+static void
+position_updated(double latitude, double longitude, double altitude,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t timestamp, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;user_latitude = latitude;
-&nbsp;&nbsp;&nbsp;user_longitude = longitude;
+&nbsp;&nbsp;&nbsp;&nbsp;user_latitude = latitude;
+&nbsp;&nbsp;&nbsp;&nbsp;user_longitude = longitude;
 }
 </pre>
 
@@ -190,9 +209,9 @@ position_updated(double latitude, double longitude, double altitude,
 <ol>
 <li>Create location bounds with the required area type (rectangle, circle, or polygon) needed for your application (each type has its own API sets):
 <pre class="prettyprint">
-int poly_size = 3; // Triangle shaped bounds
+int poly_size = 3; /* Triangle shaped bounds */
 location_coords_s coord_list[poly_size];
-coord_list[0].latitude = 37; // Temporary value
+coord_list[0].latitude = 37; /* Temporary value */
 coord_list[0].longitude = 126;
 coord_list[1].latitude = 38;
 coord_list[1].longitude = 128;
@@ -205,17 +224,19 @@ ret = location_bounds_create_polygon(coord_list, poly_size, &amp;bounds_poly);
 
 <li>To get the generated polygon bounds, register a callback function to notify you of the polygon coordinates:
 <pre class="prettyprint">
-ret = location_bounds_foreach_polygon_coords(bounds_poly, capi_poly_coords_cb, NULL);</pre>
+ret = location_bounds_foreach_polygon_coords(bounds_poly, capi_poly_coords_cb, NULL);
+</pre>
 <p>Implement the callback function (the second parameter in the function above) separately:</p>
 <pre class="prettyprint">
-static double latitude, longitude;
-static bool 
+static double latitude;
+static double longitude;
+static bool
 capi_poly_coords_cb(location_coords_s coords, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;latitude = coords.latitude;
-&nbsp;&nbsp;&nbsp;longitude = coords.longitude;
+&nbsp;&nbsp;&nbsp;&nbsp;latitude = coords.latitude;
+&nbsp;&nbsp;&nbsp;&nbsp;longitude = coords.longitude;
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
 </li>
@@ -226,20 +247,23 @@ location_bounds_set_state_changed_cb(bounds_poly, bounds_state_changed_cb, NULL)
 <p>Implement the <span style="font-family: Courier New,Courier,monospace">bounds_state_changed_cb()</span> callback separately:</p>
 <pre class="prettyprint">
 static location_boundary_state_e bound_state;
-static void 
+static void
 bounds_state_changed_cb(location_boundary_state_e state, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;bound_state = state;
+&nbsp;&nbsp;&nbsp;&nbsp;bound_state = state;
 }
 </pre>
 </li>
 <li><p>Call the <span style="font-family: Courier New,Courier,monospace">location_manager_add_boundary()</span> function to add the bounds to a location manager:</p>
-<pre class="prettyprint">location_manager_add_boundary(manager, bounds_poly);</pre>
+<pre class="prettyprint">
+location_manager_add_boundary(manager, bounds_poly);
+</pre>
 </li>
 
 <li>When the bounds are no longer needed, destroy them:
 <pre class="prettyprint">
-location_bounds_destroy(bounds_poly);</pre></li>
+location_bounds_destroy(bounds_poly);
+</pre></li>
 </ol>  
 
 <h2 id="satellite" name="satellite">Getting Satellite Information</h2>
@@ -253,31 +277,33 @@ gps_status_set_satellite_updated_cb(manager, capi_gps_status_satellite_updated_c
 <li>When the update is received, the callback containing brief satellite information is called. To get the detailed satellite information in the sky, call the <span style="font-family: Courier New,Courier,monospace">gps_status_foreach_satellites_in_view()</span> function in the callback. Variables that store the current satellite information are updated.
 
 <pre class="prettyprint">
-int cur_azimuth, cur_elevation, cur_prn, cur_snr;
+int cur_azimuth;
+int cur_elevation;
+int cur_prn;
+int cur_snr;
 
-static bool 
-capi_gps_status_get_satellites_cb(unsigned int azimuth, unsigned int elevation, unsigned int prn, 
+static bool
+capi_gps_status_get_satellites_cb(unsigned int azimuth, unsigned int elevation, unsigned int prn,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int snr, bool is_in_use, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;cur_azimuth = azimuth;
-&nbsp;&nbsp;&nbsp;cur_elevation = elevation;
-&nbsp;&nbsp;&nbsp;cur_prn = prn;
-&nbsp;&nbsp;&nbsp;cur_snr = snr;
+&nbsp;&nbsp;&nbsp;&nbsp;cur_azimuth = azimuth;
+&nbsp;&nbsp;&nbsp;&nbsp;cur_elevation = elevation;
+&nbsp;&nbsp;&nbsp;&nbsp;cur_prn = prn;
+&nbsp;&nbsp;&nbsp;&nbsp;cur_snr = snr;
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 
-static int numofactive, numofinview;
+static int numofactive;
+static int numofinview;
 
-static void 
-capi_gps_status_satellite_updated_cb(int num_of_active, int num_of_inview, 
+static void
+capi_gps_status_satellite_updated_cb(int num_of_active, int num_of_inview,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t timestamp, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;numofinview = num_of_active;
-&nbsp;&nbsp;&nbsp;if (num_of_inview &gt; 0) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gps_status_foreach_satellites_in_view(manager, capi_gps_status_get_satellites_cb, NULL);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;numofinview = num_of_active;
+&nbsp;&nbsp;&nbsp;&nbsp;if (num_of_inview &gt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gps_status_foreach_satellites_in_view(manager, capi_gps_status_get_satellites_cb, NULL);
 }
 </pre>
 
@@ -317,12 +343,12 @@ location_manager_set_position_updated_cb(manager, velocity_updated, 2, NULL);
 <li><p>Define the position and velocity callback functions:</p>
 
 <pre class="prettyprint">
-void 
-position_updated(double latitude, double longitude, double altitude, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t timestamp, void *user_data) {}
-void 
-velocity_updated(double speed, double direction, double climb, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t timestamp, void *user_data) {}
+void
+position_updated(double latitude, double longitude, double altitude,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t timestamp, void *user_data) {}
+void
+velocity_updated(double speed, double direction, double climb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t timestamp, void *user_data) {}
 </pre>
 
 <p>Within the callback, you can collect obtained data to get the points you have visited, to calculate traveled distance more precisely, or to calculate the average speed or climb.</p></li></ol></li>
@@ -360,7 +386,7 @@ location_manager_get_accuracy(manager, &amp;level, &amp;horizontal, &amp;vertica
 <li><p>Use the <span style="font-family: Courier New,Courier,monospace;">location_manager_get_location()</span> function to get all of the above 10 values at once:</p>
 
 <pre class="prettyprint">
-location_manager_get_location(manager, &amp;altitude, &amp;latitude, &amp;longitude, &amp;climb, 
+location_manager_get_location(manager, &amp;altitude, &amp;latitude, &amp;longitude, &amp;climb,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;direction, &amp;speed, &amp;level, &amp;horizontal, &amp;vertical, &amp;timestamp);
 </pre></li>
 

@@ -23,6 +23,7 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
+			 <li><a href="#prerequisites">Prerequisites</a></li>
 			 <li><a href="#init">Initializing an Attach Panel</a></li>
 			 <li><a href="#create">Creating an Attach Panel</a></li>
 			 <li><a href="#manage">Managing an Attach Panel</a></li>
@@ -33,7 +34,7 @@
 			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PANEL__ATTACH__MODULE.html">Attach panel API for Mobile Native</a></li>
 		</ul>
 	</div></div>
-</div>	
+</div>
 
 <div id="container"><div id="contents"><div class="content">
 
@@ -55,6 +56,19 @@
 		 <p>Set extra data to a content category, show and hide the panel, and get the panel state.</p></li>
 	</ul>
 
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To use the Attach panel API, the application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;!--To add the image viewer, camera, or voice recorder UI gadget in the attach panel--&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/mediastorage&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/camera&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/recorder&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;!--To launch apps from the More tab--&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/appmanager.launch&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
 
  <h2 id="init" name="init">Initializing an Attach Panel</h2>
 
@@ -70,40 +84,27 @@
 <p>Declare global variables.</p>
 <p>To create and manage an attach panel, you must create variables for a conformant and the attach panel.</p>
 <pre class="prettyprint">
-static struct 
+static struct {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *conformant;
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_h attach_panel;
+} s_info =
 {
-&nbsp;&nbsp;&nbsp;Evas_Object *conformant;
-&nbsp;&nbsp;&nbsp;attach_panel_h attach_panel;
-} s_info = 
-{
-&nbsp;&nbsp;&nbsp;.conformant = NULL,
-&nbsp;&nbsp;&nbsp;.attach_panel = NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;.conformant = NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;.attach_panel = NULL,
 };
 
-static void 
+static void
 _create_conformant(Evas_Object *win)
 {
-&nbsp;&nbsp;&nbsp;Evas_Object *conformant = NULL;
-&nbsp;&nbsp;&nbsp;conformant = elm_conformant_add(win);
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(conformant, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, conformant);
-&nbsp;&nbsp;&nbsp;elm_win_conformant_set(win, EINA_TRUE);
-&nbsp;&nbsp;&nbsp;evas_object_show(conformant);
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *conformant = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;conformant = elm_conformant_add(win);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(conformant, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, conformant);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_conformant_set(win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(conformant);
 
-&nbsp;&nbsp;&nbsp;s_info.conformant = conformant;
+&nbsp;&nbsp;&nbsp;&nbsp;s_info.conformant = conformant;
 }
-</pre>
-</li>
-<li>
-<p>If you want to add the image viewer, camera, or voice recorder UI gadget in the attach panel, or add an application to be launched from the <strong>More</strong> tab, set the applicable privileges in the manifest file of your application:</p>
-<pre class="prettyprint">
-&lt;privileges&gt;
-&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/mediastorage&lt;/privilege&gt;
-&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/camera&lt;/privilege&gt;
-&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/recorder&lt;/privilege&gt;
-&nbsp;&nbsp;&nbsp;&lt;!--Launch privilege allows you to launch apps from the More tab--&gt;
-&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/appmanager.launch&lt;/privilege&gt;
-&lt;/privileges&gt;
 </pre>
 </li>
 </ol>
@@ -122,9 +123,7 @@ int ret = ATTACH_PANEL_ERROR_NONE;
 
 ret = attach_panel_create(s_info.conformant, &amp;attach_panel);
 if (ret != ATTACH_PANEL_ERROR_NONE || !attach_panel)
-{
-&nbsp;&nbsp;&nbsp;// Error handling
-}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
 attach_panel_show(attach_panel);
 s_info.attach_panel = attach_panel;
 </pre>
@@ -137,10 +136,8 @@ s_info.attach_panel = attach_panel;
 bundle *extra_data = NULL;
 
 extra_data = bundle_create();
-if (!extra_data) 
-{
-&nbsp;&nbsp;&nbsp;// Error handling
-}
+if (!extra_data)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
 
 bundle_add_str(extra_data, http://tizen.org/appcontrol/data/total_count, &quot;3&quot;);
 
@@ -164,62 +161,52 @@ bundle_free(extra_data);
 <li>To get the published events from the panel side, register a callback using the <span style="font-family: Courier New,Courier,monospace">attach_panel_set_event_cb()</span> function. The callback is triggered when reserved events (defined in the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PANEL__ATTACH__MODULE.html#ga722a6d81e76fc1c4567a1bf920b4da3e">attach_panel_event</a> enumerator) are published from the panel side.</li></ul>
 
 <pre class="prettyprint">
-static void 
-_result_cb(attach_panel_h attach_panel, attach_panel_content_category_e content_category, 
+static void
+_result_cb(attach_panel_h attach_panel, attach_panel_content_category_e content_category,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_h result, app_control_result_e result_code, void *data)                                 
 {
-&nbsp;&nbsp;&nbsp;char **select = NULL;
-&nbsp;&nbsp;&nbsp;int i = 0;
-&nbsp;&nbsp;&nbsp;int length = 0;
-&nbsp;&nbsp;&nbsp;int ret = APP_CONTROL_ERROR_NONE;
-&nbsp;&nbsp;&nbsp;if (!result) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;if (APP_CONTROL_RESULT_SUCCEEDED != result_code) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;ret = app_control_get_extra_data_array(result, &quot;http://tizen.org/appcontrol/data/selected&quot;, &amp;select, &amp;length);
-&nbsp;&nbsp;&nbsp;if (APP_CONTROL_ERROR_NONE != ret || !select) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;char **select = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;int i = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int length = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = APP_CONTROL_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;if (!result)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;if (APP_CONTROL_RESULT_SUCCEEDED != result_code)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_get_extra_data_array(result, &quot;http://tizen.org/appcontrol/data/selected&quot;, &amp;select, &amp;length);
+&nbsp;&nbsp;&nbsp;&nbsp;if (APP_CONTROL_ERROR_NONE != ret || !select)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
 
-&nbsp;&nbsp;&nbsp;for (; i &lt; length; i++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;path is %s, %d\n&quot;, select[i], length);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(select[i]);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;free(select);
+&nbsp;&nbsp;&nbsp;&nbsp;for (; i &lt; length; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;path is %s, %d\n&quot;, select[i], length);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(select[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;free(select);
 }
 
-static void 
+static void
 _event_cb(attach_panel_h attach_panel, attach_panel_event_e event, void *event_info, void *data)
 {
-&nbsp;&nbsp;&nbsp;int ret = 0;
-&nbsp;&nbsp;&nbsp;if (!) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;switch (event) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case ATTACH_PANEL_EVENT_SHOW_START:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case ATTACH_PANEL_EVENT_SHOW_FINISH:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case ATTACH_PANEL_EVENT_HIDE_START:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case ATTACH_PANEL_EVENT_HIDE_FINISH:
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;if (!)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;switch (event) {
+&nbsp;&nbsp;&nbsp;&nbsp;case ATTACH_PANEL_EVENT_SHOW_START:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case ATTACH_PANEL_EVENT_SHOW_FINISH:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case ATTACH_PANEL_EVENT_HIDE_START:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case ATTACH_PANEL_EVENT_HIDE_FINISH:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-static int 
+static int
 app_control(void *data)
 {
-&nbsp;&nbsp;&nbsp;attach_panel_set_result_cb(s_info.attach_panel, _result_cb, NULL);
-&nbsp;&nbsp;&nbsp;attach_panel_set_event_cb(s_info.attach_panel, _event_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_set_result_cb(s_info.attach_panel, _result_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_set_event_cb(s_info.attach_panel, _event_cb, NULL);
 }
 </pre>
 </li>
@@ -230,23 +217,22 @@ app_control(void *data)
 <pre class="prettyprint">
 bool visible = false;
 
-if (s_info.attach_panel) 
-{
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_IMAGE);
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_CAMERA);
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_VOICE);
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_VIDEO);
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_AUDIO);
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_CALENDAR);
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_CONTACT);
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_MYFILES);
-&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_VIDEO_RECORDER);
+if (s_info.attach_panel) {
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_IMAGE);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_CAMERA);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_VOICE);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_VIDEO);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_AUDIO);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_CALENDAR);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_CONTACT);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_MYFILES);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_remove_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_VIDEO_RECORDER);
 
-&nbsp;&nbsp;&nbsp;attach_panel_unset_result_cb(s_info.attach_panel);
-&nbsp;&nbsp;&nbsp;attach_panel_unset_event_cb(s_info.attach_panel);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_unset_result_cb(s_info.attach_panel);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_unset_event_cb(s_info.attach_panel);
 
-&nbsp;&nbsp;&nbsp;attach_panel_destroy(s_info.attach_panel);
-&nbsp;&nbsp;&nbsp;s_info.attach_panel = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_destroy(s_info.attach_panel);
+&nbsp;&nbsp;&nbsp;&nbsp;s_info.attach_panel = NULL;
 }
 </pre>
 </li>
@@ -262,25 +248,21 @@ if (s_info.attach_panel)
 <li>To set some information to the content category after adding the category, use the <span style="font-family: Courier New,Courier,monospace">attach_panel_set_extra_data()</span> function, which sets extra data to send to the content category using a bundle:
 
 <pre class="prettyprint">
-static void 
+static void
 _reset_bundle(void *data)
 {
-&nbsp;&nbsp;&nbsp;bundle *extra_data = NULL;
-&nbsp;&nbsp;&nbsp;int ret = APP_CONTROL_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;bundle *extra_data = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = APP_CONTROL_ERROR_NONE;
 
-&nbsp;&nbsp;&nbsp;extra_data = bundle_create();
-&nbsp;&nbsp;&nbsp;if (!extra_data) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;extra_data = bundle_create();
+&nbsp;&nbsp;&nbsp;&nbsp;if (!extra_data)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
 
-&nbsp;&nbsp;&nbsp;bundle_add_str(extra_data, http://tizen.org/appcontrol/data/total_count, &quot;5&quot;);
-&nbsp;&nbsp;&nbsp;ret = attach_panel_set_extra_data(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_IMAGE, extra_data);
-&nbsp;&nbsp;&nbsp;if (ATTACH_PANEL_ERROR_NONE != ret) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;bundle_free(extra_data);
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(extra_data, http://tizen.org/appcontrol/data/total_count, &quot;5&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = attach_panel_set_extra_data(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_IMAGE, extra_data);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ATTACH_PANEL_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_free(extra_data);
 }
 </pre></li>
 <li>To show or hide the attach panel, use the <span style="font-family: Courier New,Courier,monospace">attach_panel_show()</span> and <span style="font-family: Courier New,Courier,monospace">attach_panel_hide()</span> functions:
@@ -289,20 +271,15 @@ _reset_bundle(void *data)
 attach_panel_h attach_panel;
 int ret = ATTACH_PANEL_ERROR_NONE;
 
-if (s_info.attach_panel) 
-{
-&nbsp;&nbsp;&nbsp;attach_panel_hide(s_info.attach_panel);
-}
-else 
-{
-&nbsp;&nbsp;&nbsp;ret = attach_panel_create(s_info.conformant, &amp;attach_panel);
-&nbsp;&nbsp;&nbsp;if (ret != ATTACH_PANEL_ERROR_NONE || !attach_panel)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;attach_panel_add_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_CAMERA, NULL);
-&nbsp;&nbsp;&nbsp;attach_panel_show(attach_panel);
-&nbsp;&nbsp;&nbsp;s_info.attach_panel = attach_panel;
+if (s_info.attach_panel) {
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_hide(s_info.attach_panel);
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;ret = attach_panel_create(s_info.conformant, &amp;attach_panel);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != ATTACH_PANEL_ERROR_NONE || !attach_panel)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_add_content_category(s_info.attach_panel, ATTACH_PANEL_CONTENT_CATEGORY_CAMERA, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_show(attach_panel);
+&nbsp;&nbsp;&nbsp;&nbsp;s_info.attach_panel = attach_panel;
 }
 </pre></li>
 <li>To know whether the attach panel is visible, use the <span style="font-family: Courier New,Courier,monospace">attach_panel_get_visibility()</span> function. It fills the second parameter with a Boolean value that shows whether the panel is visible.
@@ -310,17 +287,12 @@ else
 <pre class="prettyprint">
 bool visible = false;
 
-if (s_info.attach_panel) 
-{
-&nbsp;&nbsp;&nbsp;attach_panel_get_visibility(s_info.attach_panel, &amp;visible);
-&nbsp;&nbsp;&nbsp;if (visible) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_hide(s_info.attach_panel);
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_show(s_info.attach_panel);
-&nbsp;&nbsp;&nbsp;}
+if (s_info.attach_panel) {
+&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_get_visibility(s_info.attach_panel, &amp;visible);
+&nbsp;&nbsp;&nbsp;&nbsp;if (visible)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_hide(s_info.attach_panel);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;attach_panel_show(s_info.attach_panel);
 }
 </pre></li></ul>
 

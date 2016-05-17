@@ -367,10 +367,10 @@ eina_rwlock_release()</span></td>
 static void
 _set_label_text(void *data, Ecore_Thread *thread __UNUSED__, void *msgdata)
 {
-&nbsp;&nbsp;&nbsp;char buf[64];
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;Tick %d&quot;, (int)(uintptr_t)msgdata);
-&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, buf);
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[64];
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;Tick %d&quot;, (int)(uintptr_t)msgdata);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, buf);
 }
 </pre>
 </li>
@@ -380,18 +380,21 @@ _set_label_text(void *data, Ecore_Thread *thread __UNUSED__, void *msgdata)
 static void
 _long_function(void *data __UNUSED__, Ecore_Thread *thread)
 {
-&nbsp;&nbsp;&nbsp;int iteration;
-&nbsp;&nbsp;&nbsp;// Change the text roughly every 1 second. This is only an example; if you
-&nbsp;&nbsp;&nbsp;// want regular animations, use Ecore animators!
-&nbsp;&nbsp;&nbsp;for (iteration = 0; ; iteration++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Since you are running from another thread, you need to take special
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// care and instead send data to the main thread and have it run the
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// feedback function given when creating the thread
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_thread_feedback(thread, (void*)(uintptr_t)iteration);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Sleep for roughly one second
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;int iteration;
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Change the text roughly every 1 second. This is only an example; if you
+&nbsp;&nbsp;&nbsp;&nbsp;   want regular animations, use Ecore animators!
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;for (iteration = 0; ; iteration++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   Since you are running from another thread, you need to take special
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   care and instead send data to the main thread and have it run the
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   feedback function given when creating the thread
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_thread_feedback(thread, (void*)(uintptr_t)iteration);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Sleep for roughly one second */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre>
 </li>
@@ -402,8 +405,8 @@ _long_function(void *data __UNUSED__, Ecore_Thread *thread)
 static void
 _end_func(void *data, Ecore_Thread *thread __UNUSED__)
 {
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, &quot;Ticks over&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, &quot;Ticks over&quot;);
 }
 </pre>
 </li>
@@ -422,21 +425,20 @@ ecore_thread_feedback_run(_long_function, _set_label_text, _end_func, NULL, ad, 
 <li>Implement the GUI function that sets the text of a label and can be called from the main thread. The function receives data as a structure and alternatively displays &quot;Tick d&quot; or &quot;Tock d&quot;.
 
 <pre class="prettyprint">
-struct thd 
-{
-&nbsp;&nbsp;&nbsp;appdata_s *ad;
-&nbsp;&nbsp;&nbsp;Eina_Bool tick_not_tock;
-&nbsp;&nbsp;&nbsp;int iteration;
+struct thd {
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad;
+&nbsp;&nbsp;&nbsp;&nbsp;Eina_Bool tick_not_tock;
+&nbsp;&nbsp;&nbsp;&nbsp;int iteration;
 };
-static void *
+static void*
 _set_label_text_tick_tock(void *data)
 {
-&nbsp;&nbsp;&nbsp;char buf[64];
-&nbsp;&nbsp;&nbsp;struct thd *thd = data;
-&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;%s %d&quot;, (thd-&gt;tick_not_tock ? &quot;Tick&quot; : &quot;Tock&quot;), thd-&gt;iteration);
-&nbsp;&nbsp;&nbsp;elm_object_text_set(thd-&gt;ad-&gt;label, buf);
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[64];
+&nbsp;&nbsp;&nbsp;&nbsp;struct thd *thd = data;
+&nbsp;&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;%s %d&quot;, (thd-&gt;tick_not_tock ? &quot;Tick&quot; : &quot;Tock&quot;), thd-&gt;iteration);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(thd-&gt;ad-&gt;label, buf);
 
-&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
 }
 </pre>
 </li>
@@ -447,18 +449,17 @@ _set_label_text_tick_tock(void *data)
 static void
 _long_function_tick_tock(void *data, Ecore_Thread *thread __UNUSED__)
 {
-&nbsp;&nbsp;&nbsp;struct thd *thd = malloc(sizeof(struct thd));
-&nbsp;&nbsp;&nbsp;thd-&gt;ad = data;
-&nbsp;&nbsp;&nbsp;for (thd-&gt;iteration = 0; ; (thd-&gt;iteration)++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thd-&gt;tick_not_tock = EINA_TRUE;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_main_loop_thread_safe_call_sync(_set_label_text_tick_tock, thd);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thd-&gt;tick_not_tock = EINA_FALSE;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_main_loop_thread_safe_call_sync(_set_label_text_tick_tock, thd);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;free(thd);
+&nbsp;&nbsp;&nbsp;&nbsp;struct thd *thd = malloc(sizeof(struct thd));
+&nbsp;&nbsp;&nbsp;&nbsp;thd-&gt;ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;for (thd-&gt;iteration = 0; ; (thd-&gt;iteration)++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thd-&gt;tick_not_tock = EINA_TRUE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_main_loop_thread_safe_call_sync(_set_label_text_tick_tock, thd);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;thd-&gt;tick_not_tock = EINA_FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ecore_main_loop_thread_safe_call_sync(_set_label_text_tick_tock, thd);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sleep(1);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;free(thd);
 }
 </pre>
 </li>

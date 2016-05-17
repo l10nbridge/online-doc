@@ -134,61 +134,65 @@
 <p>In order to generate a texture in GL, you usually have to decode the image file stored in the file system. In Tizen, you can use the Evas API (in <a href="../../../../org.tizen.native.mobile.apireference/group__Evas.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__Evas.html">wearable</a> applications) to get the decoded bitmap buffer from the image file, as shown in the following example. The code creates an independent <span style="font-family: Courier New,Courier,monospace">Ecore_Evas</span> object, which contains <span style="font-family: Courier New,Courier,monospace">Evas_Object</span>. It provides a method to decode the designated image file and store the bitmap data into its own buffer. You can get the internal buffer pointer and then upload the buffer to the texture.</p>
 
 <pre class="prettyprint">
-// Create GL Texture object from image file path
-// @param[in] parent Evas object
-// @param[in] filename image file path
-// @return texture id
-unsigned int 
-create_texture(Evas_Object *parent, const char *filename) 
+/*
+   Create GL Texture object from image file path
+   @param[in] parent Evas object
+   @param[in] filename image file path
+   @return texture id
+*/
+unsigned int
+create_texture(Evas_Object *parent, const char *filename)
 {
-&nbsp;&nbsp;&nbsp;unsigned int gltex_object;
-&nbsp;&nbsp;&nbsp;int w, h;
-&nbsp;&nbsp;&nbsp;int surface_w, surface_h;
-&nbsp;&nbsp;&nbsp;evas_object_geometry_get(parent, NULL, NULL, &amp;surface_w, &amp;surface_h);
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned int gltex_object;
+&nbsp;&nbsp;&nbsp;&nbsp;int w;
+&nbsp;&nbsp;&nbsp;&nbsp;int h;
+&nbsp;&nbsp;&nbsp;&nbsp;int surface_w;
+&nbsp;&nbsp;&nbsp;&nbsp;int surface_h;
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_geometry_get(parent, NULL, NULL, &amp;surface_w, &amp;surface_h);
 
-&nbsp;&nbsp;&nbsp;Evas_Object *inline_buffer = elm_win_add(parent,&quot;Img Read&quot;,ELM_WIN_INLINED_IMAGE);
-&nbsp;&nbsp;&nbsp;evas_object_move(inline_buffer, 0, 0);
-&nbsp;&nbsp;&nbsp;evas_object_resize(inline_buffer, surface_w, surface_h);
-&nbsp;&nbsp;&nbsp;evas_object_show(inline_buffer);
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *inline_buffer = elm_win_add(parent,&quot;Img Read&quot;,ELM_WIN_INLINED_IMAGE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(inline_buffer, 0, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(inline_buffer, surface_w, surface_h);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(inline_buffer);
 
-&nbsp;&nbsp;&nbsp;Evas *canvas = evas_object_evas_get(inline_buffer);
-&nbsp;&nbsp;&nbsp;Evas_Object *image = evas_object_image_add(canvas);
+&nbsp;&nbsp;&nbsp;&nbsp;Evas *canvas = evas_object_evas_get(inline_buffer);
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *image = evas_object_image_add(canvas);
 
-&nbsp;&nbsp;&nbsp;char path[200];
-&nbsp;&nbsp;&nbsp;sprintf(path, &quot;%s%s&quot;, app_get_resource_path(), filename);
-&nbsp;&nbsp;&nbsp;evas_object_image_file_set(image, path, NULL);
-&nbsp;&nbsp;&nbsp;evas_object_image_size_get(image, &amp;w, &amp;h);
-&nbsp;&nbsp;&nbsp;evas_object_image_fill_set(image, 0, 0, w, h);
-&nbsp;&nbsp;&nbsp;evas_object_image_filled_set(image, EINA_TRUE);
-&nbsp;&nbsp;&nbsp;evas_object_resize(image, w, h);
-&nbsp;&nbsp;&nbsp;evas_object_show(image);
+&nbsp;&nbsp;&nbsp;&nbsp;char path[200];
+&nbsp;&nbsp;&nbsp;&nbsp;sprintf(path, &quot;%s%s&quot;, app_get_resource_path(), filename);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_file_set(image, path, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_size_get(image, &amp;w, &amp;h);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_fill_set(image, 0, 0, w, h);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_filled_set(image, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(image, w, h);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(image);
 
-&nbsp;&nbsp;&nbsp;elm_win_render(inline_buffer);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_render(inline_buffer);
 
-&nbsp;&nbsp;&nbsp;GLubyte *pixels;
-&nbsp;&nbsp;&nbsp;pixels = (GLubyte *) evas_object_image_data_get(image, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;&nbsp;GLubyte *pixels;
+&nbsp;&nbsp;&nbsp;&nbsp;pixels = (GLubyte *)evas_object_image_data_get(image, EINA_FALSE);
 
-&nbsp;&nbsp;&nbsp;glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-&nbsp;&nbsp;&nbsp;glGenTextures(1, &amp;gltex_object);
+&nbsp;&nbsp;&nbsp;&nbsp;glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+&nbsp;&nbsp;&nbsp;&nbsp;glGenTextures(1, &amp;gltex_object);
 
-&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, gltex_object);
+&nbsp;&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, gltex_object);
 
-&nbsp;&nbsp;&nbsp;glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, w, h, 0, GL_BGRA_EXT,         
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_UNSIGNED_BYTE, pixels);
+&nbsp;&nbsp;&nbsp;&nbsp;glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT, w, h, 0, GL_BGRA_EXT,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GL_UNSIGNED_BYTE, pixels);
 
-&nbsp;&nbsp;&nbsp;glGenerateMipmap(GL_TEXTURE_2D);
+&nbsp;&nbsp;&nbsp;&nbsp;glGenerateMipmap(GL_TEXTURE_2D);
 
-&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+&nbsp;&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+&nbsp;&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+&nbsp;&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+&nbsp;&nbsp;&nbsp;&nbsp;glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;glBindTexture(GL_TEXTURE_2D, 0);
 
-&nbsp;&nbsp;&nbsp;evas_object_del(inline_buffer);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(inline_buffer);
 
-&nbsp;&nbsp;&nbsp;return gltex_object;
+&nbsp;&nbsp;&nbsp;&nbsp;return gltex_object;
 }
 </pre>
 

@@ -52,42 +52,44 @@
 </li>
 <li>Set the life-cycle callbacks in the <a href="../../../../org.tizen.native.wearable.apireference/structwatch__app__lifecycle__callback__s.html">watch_app_lifecycle_callback_s</a> structure, and pass the structure to the <span style="font-family: Courier New,Courier,monospace">watch_app_main()</span> function of the <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__WATCH__APP__MODULE.html">Watch Application</a> API to start the watch application event loop:
 <pre class="prettyprint">
-int 
+int
 main(int argc, char* argv[])
 {
-&nbsp;&nbsp;&nbsp;appdata_s ad = {0,};
-&nbsp;&nbsp;&nbsp;int ret = 0;
-&nbsp;&nbsp;&nbsp;watch_app_lifecycle_callback_s callback = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s ad = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;watch_app_lifecycle_callback_s callback = {0,};
 
-&nbsp;&nbsp;&nbsp;callback.create = app_create;
-&nbsp;&nbsp;&nbsp;callback.time_tick = app_time_tick;
+&nbsp;&nbsp;&nbsp;&nbsp;callback.create = app_create;
+&nbsp;&nbsp;&nbsp;&nbsp;callback.time_tick = app_time_tick;
 
-&nbsp;&nbsp;&nbsp;ret = watch_app_main(argc, argv, &amp;callback, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = watch_app_main(argc, argv, &amp;callback, &amp;ad);
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 </pre>
 
 <ul>
 <li>The <span style="font-family: Courier New,Courier,monospace">create</span> event is triggered before the application main loop starts. In this callback, you can initialize the application resources, such as create windows and data structures.
 <pre class="prettyprint">
-static bool 
+static bool
 app_create(int width, int height, void* data)
 {
-&nbsp;&nbsp;&nbsp;// Hook to take necessary actions before the main event loop starts
-&nbsp;&nbsp;&nbsp;// This usually means initializing the UI and application data
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Hook to take necessary actions before the main event loop starts
+&nbsp;&nbsp;&nbsp;&nbsp;   This usually means initializing the UI and application data
+&nbsp;&nbsp;&nbsp;&nbsp;*/
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
 </li>
 <li>The <span style="font-family: Courier New,Courier,monospace">time_tick</span> event is triggered at least once per second. The watch applications can get the current time from the <span style="font-family: Courier New,Courier,monospace">watch_time</span> time handle to draw a normal watch.
 <pre class="prettyprint">
-static void 
+static void
 app_time_tick(watch_time_h watch_time, void* data)
 {
-&nbsp;&nbsp;&nbsp;// Called at least once per second
-&nbsp;&nbsp;&nbsp;// Draw a normal watch with the hour, minute, and second
+&nbsp;&nbsp;&nbsp;&nbsp;/* Called at least once per second */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Draw a normal watch with the hour, minute, and second */
 }
 </pre>
 </li></ul>
@@ -113,91 +115,97 @@ app_time_tick(watch_time_h watch_time, void* data)
 <li>Get the window object with the <span style="font-family: Courier New,Courier,monospace">watch_app_get_elm_win()</span> function of the <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__WATCH__APP__MODULE.html">Watch Application</a> API:
 
 <pre class="prettyprint">
-typedef struct 
-appdata
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *win;
-&nbsp;&nbsp;&nbsp;Evas_Object *conform;
-&nbsp;&nbsp;&nbsp;Evas_Object *label;
-} appdata_s;
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *conform;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label;
+};
+typedef struct appdata appdata_s;
 
-static void 
+static void
 create_base_gui(appdata_s *ad, int width, int height)
 {
-&nbsp;&nbsp;&nbsp;int ret;
-&nbsp;&nbsp;&nbsp;watch_time_h watch_time = NULL;
-&nbsp;&nbsp;&nbsp;ret = watch_app_get_elm_win(&amp;ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;watch_time_h watch_time = NULL;
 
-&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to get window. err = %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = watch_app_get_elm_win(&amp;ad-&gt;win);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;evas_object_resize(ad-&gt;win, width, height);
-&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);      
-&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
-&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
-&nbsp;&nbsp;&nbsp;ad-&gt;label = elm_label_add(ad-&gt;conform);
-&nbsp;&nbsp;&nbsp;evas_object_resize(ad-&gt;label, width, height / 3);
-&nbsp;&nbsp;&nbsp;evas_object_move(ad-&gt;label, 0, height / 3);
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;label); 
-&nbsp;&nbsp;&nbsp;ret = watch_time_get_current_time(&amp;watch_time);
-&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to get current time. err = %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;update_watch(ad, watch_time, 0);
-&nbsp;&nbsp;&nbsp;watch_time_delete(watch_time);
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to get window. err = %d&quot;, ret);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(ad-&gt;win, width, height);
+
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;label = elm_label_add(ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(ad-&gt;label, width, height / 3);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(ad-&gt;label, 0, height / 3);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;label);
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = watch_time_get_current_time(&amp;watch_time);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != APP_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to get current time. err = %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;update_watch(ad, watch_time, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;watch_time_delete(watch_time);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
 }
 
-static bool 
+static bool
 app_create(int width, int height, void *date)
 {
-&nbsp;&nbsp;&nbsp;// Define system callbacks
+&nbsp;&nbsp;&nbsp;&nbsp;/* Define system callbacks */
 
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;create_base_gui(ad, width, height);
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;create_base_gui(ad, width, height);
 
-&nbsp;&nbsp;&nbsp;return true;
-} 
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
 </pre>
 </li>
 <li>You can get the current local time handle in the <span style="font-family: Courier New,Courier,monospace">time_tick</span> callback function and then draw the watch UI with the handle. For example, you can use the <span style="font-family: Courier New,Courier,monospace">watch_time_get_minute()</span> function of the Watch Application API to retrieve the current minute value.
 <pre class="prettyprint">
-static void 
+static void
 update_watch(appdata_s *ad, watch_time_h watch_time, int ambient)
 {
-&nbsp;&nbsp;&nbsp;char watch_text[TEXT_BUF_SIZE];
-&nbsp;&nbsp;&nbsp;int hour24, minute, second;
-&nbsp;&nbsp;&nbsp;if (watch_time == NULL)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;char watch_text[TEXT_BUF_SIZE];
+&nbsp;&nbsp;&nbsp;&nbsp;int hour24;
+&nbsp;&nbsp;&nbsp;&nbsp;int minute;
+&nbsp;&nbsp;&nbsp;&nbsp;int second;
+&nbsp;&nbsp;&nbsp;&nbsp;if (watch_time == NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 
-&nbsp;&nbsp;&nbsp;watch_time_get_hour24(watch_time, &amp;hour24);
-&nbsp;&nbsp;&nbsp;watch_time_get_minute(watch_time, &amp;minute);
-&nbsp;&nbsp;&nbsp;watch_time_get_second(watch_time, &amp;second);
-&nbsp;&nbsp;&nbsp;if (!ambient) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(watch_text, TEXT_BUF_SIZE,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&lt;align=center&gt;Hello Watch&lt;br/&gt;%02d:%02d:%02d&lt;/align&gt;&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hour24, minute, second);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(watch_text, TEXT_BUF_SIZE,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&lt;align=center&gt;Hello Watch&lt;br/&gt;%02d:%02d&lt;/align&gt;&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hour24, minute);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;watch_time_get_hour24(watch_time, &amp;hour24);
+&nbsp;&nbsp;&nbsp;&nbsp;watch_time_get_minute(watch_time, &amp;minute);
+&nbsp;&nbsp;&nbsp;&nbsp;watch_time_get_second(watch_time, &amp;second);
+&nbsp;&nbsp;&nbsp;&nbsp;if (!ambient) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(watch_text, TEXT_BUF_SIZE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&lt;align=center&gt;Hello Watch&lt;br/&gt;%02d:%02d:%02d&lt;/align&gt;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hour24, minute, second);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(watch_text, TEXT_BUF_SIZE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;&lt;align=center&gt;Hello Watch&lt;br/&gt;%02d:%02d&lt;/align&gt;&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hour24, minute);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, watch_text);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, watch_text);
 }
 
-static void 
+static void
 app_time_tick(watch_time_h watch_time, void* data)
 {
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;update_watch(ad, watch_time, 0);
-} 
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;update_watch(ad, watch_time, 0);
+}
 </pre></li></ol>
 
 <h2 id="ambient" name="ambient">Using the Ambient Mode</h2>
@@ -225,46 +233,42 @@ app_time_tick(watch_time_h watch_time, void* data)
 <li>The <span style="font-family: Courier New,Courier,monospace">ambient_tick</span> callback is called every minute while the device is in the ambient mode. You can use the callback to update the time on your watch application in the ambient mode. In this callback, do not perform time-consuming tasks and always update the UI as fast as possible. The platform can put the device to sleep shortly after the ambient tick expires.</li>
 </ul>
 <pre class="prettyprint">
-static void 
+static void
 app_ambient_tick(watch_time_h watch_time, void* data)
 {
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;update_watch(ad, watch_time, 1);
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;update_watch(ad, watch_time, 1);
 }
 
-static void 
+static void
 app_ambient_changed(bool ambient_mode, void* data)
 {
-&nbsp;&nbsp;&nbsp;if (ambient_mode) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Prepare to enter the ambient mode
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Prepare to exit the ambient mode
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (ambient_mode)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Prepare to enter the ambient mode */
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Prepare to exit the ambient mode */
 }
 </pre>
 </li>
 
 <li>Register the ambient mode callbacks:
 <pre class="prettyprint">
-int 
+int
 main(int argc, char* argv[])
 {
-&nbsp;&nbsp;&nbsp;appdata_s ad = {0,};
-&nbsp;&nbsp;&nbsp;int ret = 0;
-&nbsp;&nbsp;&nbsp;watch_app_lifecycle_callback_s event_callback = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s ad = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;watch_app_lifecycle_callback_s event_callback = {0,};
 
-&nbsp;&nbsp;&nbsp;callback.create = app_create;
-&nbsp;&nbsp;&nbsp;callback.time_tick = app_time_tick;
+&nbsp;&nbsp;&nbsp;&nbsp;callback.create = app_create;
+&nbsp;&nbsp;&nbsp;&nbsp;callback.time_tick = app_time_tick;
 
-&nbsp;&nbsp;&nbsp;callback.ambient_tick = app_ambient_tick;
-&nbsp;&nbsp;&nbsp;callback.ambient_changed = app_ambient_changed;
+&nbsp;&nbsp;&nbsp;&nbsp;callback.ambient_tick = app_ambient_tick;
+&nbsp;&nbsp;&nbsp;&nbsp;callback.ambient_changed = app_ambient_changed;
 
-&nbsp;&nbsp;&nbsp;ret = watch_app_main(argc, argv, &amp;event_callback, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = watch_app_main(argc, argv, &amp;event_callback, &amp;ad);
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 </pre>
 </li>
