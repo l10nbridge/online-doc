@@ -1,0 +1,361 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Media Streamer: Streaming Video Content over IP</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+	<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#create_server">Creating the Server Part</a></li>
+			<li><a href="#prepare_server">Preparing the Server Part</a></li>
+			<li><a href="#playing_server">Playing the Server Part</a></li>
+			<li><a href="#create_client">Creating the Client Part</a></li>
+			<li><a href="#client_prepare">Preparing the Client Part</a></li>
+			<li><a href="#client_play">Playing the Client Part</a></li>
+			</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.guides/html/native/multimedia/media_streamer_n.htm">Media Streamer Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__STREAMER__MODULE.html">Media Streamer API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__STREAMER__MODULE.html">Media Streamer API for Wearable Native</a></li>
+			</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Media Streamer: Streaming Video Content over IP</h1> 
+
+<p>This tutorial demonstrates how you can use the media streamer functionalities to stream video content in the form of Videotestsrc in the broadcast manual mode.</p>
+
+<p class="figure">Figure: Topology scheme of the media streamer Videotestsrc streaming scenario</p>
+<p align="center"><img src="../../images/media_streamer_scenario.png" alt="Media streamer scenario" /></p>
+
+<p>To launch streaming, you must create a server part media streamer on the 1st device and a client part media streamer on the 2<sup>nd</sup> device. While creating the server part, you must indicate the IP address of the client part in the <span style="font-family: Courier New,Courier,monospace">127.0.0.1</span> format to stream to.</p>
+
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Media Streamer API basics by learning about:</p>
+<ul>
+			<li><a href="#create_server">Creating the Server Part</a>
+			<p>Create the media streamer handle and required nodes.</p></li>
+			<li><a href="#prepare_server">Preparing the Server Part</a>
+			<p>Prepare the server part for use.</p></li>
+			<li><a href="#playing_server">Playing the Server Part</a>
+			<p>Play content on the server part.</p></li>
+			<li><a href="#create_client">Creating the Client Part</a>
+			<p>Create the media streamer handle and required nodes.</p></li>
+			<li><a href="#client_prepare">Preparing the Client Part</a>
+			<p>Prepare the client part for use.</p></li>
+			<li><a href="#client_play">Playing the Client Part</a>
+			<p>Play content on the client part.</p></li>
+</ul> 
+
+
+	<h2 id="create_server">Creating the Server Part</h2>
+	
+<p>To create the server part:</p>
+<ol>
+<li>Create the media streamer handle and call the <span style="font-family: Courier New,Courier,monospace">media_streamer_create()</span> function:
+<pre class="prettyprint">
+media_streamer_h ms_streamer;
+int media_streamer_create(&amp;ms_streamer);
+</pre>
+<p>Memory is allocated for the given handle.</p>
+</li>
+<li>Create a source node of the video data stream to transfer to the client part. 
+<p>For example, the Videotest node is a checkerboard pattern of colors at the edge of the YCbCr gamut and nearby colors that are out of gamut.</p>
+<ol type="a">
+<li>Create the <span style="font-family: Courier New,Courier,monospace">Videotestsrc</span> source node:
+<pre class="prettyprint">
+media_streamer_node_h video_src = NULL;
+media_streamer_node_create_src(MEDIA_STREAMER_NODE_SRC_TYPE_VIDEO_TEST, &amp;video_src);
+</pre>
+</li>
+<li>Add the <span style="font-family: Courier New,Courier,monospace">Videotestsrc</span> source node to the media streamer:
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, video_src);
+</pre>
+</li>
+</ol>
+</li>
+<li>To transfer data over an IP connection, create the final sending node on the server part and the first receiving node on the client part. The creation of the client part is described in <a href="#create_client">Creating the Client Part</a>. 
+<p>The Real Time Protocol (RTP) node is universal and unique at the same time, and capable of performing enormous work on the RTP packets for their truthful and confident transmission, such as RTP packet validation, maintenance of the SSRC participant database, scheduling of RR/SR RTCP packets, and parsing codec streams transmitted in the same RTP session.</p>
+<ol type="a">
+<li>Create the <span style="font-family: Courier New,Courier,monospace">rtp_bin</span> RTP node: 
+<pre class="prettyprint">
+media_streamer_node_h rtp_bin = NULL;
+media_streamer_node_create(MEDIA_STREAMER_NODE_TYPE_RTP, NULL, NULL, &amp;rtp_bin);
+</pre>
+</li>
+<li>Create a bundle and add the RTP node parameters to it:
+<pre class="prettyprint">
+bundle *params = bundle_create();
+bundle_add_str(params, MEDIA_STREAMER_PARAM_VIDEO_OUT_PORT, &quot;5000&quot;);
+bundle_add_str(params, MEDIA_STREAMER_PARAM_HOST, &quot;127.0.0.1&quot;);
+media_streamer_node_set_params(rtp_bin, params);
+</pre>
+</li>
+<li>Add the RTP node to the media streamer:
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, rtp_bin);
+</pre>
+</li>
+</ol>
+</li>
+<li>Create the encoding format. 
+<p>To turn raw video from Videotestsrc or captured video data into encoded video data, an encoder is needed. The conversion of raw video streams (scaling, frame rate conversion, colorspace conversion, and samplerate conversion) is one of the main tasks to conform to the profile output format. The encoding format can be H263 or H264, for example.</p>
+<pre class="prettyprint">
+media_format_h vfmt_encoded = NULL;
+/* Define encoded video format */
+media_format_create(&amp;vfmt_encoded);
+if (media_format_set_video_mime(vfmt_encoded, MEDIA_FORMAT_H263) != MEDIA_FORMAT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;g_print(&quot;media_format_set_video_mime failed!&quot;);
+
+media_format_set_video_width(vfmt_encoded, 800);
+media_format_set_video_height(vfmt_encoded, 600);
+media_format_set_video_avg_bps(vfmt_encoded, 10000);
+media_format_set_video_max_bps(vfmt_encoded, 30000);
+</pre>
+</li>
+<li>Create the video encoder node. 
+<p>The video converter, video scale, video encoder, video filter, and video parser elements are logically connected inside the video encoder node. They are all initially predefined in the <span style="font-family: Courier New,Courier,monospace">.ini</span> file.</p>
+<pre class="prettyprint">
+media_streamer_node_h video_enc = NULL;
+media_streamer_node_create(MEDIA_STREAMER_NODE_TYPE_VIDEO_ENCODER, NULL, vfmt_encoded, &amp;video_enc);
+</pre>
+<p>Add the video encoder node to the media streamer:</p>
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, video_enc);
+</pre>
+</li>
+<li>An encoded video from the encoder must be loaded in RTP packets for further transmission through the RTP protocol connection. It is used right before the RTP node, which sends the received RTP packets into the network source or before the UDP sink that pushes the UDP packets into the network.
+<ol type="a">
+<li>Create the video pay node:
+<pre class="prettyprint">
+media_streamer_node_h video_pay = NULL;
+media_streamer_node_create(MEDIA_STREAMER_NODE_TYPE_VIDEO_PAY, NULL, vfmt_encoded, &amp;video_pay);
+</pre>
+</li>
+<li>Add the video pay node to the media streamer:
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, video_pay);
+</pre>
+</li>
+</ol>
+</li>
+<li>To have a proper functionality for streaming nodes, link the nodes between each other into a logic chain.
+<ol type="a">
+<li>Find out the pad names of the nodes to be linked:
+<pre class="prettyprint">
+char **src_pad_name = NULL;
+int src_pad_num = 0;
+char **sink_pad_name = NULL;
+int sink_pad_num = 0;
+media_streamer_node_get_pad_name(video_pay, &amp;src_pad_name, src_pad_num, &amp;sink_pad_name, &amp;sink_pad_num);
+</pre>
+</li>
+<li>Link the nodes consequently into a line:
+<pre class="prettyprint">
+media_streamer_node_link(video_src, &quot;src&quot;, video_enc, &quot;sink&quot;);
+media_streamer_node_link(video_enc, &quot;src&quot;, video_pay, &quot;sink&quot;);
+media_streamer_node_link(video_pay, &quot;src&quot;, rtp_bin, &quot;video_in&quot;);
+</pre>
+</li>
+</ol>
+</li>
+</ol>
+
+
+	<h2 id="prepare_server">Preparing the Server Part</h2>
+	
+<p>To prepare the server part of the media streamer, transfer the nodes from the <span style="font-family: Courier New,Courier,monospace">MEDIA_STREAMER_STATE_IDLE</span> state to the <span style="font-family: Courier New,Courier,monospace">MEDIA_STREAMER_STATE_READY</span> state.</p>
+<p>Call the <span style="font-family: Courier New,Courier,monospace">media_streamer_prepare()</span> function to change the state:</p>	
+<pre class="prettyprint">
+int media_streamer_prepare(ms_streamer);
+</pre>
+	
+	<h2 id="playing_server">Playing the Server Part</h2>
+	
+<p>To play the server part of the Media Streamer, transfer the nodes from the <span style="font-family: Courier New,Courier,monospace">MEDIA_STREAMER_STATE_READY</span> state to the <span style="font-family: Courier New,Courier,monospace">MEDIA_STREAMER_STATE_PLAYING</span> state.</p>
+<p>Call the <span style="font-family: Courier New,Courier,monospace">media_streamer_play()</span> function to change the state and start playing:</p>
+<pre class="prettyprint">
+int media_streamer_play(ms_streamer);
+</pre>
+	
+	<h2 id="create_client">Creating the Client Part</h2>
+
+<p>To create the client part on the 2<sup>nd</sup> device on which the server part device is intended to stream to through an IP:</p>
+<ol>
+<li>Create the media streamer handle and call the <span style="font-family: Courier New,Courier,monospace">media_streamer_create()</span> function:
+<pre class="prettyprint">
+media_streamer_h ms_streamer;
+int media_streamer_create(&amp;ms_streamer);
+</pre>
+<p>Memory is allocated for the given handle.</p>
+</li>
+<li>To enable video output, a proper video sink node must be present.
+<ol type="a">
+<li>Create the video sink node:
+<pre class="prettyprint">
+media_streamer_node_h video_sink = NULL;
+media_streamer_node_create_sink(MEDIA_STREAMER_NODE_SINK_TYPE_OVERLAY, &amp;video_src);
+</pre>
+</li>
+<li>Add the video sink node to the media streamer:
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, video_sink);
+</pre>
+</li>
+</ol>
+</li>
+<li>Create the encoding format. 
+<p>To receive video in a proper format, set it initially to have a proper video stream frame on the client part.</p>
+<pre class="prettyprint">
+media_format_h vfmt_encoded = NULL;
+/* Define the encoded video format */
+media_format_create(&amp;vfmt_encoded);
+if (media_format_set_video_mime(vfmt_encoded, MEDIA_FORMAT_H263) != MEDIA_FORMAT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;g_print(&quot;media_format_set_video_mime failed!&quot;);
+
+media_format_set_video_width(vfmt_encoded, 800);
+media_format_set_video_height(vfmt_encoded, 600);
+media_format_set_video_avg_bps(vfmt_encoded, 10000);
+media_format_set_video_max_bps(vfmt_encoded, 30000);
+</pre>
+</li>
+<li>To receive data over an IP connection, first create the receiving node on the client part to be able to receive RTP packets for their further decoding into a video stream. 
+<p>The RTP node is universal and unique at the same time, and capable of performing enormous work on RTP packets for their truthful and confident receiving, such as keeping per participant statistics based on received RTCP packets, allowing an application to easily receive and decode an RTP stream with multiple SSRCs, and reordering and removing duplicate RTP packets as they are received from a network source.</p>
+<ol type="a">
+<li>Create the <span style="font-family: Courier New,Courier,monospace">rtp_bin</span> RTP node: 
+<pre class="prettyprint">
+media_streamer_node_h rtp_bin = NULL;
+media_streamer_node_create(MEDIA_STREAMER_NODE_TYPE_RTP, NULL, NULL, &amp;rtp_bin);
+</pre>
+</li>
+<li>Create a bundle and add the RTP node parameters to it:
+<pre class="prettyprint">
+bundle *params = bundle_create();
+bundle_add_str(params, MEDIA_STREAMER_PARAM_VIDEO_IN_PORT, &quot;5005&quot;);
+media_streamer_node_set_params(rtp_bin, params);
+</pre>
+</li>
+<li>Set the incoming format for the RTP node:
+<pre class="prettyprint">
+media_streamer_node_set_pad_format(rtp_node, &quot;video_in_rtp&quot;, vfmt_encoded);
+</pre>
+</li>
+<li>Add the RTP node to the media streamer:
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, rtp_bin);
+</pre>
+</li>
+</ol>
+</li>
+<li>To extract raw video from RTP packets, depayload them for further decoding to get a valid video data stream. It is used right after the RTP node, which supplies the received RTP packets from the network source, or after the UDP source that reads the UDP packets from the network.
+<ol type="a">
+<li>Create the video depay node:
+<pre class="prettyprint">
+media_streamer_node_h video_depay= NULL;
+media_streamer_node_create(MEDIA_STREAMER_NODE_TYPE_VIDEO_DEPAY, NULL, vfmt_encoded, &amp;video_depay);
+</pre>
+</li>
+<li>Add the video depay node to the media streamer:
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, video_depay);
+</pre>
+</li>
+</ol>
+</li>
+<li>Create the video decoder node. 
+<p>The video decoder, video parser, video converter, and video scale elements are logically connected inside the video decider node. They are all initially predefined in the <span style="font-family: Courier New,Courier,monospace">.ini</span> file.</p>
+<pre class="prettyprint">
+media_streamer_node_h video_dec = NULL;
+media_streamer_node_create(MEDIA_STREAMER_NODE_TYPE_VIDEO_DECODER, NULL, vfmt_encoded, &amp;video_dec);
+</pre>
+<p>Add the video decoder node to the media streamer:</p>
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, video_dec);
+</pre>
+</li>
+<li>Create the video queue node:
+<pre class="prettyprint">
+media_streamer_node_h video_queue= NULL;
+media_streamer_node_create(MEDIA_STREAMER_NODE_TYPE_QUEUE, NULL, vfmt_encoded, &amp;video_queue);
+</pre>
+<p>Add the video queue node to the media streamer:</p>
+<pre class="prettyprint">
+media_streamer_node_add(ms_streamer, video_queue);
+</pre>
+</li>
+<li>To have a proper receiving node functionality, link the client nodes between each other into a logic chain: 
+<pre class="prettyprint">
+media_streamer_node_link(video_depay, &quot;src&quot;, video_dec, &quot;sink&quot;);
+media_streamer_node_link(video_dec, &quot;src&quot;, video_queue, &quot;sink&quot;);
+media_streamer_node_link(video_queue, &quot;src&quot;, video_sink, &quot;sink&quot;);
+</pre>
+</li>
+</ol>
+	
+	<h2 id="client_prepare">Preparing the Client Part</h2>
+
+<p>To prepare the client part of the media streamer, transfer the nodes from the <span style="font-family: Courier New,Courier,monospace">MEDIA_STREAMER_STATE_IDLE</span> state to the <span style="font-family: Courier New,Courier,monospace">MEDIA_STREAMER_STATE_READY</span> state.</p>
+<p>Call the <span style="font-family: Courier New,Courier,monospace">media_streamer_prepare()</span> function to change the state:</p>
+<pre class="prettyprint">
+int media_streamer_prepare(ms_streamer);
+</pre>
+
+	<h2 id="client_play">Playing the Client Part</h2>
+
+<p>To play the client part of the media streamer, transfer the nodes from the <span style="font-family: Courier New,Courier,monospace">MEDIA_STREAMER_STATE_READY</span> state to the <span style="font-family: Courier New,Courier,monospace">MEDIA_STREAMER_STATE_PLAYING</span> state.</p>
+<p>Call the <span style="font-family: Courier New,Courier,monospace">media_streamer_play()</span> function to change the state and start playing:</p>
+<pre class="prettyprint">
+int media_streamer_play(ms_streamer);
+</pre>
+<p>At this point, the VideoTest Streaming is shown on the client part device.</p>
+<p class="figure">Figure: Media streamer client part device receiving Videotestsrc streamed in the streaming scenario</p>
+<p align="center"><img src="../../images/media_streamer_playing.png" alt="Media streamer streaming media" /></p>
+
+    
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

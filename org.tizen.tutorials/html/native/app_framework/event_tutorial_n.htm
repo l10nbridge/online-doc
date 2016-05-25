@@ -23,6 +23,7 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
 			<li><a href="#manage">Subscribing to an Event</a></li>
 			<li><a href="#broadcast">Publishing an Event</a></li>	 
 			<li><a href="#launch">Managing Launch-On-Events</a></li>	 	 		
@@ -33,7 +34,7 @@
 			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__EVENT__MODULE.html">Event API for Mobile Native</a></li>
 		</ul>
 	</div></div>
-</div>	
+</div>
 
 <div id="container"><div id="contents"><div class="content">
 
@@ -47,6 +48,8 @@
 <h2>Warm-up</h2>
 <p>Become familiar with the Event API basics by learning about:</p>
 	<ul>
+		<li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the event functionality.</p></li>
 		<li><a href="#manage">Subscribing to an Event</a>
 		<p>Register an event handle to receive events.</p></li>
 		<li><a href="#broadcast">Publishing an Event</a>
@@ -55,40 +58,56 @@
 		<p>Launch service applications based on specific events.</p></li>	 		 
 	</ul>
 
+	<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the event functionality:</p>
+<ol>
+<li>
+<p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__EVENT__MODULE.html">Event</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;app_event.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;app_event.h&gt;
+</pre> 
+</li>
+<li>To use Launch-On-Events in your application, define the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/launch_on_event</span> operation in the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file.
+<p>The URI name for the operation represents the event name in the Launch-On-Event format (<span style="font-family: Courier New,Courier,monospace">event://{Event_Name}</span>).</p>
+
+<pre class="prettyprint">
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=&quot;http://tizen.org/appcontrol/operation/launch_on_event&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;uri name=&quot;event://tizen.system.event.battery_charger_status&quot;/&gt;
+&lt;/app-control&gt;
+</pre>
+</li>
+</ol> 
 
  <h2 id="manage" name="manage">Subscribing to an Event</h2>
 
 <p>To subscribe to a predefined system event or user-defined event:</p>
 <ol>
-<li>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__EVENT__MODULE.html">Event</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;app_event.h&gt;</span> header file in your application:
-<pre class="prettyprint">
-#include &lt;app_event.h&gt; 
-</pre> 
-</li>
 <li>Add an event handler.
 <p>One event can have multiple event handlers, and one handler can be registered multiple times.</p>
 
 <ul><li>Add an event handler for a system event:
 
 <pre class="prettyprint">
-static void 
-battery_event_callback(const char *event_name, bundle *event_data, void *user_data) 
+static void
+battery_event_callback(const char *event_name, bundle *event_data, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;// event_name is the event name 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;event_name is [%s]&quot;, event_name);
+&nbsp;&nbsp;&nbsp;&nbsp;/* event_name is the event name */
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;event_name is [%s]&quot;, event_name);
 
-&nbsp;&nbsp;&nbsp;// event_data is the event data, its type is bundle
-&nbsp;&nbsp;&nbsp;char *battery_level_status = NULL;
-&nbsp;&nbsp;&nbsp;battery_level_status = bundle_get_val(event_data, EVENT_KEY_BATTERY_LEVEL_STATUS);
+&nbsp;&nbsp;&nbsp;&nbsp;/* event_data is the event data, its type is bundle */
+&nbsp;&nbsp;&nbsp;&nbsp;char *battery_level_status = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;battery_level_status = bundle_get_val(event_data, EVENT_KEY_BATTERY_LEVEL_STATUS);
 }
 
 event_handler_h handler;
 
-// Register the event handler
+/* Register the event handler */
 int ret = event_add_event_handler(SYSTEM_EVENT_BATTERY_LEVEL_STATUS,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(event_cb)battery_event_cb, user_data, &amp;handler);
 if (ret != EVENT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
 </pre>
 </li>
 
@@ -107,7 +126,7 @@ ret = event_add_event_handler(&quot;event.org.tizen.senderapp.user_event&quot;,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;CUSTOM_EVENT_KEY&quot;, &amp;event_handler);
 
 if (ret != EVENT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
 </pre>
 </li></ul></li>
 
@@ -117,7 +136,7 @@ if (ret != EVENT_ERROR_NONE)
 <pre class="prettyprint">
 ret = event_remove_event_handler(handler);
 if (ret != EVENT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
 </pre>
 </li>
 
@@ -129,19 +148,14 @@ if (ret != EVENT_ERROR_NONE)
 <p>To publish an event to all listeners:</p>
 
 <ol>
-<li>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__EVENT__MODULE.html">Event</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;app_event.h&gt;</span> header file in your application:
-<pre class="prettyprint">
-#include &lt;app_event.h&gt; 
-</pre> 
-</li>
 <li>Create the callback for handling the event:
 <pre class="prettyprint">
-static void 
+static void
 user_event_cb(const char *event_name, bundle *event_data, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;user_event_cb: %s \n&quot;, event_name);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;user_event_cb: %s \n&quot;, event_name);
 
-&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;return;
 }
 </pre>
 </li>
@@ -155,7 +169,7 @@ ret = event_add_event_handler(&quot;event.org.tizen.senderapp.user_event&quot;,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user_event_cb, &quot;CUSTOM_EVENT_KEY&quot;, &amp;event_handler);
 
 if (ret != EVENT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
 
 event_data = bundle_create();
 
@@ -167,7 +181,7 @@ ret = bundle_add_str(event_data, user_data_key, user_data);
 ret = event_publish_app_event(&quot;event.org.tizen.senderapp.user_event&quot;, event_data);
 
 if (ret != EVENT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;err: [%d]&quot;, ret);
 </pre>
 </li>
 <li>When no longer needed, free the bundle:
@@ -179,66 +193,48 @@ ret = bundle_free(event_data);
  
  <h2 id="launch" name="launch">Managing Launch-On-Events</h2>
 
- <p>To manage a Launch-On-Event:</p>
- 
    <table class="note"> 
    <tbody> 
     <tr> 
      <th class="note">Note</th> 
     </tr> 
     <tr> 
-     <td class="note">Only service applications can register and receive Launch-On-Events.</td> 
+     <td class="note">Only service applications can register and receive Launch-On-Events.
+	 <p>The Launch-On-Event operation cannot be requested using the <span style="font-family: Courier New,Courier,monospace">app_control_send_launch_request()</span> function, unlike other application control operations.</p></td> 
     </tr> 
    </tbody> 
   </table> 
- 
- <ol>
- <li>To register an interest in a Launch-On-Event, define the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/launch_on_event</span> operation in the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file. The URI name for the operation represents the event name in the Launch-On-Event format (<span style="font-family: Courier New,Courier,monospace">event://{Event_Name}</span>).
+
+<p>To receive the Launch-On-Event:</p>
 
 <pre class="prettyprint">
-&lt;app-control&gt;
-&nbsp;&nbsp;&nbsp;&lt;operation name=&quot;http://tizen.org/appcontrol/operation/launch_on_event&quot;/&gt;
-&nbsp;&nbsp;&nbsp;&lt;uri name=&quot;event://tizen.system.event.battery_charger_status&quot;/&gt;
-&lt;/app-control&gt;
-</pre>
- 
-<p>The Launch-On-Event operation cannot be requested using the <span style="font-family: Courier New,Courier,monospace">app_control_send_launch_request()</span> function, unlike other application control operations.</p> 
-</li>
-
-<li>Receive the event:
-
-<pre class="prettyprint">
-static void 
+static void
 *app_control(app_control_h app_control, void *data)
 {
-&nbsp;&nbsp;&nbsp;char *event_uri = &quot;event://tizen.system.event.battery_charger_status&quot;;
-&nbsp;&nbsp;&nbsp;char *operation, char *uri, char *event_value;
-&nbsp;&nbsp;&nbsp;ret = app_control_get_operation(app_control, &amp;operation);
+&nbsp;&nbsp;&nbsp;&nbsp;char *event_uri = &quot;event://tizen.system.event.battery_charger_status&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;char *operation;
+&nbsp;&nbsp;&nbsp;&nbsp;char *uri;
+&nbsp;&nbsp;&nbsp;&nbsp;char *event_value;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_get_operation(app_control, &amp;operation);
 
-&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE &amp;&amp; operation &amp;&amp;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcmp(operation, APP_CONTROL_OPERATION_LAUNCH_ON_EVENT) == 0) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_get_uri(app_control, &amp;uri);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE &amp;&amp; uri) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strncmp(uri, event_uri, strlen(event_uri) + 1) == 0) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_get_extra_data(app_control, &quot;battery_charger_status&quot;, &amp;event_value);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE &amp;&amp; event_value) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(event_value);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE &amp;&amp; operation &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;strcmp(operation, APP_CONTROL_OPERATION_LAUNCH_ON_EVENT) == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_get_uri(app_control, &amp;uri);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE &amp;&amp; uri) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strncmp(uri, event_uri, strlen(event_uri) + 1) == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_get_extra_data(app_control, &quot;battery_charger_status&quot;, &amp;event_value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret == APP_CONTROL_ERROR_NONE &amp;&amp; event_value)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(event_value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Use event_add_event_handler() for further event subscriptions here */
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Use event_add_event_handler() for further event subscriptions here
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(uri);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(operation);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(uri);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(operation);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre>
 <p>The application can get the event name and data in the first <span style="font-family: Courier New,Courier,monospace">app_control_cb()</span> callback, which is called after the application state changes to <span style="font-family: Courier New,Courier,monospace">created</span>.</p>
-</li>
-</ol>
+
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>

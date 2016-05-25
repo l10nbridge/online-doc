@@ -48,11 +48,13 @@
 <p>A calendar is a system of organizing days for social purposes. It is composed of <a href="#record2">records</a>, such as events and todos. The records consist of subrecords, such as alarms, attendees, or extensions. For example, if an event has a recurrence rule (meaning that it happens multiple times), separate instances are generated for each time the event occurs.</p>
 
 <p>This feature is supported in mobile applications only.</p>
+
+<p>The calendar information is stored in a calendar database. To manage the information in the database, you must <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#init">connect to the calendar service</a>.</p>
  
   <p class="figure">Figure: Calendar model</p> 
   <p align="center"><img alt="Calendar model" src="../../images/calendar_model.png" /></p>
   
-  <p>The Calendar Service supports <a href="#vcal">vCalendars</a>.</p>
+  <p>The calendar service supports <a href="#vcal">vCalendars</a>.</p>
 
 <p>The main features of the Calendar API include:</p>
 	<ul>
@@ -65,9 +67,11 @@
 		</ul>
 		<p>Each account can have multiple calendar books. The calendar book name does not need to be unique on the device because it is handled with an ID. Since the local device address book has no account, its related account ID is zero.</p>
 		</li>
-		<li><a href="#event">Events and tasks</a>
+		<li><a href="#event">Events and todos</a>
 		<ul>
-			<li>Set properties, such as summary, start time, and description.</li>
+			<li>Create <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#create_event">events</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#create">todos</a>, set properties for them, such as summary, start time, and description, and store them in the database.</li>
+			<li>Update <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#update_event">event</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#update">todo</a> details in the database.</li>
+			<li>Delete <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#delete_event">events</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#delete">todos</a> from the database.</li>
 			<li>Set <a href="#remind">reminders</a>.</li>
 			</ul>
 		</li>
@@ -89,7 +93,7 @@
 <pre class="prettyprint">
 calendar_connect();
 
-// Jobs for records
+/* Jobs for records */
 
 calendar_disconnect();
 </pre>
@@ -128,33 +132,37 @@ calendar_record_h event = NULL;
 
 calendar_record_create(_calendar_event._uri, &amp;event);
 
-// Set default calendar book id
+/* Set default calendar book ID */
 calendar_record_set_int(event, _calendar_event.calendar_id, DEFAULT_EVENT_CALENDAR_BOOK_ID);
 
-// Set other fields
+/* Set other fields */
 
 int event_id = 0;
 calendar_db_insert_record(event &amp;event_id);
 
-// Destroy
+/* Destroy */
 calendar_record_destroy(event, true);
 </pre>
 
 	
 <p>To receive a list of existing calendar books, use the following code:</p>
-<pre class="prettyprint">calendar_list_h calendar_book_list = NULL;
-calendar_db_get_all_records(_calendar_calendar_book._uri, 0, 0, &amp;calendar_book_list);</pre>
+<pre class="prettyprint">
+calendar_list_h calendar_book_list = NULL;
+calendar_db_get_all_records(_calendar_calendar_book._uri, 0, 0, &amp;calendar_book_list);
+</pre>
 
 <p>In the <span style="font-family: Courier New,Courier,monospace">calendar_db_get_all_records()</span> function, you need as parameters the URI of the view to get records from, the index from which results are received, the maximum number of results, and the record list.</p>
 
 <h2 id="change" name="change">Database Change Notifications</h2>
 
-<p>To detect the calendar database changes, register a callback with the <span style="font-family: Courier New,Courier,monospace">calendar_db_add_changed_cb()</span> function. To unregister the callback and ignore database changes, use the <span style="font-family: Courier New,Courier,monospace">calendar_db_remove_changed_cb()</span> function.</p>
+<p>To detect the <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#monitor_event">event</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#monitor">todo</a> changes in the calendar database, register a callback with the <span style="font-family: Courier New,Courier,monospace">calendar_db_add_changed_cb()</span> function. To deregister the callback and ignore database changes, use the <span style="font-family: Courier New,Courier,monospace">calendar_db_remove_changed_cb()</span> function.</p>
 <p>Clients wait calendar change notifications on the client side. If the calendar is changed by another module, the server publishes an inotify event. The Inotify module broadcasts to the subscribed modules, and an internal inotify handler is called at the client side. A user callback function is called with the user data.</p>
-<pre class="prettyprint">// Add callback function
+<pre class="prettyprint">
+/* Add callback function */
 void __event_changed_ cb(const char *view_uri, void *user_data) {}
-// Add change notification callback
-calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);</pre>
+/* Add change notification callback */
+calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);
+</pre>
 
 <h2 id="event" name="event">Events and Instances</h2>
 <p>An event record describes various properties, such as description, categories, and priority. It also contains information on when the event takes place. In a recurring event, there are more than one instance of the event. Each instance has its corresponding instance record.</p>
@@ -163,7 +171,7 @@ calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);</pre
   <p class="figure">Figure: Views and databases</p> 
   <p align="center"><img alt="Views and databases" src="../../images/calendar_db.png" /></p>  
 
-<p>The following table illustrates and example of a recurring event and its instances.</p>
+<p>The following table illustrates an example of a recurring event and its instances.</p>
 
 <table> 
    <caption>
@@ -240,8 +248,10 @@ calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);</pre
    </tbody> 
   </table> 
 
+<p>When you have a recurring event, you can <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#exception_add">remove a specific recurrence instance</a> from it, or <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#exception_modify">add exceptions to the recurrence</a>.</p>  
+  
 <h3 name="exception_rule" id="exception_rule">Exceptions</h3>
-<p>If one of the instances of a recurring event is modified (such as its summary or date) or deleted, it is called an exception. For example, if 2<sup>nd</sup> instance date is modified from 16<sup>th</sup> to 17<sup>th</sup>, 17<sup>th</sup> is the exception.</p>
+<p>If 1 of the instances of a recurring event is modified (such as its summary or date) or deleted, it is called an exception. For example, if the second instance date is modified from 16<sup>th</sup> to 17<sup>th</sup>, 17<sup>th</sup> is the exception.</p>
 
 
 <table> 
@@ -272,7 +282,7 @@ calendar_db_add_changed_cb(_calendar_event._uri, __event_changed_cb, NULL);</pre
 <p>To get the changes in an exception, use the <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_exception_by_version()</span> function. The instances and exceptions are deleted together when the original event is deleted.</p>
 
 <h2 id="filter2" name="filter2">Filters and Queries</h2>
-<p>Queries are used to retrieve data which satisfies a given criteria, like an integer property being greater than a given value, or a string property containing a given substring. The criteria are defined by creating filters and adding conditions to them, joining them with logical operators. Also, instead of a condition, another filter can be added to create more complex filters.</p>
+<p>Queries are used to retrieve <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#get_event">event</a> and <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#get">todo</a> data which satisfies a given criteria, like an integer property being greater than a given value, or a string property containing a given substring. The criteria are defined by creating filters and adding conditions to them, joining them with logical operators. Also, instead of a condition, another filter can be added to create more complex filters.</p>
 <p>When a filter is ready, it can be set as a property of a query. Other query properties allow configuring how the returned results are grouped and sorted.</p>
 <p>The operator precedence in filters is determined by the order in which the conditions and filters are added. The following table shows an example of how the operator precedence works.</p>
 
@@ -317,93 +327,102 @@ Meaning (C5 AND (C1 OR C2)) AND (C3 OR C4)</td>
   </table> 
 
 <p>The following code creates a filter, accepting events with high priority or those that include the word &quot;meeting&quot; in their description.</p>
-<pre class="prettyprint">calendar_filter_h filter = NULL;
- 
-// Create a filter returning event type records
+<pre class="prettyprint">
+calendar_filter_h filter = NULL;
+
+/* Create a filter returning event type records */
 calendar_filter_create(_calendar_event._uri, &amp;filter);
- 
-// Add a &#39;priority equals high&#39; condition
+
+/* Add a &#39;priority equals high&#39; condition */
 calendar_filter_add_int(filter, _calendar_event.priority, CALENDAR_MATCH_EQUAL, CALENDAR_EVENT_PRIORITY_HIGH);
- 
-// Add OR operator
+
+/* Add OR operator */
 calendar_filter_add_operator(filter, CALENDAR_FILTER_OPERATOR_OR);
- 
-// Add a &#39;description contains &quot;meeting&quot;&#39; condition
-calendar_filter_add_str(filter, _calendar_event.description, CALENDAR_MATCH_CONTAINS, &quot;meeting&quot;);</pre>
-		 
+
+/* Add a &#39;description contains &quot;meeting&quot;&#39; condition */
+calendar_filter_add_str(filter, _calendar_event.description, CALENDAR_MATCH_CONTAINS, &quot;meeting&quot;);
+</pre>
+
 <p>Insert the filter into the query and execute the query:</p>
 
-<pre class="prettyprint">calendar_query_h query = NULL;
+<pre class="prettyprint">
+calendar_query_h query = NULL;
 calendar_list_h list = NULL;
- 
-// Create a query returning event type records
+
+/* Create a query returning event type records */
 calendar_query_create(_calendar_event._uri, &amp;query);
- 
-// Add the filter
+
+/* Add the filter */
 calendar_query_set_filter(query, filter);
- 
-// Execute the query, results are returned in a list
+
+/* Execute the query, results are returned in a list */
 calendar_db_get_records_with_query(query, 0, 0, &amp;list);
- 
+
 calendar_filter_destroy(filter);
 calendar_query_destroy(query);
- 
-// Use the list
- 
-calendar_list_destroy(list, true);</pre>
+
+/* Use the list */
+
+calendar_list_destroy(list, true);
+</pre>
 
 <h3 id="proj" name="proj">Projections</h3>
 <p>Projection is related to searching with filters and queries. A projection allows you to query the data for just those specific properties of a record that you actually need, at lower latency and cost than retrieving the entire set of properties.</p>
 
 <p>The following example code creates a filter that gets only the event ID, summary, and start time from those records whose summary has &quot;test&quot; (string filter). It creates a query, adds the filter to it, and receives the results in a list.</p>
 
-<pre class="prettyprint">calendar_query_h query = NULL;
+<pre class="prettyprint">
+calendar_query_h query = NULL;
 calendar_filter_h filter = NULL;
 
-// Set query with filter
+/* Set query with filter */
 calendar_query_create(_calendar_event_calendar_book_attendee._uri, &amp;query);
 calendar_filter_create(_calendar_event_calendar_book_attendee._uri, &amp;filter);
 calendar_filter_add_str(filter, _calendar_event.summary, CALENDAR_MATCH_CONTAINS, &quot;test&quot;);
 calendar_query_set_filter(query, filter);
 
-// Set projection
+/* Set projection */
 unsigned int projection[3];
 projection[0] = _calendar_event_calendar_book_attendee.event_id;
 projection[1] = _calendar_event_calendar_book_attendee.summary;
 projection[2] = _calendar_event_calendar_book_attendee.start_time;
 
-// Get list
+/* Get list */
 calendar_query_set_projection(query, projection, 3);
 calendar_db_get_records_with_query(query, 0, 0, &amp;list);
 
-// Destroy handle
+/* Destroy handle */
 calendar_filter_destroy(filter);
 calendar_query_destroy(query);
-calendar_list_destroy(list, true);</pre>
+calendar_list_destroy(list, true);
+</pre>
 
 <h2 id="record2" name="record2">Records</h2>
 
-<p>An important concept in the Calendar Service APIs is a record. Although a record represents an actual record in the internal database, you can consider it as a structure describing a single (but complex) entity, like a calendar event or a time zone.</p>
+<p>An important concept in the Calendar APIs is a record. Although a record represents an actual record in the internal database, you can consider it as a structure describing a single (but complex) entity, like a calendar event or a time zone.</p>
 
 <p>A record has many properties, for example, a todo record has the todo description, priority, progress, creation time, last modified and completed time, and many others.</p>
 <p>A record can also contain an identifier field, which holds an ID of another record. Setting this field&#39;s value establishes a relation between the records, for example, a calendar event contains the ID of a calendar book to which it belongs.</p>
 
 <h3 id="uri" name="uri">URI</h3>
 <p>A record type is identified by a structure called the view. For example, the <span style="font-family: Courier New,Courier,monospace">_calendar_event</span> view describes the properties of the calendar event record. Every view has a special field - <span style="font-family: Courier New,Courier,monospace">_uri</span> - that uniquely identifies the view. In many cases, you must provide the <span style="font-family: Courier New,Courier,monospace">_uri</span> value to indicate what type of record you want to create or operate on.</p>
-<pre class="prettyprint">// Create an event with _calendar_event view
+<pre class="prettyprint">
+/* Create an event with _calendar_event view */
 calendar_record_h record = NULL;
 calendar_record_create(_calendar_event._uri, &amp;record);
 </pre>
 
 <h3 id="handle" name="handle">Record Handle</h3>
 <p>To use a record, you must obtain its handle. You can use many methods to obtain the handle, for example, you can create a new record or refer to the child records of a record.</p>
-<pre class="prettyprint">// Create an event and get a handle
+<pre class="prettyprint">
+/* Create an event and get a handle */
 calendar_record_h event = NULL;
 calendar_record_create(_calendar_event._uri, &amp;event);
 
-// Get the record handle with ID
+/* Get the record handle with ID */
 calendar_record_h event2 = NULL;
-calendar_db_get_record(_calendar_event._uri, event_id, &amp;event2);</pre>
+calendar_db_get_record(_calendar_event._uri, event_id, &amp;event2);
+</pre>
 
 <h3 id="types" name="types">Basic Types</h3>
 <p>Records contain properties of basic types: <span style="font-family: Courier New,Courier,monospace">integer</span>, <span style="font-family: Courier New,Courier,monospace">lli</span> (long integer, long long int), <span style="font-family: Courier New,Courier,monospace">double</span>, <span style="font-family: Courier New,Courier,monospace">string</span>, <span style="font-family: Courier New,Courier,monospace">bool</span>, and <span style="font-family: Courier New,Courier,monospace">time</span>. The <span style="font-family: Courier New,Courier,monospace">time</span> type holds either a long long int, or 3 integers (year, month, day).</p> 
@@ -452,22 +471,24 @@ calendar_db_get_record(_calendar_event._uri, event_id, &amp;event2);</pre>
 
 <p>The following code example creates an event and inserts it into the default event book.</p>
 
-<pre class="prettyprint">// Create an event
+<pre class="prettyprint">
+/* Create an event */
 calendar_record_h event = NULL;
 calendar_record_create(_calendar_event._uri, &amp;event);
- 
-// Set event summary
+
+/* Set event summary */
 calendar_record_set_str(event, _calendar_event.summary, &quot;Meeting&quot;);
- 
-// Put the event into the default calendar book for events
+
+/* Put the event into the default calendar book for events */
 calendar_record_set_int(event, _calendar_event.calendar_book_id, book_id);
- 
-// Insert calendar book into the database
+
+/* Insert calendar book into the database */
 int event_id = 0;
 calendar_db_insert_record(event, &amp;event_id);
 
-// Destroy
-calendar_record_destroy(event, true);</pre>
+/* Destroy */
+calendar_record_destroy(event, true);
+</pre>
 
 <h2 id="remind" name="remind">Reminders</h2>
 
@@ -477,33 +498,35 @@ calendar_record_destroy(event, true);</pre>
   <p align="center"><img alt="Alarm process" src="../../images/calendar_alarm.png" /></p>
 
 <p>To get a reminder when an alarm is triggered, the application must set the reminder mime name. After the reminder mime name is set, insert an alarm as a child of an event record:</p>
-<pre class="prettyprint">// Set alarm
+<pre class="prettyprint">
+/* Set alarm */
 calendar_record_h alarm = NULL;
 calendar_record_create(_calendar_alarm._uri, &amp;alarm);
 calendar_record_set_int(alarm, _calendar_alarm.tick_unit, CALENDAR_ALARM_TIME_UNIT_SPECIFIC);
-calendar_record_set_lli(alarm, _calendar_alarm.time, (1404036000 - 60)); // Before 60 sec
+calendar_record_set_lli(alarm, _calendar_alarm.time, (1404036000 - 60)); /* Before 60 sec */
 
-// Add alarm as child
-calendar_record_add_child_record(event, _calendar_event.calendar_alarm, alarm);</pre>
+/* Add alarm as child */
+calendar_record_add_child_record(event, _calendar_event.calendar_alarm, alarm);
+</pre>
 
 <p>When the registered alarm is triggered and the alarm manager notices it, the calendar service calls those packages that have the reminder mime name.</p>
 
 <h2 id="time" name="time">Time Structure</h2>
 <p>The calendar time structure, <span style="font-family: Courier New,Courier,monospace">calendar_caltime_s</span>, is defined as follows:</p>
-<pre class="prettyprint">typedef struct
-{
-&nbsp;&nbsp;&nbsp;calendar_time_type_e type;
-&nbsp;&nbsp;&nbsp;union 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long long int utime;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;struct 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int year;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int month;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int mday;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} date;
-&nbsp;&nbsp;&nbsp;} time;
-} calendar_time_s;</pre>
+<pre class="prettyprint">
+struct _calendar_time_s {
+&nbsp;&nbsp;&nbsp;&nbsp;calendar_time_type_e type;
+&nbsp;&nbsp;&nbsp;&nbsp;union {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long long int utime;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;struct {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int year;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int month;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int mday;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} date;
+&nbsp;&nbsp;&nbsp;&nbsp;} time;
+};
+typedef struct _calendar_time_s calendar_time_s;
+</pre>
 <p>Use this structure when setting the calendar time (<span style="font-family: Courier New,Courier,monospace">_CALENDAR_PROPERTY_CALTIME</span>) properties of the records.</p>
 <p>The time structure can hold 2 types of data: UTC time (long long int) and date, given as year, month, and day of the month (3 integers). These types are identified by the values of the <span style="font-family: Courier New,Courier,monospace">calendar_time_type_e</span> variable, and they determine the usage of the structure.</p>
 
@@ -538,66 +561,68 @@ calendar_record_add_child_record(event, _calendar_event.calendar_alarm, alarm);<
 <p>For example, when setting the start time of an event, the local time zone must be stored in the <span style="font-family: Courier New,Courier,monospace">start_tzid</span> property.</p>
 <p>When converting local time to UTC time, use the function illustrated in the following example. It converts the given date and time to the corresponding UTC time, considering the given time zone (first argument). The function uses the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__BASE__UTILS__I18N__MODULE.html">i18n</a> API.</p>
 
-<pre class="prettyprint">#define ms2sec(ms) (long long int)(ms / 1000.0)
- 
-long long int _time_convert_itol(char *tzid, int y, int mon, int d, int h, int min, int s)
+<pre class="prettyprint">
+#define ms2sec(ms) (long long int)(ms / 1000.0)
+
+long long int 
+_time_convert_itol(char *tzid, int y, int mon, int d, int h, int min, int s)
 {
-&nbsp;&nbsp;&nbsp;int ret = 0;
-&nbsp;&nbsp;&nbsp;i18n_uchar utf16_timezone[64] = {0};
-&nbsp;&nbsp;&nbsp;i18n_ustring_copy_ua_n(utf16_timezone, tzid, sizeof(utf16_timezone)/sizeof(i18n_uchar));
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;i18n_uchar utf16_timezone[64] = {0};
+&nbsp;&nbsp;&nbsp;&nbsp;i18n_ustring_copy_ua_n(utf16_timezone, tzid, sizeof(utf16_timezone)/sizeof(i18n_uchar));
 
-&nbsp;&nbsp;&nbsp;i18n_ucalendar_h ucal = NULL;
-&nbsp;&nbsp;&nbsp;char *loc_default = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;i18n_ucalendar_h ucal = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *loc_default = NULL;
 
-&nbsp;&nbsp;&nbsp;i18n_ulocale_get_default((const char **)&amp;loc_default);
-&nbsp;&nbsp;&nbsp;ret = i18n_ucalendar_create(utf16_timezone, -1, loc_default, I18N_UCALENDAR_GREGORIAN, &amp;ucal);
-&nbsp;&nbsp;&nbsp;if (I18N_ERROR_NONE != ret) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;i18n_ucalendar_create() failed (%d)\n&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;i18n_ulocale_get_default((const char **)&amp;loc_default);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = i18n_ucalendar_create(utf16_timezone, -1, loc_default, I18N_UCALENDAR_GREGORIAN, &amp;ucal);
+&nbsp;&nbsp;&nbsp;&nbsp;if (I18N_ERROR_NONE != ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;i18n_ucalendar_create() failed (%d)\n&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;i18n_ucalendar_set_date_time(ucal, y, mon - 1, d, h, min, s);
+&nbsp;&nbsp;&nbsp;&nbsp;i18n_ucalendar_set_date_time(ucal, y, mon - 1, d, h, min, s);
 
-&nbsp;&nbsp;&nbsp;i18n_udate date;
-&nbsp;&nbsp;&nbsp;ret = i18n_ucalendar_get_milliseconds(ucal, &amp;date);
-&nbsp;&nbsp;&nbsp;if (I18N_ERROR_NONE != ret) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;i18n_ucalendar_create() failed (%d)\n&quot;, ret);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i18n_ucalendar_destroy(ucal);
+&nbsp;&nbsp;&nbsp;&nbsp;i18n_udate date;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = i18n_ucalendar_get_milliseconds(ucal, &amp;date);
+&nbsp;&nbsp;&nbsp;&nbsp;if (I18N_ERROR_NONE != ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;i18n_ucalendar_create() failed (%d)\n&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i18n_ucalendar_destroy(ucal);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;i18n_ucalendar_destroy(ucal);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;i18n_ucalendar_destroy(ucal);
 
-&nbsp;&nbsp;&nbsp;return ms2sec(date);
+&nbsp;&nbsp;&nbsp;&nbsp;return ms2sec(date);
 }</pre>
 
 
-<pre class="prettyprint">// Fill calendar time structures (start and end time)
+<pre class="prettyprint">
+/* Fill calendar time structures (start and end time) */
 calendar_time_s st = {0};
 calendar_time_s et = {0};
- 
+
 st.type = CALENDAR_TIME_UTIME;
 st.time.utime = _time_convert_itol(&quot;Asia/Seoul&quot;, 2012, 9, 15, 11, 0, 0);
- 
+
 et.type = CALENDAR_TIME_UTIME;
 et.time.utime = _time_convert_itol(&quot;Asia/Seoul&quot;, 2012, 9, 15, 12, 0, 0);
- 
-// Create an event record
- 
-// Set local time zone of start time
+
+/* Create an event record */
+
+/* Set local time zone of start time */
 calendar_record_set_str(event, _calendar_event.start_tzid, &quot;Asia/Seoul&quot;);
- 
-// Set start time
+
+/* Set start time */
 calendar_record_set_caltime(event, _calendar_event.start_time, st);
- 
-// Set local time zone of end time
+
+/* Set local time zone of end time */
 calendar_record_set_str(event, _calendar_event.end_tzid, &quot;Asia/Seoul&quot;);
- 
-// Set end time
-calendar_record_set_caltime(event, _calendar_event.end_time, et);</pre>
+
+/* Set end time */
+calendar_record_set_caltime(event, _calendar_event.end_time, et);
+</pre>
 
 <h3 id="date" name="date">Date Usage</h3>
 <p>Another usage of the time structure is an all day event. In case of such events, the structure type field must be set to <span style="font-family: Courier New,Courier,monospace">CALENDAR_TIME_LOCALTIME</span>. Only the date (no time) is stored. Such structures can be used to set the start and end time of an event.</p>
@@ -649,26 +674,29 @@ calendar_record_set_caltime(event, _calendar_event.end_time, et);</pre>
   <p class="figure">Figure: Properties</p> 
   <p align="center"><img alt="Properties" src="../../images/calendar_property.png" /></p>  
 
-<pre class="prettyprint">// Create an event with _calendar_event view
+<pre class="prettyprint">
+/* Create an event with _calendar_event view */
 calendar_record_h event = NULL;
 calendar_record_create(_calendar_event._uri, &amp;event);
- 
-// Set event summary to _calendar_event view
+
+/* Set event summary to _calendar_event view */
 calendar_record_set_str(event, _calendar_event.summary, &quot;Meeting&quot;);
 </pre>
 
 <h3 id="version" name="version">Version</h3>
 <p>The calendar service uses a version system in the following APIs:</p>
-<pre class="prettyprint">int calendar_db_get_current_version(int *calendar_db_version);
+<pre class="prettyprint">
+int calendar_db_get_current_version(int *calendar_db_version);
 int calendar_db_get_changes_by_version(..., int *current_calendar_db_version);
 int calendar_db_get_last_change_version(int *last_change_version);
-int calendar_db_get_changes_exception_by_version(..., int calendar_db_version, ...);</pre>
+int calendar_db_get_changes_exception_by_version(..., int calendar_db_version, ...);
+</pre>
 
 <p>Whenever modifications are made in the database, the version number is increased. If sync applications, such as Google or Facebook, sync at version 13 and try to sync again every 1 minute, they want to get the changes from version 14 to the current version.</p>
 <p>To get the current version, the <span style="font-family: Courier New,Courier,monospace">calendar_db_get_current_version()</span> function is used. The <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_by_version()</span> function retrieves the modified record list. The <span style="font-family: Courier New,Courier,monospace">calendar_db_get_changes_exception_by_version()</span> function is used to get <a href="#exception_rule">modified instances in a recurring event</a>.</p>
 
 <h2 id="vcal" name="vcal">vCalendar</h2>
-<p>Use vCalendar to exchange personal calendar and schedule information. In order to avoid confusion with this referenced work, this is to be known as the vCalendar specification. vCalendar ver2.0 is known as iCalendar. The following snippet shows an example of the vCalendar.</p>
+<p>Use the vCalendar to exchange personal calendar and schedule information. In order to avoid confusion with this referenced work, this is to be known as the vCalendar specification. vCalendar ver2.0 is known as iCalendar. The following snippet shows an example of the vCalendar.</p>
 <pre class="prettyprint">
 BEGIN:VCALENDAR
 VERSION:2.0
@@ -681,28 +709,28 @@ END:VEVENT
 END:VCALENDAR
 </pre>
 
-<p>The calendar service provides APIs to compose a vCalendar stream. With the stream, it is possible to create files transmit data with JSON data.</p>
+<p>The calendar service provides APIs to <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#make">compose a vCalendar stream</a>. With the stream, it is possible to create files transmit data with JSON data.</p>
 <pre class="prettyprint">
 calendar_list_h list = NULL;
-// Create or get list to make vcalendar stream
+/* Create or get list to make a vcalendar stream */
 
 char *stream = NULL;
 calendar_vcalendar_make_from_records(list, &amp;stream);
 
-// Jobs for stream
+/* Jobs for stream */
 
-// Free
+/* Free */
 free(stream);
 </pre>
 
-<p>vCalendar can be parsed with calendar service APIs as well.</p>
+<p>You can <a href="../../../../org.tizen.tutorials/html/native/social/calendar_tutorial_n.htm#parse">parse the vCalendar</a> with calendar APIs as well.</p>
 <pre class="prettyprint">
-// Read stream from file
+/* Read stream from file */
 
 calendar_list_h list = NULL;
 calendar_vcalendar_parse_to_calendar(stream, &amp;list);
 
-// Jobs for list
+/* Jobs for list */
 calendar_list_destroy(list, true);
 </pre>
   

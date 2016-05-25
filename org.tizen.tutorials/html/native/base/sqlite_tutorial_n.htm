@@ -23,7 +23,7 @@
     <div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#init">Initializing the Database</a></li>
+			<li><a href="#prepare">Preparing the Database</a></li>
 			<li><a href="#store">Storing Encrypted Data</a></li>
 		</ul>
 		<p class="toc-title">Related Info</p>
@@ -44,13 +44,14 @@
 <h2>Warm-up</h2> 
 <p>Become familiar with the basics of the Sqlite API by learning about:</p> 
 	<ul>
-		<li><a href="#init">Initializing the Database</a>
-		<p>Initialize the database for use.</p></li>
+		<li><a href="#prepare">Preparing the Database</a>
+		<p>Initialize and configure the database for use.</p></li>
 		<li><a href="#store">Storing Encrypted Data</a>
 		<p>Store AES-encrypted data in the SQL database.</p></li>
 	</ul>
 
- <h2 id="init" name="init">Initializing the Database</h2>
+<h2 id="prepare">Preparing the Database</h2>
+
 <p>This tutorial is only a draft of encryption and database usage. For more information, see <a href="http://www.openssl.org" target="_blank">OpenSSL</a> and <a href="http://www.sqlite.org" target="_blank">SQLite</a> Web pages.</p>
 
   <table class="note"> 
@@ -63,19 +64,19 @@
     </tr> 
    </tbody> 
   </table> 
-<p>To initialize external open source libraries:</p>
+<p>To prepare the database:</p>
 
 <ol><li>Define the needed variables:
 <pre class="prettyprint">
-#define BUFLEN 300 // Buffer size, used in functions
-const int key_len = 256; // AES key length
+#define BUFLEN 300 /* Buffer size, used in functions */
+const int key_len = 256; /* AES key length */
 
-static const unsigned char password[] = {&quot;DummyPassword&quot;}; // Password to generate key
-	
-sqlite3 *db; // Database handle
+static const unsigned char password[] = {&quot;DummyPassword&quot;}; /* Password to generate key */
 
-unsigned char salt[9]; // Encryption salt
-unsigned char iv[17]; // Encryption initial vector
+sqlite3 *db; /* Database handle */
+
+unsigned char salt[9]; /* Encryption salt */
+unsigned char iv[17]; /* Encryption initial vector */
 </pre>
 </li>
 <li><p>To operate on a SQL database provided by SQLite:</p>
@@ -96,8 +97,8 @@ sqlite3_initialize();
 <pre class="prettyprint">
 char file_path[BUFLEN];
 char *document_path;
-// Fill the variable with the value obtained using storage_foreach_device_supported()
-int internal_storage_id = 0; 
+/* Fill the variable with the value obtained using storage_foreach_device_supported() */
+int internal_storage_id = 0;
 storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_DOCUMENTS, &amp;document_path);
 snprintf(file_path, size, &quot;%s/test.db&quot;, document_path);
 free(document_path);
@@ -114,22 +115,22 @@ CreateTable();
 <p>The <span style="font-family: Courier New,Courier,monospace">CreateTable()</span> function prepares a SQL query, and uses the <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function to execute the query in the defined database.</p>
 <p>The <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function passes a return message to a callback function as an array of strings. It creates a database only if one does not exist already. In the following example, the created database name is <span style="font-family: Courier New,Courier,monospace">EncryptedData</span>, and it contains the DATA, ENCRYPTED, SALT, IV, PART, and KEY fields.</p>
 <pre class="prettyprint">
-static int 
+static int
 CreateTable()
 {
-&nbsp;&nbsp;&nbsp;int ret;
-&nbsp;&nbsp;&nbsp;char *ErrMsg;
-&nbsp;&nbsp;&nbsp;char *sql = &quot;CREATE TABLE IF NOT EXISTS EncryptedData(&quot;  \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;DATA TEXT NOT NULL,&quot; \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;ENCRYPTED INT NOT NULL,&quot;\
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;SALT TEXT NOT NULL,&quot; \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;IV TEXT NOT NULL,&quot; \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;PART INTEGER,&quot; \
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;KEY INTEGER PRIMARY KEY);&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;char *ErrMsg;
+&nbsp;&nbsp;&nbsp;&nbsp;char *sql = &quot;CREATE TABLE IF NOT EXISTS EncryptedData(&quot;  \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;DATA TEXT NOT NULL,&quot; \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;ENCRYPTED INT NOT NULL,&quot;\
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;SALT TEXT NOT NULL,&quot; \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;IV TEXT NOT NULL,&quot; \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;PART INTEGER,&quot; \
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;KEY INTEGER PRIMARY KEY);&quot;;
 
-&nbsp;&nbsp;&nbsp;sqlite3_exec(db, sql, callback, 0, &amp;ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_exec(db, sql, callback, 0, &amp;ErrMsg);
 
-&nbsp;&nbsp;&nbsp;return 0;
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
 </li>
@@ -153,16 +154,17 @@ PrepareToSQL(iv);
 </pre>
 <p>In the following example, only the string delimiting characters are removed. In a real implementation, you must replace other characters too, such as the comment sequence.</p>
 <pre class="prettyprint">
-void 
+void
 PrepareToSQL(unsigned char* msg)
 {
-&nbsp;&nbsp;&nbsp;int i = 0;
-&nbsp;&nbsp;&nbsp;while (msg[i] != 0x00)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i] == &#39;\&#39;&#39;)msg[i] = &#39;a&#39;;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i] == &#39;\&quot;&#39;)msg[i] = &#39;b&#39;;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++i;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;int i = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;while (msg[i] != 0x00) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i] == &#39;\&#39;&#39;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;msg[i] = &#39;a&#39;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (msg[i] == &#39;\&quot;&#39;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;msg[i] = &#39;b&#39;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;++i;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre></li>
 <li>
@@ -204,49 +206,48 @@ InsertRecord(decrypted_out, 1, 0, strlen(ShortMsg));
 <li>Generate a string for key generation from a password and salt using <span style="font-family: Courier New,Courier,monospace">PKCS5_PBKDF2_HMAC_SHA1()</span>. 
 <p>An initial vector can be used in different hash functions. In this example, only the first byte of the initial vector is used as an iteration variable for a hash algorithm.</p></li>
 <li>Generate the encryption key using the <span style="font-family: Courier New,Courier,monospace">AES_set_encrypt_key()</span> function. 
-<p>The second parameter defines the AES key length. Check the actual recommended length and encoding type before use. This example uses AES 256 (defined in <a href="#init">Initializing the Database</a>).</p></li>
+<p>The second parameter defines the AES key length. Check the actual recommended length and encoding type before use. This example uses AES 256 (defined in <a href="#prepare">Preparing the Database</a>).</p></li>
 <li>Encrypt the data with the <span style="font-family: Courier New,Courier,monospace">AES_encrypt()</span> function.</li>
 <li>Encode Base64 with the <span style="font-family: Courier New,Courier,monospace">base64_encode()</span> function. 
 <p>The data is encoded to make it safe to insert it to the database. Base 64 does not contain any special characters. For the encoding and decoding function details, see <a href="#base64">Base64 functions</a>.</p></li>
 <li>Add a delimiting 0x00 character at the end of the byte array.</li>
 </ol>
 <pre class="prettyprint">
-static int 
+static int
 EncryptMsg(char* in, unsigned char* out, const unsigned char* password, unsigned char *localsalt, unsigned char *vector)
 {
-&nbsp;&nbsp;&nbsp;AES_KEY encryption_key;
-&nbsp;&nbsp;&nbsp;int iter = (int)vector[0];
-&nbsp;&nbsp;&nbsp;unsigned char key[key_len + 1];
-&nbsp;&nbsp;&nbsp;char *msgbuff;
-&nbsp;&nbsp;&nbsp;unsigned char buf[BUFLEN];
-&nbsp;&nbsp;&nbsp;unsigned int retlen;
-&nbsp;&nbsp;&nbsp;int x;
+&nbsp;&nbsp;&nbsp;&nbsp;AES_KEY encryption_key;
+&nbsp;&nbsp;&nbsp;&nbsp;int iter = (int)vector[0];
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned char key[key_len + 1];
+&nbsp;&nbsp;&nbsp;&nbsp;char *msgbuff;
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned char buf[BUFLEN];
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned int retlen;
+&nbsp;&nbsp;&nbsp;&nbsp;int x;
 
-&nbsp;&nbsp;&nbsp;memset(buf, 0x00, BUFLEN);
+&nbsp;&nbsp;&nbsp;&nbsp;memset(buf, 0x00, BUFLEN);
 
-&nbsp;&nbsp;&nbsp;PKCS5_PBKDF2_HMAC_SHA1((char *)password,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(password)/sizeof(unsigned char),
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localsalt,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(localsalt)/sizeof(unsigned char),
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iter,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key_len,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key);
+&nbsp;&nbsp;&nbsp;&nbsp;PKCS5_PBKDF2_HMAC_SHA1((char *)password,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(password)/sizeof(unsigned char),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localsalt,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(localsalt)/sizeof(unsigned char),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iter,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key_len,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key);
 
+&nbsp;&nbsp;&nbsp;&nbsp;AES_set_encrypt_key(key, key_len, &amp;encryption_key);
+&nbsp;&nbsp;&nbsp;&nbsp;AES_encrypt((unsigned char *)in, (unsigned char *)buf, &amp;encryption_key);
 
-&nbsp;&nbsp;&nbsp;AES_set_encrypt_key(key, key_len, &amp;encryption_key);
-&nbsp;&nbsp;&nbsp;AES_encrypt((unsigned char *)in, (unsigned char *)buf, &amp;encryption_key);
+&nbsp;&nbsp;&nbsp;&nbsp;msgbuff = base64_encode(buf, 16, &amp;retlen);
 
-&nbsp;&nbsp;&nbsp;msgbuff = base64_encode(buf, 16, &amp;retlen);
+&nbsp;&nbsp;&nbsp;&nbsp;memcpy(buf, msgbuff, retlen);
+&nbsp;&nbsp;&nbsp;&nbsp;buf[retlen + 1] = 0x00;
+&nbsp;&nbsp;&nbsp;&nbsp;free(msgbuff);
 
-&nbsp;&nbsp;&nbsp;memcpy(buf, msgbuff, retlen);
-&nbsp;&nbsp;&nbsp;buf[retlen + 1] = 0x00;
-&nbsp;&nbsp;&nbsp;free(msgbuff);
-   
-&nbsp;&nbsp;&nbsp;memcpy(out, buf, retlen + 1);
+&nbsp;&nbsp;&nbsp;&nbsp;memcpy(out, buf, retlen + 1);
 
-&nbsp;&nbsp;&nbsp;for (x = 0; buf[x] != 0x00; x++);
+&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; buf[x] != 0x00; x++);
 
-&nbsp;&nbsp;&nbsp;return x;
+&nbsp;&nbsp;&nbsp;&nbsp;return x;
 }
 </pre>
 </li>
@@ -254,66 +255,66 @@ EncryptMsg(char* in, unsigned char* out, const unsigned char* password, unsigned
 <li>Execute the database insertion with the <span style="font-family: Courier New,Courier,monospace">InsertRecord()</span> function.
 <p>To insert data to the database, use the <span style="font-family: Courier New,Courier,monospace">sqlite3_exec()</span> function. A query is prepared with common C functions. The encrypted variable is stored in the database and indicates whether the DATA field in the database is encrypted.</p>
 <pre class="prettyprint">
-static int 
+static int
 InsertRecord(unsigned char *msg, int encrypted,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int part, int len)
 {
-&nbsp;&nbsp;&nbsp;char sqlbuff[BUFLEN];
-&nbsp;&nbsp;&nbsp;char *ErrMsg; 
-&nbsp;&nbsp;&nbsp;snprintf(sqlbuff, BUFLEN, &quot;INSERT INTO EncryptedData
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VALUES(\&#39;%s\&#39;, %d, \&#39;%s\&#39;, \&#39;%s\&#39;, %d, NULL);&quot;,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;msg, encrypted, salt, iv, part);
+&nbsp;&nbsp;&nbsp;&nbsp;char sqlbuff[BUFLEN];
+&nbsp;&nbsp;&nbsp;&nbsp;char *ErrMsg;
+&nbsp;&nbsp;&nbsp;&nbsp;snprintf(sqlbuff, BUFLEN, &quot;INSERT INTO EncryptedData
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;VALUES(\&#39;%s\&#39;, %d, \&#39;%s\&#39;, \&#39;%s\&#39;, %d, NULL);&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;msg, encrypted, salt, iv, part);
 
-&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sqlbuff, callback, 0, &amp;ErrMsg);
-&nbsp;&nbsp;&nbsp;if (ret)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Error: %s\n&quot;, ErrMsg);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_free(ErrMsg);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sqlbuff, callback, 0, &amp;ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Error: %s\n&quot;, ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_free(ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return 0;
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
-	</li>
+</li>
 </ol>
 
 <p>To store longer messages (more than 16 characters), split them into shorter parts. In the following example, the message is divided into blocks 16 characters long. Each block is tagged by its own number with a <span style="font-family: Courier New,Courier,monospace">parts</span> variable, and the tag is stored in the database in the <span style="font-family: Courier New,Courier,monospace">PART</span> field. Each block is then stored in its own record to simplify the decoding procedure.</p>
 <pre class="prettyprint">
-ret = InsertMessage((unsigned char *)text);	
+ret = InsertMessage((unsigned char *)text);
 
-static int 
+static int
 InsertMessage(unsigned char* text)
 {
-&nbsp;&nbsp;&nbsp;unsigned char encrypted_out[BUFLEN];
-&nbsp;&nbsp;&nbsp;int ret = 0;
-&nbsp;&nbsp;&nbsp;int x;
-&nbsp;&nbsp;&nbsp;int len, retlen, parts = 0, pos;
-&nbsp;&nbsp;&nbsp;char membuf[17];
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned char encrypted_out[BUFLEN];
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int x;
+&nbsp;&nbsp;&nbsp;&nbsp;int len;
+&nbsp;&nbsp;&nbsp;&nbsp;int retlen;
+&nbsp;&nbsp;&nbsp;&nbsp;int parts = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int pos;
+&nbsp;&nbsp;&nbsp;&nbsp;char membuf[17];
 
-&nbsp;&nbsp;&nbsp;for (len = 0; text[len] != 0x00; len++);
+&nbsp;&nbsp;&nbsp;&nbsp;for (len = 0; text[len] != 0x00; len++);
 
-&nbsp;&nbsp;&nbsp;for (pos = 0; (len - pos) &gt; 16; pos += 16)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(membuf, &amp;text[pos], 16);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;membuf[16] = 0x00;
+&nbsp;&nbsp;&nbsp;&nbsp;for (pos = 0; (len - pos) &gt; 16; pos += 16) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(membuf, &amp;text[pos], 16);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;membuf[16] = 0x00;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EncryptMsg((char *)membuf, encrypted_out, password, salt, iv);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;EncryptMsg((char *)membuf, encrypted_out, password, salt, iv);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; encrypted_out[x] != 0x00; x++);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; encrypted_out[x] != 0x00; x++);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InsertRecord(encrypted_out, 1, parts, x);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InsertRecord(encrypted_out, 1, parts, x);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts++;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts++;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;if (len - pos &gt; 0)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;retlen = EncryptMsg((char *)&amp;text[pos],
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encrypted_out, password, salt, iv);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InsertRecord(encrypted_out, 1, parts, retlen);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (len - pos &gt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;retlen = EncryptMsg((char *)&amp;text[pos],
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encrypted_out, password, salt, iv);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;InsertRecord(encrypted_out, 1, parts, retlen);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return 0;
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
 	</li>
@@ -321,8 +322,8 @@ InsertMessage(unsigned char* text)
 	<li>List the database content.
 	<p>After the previous step, the database contains AES-encrypted content, stored in a Base64 notation. For example:</p>
 <pre class="prettyprint">
-0: DATA = xPRnJYwvQTc4VJKkW4EroQ==  
-1: DATA = EZI+uOGxcnUseJnbH57/Bg== 
+0: DATA = xPRnJYwvQTc4VJKkW4EroQ==
+1: DATA = EZI+uOGxcnUseJnbH57/Bg==
 </pre>
 <p>To list the records in the database, use the <span style="font-family: Courier New,Courier,monospace">ShowRecords()</span> function:</p>
 <ul>
@@ -335,33 +336,34 @@ InsertMessage(unsigned char* text)
 </li>
 </ul>
 <pre class="prettyprint">
-static void 
+static void
 ShowRecords()
 {
-&nbsp;&nbsp;&nbsp;char *sql = &quot;select * from EncryptedData&quot;;
-&nbsp;&nbsp;&nbsp;int counter = 0, ret = 0;
-&nbsp;&nbsp;&nbsp;char *ErrMsg;
+&nbsp;&nbsp;&nbsp;&nbsp;char *sql = &quot;select * from EncryptedData&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;int counter = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;char *ErrMsg;
 
-&nbsp;&nbsp;&nbsp;sqlite3_exec(db, sql, callback, &amp;counter, &amp;ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_exec(db, sql, callback, &amp;counter, &amp;ErrMsg);
 
-&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;return;
 }
 
-static int 
+static int
 callback(void *counter, int argc, char **argv, char **azColName)
 {
-&nbsp;&nbsp;&nbsp;int *localcounter = (int *)counter;
-&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;&nbsp;int *localcounter = (int *)counter;
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;-%d: &quot;, *localcounter);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;-%d: &quot;, *localcounter);
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; argc; i++) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s = %s | &quot;, azColName[i], argv[i] ? argv[i] : &quot;NULL&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; argc; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s = %s | &quot;, azColName[i], argv[i] ? argv[i] : &quot;NULL&quot;);
 
-&nbsp;&nbsp;&nbsp;(*localcounter)++;
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;(*localcounter)++;
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;\n&quot;);
 
-&nbsp;&nbsp;&nbsp;return 0;
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
 </li>
@@ -376,92 +378,87 @@ callback(void *counter, int argc, char **argv, char **azColName)
 <p>To decrypt the message, decode the data from Base 64, add a delimiting character, perform the actual decryption with the <span style="font-family: Courier New,Courier,monospace">DecryptMsg()</span> function, and list the decrypted data.</p></li>
 </ul>
 <pre class="prettyprint">
-static void 
+static void
 DecryptRecords()
 {
-&nbsp;&nbsp;&nbsp;char *sql = &quot;select * from EncryptedData where ENCRYPTED=&#39;1&#39;&quot;;
-&nbsp;&nbsp;&nbsp;int counter = 0;
-&nbsp;&nbsp;&nbsp;int ret = 0;
-&nbsp;&nbsp;&nbsp;char *ErrMsg;
+&nbsp;&nbsp;&nbsp;&nbsp;char *sql = &quot;select * from EncryptedData where ENCRYPTED=&#39;1&#39;&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;int counter = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;char *ErrMsg;
 
-&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sql, callbackdecrypt, &amp;counter, &amp;ErrMsg);
-&nbsp;&nbsp;&nbsp;if (ret)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Error: %s\n&quot;, ErrMsg);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_free(ErrMsg);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sql, callbackdecrypt, &amp;counter, &amp;ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Error: %s\n&quot;, ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_free(ErrMsg);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-static int 
+static int
 callbackdecrypt(void *counter, int argc, char **argv, char **azColName)
 {
-&nbsp;&nbsp;&nbsp;unsigned char decrypted_out[BUFLEN];
-&nbsp;&nbsp;&nbsp;int *localcounter = (int *)counter;
-&nbsp;&nbsp;&nbsp;int i;
-&nbsp;&nbsp;&nbsp;unsigned int olen;
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned char decrypted_out[BUFLEN];
+&nbsp;&nbsp;&nbsp;&nbsp;int *localcounter = (int *)counter;
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned int olen;
 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;-%d: &quot;, *localcounter);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;-%d: &quot;, *localcounter);
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; argc; i++)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (argv[i] &amp;&amp; i == 0)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *basebuffer = base64_decode(argv[i], strlen(argv[i]), &amp;olen);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *decryptbuffer = malloc(sizeof(char)* olen + 1);
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; argc; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (argv[i] &amp;&amp; i == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *basebuffer = base64_decode(argv[i], strlen(argv[i]), &amp;olen);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *decryptbuffer = malloc(sizeof(char)* olen + 1);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memset(decryptbuffer, 0x00, olen + 1);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(decryptbuffer, basebuffer, olen);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decryptbuffer[olen] = 0x00;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(basebuffer);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memset(decryptbuffer, 0x00, olen + 1);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(decryptbuffer, basebuffer, olen);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decryptbuffer[olen] = 0x00;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(basebuffer);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DecryptMsg((unsigned char *)decryptbuffer, decrypted_out,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;password, (unsigned char *)argv[2], (unsigned char *)argv[3]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DecryptMsg((unsigned char *)decryptbuffer, decrypted_out,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;password, (unsigned char *)argv[2], (unsigned char *)argv[3]);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(decryptbuffer);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(decryptbuffer);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s = %s  |  &quot;, azColName[i], 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(char*)decrypted_out);
-       
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s = %s | &quot;, azColName[i], argv[i] ? argv[i] : &quot;NULL&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s = %s | &quot;, azColName[i],
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(char*)decrypted_out);
 
-&nbsp;&nbsp;&nbsp;(*localcounter)++;
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;%s = %s | &quot;, azColName[i], argv[i] ? argv[i] : &quot;NULL&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return 0;
+&nbsp;&nbsp;&nbsp;&nbsp;(*localcounter)++;
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;\n&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
 <p>The actual decryption routine is similar to encryption:</p>
 <pre class="prettyprint">
-static int 
-DecryptMsg(unsigned char* in, unsigned char* out, const unsigned char* password, 
+static int
+DecryptMsg(unsigned char* in, unsigned char* out, const unsigned char* password,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;unsigned char* localsalt, unsigned char* vector)
 {
-&nbsp;&nbsp;&nbsp;AES_KEY decryption_key;
-&nbsp;&nbsp;&nbsp;int iter = (int)vector[0];
-&nbsp;&nbsp;&nbsp;unsigned char key[key_len + 1];
-&nbsp;&nbsp;&nbsp;int x;
+&nbsp;&nbsp;&nbsp;&nbsp;AES_KEY decryption_key;
+&nbsp;&nbsp;&nbsp;&nbsp;int iter = (int)vector[0];
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned char key[key_len + 1];
+&nbsp;&nbsp;&nbsp;&nbsp;int x;
 
-&nbsp;&nbsp;&nbsp;memset(out, 0x00, BUFLEN);
+&nbsp;&nbsp;&nbsp;&nbsp;memset(out, 0x00, BUFLEN);
 
-&nbsp;&nbsp;&nbsp;PKCS5_PBKDF2_HMAC_SHA1((char *)password,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(password)/sizeof(unsigned char),
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localsalt,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(localsalt)/sizeof(unsigned char),
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iter,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key_len,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key);
+&nbsp;&nbsp;&nbsp;&nbsp;PKCS5_PBKDF2_HMAC_SHA1((char *)password,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(password)/sizeof(unsigned char),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localsalt,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sizeof(localsalt)/sizeof(unsigned char),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iter,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key_len,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;key);
 
-&nbsp;&nbsp;&nbsp;AES_set_decrypt_key(key, key_len, &amp;decryption_key);
-&nbsp;&nbsp;&nbsp;AES_decrypt((unsigned char *)in, out, &amp;decryption_key);
+&nbsp;&nbsp;&nbsp;&nbsp;AES_set_decrypt_key(key, key_len, &amp;decryption_key);
+&nbsp;&nbsp;&nbsp;&nbsp;AES_decrypt((unsigned char *)in, out, &amp;decryption_key);
 
-&nbsp;&nbsp;&nbsp;for (x = 0; out[x] != 0x00; x++);
+&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; out[x] != 0x00; x++);
 
-&nbsp;&nbsp;&nbsp;return x;
+&nbsp;&nbsp;&nbsp;&nbsp;return x;
 }
 </pre>
 </li>
@@ -478,7 +475,7 @@ sqlite3_shutdown();
 <ul>
 <li>Base64 functions:
 <pre class="prettyprint">
-static char 
+static char
 encoding_table[] = {&#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;E&#39;, &#39;F&#39;, &#39;G&#39;, &#39;H&#39;,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;I&#39;, &#39;J&#39;, &#39;K&#39;, &#39;L&#39;, &#39;M&#39;, &#39;N&#39;, &#39;O&#39;, &#39;P&#39;,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;Q&#39;, &#39;R&#39;, &#39;S&#39;, &#39;T&#39;, &#39;U&#39;, &#39;V&#39;, &#39;W&#39;, &#39;X&#39;,
@@ -490,140 +487,147 @@ encoding_table[] = {&#39;A&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;E&#
 static char *decoding_table = NULL;
 static int mod_table[] = {0, 2, 1};
 
-void 
+void
 build_decoding_table()
 {
-&nbsp;&nbsp;&nbsp;decoding_table = malloc(256);
-&nbsp;&nbsp;&nbsp;int i;
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 64; i++) decoding_table[(unsigned char) encoding_table[i]] = i;
+&nbsp;&nbsp;&nbsp;&nbsp;decoding_table = malloc(256);
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; 64; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decoding_table[(unsigned char)encoding_table[i]] = i;
 }
 
-char 
+char
 *base64_encode(const unsigned char *data, size_t input_length, size_t *output_length)
 {
-&nbsp;&nbsp;&nbsp;*output_length = 4 * ((input_length + 2) / 3);
+&nbsp;&nbsp;&nbsp;&nbsp;*output_length = 4 * ((input_length + 2) / 3);
 
-&nbsp;&nbsp;&nbsp;char *encoded_data = malloc(*output_length);
-&nbsp;&nbsp;&nbsp;if (encoded_data == NULL) return NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *encoded_data = malloc(*output_length);
+&nbsp;&nbsp;&nbsp;&nbsp;if (encoded_data == NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
 
-&nbsp;&nbsp;&nbsp;int i, j;
-&nbsp;&nbsp;&nbsp;for (i = 0, j = 0; i &lt; input_length;)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t octet_a = i &lt; input_length ? (unsigned char)data[i++] : 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t octet_b = i &lt; input_length ? (unsigned char)data[i++] : 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t octet_c = i &lt; input_length ? (unsigned char)data[i++] : 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t triple = (octet_a &lt;&lt; 0x10) + (octet_b &lt;&lt; 0x08) + octet_c;
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;&nbsp;int j;
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0, j = 0; i &lt; input_length;) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t octet_a = i &lt; input_length ? (unsigned char)data[i++] : 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t octet_b = i &lt; input_length ? (unsigned char)data[i++] : 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t octet_c = i &lt; input_length ? (unsigned char)data[i++] : 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t triple = (octet_a &lt;&lt; 0x10) + (octet_b &lt;&lt; 0x08) + octet_c;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 3 * 6) &amp; 0x3F];
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 2 * 6) &amp; 0x3F];
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 1 * 6) &amp; 0x3F];
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 0 * 6) &amp; 0x3F];
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 3 * 6) &amp; 0x3F];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 2 * 6) &amp; 0x3F];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 1 * 6) &amp; 0x3F];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[j++] = encoding_table[(triple &gt;&gt; 0 * 6) &amp; 0x3F];
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; mod_table[input_length % 3]; i++)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[*output_length - 1 - i] = &#39;=&#39;;
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; mod_table[input_length % 3]; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;encoded_data[*output_length - 1 - i] = &#39;=&#39;;
 
-&nbsp;&nbsp;&nbsp;return encoded_data;
+&nbsp;&nbsp;&nbsp;&nbsp;return encoded_data;
 }
 
-unsigned char 
+unsigned char
 *base64_decode(const char *data, size_t input_length, size_t *output_length)
 {
-&nbsp;&nbsp;&nbsp;if (decoding_table == NULL) build_decoding_table();
+&nbsp;&nbsp;&nbsp;&nbsp;if (decoding_table == NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;build_decoding_table();
 
-&nbsp;&nbsp;&nbsp;if (input_length % 4 != 0) return NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;if (input_length % 4 != 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
 
-&nbsp;&nbsp;&nbsp;*output_length = input_length / 4 * 3;
-&nbsp;&nbsp;&nbsp;if (data[input_length - 1] == &#39;=&#39;) (*output_length)--;
-&nbsp;&nbsp;&nbsp;if (data[input_length - 2] == &#39;=&#39;) (*output_length)--;
+&nbsp;&nbsp;&nbsp;&nbsp;*output_length = input_length / 4 * 3;
+&nbsp;&nbsp;&nbsp;&nbsp;if (data[input_length - 1] == &#39;=&#39;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*output_length)--;
+&nbsp;&nbsp;&nbsp;&nbsp;if (data[input_length - 2] == &#39;=&#39;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(*output_length)--;
 
-&nbsp;&nbsp;&nbsp;unsigned char *decoded_data = malloc(*output_length);
-&nbsp;&nbsp;&nbsp;if (decoded_data == NULL) return NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned char *decoded_data = malloc(*output_length);
+&nbsp;&nbsp;&nbsp;&nbsp;if (decoded_data == NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
 
-&nbsp;&nbsp;&nbsp;int i, j;
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;&nbsp;int j;
 
-&nbsp;&nbsp;&nbsp;for (i = 0, j = 0; i &lt; input_length;)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_a = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_b = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_c = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_d = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0, j = 0; i &lt; input_length;) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_a = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_b = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_c = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t sextet_d = data[i] == &#39;=&#39; ? 0 &amp; i++ : decoding_table[(int)data[i++]];
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t triple = (sextet_a &lt;&lt; 3 * 6) + (sextet_b &lt;&lt; 2 * 6)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (sextet_c &lt;&lt; 1 * 6) + (sextet_d &lt;&lt; 0 * 6);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uint32_t triple = (sextet_a &lt;&lt; 3 * 6) + (sextet_b &lt;&lt; 2 * 6)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (sextet_c &lt;&lt; 1 * 6) + (sextet_d &lt;&lt; 0 * 6);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (j &lt; *output_length) decoded_data[j++] = (triple &gt;&gt; 2 * 8) &amp; 0xFF;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (j &lt; *output_length) decoded_data[j++] = (triple &gt;&gt; 1 * 8) &amp; 0xFF;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (j &lt; *output_length) decoded_data[j++] = (triple &gt;&gt; 0 * 8) &amp; 0xFF;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (j &lt; *output_length)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decoded_data[j++] = (triple &gt;&gt; 2 * 8) &amp; 0xFF;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (j &lt; *output_length)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decoded_data[j++] = (triple &gt;&gt; 1 * 8) &amp; 0xFF;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (j &lt; *output_length)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;decoded_data[j++] = (triple &gt;&gt; 0 * 8) &amp; 0xFF;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return decoded_data;
+&nbsp;&nbsp;&nbsp;&nbsp;return decoded_data;
 }
 
-void 
-base64_cleanup() 
+void
+base64_cleanup()
 {
-&nbsp;&nbsp;&nbsp;free(decoding_table);
-&nbsp;&nbsp;&nbsp;decoding_table = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;free(decoding_table);
+&nbsp;&nbsp;&nbsp;&nbsp;decoding_table = NULL;
 }
 </pre>
 </li>
 <li>Main function:
 
 <pre class="prettyprint">
-int 
+int
 OpenSQL_AES_example_1(void)
 {
-&nbsp;&nbsp;&nbsp;unsigned char decrypted_out[BUFLEN];
-&nbsp;&nbsp;&nbsp;int ret;
-&nbsp;&nbsp;&nbsp;char *hellomsg = {&quot;Hello Tizen! SQLite OpenSSL&quot;};
-&nbsp;&nbsp;&nbsp;char text[BUFLEN];
-&nbsp;&nbsp;&nbsp;time_t rawtime;
-&nbsp;&nbsp;&nbsp;struct tm *timeinfo;
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned char decrypted_out[BUFLEN];
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;char *hellomsg = {&quot;Hello Tizen! SQLite OpenSSL&quot;};
+&nbsp;&nbsp;&nbsp;&nbsp;char text[BUFLEN];
+&nbsp;&nbsp;&nbsp;&nbsp;time_t rawtime;
+&nbsp;&nbsp;&nbsp;&nbsp;struct tm *timeinfo;
 
-&nbsp;&nbsp;&nbsp;if (init_err)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Initial error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;if (init_err) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Initial error\n&quot;);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;time(&amp;rawtime);
-&nbsp;&nbsp;&nbsp;timeinfo = localtime(&amp;rawtime);
-&nbsp;&nbsp;&nbsp;sprintf(text, &quot;%s %s&quot;, hellomsg, asctime(timeinfo));
+&nbsp;&nbsp;&nbsp;&nbsp;time(&amp;rawtime);
+&nbsp;&nbsp;&nbsp;&nbsp;timeinfo = localtime(&amp;rawtime);
+&nbsp;&nbsp;&nbsp;&nbsp;sprintf(text, &quot;%s %s&quot;, hellomsg, asctime(timeinfo));
 
-&nbsp;&nbsp;&nbsp;// Insert long message
-&nbsp;&nbsp;&nbsp;ret = InsertMessage((unsigned char *)text);
-&nbsp;&nbsp;&nbsp;if (ret)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Insert ENCRYPTED MessageError\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Insert long message */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = InsertMessage((unsigned char *)text);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Insert ENCRYPTED MessageError\n&quot;);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;// Insert message up to 16 characters
-&nbsp;&nbsp;&nbsp;char *ShortMsg = &quot;Short Msg.&quot;;
-&nbsp;&nbsp;&nbsp;EncryptMsg(ShortMsg, decrypted_out, password, salt, iv);
-&nbsp;&nbsp;&nbsp;ret = InsertRecord(decrypted_out, 1, 0, strlen(ShortMsg));
-&nbsp;&nbsp;&nbsp;if (ret)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Insert ENCRYPTED MessageError\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Insert message up to 16 characters */
+&nbsp;&nbsp;&nbsp;&nbsp;char *ShortMsg = &quot;Short Msg.&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;EncryptMsg(ShortMsg, decrypted_out, password, salt, iv);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = InsertRecord(decrypted_out, 1, 0, strlen(ShortMsg));
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Insert ENCRYPTED MessageError\n&quot;);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;// Show raw database
-&nbsp;&nbsp;&nbsp;ShowRecords();
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show raw database */
+&nbsp;&nbsp;&nbsp;&nbsp;ShowRecords();
 
-&nbsp;&nbsp;&nbsp;// Show decrypted database
-&nbsp;&nbsp;&nbsp;DecryptRecords();
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show decrypted database */
+&nbsp;&nbsp;&nbsp;&nbsp;DecryptRecords();
 
-&nbsp;&nbsp;&nbsp;return 0;
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
 }
 </pre>
 </li>
 </ul>
-	
+
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
 

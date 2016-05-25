@@ -23,7 +23,7 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#init">Initializing Data Controls</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
 			<li><a href="#map1">Working with Map-type Data Controls</a></li>
 			<li><a href="#map2">Working with SQL-type Data Controls</a></li>
 		</ul>
@@ -47,8 +47,8 @@
   <h2 id="warmup" name="warmup">Warm-up</h2> 
   <p>Become familiar with the Data Control API basics by learning about:</p> 
   <ul>
-   <li><a href="#init">Initializing Data Controls</a>
-   <p>Initialize data controls for use.</p></li>
+   <li><a href="#prerequisites">Prerequisites</a>
+	<p>Prepare your application to use the data control functionality.</p></li>
    <li><a href="#map1">Working with Map-type Data Controls</a>
     <p>Work with map-type data controls.</p>
    </li>
@@ -56,11 +56,25 @@
     <p>Work with SQL-type data controls.</p></li>
   </ul> 
 
- <h2 id="init" name="init">Initializing Data Controls</h2>
-<p>To initialize data controls:</p>
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the data control functionality:</p>
 <ol>
 <li>
-<p>To use the functions and data types of the Data Control API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__DATA__CONTROL__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__DATA__CONTROL__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;data_control.h&gt;</span> header file in your application:</p>
+<p>To use the Data Control API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__DATA__CONTROL__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__DATA__CONTROL__MODULE.html">wearable</a> applications), the consumer application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/datasharing&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/appmanager.launch&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+</li>
+<li>
+<p>The data control use cases run 2 applications. Each application plays a different role: one for the consumer, another for the provider.</p>
+<p>For the provider application, in the IDE, double-click <strong>tizen-manifest.xml</strong>, and in the Tizen Manifest Editor, go to <strong>Advanced &gt; Data Control &gt; Add</strong>. Add the <strong>Read</strong> and <strong>Write</strong> access rights to both <strong>SQL</strong> and <strong>Map</strong> types.</p>
+</li>
+<li>
+<p>To use the functions and data types of the Data Control API, include the <span style="font-family: Courier New,Courier,monospace">&lt;data_control.h&gt;</span> header file in your application:</p>
 <pre class="prettyprint">
 #include &lt;data_control.h&gt;
 
@@ -70,14 +84,6 @@
 #include &lt;string.h&gt;
 </pre>
 <p>To execute this application, the <span style="font-family: Courier New,Courier,monospace">&lt;sqlite3.h&gt;</span>, <span style="font-family: Courier New,Courier,monospace">&lt;stdlib.h&gt;</span>, <span style="font-family: Courier New,Courier,monospace">&lt;glib.h&gt;</span>, and <span style="font-family: Courier New,Courier,monospace">&lt;string.h&gt;</span> header files have to be included too.</p>
-</li>
-
-<li>
-<p>The data control use cases run 2 applications. Each application plays a different role: one for the consumer, another for the provider.</p>
-<ul>
-<li>For the consumer application, add the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/datasharing</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/appmanager.launch</span> privileges to the manifest file of the application.</li>
-<li>For the provider application, in the IDE, double-click <strong>tizen-manifest.xml</strong>, and in the Tizen Manifest Editor, go to <strong>Advanced &gt; Data Control &gt; Add</strong>. Add the <strong>Read</strong> and <strong>Write</strong> access rights to both <strong>SQL</strong> and <strong>Map</strong> types.
-</li></ul>
 </li>
 </ol>
 
@@ -90,205 +96,170 @@
 <p>The provider application stores and provides data to the consumer application. The provider application has 4 operations: get, add, remove, and set. To use the map-type Data Control API, these 4 operation callbacks must be implemented.</p>
 
 <pre class="prettyprint">
-typedef struct 
-map_data
-{
-&nbsp;&nbsp;&nbsp;char **str_arr;
-&nbsp;&nbsp;&nbsp;int arr_size;
-} map_data_s;
+struct map_data {
+&nbsp;&nbsp;&nbsp;&nbsp;char **str_arr;
+&nbsp;&nbsp;&nbsp;&nbsp;int arr_size;
+};
+typedef struct map_data map_data_s;
 
 static GHashTable *map_repository_test;
-void 
+void
 get_value_request_cb(int request_id, data_control_h provider, const char *key, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;map_data_s* map_data = (map_data_s*)g_hash_table_lookup(map_repository_test, key);
+&nbsp;&nbsp;&nbsp;&nbsp;map_data_s* map_data = (map_data_s*)g_hash_table_lookup(map_repository_test, key);
 
-&nbsp;&nbsp;&nbsp;int ret_value_count = 0;
-&nbsp;&nbsp;&nbsp;char **val_arr = NULL;
-&nbsp;&nbsp;&nbsp;if (map_data != NULL)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;val_arr = map_data-&gt;str_arr;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret_value_count = map_data-&gt;arr_size;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;int ret_value_count = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;char **val_arr = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;if (map_data != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;val_arr = map_data-&gt;str_arr;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret_value_count = map_data-&gt;arr_size;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_get_value_result(request_id, val_arr, ret_value_count);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;send_map_get_result failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Get value success request_id: %d&quot;, request_id);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_get_value_result(request_id, val_arr, ret_value_count);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;send_map_get_result failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Get value success request_id: %d&quot;, request_id);
 }
 
-void 
-set_value_request_cb(int request_id, data_control_h provider, const char *key, 
+void
+set_value_request_cb(int request_id, data_control_h provider, const char *key,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *old_value, const char *new_value, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;map_data_s* map_data = (map_data_s*)g_hash_table_lookup(map_repository_test, key);
-&nbsp;&nbsp;&nbsp;if (map_data != NULL)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; map_data-&gt;arr_size; i++)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strcmp(map_data-&gt;str_arr[i], old_value) == 0)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;str_arr[i] = g_strdup(new_value);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;map_data_s* map_data = (map_data_s*)g_hash_table_lookup(map_repository_test, key);
+&nbsp;&nbsp;&nbsp;&nbsp;if (map_data != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; map_data-&gt;arr_size; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strcmp(map_data-&gt;str_arr[i], old_value) == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;str_arr[i] = g_strdup(new_value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;send_map_result failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Set value success request_id: %d&quot;, request_id);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;send_map_result failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Set value success request_id: %d&quot;, request_id);
 }
 
-void 
-add_value_request_cb(int request_id, data_control_h provider, const char *key, 
+void
+add_value_request_cb(int request_id, data_control_h provider, const char *key,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *value, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;map_data_s* map_data = (map_data_s*)g_hash_table_lookup(map_repository_test, key);
+&nbsp;&nbsp;&nbsp;&nbsp;map_data_s* map_data = (map_data_s*)g_hash_table_lookup(map_repository_test, key);
 
-&nbsp;&nbsp;&nbsp;if (map_data == NULL)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data = (map_data_s*)(g_malloc(sizeof(*map_data)));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;arr_size = 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;str_arr = (char**) calloc(1, sizeof(char*));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;str_arr[0] = g_strdup(value);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_hash_table_insert(map_repository_test, g_strdup(key), map_data);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char **new_arr = (char**) calloc(map_data-&gt;arr_size+2, sizeof(char*));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; map_data-&gt;arr_size; i++)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new_arr[i] = g_strdup(map_data-&gt;str_arr[i]);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(map_data-&gt;str_arr);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new_arr[map_data-&gt;arr_size] = g_strdup(value);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;str_arr = g_strdupv(new_arr);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(new_arr);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;map_data-&gt;arr_size += 1;
+&nbsp;&nbsp;&nbsp;&nbsp;if (map_data == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data = (map_data_s*)(g_malloc(sizeof(*map_data)));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;arr_size = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;str_arr = (char**)calloc(1, sizeof(char*));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;str_arr[0] = g_strdup(value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_hash_table_insert(map_repository_test, g_strdup(key), map_data);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char **new_arr = (char**)calloc(map_data-&gt;arr_size+2, sizeof(char*));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; map_data-&gt;arr_size; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new_arr[i] = g_strdup(map_data-&gt;str_arr[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(map_data-&gt;str_arr);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;new_arr[map_data-&gt;arr_size] = g_strdup(value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;str_arr = g_strdupv(new_arr);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(new_arr);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;arr_size += 1;
 
-&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;send_map_result failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Add value success request_id: %d %d %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, map_data-&gt;arr_size, map_data-&gt;str_arr[0]);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;send_map_result failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Add value success request_id: %d %d %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, map_data-&gt;arr_size, map_data-&gt;str_arr[0]);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-void 
-remove_value_request_cb(int request_id, data_control_h provider, const char *key, 
+void
+remove_value_request_cb(int request_id, data_control_h provider, const char *key,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *value, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;map_data_s* map_data = (map_data_s*)g_hash_table_lookup(map_repository_test, key);
+&nbsp;&nbsp;&nbsp;&nbsp;map_data_s* map_data = (map_data_s*)g_hash_table_lookup(map_repository_test, key);
 
-&nbsp;&nbsp;&nbsp;if (map_data != NULL)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int size = map_data-&gt;arr_size;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; size; i++)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strcmp(map_data-&gt;str_arr[i], value) == 0)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(map_data-&gt;str_arr[i]);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;arr_size--;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (map_data-&gt;arr_size == 0)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!g_hash_table_remove(map_repository_test, key))
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;remove value failed -%s&quot;, key);
+&nbsp;&nbsp;&nbsp;&nbsp;if (map_data != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int size = map_data-&gt;arr_size;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; size; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (strcmp(map_data-&gt;str_arr[i], value) == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(map_data-&gt;str_arr[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map_data-&gt;arr_size--;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (map_data-&gt;arr_size == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!g_hash_table_remove(map_repository_test, key)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;remove value failed -%s&quot;, key);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;send_map_result failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Remove value Success&quot;);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = data_control_provider_send_map_result(request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;send_map_result failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Remove value Success&quot;);
 }
 </pre>
 </li>
 <li>
 <p>Register the callbacks within the <span style="font-family: Courier New,Courier,monospace">app_create()</span> function (generated by the IDE) using the <span style="font-family: Courier New,Courier,monospace">data_control_provider_map_register_cb()</span> function:</p>
 <pre class="prettyprint">
-void 
+void
 __free_key(gpointer data)
 {
-&nbsp;&nbsp;&nbsp;if (data)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(data);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data = NULL;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Remove key&quot;);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (data) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Remove key&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
 void
 __free_data(gpointer data)
 {
-&nbsp;&nbsp;&nbsp;if (data)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(data);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data = NULL;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Remove value&quot;);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (data) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_free(data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Remove value&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
 data_control_provider_map_cb map_callback;
-void 
+void
 initialize_datacontrol_provider()
 {
-&nbsp;&nbsp;&nbsp;map_repository_test = g_hash_table_new_full(g_str_hash, g_str_equal, __free_key, __free_data);
+&nbsp;&nbsp;&nbsp;&nbsp;map_repository_test = g_hash_table_new_full(g_str_hash, g_str_equal, __free_key, __free_data);
 
-&nbsp;&nbsp;&nbsp;map_callback.get_cb = get_value_request_cb;
-&nbsp;&nbsp;&nbsp;map_callback.add_cb = add_value_request_cb;
-&nbsp;&nbsp;&nbsp;map_callback.remove_cb = remove_value_request_cb;
-&nbsp;&nbsp;&nbsp;map_callback.set_cb = set_value_request_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;map_callback.get_cb = get_value_request_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;map_callback.add_cb = add_value_request_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;map_callback.remove_cb = remove_value_request_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;map_callback.set_cb = set_value_request_cb;
 
-&nbsp;&nbsp;&nbsp;int result = data_control_provider_map_register_cb(&amp;map_callback);
-&nbsp;&nbsp;&nbsp;if (result != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;data_control_provider_map_register_cb failed with error: %d&quot;, result);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Provider map register success&quot;);
-&nbsp;&nbsp;&nbsp;}
-}	
+&nbsp;&nbsp;&nbsp;&nbsp;int result = data_control_provider_map_register_cb(&amp;map_callback);
+&nbsp;&nbsp;&nbsp;&nbsp;if (result != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;data_control_provider_map_register_cb failed with error: %d&quot;, result);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Provider map register success&quot;);
+}
 
 static bool
 app_create(void *data)
 {
-&nbsp;&nbsp;&nbsp;// Take necessary actions before main event loop starts
-&nbsp;&nbsp;&nbsp;// Initialize UI resources and application data
-&nbsp;&nbsp;&nbsp;// If this function returns true, the main loop of application starts
-&nbsp;&nbsp;&nbsp;// If this function returns false, the application is terminated 
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Take necessary actions before main event loop starts
+&nbsp;&nbsp;&nbsp;&nbsp;   Initialize UI resources and application data
+&nbsp;&nbsp;&nbsp;&nbsp;   If this function returns true, the main loop of application starts
+&nbsp;&nbsp;&nbsp;&nbsp;   If this function returns false, the application is terminated
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
 
-&nbsp;&nbsp;&nbsp;create_base_gui(ad);
-&nbsp;&nbsp;&nbsp;initialize_datacontrol_provider()
+&nbsp;&nbsp;&nbsp;&nbsp;create_base_gui(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;initialize_datacontrol_provider()
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
 </li>
@@ -298,70 +269,56 @@ app_create(void *data)
 
 <p>Implement the response callbacks. The response callbacks receive the request result and data from the provider.</p>
 <pre class="prettyprint">
-// Callback functions 
+/* Callback functions */
 void
 map_get_response_cb(int request_id, data_control_h provider,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char **ret_value_list, int ret_value_count, bool provider_ret, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char **ret_value_list, int ret_value_count, bool provider_ret,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *error, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (provider_ret)
-&nbsp;&nbsp;&nbsp;{
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The get operation is successful. Value count: %d &quot;, ret_value_count);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; ret_value_count; i++)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;(%d) Return value: %s &quot;, i , ret_value_list[i]);
-
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The get operation for the request %d failed. error message: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (provider_ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The get operation is successful. Value count: %d &quot;, ret_value_count);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; ret_value_count; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;(%d) Return value: %s &quot;, i, ret_value_list[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The get operation for the request %d failed. error message: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-void 
-map_set_response_cb(int request_id, data_control_h provider, bool provider_ret, 
+void
+map_set_response_cb(int request_id, data_control_h provider, bool provider_ret,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *error, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (provider_ret)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The set operation is successful&quot;);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The set operation for the request %d failed. error message: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (provider_ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The set operation is successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The set operation for the request %d failed. error message: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-void 
-map_add_response_cb(int request_id, data_control_h provider, bool provider_ret, 
+void
+map_add_response_cb(int request_id, data_control_h provider, bool provider_ret,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *error, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (provider_ret)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The add operation is successful&quot;);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The add operation for the request %d failed. error message: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (provider_ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The add operation is successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The add operation for the request %d failed. error message: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-void 
-map_remove_response_cb(int request_id, data_control_h provider, bool provider_ret, 
+void
+map_remove_response_cb(int request_id, data_control_h provider, bool provider_ret,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *error, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (provider_ret)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The remove operation is successful&quot;);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The remove operation for the request %d failed. error message: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (provider_ret) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The remove operation is successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The remove operation for the request %d failed. error message: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre>
 </li>
@@ -369,84 +326,75 @@ map_remove_response_cb(int request_id, data_control_h provider, bool provider_re
 <p>To identify the provider and data, initialize a data control handler. The initializing process has to be performed within the <span style="font-family: Courier New,Courier,monospace">app_create()</span> function generated by the IDE.</p>
 <pre class="prettyprint">
 data_control_map_response_cb map_callback;
-void 
+void
 initialize_datacontrol_consumer(appdata_s *ad)
 {
-&nbsp;&nbsp;&nbsp;const char *provider_id = Your Provider ID;
-&nbsp;&nbsp;&nbsp;const char *data_id = &quot;table&quot;;
-&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;const char *provider_id = Your Provider ID;
+&nbsp;&nbsp;&nbsp;&nbsp;const char *data_id = &quot;table&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
 
-&nbsp;&nbsp;&nbsp;// Create data control handler
-&nbsp;&nbsp;&nbsp;ret = data_control_map_create(&amp;(ad-&gt;provider_h));
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;creating data control provider failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;ret = data_control_map_set_provider_id(ad-&gt;provider_h, provider_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting provider id failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;ret = data_control_map_set_data_id(ad-&gt;provider_h, data_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting data id failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create data control handler */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_map_create(&amp;(ad-&gt;provider_h));
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;creating data control provider failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_map_set_provider_id(ad-&gt;provider_h, provider_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting provider id failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_map_set_data_id(ad-&gt;provider_h, data_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting data id failed with error: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;// Set response callback
-&nbsp;&nbsp;&nbsp;map_callback.get_cb = map_get_response_cb;
-&nbsp;&nbsp;&nbsp;map_callback.set_cb = map_set_response_cb;
-&nbsp;&nbsp;&nbsp;map_callback.add_cb = map_add_response_cb;
-&nbsp;&nbsp;&nbsp;map_callback.remove_cb = map_remove_response_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set response callback */
+&nbsp;&nbsp;&nbsp;&nbsp;map_callback.get_cb = map_get_response_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;map_callback.set_cb = map_set_response_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;map_callback.add_cb = map_add_response_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;map_callback.remove_cb = map_remove_response_cb;
 
-&nbsp;&nbsp;&nbsp;// Register response callback
-&nbsp;&nbsp;&nbsp;ret = data_control_map_register_response_cb(ad-&gt;provider_h, &amp;map_callback, NULL);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Registering the callback function failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Register response callback */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_map_register_response_cb(ad-&gt;provider_h, &amp;map_callback, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Registering the callback function failed with error: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret == DATA_CONTROL_ERROR_IO_ERROR) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;I/O error&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Out of memory&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret == DATA_CONTROL_ERROR_IO_ERROR)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;I/O error&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Out of memory&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;int req_id = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int req_id = 0;
 
-&nbsp;&nbsp;&nbsp;// Add value
-&nbsp;&nbsp;&nbsp;const char *key = &quot;key&quot;;
-&nbsp;&nbsp;&nbsp;const char *value = &quot;value&quot;;
-&nbsp;&nbsp;&nbsp;data_control_map_add(provider_map, key, value, &amp;req_id);
- 
-&nbsp;&nbsp;&nbsp;// Get value
-&nbsp;&nbsp;&nbsp;data_control_map_get(provider_map, key, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add value */
+&nbsp;&nbsp;&nbsp;&nbsp;const char *key = &quot;key&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;const char *value = &quot;value&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_add(provider_map, key, value, &amp;req_id);
 
-&nbsp;&nbsp;&nbsp;// Set value
-&nbsp;&nbsp;&nbsp;const char *old_value = &quot;old value&quot;;
-&nbsp;&nbsp;&nbsp;const char *new_value = &quot;new value&quot;;
-&nbsp;&nbsp;&nbsp;data_control_map_set(provider_map, key, old_value, new_value, &amp;req_id);
-   
-&nbsp;&nbsp;&nbsp;// Remove value
-&nbsp;&nbsp;&nbsp;data_control_map_remove(provider_map, key, value, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get value */
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_get(provider_map, key, &amp;req_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set value */
+&nbsp;&nbsp;&nbsp;&nbsp;const char *old_value = &quot;old value&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;const char *new_value = &quot;new value&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_set(provider_map, key, old_value, new_value, &amp;req_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Remove value */
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_remove(provider_map, key, value, &amp;req_id);
 }
 
 static bool
 app_create(void *data)
 {
-&nbsp;&nbsp;&nbsp;// Take necessary actions before main event loop starts
-&nbsp;&nbsp;&nbsp;// Initialize UI resources and application data
-&nbsp;&nbsp;&nbsp;// If this function returns true, the main loop of application starts
-&nbsp;&nbsp;&nbsp;// If this function returns false, the application is terminated 
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Take necessary actions before main event loop starts
+&nbsp;&nbsp;&nbsp;&nbsp;   Initialize UI resources and application data
+&nbsp;&nbsp;&nbsp;&nbsp;   If this function returns true, the main loop of application starts
+&nbsp;&nbsp;&nbsp;&nbsp;   If this function returns false, the application is terminated
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
 
-&nbsp;&nbsp;&nbsp;create_base_gui(ad);
-&nbsp;&nbsp;&nbsp;initialize_datacontrol_consumer(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;create_base_gui(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;initialize_datacontrol_consumer(ad);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
 </li>
@@ -464,162 +412,143 @@ app_create(void *data)
 <pre class="prettyprint">
 data_control_provider_sql_cb *sql_callback;
 static sqlite3* db;
-void 
+void
 insert_request_cb(int request_id, data_control_h provider, bundle *insert_data, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_insert_statement(provider, insert_data);
-&nbsp;&nbsp;&nbsp;int ret = sqlite3_exec(db, command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_insert_statement(provider, insert_data);
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = sqlite3_exec(db, command, NULL, NULL, NULL);
 
-&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[insert_request_cb] insert success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[insert_request_cb] insert success&quot;);
 
-&nbsp;&nbsp;&nbsp;long long inserted_row_id = sqlite3_last_insert_rowid(db);
-&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_insert_result(request_id, inserted_row_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;insert_send_result failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[insert_request_cb] send result success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;long long inserted_row_id = sqlite3_last_insert_rowid(db);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_insert_result(request_id, inserted_row_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;insert_send_result failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[insert_request_cb] send result success&quot;);
 
-&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;free(command);
 }
 
-void 
+void
 delete_request_cb(int request_id, data_control_h provider, const char *where, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[delete_request_cb] request_id(%d)&quot;, request_id);
-&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_delete_statement(provider, where);
-&nbsp;&nbsp;&nbsp;int ret = sqlite3_exec(db, command, NULL, NULL, NULL);
-&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[delete_request_cb] request_id(%d)&quot;, request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_delete_statement(provider, where);
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = sqlite3_exec(db, command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-&nbsp;&nbsp;&nbsp;}	
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_delete_result(request_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;delete_send_result failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[delete_request_cb] delete success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_delete_result(request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;delete_send_result failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[delete_request_cb] delete success&quot;);
 
-&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;free(command);
 }
 
-void 
-select_request_cb(int request_id, data_control_h provider, const char **column_list, 
+void
+select_request_cb(int request_id, data_control_h provider, const char **column_list,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int column_count, const char *where, const char *order, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;sqlite3_stmt* sql_stmt = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_stmt* sql_stmt = NULL;
 
-&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_select_statement(provider, column_list, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;column_count, where, order);
-&nbsp;&nbsp;&nbsp;int ret = sqlite3_prepare_v2(db, command, strlen(command), &amp;sql_stmt, NULL);
-&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_select_statement(provider, column_list,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;column_count, where, order);
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = sqlite3_prepare_v2(db, command, strlen(command), &amp;sql_stmt, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-&nbsp;&nbsp;&nbsp;}	
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_select_result(request_id, (void *)sql_stmt);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;select_send_result failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[select_request_cb] send result success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_select_result(request_id, (void *)sql_stmt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;select_send_result failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[select_request_cb] send result success&quot;);
 
-&nbsp;&nbsp;&nbsp;sqlite3_finalize(sql_stmt);
-&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;sqlite3_finalize(sql_stmt);
+&nbsp;&nbsp;&nbsp;&nbsp;free(command);
 }
 
-void 
-update_request_cb(int request_id, data_control_h provider, bundle *update_data, 
+void
+update_request_cb(int request_id, data_control_h provider, bundle *update_data,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *where, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_update_statement(provider, update_data, where);
-&nbsp;&nbsp;&nbsp;int ret = sqlite3_exec(db, command, NULL, NULL, NULL);
-&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_update_statement(provider, update_data, where);
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = sqlite3_exec(db, command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_update_result(request_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;update_send_result failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[update_request_cb] send result success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_update_result(request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;update_send_result failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[update_request_cb] send result success&quot;);
 
-&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;free(command);
 }
 </pre>
 </li>
 <li>
 <p>Register the callbacks and create the database:</p>
 <pre class="prettyprint">
-int 
+int
 create_database()
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%s%s&quot;, app_get_data_path(), &quot;test.db&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%s%s&quot;, app_get_data_path(), &quot;test.db&quot;);
 
-&nbsp;&nbsp;&nbsp;int open_flags = (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
+&nbsp;&nbsp;&nbsp;&nbsp;int open_flags = (SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE);
 
-&nbsp;&nbsp;&nbsp;int ret = sqlite3_open_v2(Your DB Path, &amp;db, open_flags, NULL);
-&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;database creation failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = sqlite3_open_v2(Your DB Path, &amp;db, open_flags, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;database creation failed with error: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ret;
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;char* sql_command = &quot;CREATE TABLE IF NOT EXISTS Dictionary (WORD VARCHAR(30), WORD_DESC TEXT, WORD_NUM INT, Point INT)&quot;;
-&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sql_command, NULL, NULL, NULL);
-&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;database table creation failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;DB init Success.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;char* sql_command = &quot;CREATE TABLE IF NOT EXISTS Dictionary (WORD VARCHAR(30), WORD_DESC TEXT, WORD_NUM INT, Point INT)&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sql_command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;database table creation failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;DB init Success.&quot;);
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 
 void
 initialize_datacontrol_provider()
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;initialize_datacontrol_provider&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;initialize_datacontrol_provider&quot;);
 
-&nbsp;&nbsp;&nbsp;int result = create_database();
-&nbsp;&nbsp;&nbsp;if (result != SQLITE_OK)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;int result = create_database();
+&nbsp;&nbsp;&nbsp;&nbsp;if (result != SQLITE_OK)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
 
-&nbsp;&nbsp;&nbsp;sql_callback = (data_control_provider_sql_cb *) malloc(sizeof(data_control_provider_sql_cb));
-&nbsp;&nbsp;&nbsp;sql_callback-&gt;select_cb = select_request_cb;
-&nbsp;&nbsp;&nbsp;sql_callback-&gt;insert_cb = insert_request_cb;
-&nbsp;&nbsp;&nbsp;sql_callback-&gt;delete_cb = delete_request_cb;
-&nbsp;&nbsp;&nbsp;sql_callback-&gt;update_cb = update_request_cb;
-&nbsp;&nbsp;&nbsp;result = data_control_provider_sql_register_cb(sql_callback, NULL);
-&nbsp;&nbsp;&nbsp;if (result != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, &quot;data_control_sql_response_c failed with error: %d&quot;, result);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Provider SQL register success&quot;);
-&nbsp;&nbsp;&nbsp;}
-}		
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback = (data_control_provider_sql_cb *)malloc(sizeof(data_control_provider_sql_cb));
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback-&gt;select_cb = select_request_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback-&gt;insert_cb = insert_request_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback-&gt;delete_cb = delete_request_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback-&gt;update_cb = update_request_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;result = data_control_provider_sql_register_cb(sql_callback, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (result != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, &quot;data_control_sql_response_c failed with error: %d&quot;, result);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Provider SQL register success&quot;);
+}
 </pre>
 </li>
 
@@ -629,79 +558,65 @@ initialize_datacontrol_provider()
 <p>Implement the response callbacks. The response callbacks receive the request result and data from the provider.</p>
 		
 <pre class="prettyprint">
-void 
-sql_delete_response_cb(int request_id, data_control_h provider, bool provider_result, 
+void
+sql_delete_response_cb(int request_id, data_control_h provider, bool provider_result,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *error, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (provider_result)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The delete operation is successful&quot;);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The delete operation for the request %d failed. error message: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (provider_result) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The delete operation is successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The delete operation for the request %d failed. error message: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-void 
-sql_insert_response_cb(int request_id, data_control_h provider, long long inserted_row_id, 
+void
+sql_insert_response_cb(int request_id, data_control_h provider, long long inserted_row_id,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool provider_result, const char *error, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (provider_result)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The insert operation is successful&quot;);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The insert operation for the request %d failed. error message: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (provider_result) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The insert operation is successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The insert operation for the request %d failed. error message: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-void 
-sql_select_response_cb(int request_id, data_control_h provider, result_set_cursor cursor, 
+void
+sql_select_response_cb(int request_id, data_control_h provider, result_set_cursor cursor,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bool provider_result, const char *error, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (provider_result)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The select operation is successful&quot;);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The select operation for the request %d failed. error message: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (provider_result) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The select operation is successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The select operation for the request %d failed. error message: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;while (data_control_sql_step_next(cursor) == DATA_CONTROL_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;while (data_control_sql_step_next(cursor) == DATA_CONTROL_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char word[32] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char word_desc[32] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long long word_number = -1;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char word[32] = {0,};
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char word_desc[32] = {0,};
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long long word_number = -1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_get_text_data(cursor, 0, word);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_get_text_data(cursor, 1, word_desc);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_get_int64_data(cursor, 2, &amp;word_number);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_get_text_data(cursor, 0, word);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_get_text_data(cursor, 1, word_desc);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_get_int64_data(cursor, 2, &amp;word_number);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Word: %s, Word DESC: %s, Word NUM: %ld &quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;word, word_desc, word_number);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Word: %s, Word DESC: %s, Word NUM: %ld &quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;word, word_desc, word_number);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
-void 
-sql_update_response_cb(int request_id, data_control_h provider, bool provider_result, 
+void
+sql_update_response_cb(int request_id, data_control_h provider, bool provider_result,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *error, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (provider_result)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The update operation is successful&quot;);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The update operation for the request %d failed. error message: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (provider_result) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;The update operation is successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;The update operation for the request %d failed. error message: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request_id, error);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre>
 </li>
@@ -709,89 +624,83 @@ sql_update_response_cb(int request_id, data_control_h provider, bool provider_re
 <p>To identify the provider and data, initialize a data control handler. The initializing process has to be performed within the <span style="font-family: Courier New,Courier,monospace">app_create()</span> function generated by the IDE.</p>
 <pre class="prettyprint">
 data_control_sql_response_cb sql_callback;
-void 
+void
 initialize_datacontrol_consumer(appdata_s *ad)
 {
-&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
 
-&nbsp;&nbsp;&nbsp;const char *provider_id = Your Provider ID;
-&nbsp;&nbsp;&nbsp;const char *data_id = &quot;Dictionary&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;const char *provider_id = Your Provider ID;
+&nbsp;&nbsp;&nbsp;&nbsp;const char *data_id = &quot;Dictionary&quot;;
 
-&nbsp;&nbsp;&nbsp;ret = data_control_sql_create(&amp;(ad-&gt;provider_h));
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;creating data control provider failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_sql_create(&amp;(ad-&gt;provider_h));
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;creating data control provider failed with error: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;ret = data_control_sql_set_provider_id(ad-&gt;provider_h, provider_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting provider id failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_sql_set_provider_id(ad-&gt;provider_h, provider_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting provider id failed with error: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;ret = data_control_sql_set_data_id(ad-&gt;provider_h, data_id);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting data id failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_sql_set_data_id(ad-&gt;provider_h, data_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting data id failed with error: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;sql_callback.delete_cb = sql_delete_response_cb;
-&nbsp;&nbsp;&nbsp;sql_callback.insert_cb = sql_insert_response_cb;
-&nbsp;&nbsp;&nbsp;sql_callback.select_cb = sql_select_response_cb;
-&nbsp;&nbsp;&nbsp;sql_callback.update_cb = sql_update_response_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback.delete_cb = sql_delete_response_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback.insert_cb = sql_insert_response_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback.select_cb = sql_select_response_cb;
+&nbsp;&nbsp;&nbsp;&nbsp;sql_callback.update_cb = sql_update_response_cb;
 
-&nbsp;&nbsp;&nbsp;ret = data_control_sql_register_response_cb(ad-&gt;provider_h, &amp;sql_callback, NULL);
-&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Registering the callback function failed with error: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_sql_register_response_cb(ad-&gt;provider_h, &amp;sql_callback, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Registering the callback function failed with error: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Init data control success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Init data control success&quot;);
 
-&nbsp;&nbsp;&nbsp;int req_id = 0; 
-   
-&nbsp;&nbsp;&nbsp;// Insert row
-&nbsp;&nbsp;&nbsp;bundle *b = bundle_create();
-&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD&quot;, &quot;&#39;test&#39;&quot;);
-&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD_DESC&quot;, &quot;&#39;test desc&#39;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;int req_id = 0;
 
-&nbsp;&nbsp;&nbsp;data_control_sql_insert(provider_sql, b, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Insert row */
+&nbsp;&nbsp;&nbsp;&nbsp;bundle *b = bundle_create();
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD&quot;, &quot;&#39;test&#39;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD_DESC&quot;, &quot;&#39;test desc&#39;&quot;);
 
-&nbsp;&nbsp;&nbsp;// Select row
-&nbsp;&nbsp;&nbsp;char *column_list[2];
-&nbsp;&nbsp;&nbsp;column_list[0] = &quot;WORD&quot;;
-&nbsp;&nbsp;&nbsp;column_list[1] = &quot;WORD_DESC&quot;;
-   
-&nbsp;&nbsp;&nbsp;const char *where = &quot;WORD = &#39;test&#39;&quot;;
-&nbsp;&nbsp;&nbsp;const char *order = &quot;WORD ASC&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_insert(provider_sql, b, &amp;req_id);
 
-&nbsp;&nbsp;&nbsp;data_control_sql_select(provider_sql, column_list, 2, where, order, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Select row */
+&nbsp;&nbsp;&nbsp;&nbsp;char *column_list[2];
+&nbsp;&nbsp;&nbsp;&nbsp;column_list[0] = &quot;WORD&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;column_list[1] = &quot;WORD_DESC&quot;;
 
-&nbsp;&nbsp;&nbsp;// Add row
-&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD&quot;, &quot;&#39;test_new&#39;&quot;);
-&nbsp;&nbsp;&nbsp;data_control_sql_update(provider_sql, b, where, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;const char *where = &quot;WORD = &#39;test&#39;&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;const char *order = &quot;WORD ASC&quot;;
 
-&nbsp;&nbsp;&nbsp;// Delete row
-&nbsp;&nbsp;&nbsp;const char *where_delete = &quot;WORD = &#39;test&#39;&quot;;
-&nbsp;&nbsp;&nbsp;result = data_control_sql_delete(provider_sql, where_delete, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_select(provider_sql, column_list, 2, where, order, &amp;req_id);
 
-&nbsp;&nbsp;&nbsp;// Free memory
-&nbsp;&nbsp;&nbsp;bundle_free(b);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add row */
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD&quot;, &quot;&#39;test_new&#39;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_update(provider_sql, b, where, &amp;req_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Delete row */
+&nbsp;&nbsp;&nbsp;&nbsp;const char *where_delete = &quot;WORD = &#39;test&#39;&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;result = data_control_sql_delete(provider_sql, where_delete, &amp;req_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Free memory */
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_free(b);
 }
 
 static bool
 app_create(void *data)
 {
-&nbsp;&nbsp;&nbsp;// Take necessary actions before main event loop starts
-&nbsp;&nbsp;&nbsp;// Initialize UI resources and application data
-&nbsp;&nbsp;&nbsp;// If this function returns true, the main loop of application starts
-&nbsp;&nbsp;&nbsp;// If this function returns false, the application is terminated 
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Take necessary actions before main event loop starts
+&nbsp;&nbsp;&nbsp;&nbsp;   Initialize UI resources and application data
+&nbsp;&nbsp;&nbsp;&nbsp;   If this function returns true, the main loop of application starts
+&nbsp;&nbsp;&nbsp;&nbsp;   If this function returns false, the application is terminated
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
 
-&nbsp;&nbsp;&nbsp;create_base_gui(ad);
-&nbsp;&nbsp;&nbsp;initialize_datacontrol_consumer(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;create_base_gui(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;initialize_datacontrol_consumer(ad);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
 </li>

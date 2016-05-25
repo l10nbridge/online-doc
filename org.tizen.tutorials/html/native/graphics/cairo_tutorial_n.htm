@@ -11,7 +11,7 @@
 	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
 	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
 
-	<title>Cairo: Linking Cairo and Evas</title>  
+	<title>Cairo: Drawing 2D Graphics</title>  
 </head>
 
 <body onload="prettyPrint()" style="overflow: auto;">
@@ -23,13 +23,19 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#graph">Drawing a Polygon Using a Cairo Image</a></li>
-			<li><a href="#vector">Displaying Animated Geometrical Figures Using Cairo Evas_GL</a></li>
-
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#image_backend">Creating Cairo with the Image Backend</a></li>
+			<li><a href="#gl_backend">Creating Cairo with the GL Backend</a></li>
+			<li><a href="#line">Drawing Lines</a></li>
+			<li><a href="#image">Painting with Image Files</a></li>
+			<li><a href="#text">Showing Text</a></li>
+			<li><a href="#delete">Deleting Cairo</a></li>
 		</ul>		
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
             <li><a href="../../../../org.tizen.guides/html/native/graphics/cairo_n.htm">Cairo Guide</a></li>
+			<li><a href="../../../../org.tizen.guides/html/native/graphics/opengles_n.htm">OpenGL ES Guide</a></li>
+			<li><a href="../../../../org.tizen.ui.practices/html/native/efl/guides_efl_n.htm">EFL</a></li>			
 			<li><a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__CAIRO__FRAMEWORK.html">Cairo API for Mobile Native</a></li>
 			<li><a href="../../../../org.tizen.native.wearable.apireference/group__OPENSRC__CAIRO__FRAMEWORK.html">Cairo API for Wearable Native</a></li>
 		</ul>
@@ -37,429 +43,248 @@
 </div>	
 
 <div id="container"><div id="contents"><div class="content">
-<h1>Cairo: Linking Cairo and Evas</h1>
+<h1>Cairo: Drawing 2D Graphics</h1>
 
+<p>Cairo is a powerful open source 2D graphics library. You can use it in Tizen to draw 2D graphics.</p>
 
-<p>This tutorial demonstrates how you can use 2 different backends of <a href="http://cairographics.org" target="_blank">Cairo</a> and link to Evas.</p>
- 
+<p>This tutorial demonstrates how you can create 2D graphics using Cairo with image and GL backends, and draw lines, paint an image, and show text in your application.</p>
+
 <h2>Warm-up</h2>
 <p>Become familiar with the Cairo API basics by learning about:</p>
 <ul>
-<li><a href="#graph">Drawing a Polygon Using a Cairo Image</a>
-<p>Draw a polygon and rectangle using the Cairo image backend with the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image.</p></li>
-
-<li><a href="#vector">Displaying Animated Geometrical Figures Using Cairo Evas_GL</a>
-<p>Draw various figures using the Cairo evas-gl backend with the Evas_GL surface.</p></li>
-
+			<li><a href="#prerequisites">Prerequisites</a>
+			<p>Prepare your application to use the Cairo functionality.</p></li>
+			<li><a href="#image_backend">Creating Cairo with the Image Backend</a>
+			<p>Create a Cairo context and surface with the image backend.</p></li>
+			<li><a href="#gl_backend">Creating Cairo with the GL Backend</a>
+			<p>Create a Cairo context and surface with the GL backend.</p></li>
+			<li><a href="#line">Drawing Lines</a>
+			<p>Draw straight and curved lines.</p></li>
+			<li><a href="#image">Painting with Image Files</a>
+			<p>Use PNG image files to draw surfaces.</p></li>
+			<li><a href="#text">Showing Text</a>
+			<p>Show a text with a specific font and properties on a surface.</p></li>
+			<li><a href="#delete">Deleting Cairo</a>
+			<p>When no longer needed, delete the Cairo resources.</p></li>
 </ul>
 
-<h2 id="graph" name="graph">Drawing a Polygon Using a Cairo Image</h2>
-
-<p>This use case shows how to link Cairo to Evas and how to draw a polygon and rectangle on the screen using the Cairo API. First create a basic application that provides a basic UI application skeleton and already makes available the window object that can contain the Cairo drawing.</p>
-<p>To draw a polygon:</p>
-<ol><li>
-Build the environment.
-
-<p>Include the <span style="font-family: Courier New,Courier,monospace">&lt;cairo.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace">&lt;math.h&gt;</span> header files in the sample application:</p>
-<pre class="prettyprint">
-#include &lt;cairo.h&gt;
-#include &lt;math.h&gt;
-</pre></li>
-
-<li>Create the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image and link to Cairo.
-
-<p>Define the <span style="font-family: Courier New,Courier,monospace">appdata</span> structure that contains the pointers to the objects to be manipulated:</p>
-<pre class="prettyprint">
-typedef struct 
-appdata 
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *win;	
-&nbsp;&nbsp;&nbsp;Evas_Object *img;
-
-&nbsp;&nbsp;&nbsp;cairo_surface_t *surface;
-&nbsp;&nbsp;&nbsp;cairo_t *cairo;
-} appdata_s;
-</pre></li>
-<li>Create the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> window and image.
-
-<p>To display the Cairo drawing on the screen, create the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> window and <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image:</p>
-<pre class="prettyprint">
-ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
-evas_object_show(ad-&gt;win);
-ad-&gt;img = evas_object_image_filled_add(evas_object_evas_get(ad-&gt;win));
-evas_object_show(ad-&gt;img);
-</pre></li>
-
-<li>Create Cairo.
-<p>To create the Cairo surface, you need the window size to set the Cairo surface. You can get the window size using the <span style="font-family: Courier New,Courier,monospace">evas_object_geometry_get()</span> function, after the <span style="font-family: Courier New,Courier,monospace">evas_object_show()</span> function is called:</p>
-<pre class="prettyprint">
-evas_object_geometry_get(ad-&gt;win, NULL, NULL, &amp;ad-&gt;width, &amp;ad-&gt;height);
-ad-&gt;surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, ad-&gt;width, ad-&gt;height);
-ad-&gt;cairo = cairo_create(ad-&gt;surface);
-</pre></li>
-
-<li>Draw a polygon and rectangle with Cairo.
-<p>To draw the vector image itself:</p>
-
-<ol type="a">
-<li>To draw Cairo with some specific vector positions, use the window size that you retrieved before. You can compare the window width and height and get the smaller length to set the square side.
-<pre class="prettyprint">
-void 
-cairo_drawing(void *data)
-{
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;int d = 0;
-&nbsp;&nbsp;&nbsp;if (ad-&gt;width &lt; ad-&gt;height)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d = ad-&gt;width;
-&nbsp;&nbsp;&nbsp;else
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;d = ad-&gt;height;
-</pre></li>
-
-<li>To set the background as white, set the color as white and paint the Cairo:
-<pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;// Clear background as white
-&nbsp;&nbsp;&nbsp;cairo_set_source_rgba(ad-&gt;cairo, 1, 1, 1, 1);
-&nbsp;&nbsp;&nbsp;cairo_paint(ad-&gt;cairo);
-</pre></li>
-
-<li>Draw the polygon and rectangle:
-<pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;cairo_translate(ad-&gt;cairo, 0.1 * d, 0.1 * d);
-&nbsp;&nbsp;&nbsp;cairo_set_line_width(ad-&gt;cairo, 2);
-&nbsp;&nbsp;&nbsp;cairo_set_source_rgba(ad-&gt;cairo, 0.0, 0.0, 1.0, 1.0);
-
-&nbsp;&nbsp;&nbsp;cairo_move_to(ad-&gt;cairo, 0.2 * d , 0.2 * d);
-&nbsp;&nbsp;&nbsp;cairo_line_to(ad-&gt;cairo, 0.4 * d, 0.3 * d);
-&nbsp;&nbsp;&nbsp;cairo_rel_line_to(ad-&gt;cairo, 0.2 * d, -0.1 * d);
-&nbsp;&nbsp;&nbsp;cairo_arc(ad-&gt;cairo, 0.4 * d, 0.4 * d, 0.2* d * sqrt(2), -0.25 * M_PI, 0.25 * M_PI);
-&nbsp;&nbsp;&nbsp;cairo_rel_curve_to(ad-&gt;cairo, -0.2* d, -0.1 * d, -0.2* d, 0.1 * d, -0.4 * d, 0);
-&nbsp;&nbsp;&nbsp;cairo_close_path(ad-&gt;cairo);
-&nbsp;&nbsp;&nbsp;cairo_fill(ad-&gt;cairo);
-
-&nbsp;&nbsp;&nbsp;cairo_rectangle(ad-&gt;cairo, 0, 0, 0.8 * d, 0.8 * d);
-&nbsp;&nbsp;&nbsp;cairo_stroke(ad-&gt;cairo);
-</pre></li>
-
-
-<li>You need to use the <span style="font-family: Courier New,Courier,monospace">cairo_surface_flush()</span> function to ensure that any pending drawing is performed for the surface:
-<pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;cairo_surface_flush(ad-&gt;surface);
-</pre></li>
-
-<li>Update the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image on the screen:
-<pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;// Display Cairo drawing on screen
-&nbsp;&nbsp;&nbsp;unsigned char * imageData = cairo_image_surface_get_data(cairo_get_target(ad-&gt;cairo));
-&nbsp;&nbsp;&nbsp;evas_object_image_data_set(ad-&gt;img, imageData);
-&nbsp;&nbsp;&nbsp;evas_object_image_data_update_add(ad-&gt;img, 0, 0, ad-&gt;width, ad-&gt;height);
-}
-</pre></li>
-
-<li>The delete callback is triggered when the window is destroyed from the main loop.
-<pre class="prettyprint">
-static void 
-win_delete_request_cb(void *data, Evas_Object *obj, void *event_info)
-{
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;cairo_surface_destroy(ad-&gt;surface);
-&nbsp;&nbsp;&nbsp;cairo_destroy(ad-&gt;cairo);
-&nbsp;&nbsp;&nbsp;ui_app_exit();
-}
-</pre></li>
-</ol></li></ol>
-
-<p class="figure">Figure: Polygon and rectangle</p> 
-<p align="center"><img alt="Polygon and rectangle" src="../../images/cairo_basic.png" /></p>
-
-
-
-<h2 id="vector" name="vector">Displaying Animated Geometrical Figures Using Cairo Evas_GL</h2>
-
-<p>The following use case shows how you can draw vector graphics using the Cairo evas-gl backend. The Cairo evas-gl backend is similar to Cairo gl backend, since it can provide an implementation of possibly hardware-accelerated Cairo rendering by targeting the OpenGL&reg; ES API.</p>
-<p>First create a basic application that provides a basic UI application skeleton and already makes available the window object that can contain the Cairo drawing.</p>
-
-<p>To display and animate vector graphics with Cairo and the Evas_GL surface:</p>
-
-
-
-<ol><li>Build the environment:
+<h2 id="prerequisites">Prerequisites</h2>
+<p>To enable your application to use the Cairo functionality:</p>
+<ol>
+<li>Before using the Cairo library in Tizen:
 <ul>
-<li>Include the following header files to use the Cairo evas-gl backend on the Evas_GL surface:
+<li>You must understand the basic concepts of Cairo. For more information, see the <a href="http://www.cairographics.org/tutorial/" target="_blank">Cairo Tutorial in cairographics.org</a>.</li>
+<li>In the Tizen framework, Cairo can use 2 different backends: image backend and Evas GL backend. You must check which backend is suitable for your work. For more information, see the <a href="../../../../org.tizen.guides/html/native/graphics/cairo_n.htm">Cairo guide</a>.</li>
+<li>In creating native UI applications in Tizen, make sure you understand <a href="../../../../org.tizen.ui.practices/html/native/efl/guides_efl_n.htm">EFL and its features</a>.</li>
+</ul>
+</li>
+<li>To use the functions and data types of the Cairo image and GL backends, include the <span style="font-family: Courier New,Courier,monospace">&lt;cairo.h&gt;</span> header file in your application. For the Cairo GL backend, you also need the <span style="font-family: Courier New,Courier,monospace">&lt;cairo-evas-gl.h&gt;</span>, and <span style="font-family: Courier New,Courier,monospace">&lt;Evas_GL.h&gt;</span> header files.
 <pre class="prettyprint">
 #include &lt;cairo.h&gt;
-#include &lt;Evas_GL.h&gt;
+
+/* For the Cairo GL backend */
 #include &lt;cairo-evas-gl.h&gt;
-#include &lt;math.h&gt;
-</pre></li>
-
-<li>Define the <span style="font-family: Courier New,Courier,monospace">appdata</span> structure that contains the pointers to objects to be manipulated:
-<pre class="prettyprint">
-typedef struct 
-appdata 
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *win;	
-&nbsp;&nbsp;&nbsp;Evas_Object *img;
-
-&nbsp;&nbsp;&nbsp;cairo_surface_t *surface;
-&nbsp;&nbsp;&nbsp;cairo_t *cairo;
-&nbsp;&nbsp;&nbsp;cairo_device_t *cairo_device;
-	
-&nbsp;&nbsp;&nbsp;Evas_GL *evas_gl;
-&nbsp;&nbsp;&nbsp;Evas_GL_Config *evas_gl_config;
-&nbsp;&nbsp;&nbsp;Evas_GL_Surface *evas_gl_surface;
-&nbsp;&nbsp;&nbsp;Evas_GL_Context *evas_gl_context;
-} appdata_s;
-</pre></li></ul></li>
-
-<li>Initialize Cairo and Evas_GL for Cairo evas-gl drawing.
-
-<p>Initialize the variables related to the Evas_GL within the <span style="font-family: Courier New,Courier,monospace">appdata</span> structure, and create the Evas_GL object using the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image created before.</p>
-
-<ul>
-<li>By default, Cairo evas-gl backend uses an Evas_GL context and API set. Before creating the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> window for Cairo evas-gl drawing, the GL Rendering Engine is set because Evas_GL runs with the Evas_GL Render Engine:
-<pre class="prettyprint">
-elm_config_accel_preference_set(&quot;opengl&quot;);
-</pre></li>
-
-<li>The <span style="font-family: Courier New,Courier,monospace">cairo_drawing</span> callback function can be registered by the following <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image function:
-<pre class="prettyprint">
-evas_object_image_pixels_get_callback_set(ad-&gt;img, cairo_drawing, NULL);
-</pre></li>
-
-<li>To use fast and optimized Cairo GLES rendering, set Cairo_GL_Compositor and Evasgl configurations:
-<pre class="prettyprint">
-setenv(&quot;CAIRO_GL_COMPOSITOR&quot;, &quot;msaa&quot;, 1);
-ad-&gt;evas_gl_config-&gt;stencil_bits = EVAS_GL_STANCIL_BIT_8;
-ad-&gt;evas_gl_config-&gt;multisample_bits = EVAS_GL_MULTISAMPLE_MED;
-</pre></li>
-
-<li>To prevent unnecessary context switching in the Cairo evas-gl backend:
-<pre class="prettyprint">
-cairo_gl_device_set_thread_aware(ad-&gt;cairo_device, 0);
-</pre></li></ul>
-
-<pre class="prettyprint">
-static void 
-init_cairo_evasgl_drawing(appdata_s *ad)
-{
-&nbsp;&nbsp;&nbsp;// Create window
-&nbsp;&nbsp;&nbsp;elm_config_accel_preference_set(&quot;opengl&quot;);
-&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
-&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
-&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad-&gt;win))
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = {0, 90, 180, 270};
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
-&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;win, EEXT_CALLBACK_BACK, win_back_cb, ad);
-&nbsp;&nbsp;&nbsp;evas_object_event_callback_add(ad-&gt;win, EVAS_CALLBACK_RESIZE, win_resize_cb, ad);
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
-
-&nbsp;&nbsp;&nbsp;// Add image object; a filled one by default
-&nbsp;&nbsp;&nbsp;evas_object_geometry_get(ad-&gt;win, NULL, NULL, &amp;ad-&gt;width, &amp;ad-&gt;height);
-&nbsp;&nbsp;&nbsp;ad-&gt;img = evas_object_image_filled_add(evas_object_evas_get(ad-&gt;win));
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;img);
-
-&nbsp;&nbsp;&nbsp;// Create evasgl and init
-&nbsp;&nbsp;&nbsp;Evas_Native_Surface ns;
-&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl = evas_gl_new(evas_object_evas_get(ad-&gt;img));
-&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_config = evas_gl_config_new();
-&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_config-&gt;color_format = EVAS_GL_RGBA_8888;
-&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_config-&gt;stencil_bits = EVAS_GL_STANCIL_BIT_8;
-&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_config-&gt;multisample_bits = EVAS_GL_MULTISAMPLE_MED;
-
-&nbsp;&nbsp;&nbsp;// Create a surface and context
-&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_surface = evas_gl_surface_create(ad-&gt;evas_gl, ad-&gt;evas_gl_config, ad-&gt;width, ad-&gt;height);
-&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_context = evas_gl_context_create(ad-&gt;evas_gl, NULL);
-      
-&nbsp;&nbsp;&nbsp;evas_gl_native_surface_get(ad-&gt;evas_gl, ad-&gt;evas_gl_surface, &amp;ns);
-&nbsp;&nbsp;&nbsp;evas_object_image_native_surface_set(ad-&gt;img, &amp;ns);
-
-&nbsp;&nbsp;&nbsp;// Register Cairo drawing callback
-&nbsp;&nbsp;&nbsp;evas_object_image_pixels_get_callback_set(ad-&gt;img, (Evas_Object_Image_Pixels_Get_Cb)cairo_drawing, ad);
-
-&nbsp;&nbsp;&nbsp;// Create cairo and cairo device with evasgl
-&nbsp;&nbsp;&nbsp;// Use the MSAA compositor if available
-&nbsp;&nbsp;&nbsp;setenv(&quot;CAIRO_GL_COMPOSITOR&quot;, &quot;msaa&quot;, 1);
-&nbsp;&nbsp;&nbsp;ad-&gt;cairo_device = (cairo_device_t *)cairo_evas_gl_device_create (ad-&gt;evas_gl, ad-&gt;evas_gl_context);
-&nbsp;&nbsp;&nbsp;cairo_gl_device_set_thread_aware(ad-&gt;cairo_device, 0);
-&nbsp;&nbsp;&nbsp;ad-&gt;surface = (cairo_surface_t *)cairo_gl_surface_create_for_evas_gl(ad-&gt;cairo_device, ad-&gt;evas_gl_surface, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_config, ad-&gt;width, ad-&gt;height);
-&nbsp;&nbsp;&nbsp;ad-&gt;cairo = cairo_create(ad-&gt;surface);
-
-&nbsp;&nbsp;&nbsp;// Register animation callback to update the output according to refresh rate
-&nbsp;&nbsp;&nbsp;ecore_animator_frametime_set(0.016);
-&nbsp;&nbsp;&nbsp;ecore_animator_add(_animate_cb, (void *)ad-&gt;img);
-}
-</pre>
-</li>
-
-<li>Draw geometrical figures in the <span style="font-family: Courier New,Courier,monospace">cairo_drawing()</span> callback function. 
-<p>The following code snippet shows how to draw some geometrical figures, such as a triangle, rectangle, and circle, with various styles and random positions by using the Cairo APIs.</p>
-<pre class="prettyprint">
-void 
-cairo_drawing(void *data)
-{
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-
-&nbsp;&nbsp;&nbsp;int i;
-&nbsp;&nbsp;&nbsp;double r, g, b, a;
-
-&nbsp;&nbsp;&nbsp;int Renderloop = 50;
-
-&nbsp;&nbsp;&nbsp;// Clear background as white
-&nbsp;&nbsp;&nbsp;cairo_set_source_rgba(ad-&gt;cairo, 1, 1, 1, 1);
-&nbsp;&nbsp;&nbsp;cairo_paint(ad-&gt;cairo);
-
-&nbsp;&nbsp;&nbsp;cairo_set_operator(ad-&gt;cairo, CAIRO_OPERATOR_OVER);
-
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; Renderloop; i++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Random color
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;r = drand48();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g = drand48();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;b = drand48();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a = drand48();
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_set_source_rgba(ad-&gt;cairo, r, g, b, a);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Random position
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;float x = drand48() * ad-&gt;width;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;float y = drand48() * ad-&gt;height;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;float side = drand48() * 300;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Random style
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int shape = drand48() * 3;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;float width = drand48() * 50 + 1;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int line_cap = drand48() * 3;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_line_cap_t line_cap_style = CAIRO_LINE_CAP_BUTT;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (line_cap == 1)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line_cap_style = CAIRO_LINE_CAP_ROUND;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (line_cap == 2)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line_cap_style = CAIRO_LINE_CAP_SQUARE;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int line_join = drand48() * 3;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_line_join_t line_join_style = CAIRO_LINE_JOIN_MITER;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (line_join == 1)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line_join_style = CAIRO_LINE_JOIN_ROUND;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (line_join == 2)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;line_join_style = CAIRO_LINE_JOIN_BEVEL;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double dash[] = {0.0, 0.0};
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dash[0] = drand48() * 50;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dash[1] = drand48() * 50;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_set_dash(ad-&gt;cairo, dash, 2, 0);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_set_line_width(ad-&gt;cairo, width);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_set_line_join(ad-&gt;cairo, line_join_style);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_set_line_cap(ad-&gt;cairo, line_cap_style);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (shape == 0) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Draw square
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_rectangle(ad-&gt;cairo, x, y, side, side);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_fill(ad-&gt;cairo);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (shape == 1) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Draw circle
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_arc(ad-&gt;cairo, x, y, side/2, 0.0, 2.0 * M_PI);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_stroke(ad-&gt;cairo);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Draw triangle
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_move_to(ad-&gt;cairo, x, y);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_line_to(ad-&gt;cairo, x + side, y);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_line_to(ad-&gt;cairo, x, y + side);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_close_path(ad-&gt;cairo);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_stroke(ad-&gt;cairo);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;cairo_surface_flush(ad-&gt;surface);
-}
-</pre></li>
-  
-<li>Define the callback for resizing.
-<p>In the following code snippet, when resizing occurs, Evas_GL surface is recreated and reconnected to the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image.</p>
-<pre class="prettyprint">
-static void 
-win_resize_cb(void *data, Evas *e , Evas_Object *obj , void *event_info)
-{
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-
-&nbsp;&nbsp;&nbsp;if (ad-&gt;evas_gl_surface)  
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_surface_destroy(ad-&gt;surface);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_destroy(ad-&gt;cairo);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_device_destroy(ad-&gt;cairo_device);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_gl_surface_destroy(ad-&gt;evas_gl, ad-&gt;evas_gl_surface);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_surface = NULL;
-&nbsp;&nbsp;&nbsp;}
-
-&nbsp;&nbsp;&nbsp;evas_object_geometry_get(obj, NULL, NULL, &amp;ad-&gt;width, &amp;ad-&gt;height);
-&nbsp;&nbsp;&nbsp;evas_object_image_size_set(ad-&gt;img, &amp;ad-&gt;width, &amp;ad-&gt;height);
-&nbsp;&nbsp;&nbsp;evas_object_resize(ad-&gt;img, &amp;ad-&gt;width, &amp;ad-&gt;height);
-&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;img);
-
-
-&nbsp;&nbsp;&nbsp;if (!ad-&gt;evas_gl_surface) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Native_Surface ns;
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_surface = evas_gl_surface_create(ad-&gt;evasgl, ad-&gt;evas_gl_config, &amp;ad-&gt;width, &amp;ad-&gt;height);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_gl_native_surface_get(ad-&gt;evasgl, ad-&gt;evas_gl_surface, &amp;ns);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_native_surface_set(ad-&gt;img, &amp;ns);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_pixels_dirty_set(ad-&gt;img, EINA_TRUE);
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;cairo_device = (cairo_device_t *)cairo_evas_gl_device_create(ad-&gt;evas_gl, ad-&gt;evas_gl_context);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cairo_gl_device_set_thread_aware(ad-&gt;cairo_device, 0);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;surface = (cairo_surface_t *)cairo_gl_surface_create_for_evas_gl(ad-&gt;cairo_device, ad-&gt;evas_gl_surface, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;evas_gl_config, ad-&gt;width, ad-&gt;height);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;cairo = cairo_create(ad-&gt;surface);
-&nbsp;&nbsp;&nbsp;}
-}
-</pre>
-</li>
-
-<li>To use the animator callback for a default update refresh rate, you can add an animator.
-<p>To update the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image which is connected to Evas_GL, use the <span style="font-family: Courier New,Courier,monospace">evas_object_image_pixels_dirty_set()</span> function. This updates the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image whenever Evas renders.</p>
-
-<pre class="prettyprint">
-static Eina_Bool 
-_animate_cb(void *data)
-{
-&nbsp;&nbsp;&nbsp;Evas_Object *obj = (Evas_Object *)data;
-&nbsp;&nbsp;&nbsp;evas_object_image_pixels_dirty_set(obj, EINA_TRUE);
-
-&nbsp;&nbsp;&nbsp;return EINA_TRUE;
-}
-</pre>
-</li>
-
-<li>The delete callback is triggered when the window is destroyed from the main loop.
-<pre class="prettyprint">
-static void 
-win_delete_request_cb(void *data, Evas_Object *obj, void *event_info)
-{
-&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
-&nbsp;&nbsp;&nbsp;cairo_surface_destroy(ad-&gt;surface);
-&nbsp;&nbsp;&nbsp;cairo_destroy(ad-&gt;cairo);
-&nbsp;&nbsp;&nbsp;cairo_device_destroy(ad-&gt;cairo_device);
-&nbsp;&nbsp;&nbsp;evas_gl_surface_destroy(ad-&gt;evas_gl, ad-&gt;evas_gl_surface);
-&nbsp;&nbsp;&nbsp;evas_gl_context_destroy(ad-&gt;evas_gl, ad-&gt;evas_gl_context);
-&nbsp;&nbsp;&nbsp;evas_gl_config_free(ad-&gt;evas_gl_config);
-&nbsp;&nbsp;&nbsp;evas_gl_free(ad-&gt;evas_gl);
-&nbsp;&nbsp;&nbsp;ui_app_exit();
-}
+#include &lt;Evas_GL.h&gt;
 </pre>
 </li>
 </ol>
 
-<p class="figure">Figure: Random geometrical figures</p> 
-<p align="center"><img alt="Random geometrical figures" src="../../images/cairo_evasgl.png" /></p>
+<h2 id="image_backend">Creating Cairo with the Image Backend</h2>
+
+<p>To create a Cairo context and surface with the image backend:</p>
+<ol>
+<li>Create the window and the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image.
+<p>Place an <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image into your application&#39;s main window. For more information about creating and placing an <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image, see <a href="../../../../org.tizen.ui.practices/html/native/efl/evas_basic_objects_n.htm">Basic Manipulation of Evas Objects</a> and the <a href="graphic_comp_tutorial_n.htm">Graphic UI Component tutorial</a>.</p>
+<pre class="prettyprint">
+Evas_Object *img = evas_object_image_filled_add(evas_object_evas_get(win));
+elm_win_resize_object_add(win, img);
+evas_object_image_content_hint_set(img, EVAS_IMAGE_CONTENT_HINT_DYNAMIC);
+evas_object_image_size_set(img, WIDTH, HEIGHT);
+evas_object_resize(img, WIDTH, HEIGHT);
+evas_object_show(img);
+</pre>
+</li>
+<li>Create the Cairo context and surface.
+<p>To use the Cairo API, create the Cairo context and surface using the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image. The <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image is used in the example code as a rendering destination.</p>
+<pre class="prettyprint">
+int row_stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, WIDTH);
+unsigned char *imageData = (unsigned char*)evas_object_image_data_get(img, EINA_TRUE);
+cairo_surface = cairo_image_surface_create_for_data(imageData, CAIRO_FORMAT_ARGB32, WIDTH, HEIGHT, row_stride);
+cairo = cairo_create(cairo_surface);
+</pre>
+</li>
+</ol>
+
+<h2 id="gl_backend">Creating Cairo with the GL Backend</h2>
+
+<p>For the Cairo GL backend in Tizen, you must know OpenGL. For more information, see the <a href="../../../../org.tizen.guides/html/native/graphics/opengles_n.htm">OpenGL ES guide</a>.</p>
+<p>To create Cairo with the GL backend:</p>
+<ol>
+<li>Create the window, <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image, and Evas GL.
+<p>Place an <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image in the application&#39;s main window, and create and initialize Evas GL. Call the <span style="font-family: Courier New,Courier,monospace">evas_object_image_pixels_get_callback_set()</span> function to initialize the Evas GL handle. The <span style="font-family: Courier New,Courier,monospace">cairo_drawing()</span> function must be set as the input parameter. For more information about creating and initializing Evas GL, see <a href="../../../../org.tizen.tutorials/html/native/graphics/opengl_tutorial_n.htm#creating">Creating the Elm Window and EvasGL</a>.</p>
+<pre class="prettyprint">
+Evas_Object *img = evas_object_image_filled_add(evas_object_evas_get(win));
+
+Evas_Native_Surface ns;
+Evas_GL *evas_gl = evas_gl_new(evas_object_evas_get(img));
+Evas_GL_Config *evas_gl_config = evas_gl_config_new();
+evas_gl_config-&gt;color_format = EVAS_GL_RGBA_8888;
+
+evas_gl_surface = evas_gl_surface_create(evas_gl, evas_gl_config, WIDTH, HEIGHT);
+evas_gl_context = evas_gl_context_create(evas_gl, NULL);
+evas_gl_native_surface_get(evas_gl, evas_gl_surface, &amp;ns);
+evas_object_image_native_surface_set(img, &amp;ns);
+evas_object_image_pixels_get_callback_set(img, cairo_drawing, 0);
+</pre>
+</li>
+<li>Create the Cairo context and surface.
+<p>Use the <span style="font-family: Courier New,Courier,monospace">Evas_Object</span> image and Evas GL context to create the Cairo context and surface. Cairo can be used in a multi-threaded environment. By default, Cairo switches out the current GL context after each draw finishes. If no other thread uses Cairo for rendering, Cairo can use the non-thread-aware mode with the <span style="font-family: Courier New,Courier,monospace">cairo_gl_device_set_thread_aware()</span> function&#39;s second parameter set to 0.</p>
+<pre class="prettyprint">
+setenv(&quot;CAIRO_GL_COMPOSITOR&quot;, &quot;msaa&quot;, 1);
+cairo_device = (cairo_device_t*)cairo_evas_gl_device_create(evas_gl, evas_gl_context);
+cairo_gl_device_set_thread_aware(cairo_device, 0);
+cairo_surface = (cairo_surface_t*)cairo_gl_surface_create_for_evas_gl(cairo_device, evas_gl_surface, evas_gl_config, WIDTH, HEIGHT);
+cairo = cairo_create(cairo_surface);
+</pre>
+</li>
+</ol>
+
+<h2 id="line">Drawing Lines</h2>
+
+<p>When drawing an image with Cairo, you must prepare the context (nouns) for each of the drawing verbs. For example, if you want to use the <span style="font-family: Courier New,Courier,monospace">cairo_stroke()</span> or <span style="font-family: Courier New,Courier,monospace">cairo_fill()</span> function, create a path first. Similarly, in case of using the <span style="font-family: Courier New,Courier,monospace">cairo_show_text()</span> function, you must position your text by its insertion point. A primary source is needed for using the <span style="font-family: Courier New,Courier,monospace">cairo_paint()</span> function and a second source pattern or surface is prepared for using the <span style="font-family: Courier New,Courier,monospace">cairo_mask()</span> function. For more information, see the <a href="http://www.cairographics.org/tutorial/" target="_blank">Cairo Tutorial in cairographics.org</a>.</p>
+<p>The following figure shows an example of lines drawn using Cairo.</p>
+<p class="figure">Figure: Lines drawn using Cairo</p> 
+<p align="center"><img alt="Lines drawn using Cairo" src="../../images/cairo_draw_lines.png" /></p>
+
+<p>To draw lines:</p>
+<ol>
+<li>Prepare the sources.
+<p>Prior to drawing a line, prepare and select sources. There are 3 main sources in Cairo - colors, gradients, and images:</p>
+<ul>
+<li>Colors use a uniform hue and opacity for the entire source. You can select these without any preparation with the <span style="font-family: Courier New,Courier,monospace">cairo_set_source_rgb()</span> function and <span style="font-family: Courier New,Courier,monospace">cairo_set_source_rgba()</span> functions.
+<pre class="prettyprint">
+cairo_set_source_rgba(cairo, 1.0, 0.0, 0.0, 1.0);
+</pre>
+</li>
+<li>Gradients describe a progression of colors by setting a start and stop reference location and a series of &quot;stops&quot; along the way. There are linear and radial gradients built from 2 points. Stops are added to the gradient with the <span style="font-family: Courier New,Courier,monospace">cairo_add_color_stop_rgb()</span> and <span style="font-family: Courier New,Courier,monospace">cairo_add_color_stop_rgba()</span> functions which take a color like the <span style="font-family: Courier New,Courier,monospace">cairo_add_color_stop_rgb()</span> or <span style="font-family: Courier New,Courier,monospace">cairo_add_color_stop_rgba()</span> function, as well as an offset to indicate where it lies between the reference locations.</li>
+<li>Images include both surfaces loaded from the existing files with the <span style="font-family: Courier New,Courier,monospace">cairo_image_surface_create_from_png()</span> function and surfaces created from within Cairo as an earlier destination. For more information about these Cairo APIs, see <a href="http://www.cairographics.org/manual/cairo-cairo-pattern-t.html" target="_blank">the cairo_pattern_t in cairographics.org</a>.</li>
+</ul>
+</li>
+<li>Set the starting point.
+<p>Cairo uses a connect-the-dots style system for creating paths. To draw a line from a starting point to an ending point, set the starting point of the line with the <span style="font-family: Courier New,Courier,monospace">cairo_move_to()</span> function. This sets the current reference point without making the path connect the previous point to it.</p>
+<pre class="prettyprint">
+cairo_move_to(cairo, 100, 100);
+</pre>
+</li>
+<li>Draw the shapes.
+<ul>
+<li>Draw a straight line.
+<p>After setting a starting point as (100, 100), you can draw a straight line to an ending point using the <span style="font-family: Courier New,Courier,monospace">cairo_line_to()</span> or <span style="font-family: Courier New,Courier,monospace">cairo_rel_line_to()</span> function. With these functions, the ending point is set as absolute coordinates and relative coordinates respectively, Here, (200, 150) is the absolute coordinates and (100, -50) is the relative coordinates.</p>
+<pre class="prettyprint">
+cairo_line_to(cairo, 200, 150);
+cairo_rel_line_to(cairo, 100, -50);
+</pre>
+</li>
+<li>Draw an arc.
+<p>Arcs are parts of the outside of a circle. The point you directly specify is the center of the circle that makes up the addition to the path. Both a starting and an ending point on the circle must be specified, and these points are connected either clockwise using the <span style="font-family: Courier New,Courier,monospace">cairo_arc()</span> or counter-clockwise using the <span style="font-family: Courier New,Courier,monospace">cairo_arc_negative()</span> function.</p>
+<pre class="prettyprint">
+cairo_arc(cairo, 200, 200, 100 * sqrt(2), -0.25 * M_PI, 0.25 * M_PI);
+</pre>
+</li>
+<li>Draw a curve.
+<p>Curves in Cairo are cubic Bézier splines. They start at the current reference point and smoothly follow the direction of 2 other points (without going through them) to get to a third specified point. Like lines, there are both absolute (<span style="font-family: Courier New,Courier,monospace">cairo_curve_to()</span>) and relative (<span style="font-family: Courier New,Courier,monospace">cairo_rel_curve_to()</span>) functions. Note that the relative variant specifies all points relative to the previous reference point, rather than each relative to the preceding control point of the curve.</p>
+<pre class="prettyprint">
+cairo_rel_curve_to(cairo, -100, -50, -100, 50, -200, 0);
+</pre>
+</li>
+<li>Close the path.
+<p>Cairo can also close the path by drawing a straight line to the beginning of the current sub-path. This straight line can be useful for the last edge of a polygon.</p>
+<pre class="prettyprint">
+cairo_close_path(cairo);
+</pre>
+</li>
+</ul>
+</li>
+</ol>
+
+<h2 id="image">Painting with Image Files</h2>
+
+<p>With images, Cairo supports the functionality only for the PNG format. These functions for PNG are experimental, so use them with care. For more information about PNG support, see <a href="http://www.cairographics.org/manual/cairo-PNG-Support.html" target="_blank">PNG Support in cairographics.org</a>.</p>
+
+<p>The following figure shows an example of painting with an image file.</p>
+<p class="figure">Figure: Painting with image file</p> 
+<p align="center"><img alt="Lines drawn using Cairo" src="../../images/cairo_image_png_sample.png" /></p>
+
+<p>To paint with image files:</p>
+<ol>
+<li>Get the image resource.
+<p>The following code snippet shows how to prepare image data for your application. To get an application&#39;s resource image data, use the <span style="font-family: Courier New,Courier,monospace">app_get_resource_path()</span> function. This gets a stored PNG image file path to use as a resource. For more information about the <span style="font-family: Courier New,Courier,monospace">app_get_resource_path()</span> function, see the App Common API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__COMMON__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__APP__COMMON__MODULE.html">wearable</a> applications.</p>
+<pre class="prettyprint">
+char image_filepath[256];
+char *source_filename = &quot;image.png&quot;;
+char *resource_path = app_get_resource_path();
+snprintf(image_filepath, 256, &quot;%s/%s&quot;, resource_path, source_filename);
+free(resource_path);
+</pre>
+</li>
+<li>Create the source surface.
+<p>To paint using the image data from the PNG file, first create a source surface. The image data is a source surface to paint on the destination surface.</p>
+<pre class="prettyprint">
+cairo_surface_t *image = cairo_image_surface_create_from_png(image_filepath);
+cairo_set_source_surface(cairo, image, 0, 0);
+</pre>
+</li>
+<li>Paint the Cairo surface.
+<p>The <span style="font-family: Courier New,Courier,monospace">cairo_paint()</span> function uses a mask that transfers the entire source to the destination. It can be considered an infinitely large mask, or no mask, but the result is the same. To set a compositing operator, use the <span style="font-family: Courier New,Courier,monospace">cairo_set_operator()</span> and paint a Cairo surface using the source pattern obtained before. For more information about the <span style="font-family: Courier New,Courier,monospace">cairo_set_operator()</span> function, see <a href="http://www.cairographics.org/operators/" target="_blank">operators in cairographics.org</a>.</p>
+<pre class="prettyprint">
+cairo_set_operator(cairo, CAIRO_OPERATOR_SOURCE);
+cairo_paint(cairo);
+</pre>
+</li>
+</ol>
+
+<h2 id="text">Showing Text</h2>
+
+<p>In Cairo, the <span style="font-family: Courier New,Courier,monospace">cairo_font_face_t</span> class represents a particular font at a particular weight, slant, and other characteristics. For more information for using the cairo font, see <a href="http://www.cairographics.org/manual/cairo-cairo-font-face-t.html" target="_blank">cairo_font_face_t of cairographics.org</a>.</p>
+
+<p>The following figure shows an example of text shown using Cairo.</p>
+<p class="figure">Figure: Text shown using Cairo</p> 
+<p align="center"><img alt="Text shown using Cairo" src="../../images/cairo_text_sample.png" /></p>
+
+<p>To show text:</p>
+<ol>
+<li>Prepare a text to use as a resource:
+<pre class="prettyprint">
+const char *utf8 = &quot;Hello, Tizen!&quot;;
+</pre>
+</li>
+<li>Set text configurations.
+<p>In this example, create a font face implicitly using the <span style="font-family: Courier New,Courier,monospace">cairo_select_font_face()</span> function. The text is a kind of &quot;mask&quot; you are about to work with. To use a mask, you need a font type and font size. Set the font type as &quot;Sans&quot;, and font size as 52.</p>
+<pre class="prettyprint">
+cairo_select_font_face(cairo, &quot;Sans&quot;, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+cairo_set_font_size(cairo, 52.0);
+</pre>
+</li>
+<li>Show the text.
+<p>The <span style="font-family: Courier New,Courier,monospace">cairo_show_text()</span> function forms the mask from the text. You can think of the <span style="font-family: Courier New,Courier,monospace">cairo_show_text()</span> function as a shortcut for creating a path with the <span style="font-family: Courier New,Courier,monospace">cairo_text_path()</span> and using the <span style="font-family: Courier New,Courier,monospace">cairo_fill()</span> function to transfer it.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">cairo_show_text()</span> function caches glyphs, and it is much more efficient if you work with a lot of text. Note that this function is experimental and must be handled with care. For more information about Cairo text, see the <a href="http://www.cairographics.org/manual/cairo-text.html" target="_blank">description of cairo_text</a>.</p>
+<pre class="prettyprint">
+cairo_text_extents_t extents;
+cairo_text_extents(cairo, utf8, &amp;extents);
+cairo_move_to(cairo, 10, 10);
+cairo_show_text(cairo, utf8);
+</pre>
+</li>
+</ol>
+
+<h2 id="delete">Deleting Cairo</h2>
+
+<p>Delete the Cairo resources when they are no longer needed.</p>
+<p>In the <span style="font-family: Courier New,Courier,monospace">cairo_destroy()</span> function, a reference count for a Cairo context is decreased by one. If the count is to be zero, the Cairo context and all associated resources must be freed. The same steps apply for the <span style="font-family: Courier New,Courier,monospace">cairo_surface_destroy()</span> function as well.</p>
+<pre class="prettyprint">
+cairo_surface_destroy(surface);
+cairo_destroy(cairo);
+</pre>
 
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>

@@ -23,7 +23,7 @@
     <div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>		
 		<ul class="toc">
-			<li><a href="#initialize_media_content">Connecting to the Media Database</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
 			<li>Media content
 				<ul class="toc">
 					<li><a href="#folder_list">Getting the Folder List</a></li>
@@ -110,8 +110,8 @@
 <h2>Warm-up</h2>
 <p>Become familiar with the Media Content API basics by learning about:</p>
 	<ul>
-		<li><a href="#initialize_media_content">Connecting to the Media Database</a>
-		<p>Initialize the media content for use and connect to the media database.</p></li>
+		<li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the media content functionality.</p></li>
 		<li>Media content
 			<ul>
 				<li><a href="#folder_list">Getting the Folder List</a>
@@ -217,18 +217,27 @@
 		</li>
 	</ul>
 
+<h2 id="prerequisites">Prerequisites</h2>
 
- <h2 id="initialize_media_content" name="initialize_media_content">Connecting to the Media Database</h2>
-
-
-<p>To use the media database:</p>
+<p>To enable your application to use the media content functionality:</p>
 <ol>
-<li><p>Media Content functions use a SQLite database to save the metadata of the media files on the user device, along with the tags and bookmarks that the user sets. To use the functions and data types of the Media Content API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CONTENT__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CONTENT__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;media_content.h&gt;</span> header file in your application:</p>
+<li>
+<p>To use the Media Content API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CONTENT__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CONTENT__MODULE.html">wearable</a> applications), the application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;!--To insert content--&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/content.write&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;!--To access a storage to insert content--&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/mediastorage&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+</li>
+<li><p>Media Content functions use a SQLite database to save the metadata of the media files on the user device, along with the tags and bookmarks that the user sets. To use the functions and data types of the Media Content API, include the <span style="font-family: Courier New,Courier,monospace">&lt;media_content.h&gt;</span> header file in your application:</p>
 <pre class="prettyprint">
 #include &lt;media_content.h&gt;
 #include &lt;glib.h&gt;
 </pre>
-<p>The example application used in the other use cases also requires the <span style="font-family: Courier New,Courier,monospace">&lt;glib.h&gt;</span> header file.</p>
+<p>The example application used in the use cases also requires the <span style="font-family: Courier New,Courier,monospace">&lt;glib.h&gt;</span> header file.</p>
 </li>
 <li>Connect to the database:
 <pre class="prettyprint">
@@ -236,9 +245,9 @@ int ret = MEDIA_CONTENT_ERROR_NONE;
 
 ret = media_content_connect();
 if (ret == MEDIA_CONTENT_ERROR_NONE)
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;connection is success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;connection is success&quot;);
 else
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;connection failed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;connection failed&quot;);
 
 return ret;
 </pre></li>
@@ -257,17 +266,17 @@ media_content_disconnect();
 <ol>
 <li>Define a callback function for the <span style="font-family: Courier New,Courier,monospace">media_folder_foreach_folder_from_db()</span> function, called for each available media folder. Use the callback to create a list of folders.
 <pre class="prettyprint">
-bool 
+bool
 gallery_folder_list_cb(media_folder_h folder, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;media_folder_h new_folder = NULL;
-&nbsp;&nbsp;&nbsp;media_folder_clone(&amp;new_folder, folder);
+&nbsp;&nbsp;&nbsp;&nbsp;media_folder_h new_folder = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;media_folder_clone(&amp;new_folder, folder);
 
-&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data; // Include glib.h for this value 
+&nbsp;&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data; /* Include glib.h for this value */
 
-&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_folder);
+&nbsp;&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_folder);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li>
 <li>To find the folders, call the <span style="font-family: Courier New,Courier,monospace">media_folder_foreach_folder_from_db()</span> function with the defined callback. After the callback has created the folder list, you can access the folder details with various <span style="font-family: Courier New,Courier,monospace">media_folder_get_XXX()</span> functions. 
@@ -275,64 +284,55 @@ gallery_folder_list_cb(media_folder_h folder, void *user_data)
 int i;
 int count;
 filter_h filter = NULL;
-GList *folder_list = NULL; // Include glib.h for this value 
+GList *folder_list = NULL; /* Include glib.h for this value */
 media_folder_h folder_handle = NULL;
 
 ret = media_folder_foreach_folder_from_db(filter, gallery_folder_list_cb, &amp;folder_list);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_folder_foreach_folder_from_db failed: %d&quot;, ret);
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_folder_foreach_folder_from_db failed: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;return ret;
-} 
-else 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_folder_foreach_folder_from_db success!!&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_folder_foreach_folder_from_db success!!&quot;);
 
-&nbsp;&nbsp;&nbsp;char *folder_id = NULL;
-&nbsp;&nbsp;&nbsp;char *folder_name = NULL;
-&nbsp;&nbsp;&nbsp;char *folder_path = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *folder_id = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *folder_name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *folder_path = NULL;
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(folder_list); i++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;folder_handle = (media_folder_h)g_list_nth_data(folder_list, i);
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(folder_list); i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;folder_handle = (media_folder_h)g_list_nth_data(folder_list, i);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_folder_id(folder_handle, &amp;folder_id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_name(folder_handle, &amp;folder_name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_path(folder_handle, &amp;folder_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_folder_id(folder_handle, &amp;folder_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_name(folder_handle, &amp;folder_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_path(folder_handle, &amp;folder_path);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_media_count_from_db(folder_id, filter, &amp;count);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_media_count_from_db(folder_id, filter, &amp;count);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Release allocated strings 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free (folder_id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free (folder_name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free (folder_path);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_folder_get_media_count_from_db failed: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Release allocated strings */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free (folder_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free (folder_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free (folder_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_folder_get_media_count_from_db failed: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ret;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media count [%d]: %d&quot;, i, count);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media count [%d]: %d&quot;, i, count);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre></li>
 
 <li>When no longer needed, destroy the folder list handle:
 <pre class="prettyprint">
-// Remove the folder list 
-if (folder_list) 
-{
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(folder_list); i++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;folder_handle = (media_folder_h)g_list_nth_data(folder_list, i);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_folder_destroy(folder_handle);
-&nbsp;&nbsp;&nbsp;}
+/* Remove the folder list */
+if (folder_list) {
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(folder_list); i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;folder_handle = (media_folder_h)g_list_nth_data(folder_list, i);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_folder_destroy(folder_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;g_list_free(folder_list);
+&nbsp;&nbsp;&nbsp;&nbsp;g_list_free(folder_list);
 }
 </pre>
 </li>
@@ -345,24 +345,24 @@ if (folder_list)
 <ol>
 <li>Define a callback function for the <span style="font-family: Courier New,Courier,monospace">media_info_foreach_media_from_db()</span> function, called for each available media item. Use the callback to create a list of media items. 
 <pre class="prettyprint">
-bool 
+bool
 gallery_media_item_cb(media_info_h media, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;media_info_h new_media = NULL;
-&nbsp;&nbsp;&nbsp;media_info_clone(&amp;new_media, media);
+&nbsp;&nbsp;&nbsp;&nbsp;media_info_h new_media = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;media_info_clone(&amp;new_media, media);
 
-&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data; // Include glib.h for this value 
-&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_media);
+&nbsp;&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data; /* Include glib.h for this value */
+&nbsp;&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_media);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li>
 <li>To find the items satisfying certain criteria, or modify the results in a specific way, create a filter and set its properties. For a detailed list of condition fields (such as <span style="font-family: Courier New,Courier,monospace;">MEDIA_TYPE</span>) and their values (such as <span style="font-family: Courier New,Courier,monospace;">MEDIA_CONTENT_TYPE_IMAGE</span> and <span style="font-family: Courier New,Courier,monospace;">MEDIA_CONTENT_TYPE_VIDEO</span>), see the <span style="font-family: Courier New,Courier,monospace;">media_content_type.h</span> header file. 
 <p>The following example filters media items so that only image and video files are included in the result. The filter is case-insensitive, and the results are sorted in a descending order based on the item display name. For more information about the filter properties, see <a href="#filter">Setting up a Filter</a>. </p>
 <pre class="prettyprint">
-#define BUFLEN 200 
+#define BUFLEN 200
 
-// Get the item list 
+/* Get the item list */
 media_info_h media_handle = NULL;
 GList *all_item_list = NULL;
 
@@ -370,24 +370,22 @@ media_content_collation_e collate_type = MEDIA_CONTENT_COLLATE_NOCASE;
 media_content_order_e order_type = MEDIA_CONTENT_ORDER_DESC;
 ret = media_filter_create(&amp;filter);
 
-snprintf(buf, BUFLEN, &quot;%s = %d OR %s = %d&quot;, MEDIA_TYPE, MEDIA_CONTENT_TYPE_IMAGE, 
+snprintf(buf, BUFLEN, &quot;%s = %d OR %s = %d&quot;, MEDIA_TYPE, MEDIA_CONTENT_TYPE_IMAGE,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MEDIA_TYPE, MEDIA_CONTENT_TYPE_VIDEO);
 ret = media_filter_set_condition(filter, buf, collate_type);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to set condition&quot;);
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to set condition&quot;);
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 
 ret = media_filter_set_order(filter, order_type, MEDIA_DISPLAY_NAME, collate_type);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to set order&quot;);
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to set order&quot;);
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 </pre></li>
 <li>To find the media items, use the <span style="font-family: Courier New,Courier,monospace;">media_info_foreach_media_from_db()</span> function with the defined callback. The function is synchronous, and it blocks until the callback has been called for all items or the callback returns <span style="font-family: Courier New,Courier,monospace;">false</span>.
@@ -398,19 +396,17 @@ ret = media_info_foreach_media_from_db(filter, gallery_media_item_cb, &amp;all_i
 
 <li>When no longer needed, destroy the item list and the filter handle:
 <pre class="prettyprint">
-// Remove all items list 
-if (all_item_list) 
-{
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(all_item_list); i++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_handle = (media_info_h)g_list_nth_data(all_item_list, i);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_destroy(media_handle);
-&nbsp;&nbsp;&nbsp;}
+/* Remove all items list */
+if (all_item_list) {
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(all_item_list); i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_handle = (media_info_h)g_list_nth_data(all_item_list, i);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_destroy(media_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;g_list_free(all_item_list);
+&nbsp;&nbsp;&nbsp;&nbsp;g_list_free(all_item_list);
 }
 
-// Destroy the filter handle
+/* Destroy the filter handle */
 media_filter_destroy(filter);
 </pre>
 </li>
@@ -423,54 +419,44 @@ media_filter_destroy(filter);
 <ol>
 <li>Define the database update callback function:
 <pre class="prettyprint">
-void 
+void
 _noti_cb(media_content_error_e error, int pid,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_content_db_update_item_type_e update_item,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_content_db_update_type_e update_type,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_content_type_e media_type,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *uuid, char *path, char *mime_type, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;if (error == MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;noti success! %d\n&quot;, error);
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;error occurred! %d\n&quot;, error);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (error == MEDIA_CONTENT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;noti success! %d\n&quot;, error);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;error occurred! %d\n&quot;, error);
 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti from PID(%d)\n&quot;, pid);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti from PID(%d)\n&quot;, pid);
 
-&nbsp;&nbsp;&nbsp;if (update_item == MEDIA_ITEM_FILE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti item: MEDIA_ITEM_FILE\n&quot;);
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else if (update_item == MEDIA_ITEM_DIRECTORY) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti item: MEDIA_ITEM_DIRECTORY\n&quot;);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (update_item == MEDIA_ITEM_FILE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti item: MEDIA_ITEM_FILE\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else if (update_item == MEDIA_ITEM_DIRECTORY)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti item: MEDIA_ITEM_DIRECTORY\n&quot;);
 
-&nbsp;&nbsp;&nbsp;if (update_type == MEDIA_CONTENT_INSERT) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti type: MEDIA_CONTENT_INSERT\n&quot;);
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else if (update_type == MEDIA_CONTENT_DELETE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti type: MEDIA_CONTENT_DELETE\n&quot;);
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else if (update_type == MEDIA_CONTENT_UPDATE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti type: MEDIA_CONTENT_UPDATE\n&quot;);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (update_type == MEDIA_CONTENT_INSERT)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti type: MEDIA_CONTENT_INSERT\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else if (update_type == MEDIA_CONTENT_DELETE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti type: MEDIA_CONTENT_DELETE\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else if (update_type == MEDIA_CONTENT_UPDATE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Noti type: MEDIA_CONTENT_UPDATE\n&quot;);
 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;content type: %d\n&quot;, media_type);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;content type: %d\n&quot;, media_type);
 
-&nbsp;&nbsp;&nbsp;if (path) dlog_print(DLOG_DEBUG, LOG_TAG, &quot;path: %s\n&quot;, path);
-&nbsp;&nbsp;&nbsp;if (uuid) dlog_print(DLOG_DEBUG, LOG_TAG, &quot;uuid: %s\n&quot;, uuid);
-&nbsp;&nbsp;&nbsp;if (mime_type) dlog_print(DLOG_DEBUG, LOG_TAG, &quot;mime_type: %s\n&quot;, mime_type);
-&nbsp;&nbsp;&nbsp;if (user_data) dlog_print(DLOG_DEBUG, LOG_TAG, &quot;String: %s\n&quot;, (char *)user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;if (path)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;path: %s\n&quot;, path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (uuid)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;uuid: %s\n&quot;, uuid);
+&nbsp;&nbsp;&nbsp;&nbsp;if (mime_type)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;mime_type: %s\n&quot;, mime_type);
+&nbsp;&nbsp;&nbsp;&nbsp;if (user_data)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;String: %s\n&quot;, (char *)user_data);
 
-&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;return;
 }
 </pre></li>
 
@@ -478,12 +464,12 @@ _noti_cb(media_content_error_e error, int pid,
 <pre class="prettyprint">
 int ret = MEDIA_CONTENT_ERROR_NONE;
 
-// Subscribe notifications 
+/* Subscribe notifications */
 char *user_str = strdup(&quot;hi&quot;);
 media_content_set_db_updated_cb(_noti_cb, (void*)user_str);
 </pre></li>
 
-<li>When you no longer want to receive notifications, unregister the callback:
+<li>When you no longer want to receive notifications, deregister the callback:
 <pre class="prettyprint">
 media_content_unset_db_updated_cb();
 </pre></li>
@@ -496,7 +482,8 @@ media_content_unset_db_updated_cb();
 <ol>
 <li><p>To find the albums satisfying certain criteria, or modify the results in a specific way, create a filter and set its properties.</p>
 <p>The following example filters media albums so that only albums with the artist named &quot;Tizen&quot; are included in the result. The filter is case-insensitive, and the results are sorted in a descending order based on the album display name. For more information about the filter properties, see <a href="#filter">Setting up a Filter</a>.</p>
-<pre class="prettyprint">#define BUFLEN 200
+<pre class="prettyprint">
+#define BUFLEN 200
 
 filter_h filter = NULL;
 char buf[BUFLEN] = {&#39;\0&#39;};
@@ -510,15 +497,16 @@ media_filter_set_order(filter, MEDIA_CONTENT_ORDER_DESC, MEDIA_DISPLAY_NAME, MED
 
 media_album_foreach_album_from_db(filter, media_album_list_cb, NULL);
 
-media_filter_destroy(filter);</pre>
+media_filter_destroy(filter);
+</pre>
 </li>
 <li>To find the albums, use the <span style="font-family: Courier New,Courier,monospace">media_album_foreach_album_from_db()</span> function.
 <p>To find only a subset of the albums, use a filter. If you want to find all albums, set the filter parameter to <span style="font-family: Courier New,Courier,monospace">NULL</span>.</p>
 <pre class="prettyprint">
-// Find all albums
+/* Find all albums */
 media_album_foreach_album_from_db(NULL, media_album_list_cb, NULL);
 
-// Find filtered albums
+/* Find filtered albums */
 media_album_foreach_album_from_db(filter, media_album_list_cb, NULL);
 </pre>
 
@@ -539,7 +527,7 @@ media_filter_destroy(filter);
 <ol>
 <li>Read the album details within the callback:
 <pre class="prettyprint">
-bool 
+bool
 media_album_list_cb(media_album_h album, void *user_data)
 {
 </pre>
@@ -551,46 +539,37 @@ media_album_list_cb(media_album_h album, void *user_data)
 <li>
 Use the <span style="font-family: Courier New,Courier,monospace">media_album_get_album_id()</span>, <span style="font-family: Courier New,Courier,monospace">media_album_get_name()</span>, and <span style="font-family: Courier New,Courier,monospace">media_album_get_artist()</span> functions to read the album ID, name, and artist:
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;media_content_error_e ret = MEDIA_CONTENT_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;media_content_error_e ret = MEDIA_CONTENT_ERROR_NONE;
 
-&nbsp;&nbsp;&nbsp;int id = -1; 
-&nbsp;&nbsp;&nbsp;char *name = NULL, *artist = NULL;
-&nbsp;&nbsp;&nbsp;int count = -1;
+&nbsp;&nbsp;&nbsp;&nbsp;int id = -1;
+&nbsp;&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *artist = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;int count = -1;
 
-&nbsp;&nbsp;&nbsp;// Get the ID of the album
-&nbsp;&nbsp;&nbsp;ret = media_album_get_album_id(album, &amp;id);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling	
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Album id: %d\n&quot;, id);
-&nbsp;&nbsp;&nbsp;}   
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the ID of the album */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_album_get_album_id(album, &amp;id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Album id: %d\n&quot;, id);
 
-&nbsp;&nbsp;&nbsp;// Get name of the album
-&nbsp;&nbsp;&nbsp;ret = media_album_get_name(album, &amp;name);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Album name: %s\n&quot;, name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
-&nbsp;&nbsp;&nbsp;}   
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get name of the album */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_album_get_name(album, &amp;name);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Album name: %s\n&quot;, name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;// Get the artist name
-&nbsp;&nbsp;&nbsp;ret = media_album_get_artist(album, &amp;artist);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Artist: %s\n&quot;, artist);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(artist);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the artist name */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_album_get_artist(album, &amp;artist);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Artist: %s\n&quot;, artist);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(artist);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 </pre>
 
 <table class="note">
@@ -611,19 +590,15 @@ Get the media item count in the album with the <span style="font-family: Courier
 <p>The second parameter is the filter. If it is set to <span style="font-family: Courier New,Courier,monospace">NULL</span>, all media is counted.</p>
 
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;// Get media count in the album
-&nbsp;&nbsp;&nbsp;// Filter is NULL - all media items are counted
-&nbsp;&nbsp;&nbsp;ret = media_album_get_media_count_from_db(id, NULL, &amp;count);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Media count in this album: %d\n&quot;, count);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get media count in the album */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Filter is NULL - all media items are counted */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_album_get_media_count_from_db(id, NULL, &amp;count);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Media count in this album: %d\n&quot;, count);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }</pre>
 
 </li>
@@ -639,9 +614,11 @@ Get the media item count in the album with the <span style="font-family: Courier
 
 <ol type="a"><li><p>Before you can read the album content information, acquire the album ID. If you have the album handle (<span style="font-family: Courier New,Courier,monospace">media_album_h</span>), you can call the <span style="font-family: Courier New,Courier,monospace">media_album_get_album_id()</span> function:</p>
 
-<pre class="prettyprint">int id = -1;
+<pre class="prettyprint">
+int id = -1;
 
-media_album_get_album_id(album, &amp;id);</pre>
+media_album_get_album_id(album, &amp;id);
+</pre>
 
 <p>To obtain the handle, call the <span style="font-family: Courier New,Courier,monospace">media_album_foreach_album_from_db()</span> function. The handle is provided in the callback.</p></li>
 
@@ -649,7 +626,9 @@ media_album_get_album_id(album, &amp;id);</pre>
 
 <p>The following call finds all the media items in the album (<span style="font-family: Courier New,Courier,monospace">NULL</span> filter). The <span style="font-family: Courier New,Courier,monospace">album_contents_info_cb()</span> callback is called for each item.</p>
 
-<pre class="prettyprint">media_album_foreach_media_from_db(id, NULL, album_contents_info_cb, NULL);</pre>
+<pre class="prettyprint">
+media_album_foreach_media_from_db(id, NULL, album_contents_info_cb, NULL);
+</pre>
 
 <p>This function is synchronous. The call blocks until the callback has been called for all the albums or the callback returns <span style="font-family: Courier New,Courier,monospace">false</span>.</p></li></ol></li>
 
@@ -657,50 +636,41 @@ media_album_get_album_id(album, &amp;id);</pre>
 <p>Define the callback which you set in the <span style="font-family: Courier New,Courier,monospace">media_album_foreach_media_from_db()</span> function.</p>
 <p>The following example prints the title, MIME type, and size of the media item for which it was called.</p> 
 <pre class="prettyprint">
-bool 
+bool
 album_contents_info_cb(media_info_h media, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;media_content_error_e ret = MEDIA_CONTENT_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;media_content_error_e ret = MEDIA_CONTENT_ERROR_NONE;
 
-&nbsp;&nbsp;&nbsp;char *title = NULL, *mime_type = NULL;
-&nbsp;&nbsp;&nbsp;unsigned long long size = -1;
+&nbsp;&nbsp;&nbsp;&nbsp;char *title = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *mime_type = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned long long size = -1;
 
-&nbsp;&nbsp;&nbsp;// Read the item title
-&nbsp;&nbsp;&nbsp;ret = media_info_get_title(media, &amp;title);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Title: %s\n&quot;, title);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(title);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Read the item title */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_title(media, &amp;title);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Title: %s\n&quot;, title);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(title);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;// Read the item MIME type
-&nbsp;&nbsp;&nbsp;ret = media_info_get_mime_type(media, &amp;mime_type);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;MIME type: %s\n&quot;, mime_type);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(mime_type);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Read the item MIME type */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_mime_type(media, &amp;mime_type);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;MIME type: %s\n&quot;, mime_type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(mime_type);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;// Read the item size
-&nbsp;&nbsp;&nbsp;ret = media_info_get_size(media, &amp;size);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Size: %llu\n&quot;, size);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Read the item size */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_size(media, &amp;size);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Size: %llu\n&quot;, size);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }</pre>
 
 <table class="note">
@@ -719,10 +689,12 @@ album_contents_info_cb(media_info_h media, void *user_data)
 
 <p>To set a bookmark for a video file at a given timestamp, use the <span style="font-family: Courier New,Courier,monospace">media_bookmark_insert_to_db()</span> function:</p>
 
-<pre class="prettyprint">char* thumbnail_path = &quot;path/to/image/file&quot;;
+<pre class="prettyprint">
+char* thumbnail_path = &quot;path/to/image/file&quot;;
 
 media_bookmark_insert_to_db(media_id, 220, thumbnail_path);
-media_bookmark_insert_to_db(media_id, 210, thumbnail_path);</pre>
+media_bookmark_insert_to_db(media_id, 210, thumbnail_path);
+</pre>
 
 <p>The parameters are the media ID of the video file, the moment (time in seconds from the beginning) in the video to bookmark, and the image used as a thumbnail for the bookmark. You can use the same thumbnail for more than 1 bookmark.</p>
 
@@ -746,21 +718,22 @@ snprintf(buf, BUFLEN, &quot;%s &gt;= 220&quot;, BOOKMARK_MARKED_TIME);
 media_filter_set_condition(filter, buf, MEDIA_CONTENT_COLLATE_DEFAULT);
 
 media_filter_set_offset(filter,
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Offset
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Count
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Offset */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Count */
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3);
 
-media_filter_set_order(filter, MEDIA_CONTENT_ORDER_ASC, BOOKMARK_MARKED_TIME, MEDIA_CONTENT_COLLATE_NOCASE);</pre></li>
+media_filter_set_order(filter, MEDIA_CONTENT_ORDER_ASC, BOOKMARK_MARKED_TIME, MEDIA_CONTENT_COLLATE_NOCASE);
+</pre></li>
 
 <li><p>To find the bookmarks set for a media item, use the <span style="font-family: Courier New,Courier,monospace">media_info_foreach_bookmark_from_db()</span> function.</p>
 
 <p>To find only a subset of the bookmarks, use a filter. If you want to find all bookmarks set for a media item, set the filter parameter to <span style="font-family: Courier New,Courier,monospace">NULL</span>.</p>
 <pre class="prettyprint">
-// Find all items
+/* Find all items */
 media_info_foreach_bookmark_from_db(media_id, NULL, get_bookmarks_cb, NULL);
 
-// Find filtered items
+/* Find filtered items */
 media_info_foreach_bookmark_from_db(media_id, filter, get_bookmarks_cb, NULL);
 </pre>
 
@@ -772,7 +745,9 @@ media_info_foreach_bookmark_from_db(media_id, filter, get_bookmarks_cb, NULL);
 
 <li><p>Destroy the filter:</p>
 
-<pre class="prettyprint">media_filter_destroy(filter);</pre></li>
+<pre class="prettyprint">
+media_filter_destroy(filter);
+</pre></li>
 
 </ol>
 
@@ -782,7 +757,7 @@ media_info_foreach_bookmark_from_db(media_id, filter, get_bookmarks_cb, NULL);
 <ol>
 <li>Read the bookmark details within the callback:
 <pre class="prettyprint">
-bool 
+bool
 get_bookmarks_cb(media_bookmark_h bookmark, void* user_data)
 {
 </pre>
@@ -793,13 +768,12 @@ get_bookmarks_cb(media_bookmark_h bookmark, void* user_data)
 <ul>
 <li>Use the <span style="font-family: Courier New,Courier,monospace;">media_bookmark_get_thumbnail_path()</span> function to get the thumbnail path of the bookmark:
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;char *thumb = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *thumb = NULL;
 
-&nbsp;&nbsp;&nbsp;if (bookmark != NULL) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_bookmark_get_thumbnail_path(bookmark, &amp;thumb);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Thumbnail path: %s\n&quot;, thumb);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(thumb);
+&nbsp;&nbsp;&nbsp;&nbsp;if (bookmark != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_bookmark_get_thumbnail_path(bookmark, &amp;thumb);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Thumbnail path: %s\n&quot;, thumb);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(thumb);
 </pre>
 
 <table class="note">
@@ -816,13 +790,13 @@ get_bookmarks_cb(media_bookmark_h bookmark, void* user_data)
 <li>Use the <span style="font-family: Courier New,Courier,monospace;">media_bookmark_get_marked_time()</span> function to get the marked time of the bookmark:
 
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t time;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t time;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_bookmark_get_marked_time(bookmark, &amp;time);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Marked time [s]: %d\n&quot;, (int) time);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_bookmark_get_marked_time(bookmark, &amp;time);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Marked time [s]: %d\n&quot;, (int) time);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
 </li></ul>
@@ -837,13 +811,16 @@ get_bookmarks_cb(media_bookmark_h bookmark, void* user_data)
 <pre class="prettyprint">
 media_bookmark_h bookmark = NULL;
 
-// Assuming you have the bookmark handle (media_bookmark_h)
+/* Assuming you have the bookmark handle (media_bookmark_h) */
 int bookmark_id = -1;
-media_bookmark_get_bookmark_id(bookmark, &amp;bookmark_id);</pre></li>
+media_bookmark_get_bookmark_id(bookmark, &amp;bookmark_id);
+</pre></li>
 
 <li><p>Delete the bookmark:</p>
 
-<pre class="prettyprint">media_bookmark_delete_from_db(bookmark_id);</pre></li></ol>
+<pre class="prettyprint">
+media_bookmark_delete_from_db(bookmark_id);
+</pre></li></ol>
 
 
  <h2 id="filter" name="filter">Setting up a Filter</h2>
@@ -875,10 +852,10 @@ ret = media_filter_set_condition(filter, buf, MEDIA_CONTENT_COLLATE_NOCASE);
 <li>Condition string used for filtering the search results
 <p>Queries made with the Content API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__CONTENT__FRAMEWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__CONTENT__FRAMEWORK.html">wearable</a> applications) are passed to a SQL database. A part of each query is a <span style="font-family: Courier New,Courier,monospace">WHERE</span> clause that determines which properties correspond to certain conditions. The condition string defines the <span style="font-family: Courier New,Courier,monospace">WHERE</span> clause and must match the following pattern:</p>
 <pre class="prettyprint">
-// Basic pattern
+/* Basic pattern */
 &lt;property&gt; &lt;relation&gt; &lt;value&gt;
 
-// If the relation is =, &gt;, &gt;=, &lt;, or &lt;=, the following is also valid
+/* If the relation is =, &gt;, &gt;=, &lt;, or &lt;=, the following is also valid */
 &lt;value&gt; &lt;relation&gt; &lt;property&gt;
 </pre>
 
@@ -929,7 +906,9 @@ media_filter_get_order(filter, &amp;check_order_type, &amp;check_order_keyword, 
 
 <p>The following example sets an offset that returns results starting from the beginning (offset 0), and returns a maximum of 5 results:</p>
 
-<pre class="prettyprint">media_filter_set_offset(filter, 0, 5);</pre>
+<pre class="prettyprint">
+media_filter_set_offset(filter, 0, 5);
+</pre>
 
 <p>To read the offset settings of an existing filter, use the <span style="font-family: Courier New,Courier,monospace">media_filter_get_offset()</span> function:</p>
 
@@ -937,7 +916,8 @@ media_filter_get_order(filter, &amp;check_order_type, &amp;check_order_keyword, 
 int check_offset = 0;
 int check_count = 0;
 
-media_filter_get_offset(filter, &amp;check_offset, &amp;check_count);</pre>
+media_filter_get_offset(filter, &amp;check_offset, &amp;check_count);
+</pre>
 </li>
 
 <li>
@@ -985,10 +965,10 @@ media_folder_foreach_folder_from_db(filter, folder_cb, NULL);
 <p>To find only a subset of the folders, use a filter. If you want to find all folders, set the filter parameter to <span style="font-family: Courier New,Courier,monospace">NULL</span>.</p>
 
 <pre class="prettyprint">
-// Find all items
+/* Find all items */
 media_folder_foreach_folder_from_db(NULL, folder_cb, NULL);
 
-// Find filtered items 
+/* Find filtered items */
 media_folder_foreach_folder_from_db(filter, folder_cb, NULL);
 </pre>
 <p>The <span style="font-family: Courier New,Courier,monospace">media_folder_foreach_folder_from_db()</span> function requires a callback, which is called for every found folder. The function is synchronous, and it blocks until the callback is called for all available folders or the callback returns <span style="font-family: Courier New,Courier,monospace">false</span>. For more information on how to implement the callback, see <a href="#read_folder">Reading Folder Information</a>.</p>
@@ -1008,7 +988,7 @@ media_filter_destroy(filter);
 <li>
 <p>Read the folder details within the callback:</p>
 <pre class="prettyprint">
-bool 
+bool
 folder_cb(media_folder_h folder, void *user_data)
 {
 </pre>
@@ -1020,41 +1000,33 @@ folder_cb(media_folder_h folder, void *user_data)
 
 <ul><li><p>Use the <span style="font-family: Courier New,Courier,monospace">media_folder_get_folder_id()</span>, <span style="font-family: Courier New,Courier,monospace">media_folder_get_name()</span>, and <span style="font-family: Courier New,Courier,monospace">media_folder_get_path()</span> functions to read the folder ID, name, and path:</p>
 
-<pre class="prettyprint">&nbsp;&nbsp;&nbsp;char *folder_id = NULL;
-&nbsp;&nbsp;&nbsp;char *name = NULL;
-&nbsp;&nbsp;&nbsp;char *path = NULL;
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;char *folder_id = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *path = NULL;
 
-&nbsp;&nbsp;&nbsp;ret = media_folder_get_folder_id(folder, &amp;folder_id);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder id: %s\n&quot;, folder_id);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_folder_id(folder, &amp;folder_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder id: %s\n&quot;, folder_id);
 
-&nbsp;&nbsp;&nbsp;ret = media_folder_get_name(folder, &amp;name);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder name: %s\n&quot;, name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_name(folder, &amp;name);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder name: %s\n&quot;, name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;ret = media_folder_get_path(folder, &amp;path);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder path: %s\n&quot;, path);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
-&nbsp;&nbsp;&nbsp;}</pre>
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_path(folder, &amp;path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder path: %s\n&quot;, path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+</pre>
 
 <table class="note">
 <tbody>
@@ -1069,61 +1041,54 @@ folder_cb(media_folder_h folder, void *user_data)
 </li>
 <li><p>Read the folder storage type using the <span style="font-family: Courier New,Courier,monospace">media_folder_get_storage_type()</span> function:</p>
 
-<pre class="prettyprint">&nbsp;&nbsp;&nbsp;media_content_storage_e storage_type = MEDIA_CONTENT_STORAGE_INTERNAL;
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;media_content_storage_e storage_type = MEDIA_CONTENT_STORAGE_INTERNAL;
 
-&nbsp;&nbsp;&nbsp;ret = media_folder_get_storage_type(folder, &amp;storage_type);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (storage_type) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case MEDIA_CONTENT_STORAGE_INTERNAL:
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_storage_type(folder, &amp;storage_type);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;switch (storage_type) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case MEDIA_CONTENT_STORAGE_INTERNAL:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder storage type: Internal\n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case MEDIA_CONTENT_STORAGE_EXTERNAL:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;case MEDIA_CONTENT_STORAGE_EXTERNAL:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder storage type: External\n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder storage type: Unknown\n&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;}</pre></li>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+</pre></li>
 
 <li><p>Get the last modified time:</p>
 
-<pre class="prettyprint">&nbsp;&nbsp;&nbsp;time_t time = 0;
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;time_t time = 0;
 
-&nbsp;&nbsp;&nbsp;ret = media_folder_get_modified_time(folder, &amp;time);
-&nbsp;&nbsp;&nbsp;if (MEDIA_CONTENT_ERROR_NONE != ret) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Modified time: %s&quot;, ctime(&amp;time));
-&nbsp;&nbsp;&nbsp;}</pre></li>
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_modified_time(folder, &amp;time);
+&nbsp;&nbsp;&nbsp;&nbsp;if (MEDIA_CONTENT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Modified time: %s&quot;, ctime(&amp;time));
+</pre></li>
 
 <li>Get the media item count in the folder with the <span style="font-family: Courier New,Courier,monospace">media_folder_get_media_count_from_db()</span> function. <p>The second parameter is the filter. If it is set to <span style="font-family: Courier New,Courier,monospace">NULL</span>, all media is counted.</p>
 
 
 
-<pre class="prettyprint">&nbsp;&nbsp;&nbsp;int item_count = -1; 
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;int item_count = -1;
 
-&nbsp;&nbsp;&nbsp;ret = media_folder_get_media_count_from_db(folder_id, NULL, &amp;item_count);
-&nbsp;&nbsp;&nbsp;if (MEDIA_CONTENT_ERROR_NONE != ret) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Number of media contents: %d\n&quot;, item_count);
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;free(folder_id);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_folder_get_media_count_from_db(folder_id, NULL, &amp;item_count);
+&nbsp;&nbsp;&nbsp;&nbsp;if (MEDIA_CONTENT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Number of media contents: %d\n&quot;, item_count);
+&nbsp;&nbsp;&nbsp;&nbsp;free(folder_id);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }</pre>
 <table class="note">
 <tbody>
@@ -1147,7 +1112,9 @@ folder_cb(media_folder_h folder, void *user_data)
 <li>Request folder content.
 <p>To find all media items from the folder with the given ID, use the <span style="font-family: Courier New,Courier,monospace">media_folder_foreach_media_from_db()</span> function.</p>
 
-<pre class="prettyprint">media_folder_foreach_media_from_db(folder_id, NULL, media_cb, NULL);</pre>
+<pre class="prettyprint">
+media_folder_foreach_media_from_db(folder_id, NULL, media_cb, NULL);
+</pre>
 
 <p>This function is synchronous. The call blocks until the callback has been called for all the items or the callback returns <span style="font-family: Courier New,Courier,monospace">false</span>.</p>
 </li>
@@ -1159,23 +1126,20 @@ folder_cb(media_folder_h folder, void *user_data)
 <p>The following example prints the title of the media item for which it was called.</p>
 
 <pre class="prettyprint">
-bool 
+bool
 media_cb(media_info_h media, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;char *title = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *title = NULL;
 
-&nbsp;&nbsp;&nbsp;ret = media_info_get_title(media, &amp;title);
-&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Title: %s\n&quot;, title);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(title);
-&nbsp;&nbsp;&nbsp;}   
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_title(media, &amp;title);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Title: %s\n&quot;, title);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(title);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre>
 </li>
@@ -1188,23 +1152,23 @@ media_cb(media_info_h media, void *user_data)
 <ol>
 <li>Define a callback function for the <span style="font-family: Courier New,Courier,monospace">media_info_foreach_media_from_db()</span> function, called for each available media item. Use the callback to create a list of items. 
 <pre class="prettyprint">
-bool 
+bool
 gallery_media_item_cb(media_info_h media, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;media_info_h new_media = NULL;
-&nbsp;&nbsp;&nbsp;media_info_clone(&amp;new_media, media);
+&nbsp;&nbsp;&nbsp;&nbsp;media_info_h new_media = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;media_info_clone(&amp;new_media, media);
 
-&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
-&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_media);
+&nbsp;&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_media);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li>
 <li>To find the items satisfying certain criteria, or modify the results in a specific way, create a filter and set its properties.
 <p>The following example filters media items so that only image and video items are included in the result. The filter is case-insensitive, and the results are sorted in a descending order based on the item display name. For more information about the filter properties, see <a href="#filter">Setting up a Filter</a>.</p>
 <pre class="prettyprint">
 #define BUFLEN 200
-GList *all_item_list = NULL; // Include glib.h
+GList *all_item_list = NULL; /* Include glib.h */
 media_content_type_e media_type;
 media_info_h media_handle = NULL;
 char *media_id = NULL;
@@ -1218,25 +1182,23 @@ media_content_order_e order_type = MEDIA_CONTENT_ORDER_DESC;
 
 media_filter_create(&amp;filter);
 
-// Set the condition
-snprintf(buf, BUFLEN, &quot;%s = %d OR %s = %d&quot;, MEDIA_TYPE, 
+/* Set the condition */
+snprintf(buf, BUFLEN, &quot;%s = %d OR %s = %d&quot;, MEDIA_TYPE,
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;MEDIA_CONTENT_TYPE_IMAGE, MEDIA_TYPE, MEDIA_CONTENT_TYPE_VIDEO);
 
 ret = media_filter_set_condition(filter, buf, collate_type);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to set condition&quot;);
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to set condition&quot;);
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 ret = media_filter_set_order(filter, order_type, MEDIA_DISPLAY_NAME, collate_type);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to set order&quot;);
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Failed to set order&quot;);
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 </pre>
 </li>
@@ -1246,99 +1208,92 @@ if (ret != MEDIA_CONTENT_ERROR_NONE)
 <p>After the callback has created the item list, you can access the item details with various <span style="font-family: Courier New,Courier,monospace">media_info_get_XXX()</span> functions. Note that media information is based on the media information handle, and to obtain the information (metadata), you must first retrieve the handle. The available metadata varies depending on the media type, such as image, video, or audio.</p>
 <pre class="prettyprint">
 ret = media_info_foreach_media_from_db(filter, gallery_media_item_cb, &amp;all_item_list);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_info_foreach_media_from_db failed: %d&quot;, ret);
-&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_info_foreach_media_from_db failed: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_destroy(filter);
 
-&nbsp;&nbsp;&nbsp;return ret;
-} 
-else 
-{
-&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(all_item_list); i++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_handle = (media_info_h)g_list_nth_data(all_item_list, i);
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(all_item_list); i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_handle = (media_info_h)g_list_nth_data(all_item_list, i);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_media_id(media_handle, &amp;media_id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_media_type(media_handle, &amp;media_type);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_display_name(media_handle, &amp;media_name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_file_path(media_handle, &amp;media_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_media_id(media_handle, &amp;media_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_media_type(media_handle, &amp;media_type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_display_name(media_handle, &amp;media_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_file_path(media_handle, &amp;media_path);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (media_type == MEDIA_CONTENT_TYPE_IMAGE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_h image_handle;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_content_orientation_e orientation = 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int width = 0, height = 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *datetaken = NULL;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *burst_id = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (media_type == MEDIA_CONTENT_TYPE_IMAGE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_h image_handle;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_content_orientation_e orientation = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int width = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int height = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *datetaken = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *burst_id = NULL;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_image(media_handle, &amp;image_handle);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_width(image_handle, &amp;width);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_height(image_handle, &amp;height);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_orientation(image_handle, &amp;orientation);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_date_taken(image_handle, &amp;datetaken);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_burst_id(image_handle, &amp;burst_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_image(media_handle, &amp;image_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_width(image_handle, &amp;width);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_height(image_handle, &amp;height);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_orientation(image_handle, &amp;orientation);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_date_taken(image_handle, &amp;datetaken);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_get_burst_id(image_handle, &amp;burst_id);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;This is an image&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Width: %d, Height: %d, Orientation: %d, Date taken: %s&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;width, height, orientation, datetaken);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;This is an image&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Width: %d, Height: %d, Orientation: %d, Date taken: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;width, height, orientation, datetaken);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (datetaken) free(datetaken);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (burst_id) free(burst_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (datetaken)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(datetaken);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (burst_id)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(burst_id);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_destroy(image_handle);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (media_type == MEDIA_CONTENT_TYPE_VIDEO) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_h video_handle;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *title = NULL, *artist = NULL, *album = NULL, *album_artist = NULL;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int duration = 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t time_played = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image_meta_destroy(image_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else if (media_type == MEDIA_CONTENT_TYPE_VIDEO) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_h video_handle;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *title = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *artist = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *album = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *album_artist = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int duration = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time_t time_played = 0;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_video(media_handle, &amp;video_handle);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;// Error handling
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_get_artist(video_handle, &amp;artist);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_get_album(video_handle, &amp;album);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_get_album_artist(video_handle, &amp;album_artist);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_get_duration(video_handle, &amp;duration);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_video(media_handle, &amp;video_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_get_artist(video_handle, &amp;artist);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_get_album(video_handle, &amp;album);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_get_album_artist(video_handle, &amp;album_artist);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_get_duration(video_handle, &amp;duration);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_played_time(media_handle, &amp;time_played);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_played_time(media_handle, &amp;time_played);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;This is a video&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Title: %s, Album: %s, Artist: %s, Album_artist: %s \n Duration: %d, Played time: %d&quot;, 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;title, album, artist, album_artist, duration, time_played);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;This is a video&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Title: %s, Album: %s, Artist: %s, Album_artist: %s \n Duration: %d, Played time: %d&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;title, album, artist, album_artist, duration, time_played);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(artist);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(album);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(album_artist);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(artist);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(album);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(album_artist);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_destroy(video_handle);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_id [%d]: %s&quot;, i, media_id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_name [%d]: %s&quot;, i, media_name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_path [%d]: %s&quot;, i, media_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_meta_destroy(video_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_id [%d]: %s&quot;, i, media_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_name [%d]: %s&quot;, i, media_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_path [%d]: %s&quot;, i, media_path);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_path);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(title);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(title);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre></li>
 
@@ -1355,13 +1310,12 @@ filter = NULL;
  
  <p>To use newly created media files, insert them into the database:</p>
 
-<ol><li><p>Add the <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/content.write</span> privilege to the manifest file of the application to use the needed APIs.</p>
-<p>In addition, add the <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/mediastorage</span> or <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/externalstorage</span> privilege, since when you insert metadata, the Media Content APIs access content in the internal or external storage.</p></li>
-
+<ol>
 <li><p>To add information in the database, use one of the following options:</p>
  
 <ul><li><p><span style="font-family: Courier New,Courier,monospace;">media_info_insert_to_db()</span> function:</p>
-<pre class="prettyprint">int ret = MEDIA_CONTENT_ERROR_NONE;
+<pre class="prettyprint">
+int ret = MEDIA_CONTENT_ERROR_NONE;
 char *image_file = &quot;Default.jpg&quot;;
 char *directory = NULL;
 char *path = NULL;
@@ -1375,26 +1329,22 @@ media_info_h media_item = NULL;
 
 ret = media_info_insert_to_db(path, &amp;media_item);
 
-if ((ret == MEDIA_CONTENT_ERROR_NONE) &amp;&amp; (media_item != NULL)) 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Insertion successful&quot;);
-} 
-else 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Insertion failed&quot;);
-&nbsp;&nbsp;&nbsp;if (media_item != NULL)
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_destroy(media_item);
+if ((ret == MEDIA_CONTENT_ERROR_NONE) &amp;&amp; (media_item != NULL)) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Insertion successful&quot;);
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Insertion failed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;if (media_item != NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_destroy(media_item);
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 
-// After using the media handle, destroy it
+/* After using the media handle, destroy it */
 ret = media_info_destroy(media_item);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;// Error handling
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 </pre>
 <p>After using the <span style="font-family: Courier New,Courier,monospace;">media_info_insert_to_db()</span> function, destroy the received <span style="font-family: Courier New,Courier,monospace;">media_info_h</span> using the <span style="font-family: Courier New,Courier,monospace;">media_info_destroy()</span> function.</p></li>
@@ -1413,9 +1363,7 @@ sprintf(file_path, &quot;%s/%s&quot;, directory, image_file);
 
 ret = media_content_scan_file(file_path);
 if (ret != MEDIA_CONTENT_ERROR_NONE)
-{
-&nbsp;&nbsp;&nbsp;// Error handling
-}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
 </pre>
 </li></ul>
 
@@ -1430,16 +1378,14 @@ if (ret != MEDIA_CONTENT_ERROR_NONE)
 <p>To insert a media folder, and optionally any subfolders, in the database:</p>
  
 <ol>
-<li><p>Add the <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/content.write</span> privilege to the manifest file of the application to use these APIs.</p>
-<p>In addition, add the <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/mediastorage</span> or <span style="font-family: Courier New,Courier,monospace;">http://tizen.org/privilege/externalstorage</span> privilege, since when you insert metadata, the Media Content APIs access content in the internal or external storage.</p></li>
 <li>Define a callback function that is called after the asynchronous insertion (scanning) process is completed: 
 <pre class="prettyprint">
-void 
+void
 _scan_cb(media_content_error_e err, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder scanned\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Folder scanned\n&quot;);
 
-&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;return;
 }
 </pre></li>
 
@@ -1452,11 +1398,10 @@ char *dir_path = NULL;
 storage_get_directory(0, STORAGE_DIRECTORY_IMAGES, &amp;dir_path);
 
 ret = media_content_scan_folder(dir_path, TRUE, _scan_cb, NULL);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;// Error handling
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
 
-&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
 }
 </pre></li>
 </ol>
@@ -1469,7 +1414,7 @@ if (ret != MEDIA_CONTENT_ERROR_NONE)
 <p>To operate on the database, it has to contain records. Add a new playlist to the database using the <span style="font-family: Courier New,Courier,monospace;">media_playlist_insert_to_db()</span> function. It returns a handle to the newly created record.</p>
 <pre class="prettyprint">
 media_playlist_h playlist = NULL;
-GList *media_id_list = NULL; // This requires glib.h inclusion
+GList *media_id_list = NULL; /* This requires glib.h inclusion */
 int media_count;
 int start_position = -1;
 int count = -1;
@@ -1477,7 +1422,7 @@ int x;
 int id;
 int ret;
 
-// Create the playlist
+/* Create the playlist */
 media_playlist_insert_to_db(&quot;playlist_for_tutorial&quot;, &amp;playlist);
 </pre>
 <p>You can modify the playlist name later on using the <span style="font-family: Courier New,Courier,monospace;">media_playlist_set_name()</span> function.</p>
@@ -1485,52 +1430,49 @@ media_playlist_insert_to_db(&quot;playlist_for_tutorial&quot;, &amp;playlist);
 <li><p>Define a callback function for the <span style="font-family: Courier New,Courier,monospace;">media_info_foreach_media_from_db()</span> function, called for each available media item. Use the callback to cast the user data to a proper type and copy the media ID to a list:</p>
 
 <pre class="prettyprint">
-bool 
+bool
 _media_info_cb(media_info_h media, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;char *data = NULL;
-&nbsp;&nbsp;&nbsp;char *id = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *data = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *id = NULL;
 
-&nbsp;&nbsp;&nbsp;if (media != NULL) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;if (media != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_media_id(media, &amp;id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Media found: %s\n&quot;, id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_media_id(media, &amp;id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Media found: %s\n&quot;, id);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data = strdup(id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data = strdup(id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, data);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(id);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(id);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li>
 
 <li><p>To be able to fill a playlist with data, <a href="#insert">insert existing media in the database</a> using the <span style="font-family: Courier New,Courier,monospace;">media_content_scan_file()</span> function. You can also check the media database size using the <span style="font-family: Courier New,Courier,monospace;">media_info_get_media_count_from_db()</span> function and allocate the required amount of space.</p>
 <pre class="prettyprint">
-// path must be set to an audio file
-media_content_scan_file(path); 
+/* path must be set to an audio file */
+media_content_scan_file(path);
 
-media_info_get_media_count_from_db(NULL, &amp;media_count); 
+media_info_get_media_count_from_db(NULL, &amp;media_count);
 </pre>
 </li>
 <li><p>To find the media items to be added to the playlist, call the <span style="font-family: Courier New,Courier,monospace;">media_info_foreach_media_from_db()</span> function with the defined callback. After the callback has created the media ID list, you can add the media items to the playlist with the <span style="font-family: Courier New,Courier,monospace;">media_playlist_add_media()</span> function.</p>
 
 <pre class="prettyprint">
-media_info_foreach_media_from_db(NULL, _media_info_cb, &amp;media_id_list); 
+media_info_foreach_media_from_db(NULL, _media_info_cb, &amp;media_id_list);
 
-if (media_count &gt; 0) 
-{
-&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; media_count; x++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *media_id = (char*)g_list_nth_data(media_id_list, x);
+if (media_count &gt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;for (x = 0; x &lt; media_count; x++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *media_id = (char*)g_list_nth_data(media_id_list, x);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_playlist_add_media(playlist, media_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_playlist_add_media(playlist, media_id);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_id);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_id);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 
 media_playlist_update_to_db(playlist);
@@ -1558,10 +1500,10 @@ media_playlist_destroy(playlist);
 <p>To find only a subset of the playlists, use a filter. If you want to find all playlists, set the filter parameter to <span style="font-family: Courier New,Courier,monospace;">NULL</span>.
 </p>
 <pre class="prettyprint">
-// Find all playlists
+/* Find all playlists */
 media_playlist_foreach_playlist_from_db(NULL, playlist_list_cb,  NULL);
 
-// Find filtered playlists
+/* Find filtered playlists */
 media_playlist_foreach_playlist_from_db(filter, playlist_list_cb,  NULL);
 </pre>
 
@@ -1582,12 +1524,12 @@ media_filter_destroy(filter);
 <ol>
 <li><p>Read the playlist details within the callback:</p> 
 <pre class="prettyprint">
-static bool 
-playlist_list_cb(media_playlist_h playlist, void* user_data) 
+static bool
+playlist_list_cb(media_playlist_h playlist, void* user_data)
 {
-&nbsp;&nbsp;&nbsp;char *name = NULL;
-&nbsp;&nbsp;&nbsp;int playlist_id = 0;
-&nbsp;&nbsp;&nbsp;int count = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;int playlist_id = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int count = 0;
 </pre>
 <p>A handle to the record is passed as a parameter. The return value determines whether the iterative calls of the callback continue (<span style="font-family: Courier New,Courier,monospace;">true</span>) or are stopped (<span style="font-family: Courier New,Courier,monospace;">false</span>).</p></li>
 
@@ -1596,31 +1538,31 @@ playlist_list_cb(media_playlist_h playlist, void* user_data)
 <li><p>Use the <span style="font-family: Courier New,Courier,monospace;">media_playlist_get_name()</span> and <span style="font-family: Courier New,Courier,monospace;">media_playlist_get_playlist_id()</span> functions to read the playlist name and ID:</p>
 
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;media_playlist_get_name(playlist, &amp;name);
-&nbsp;&nbsp;&nbsp;media_playlist_get_playlist_id(playlist, &amp;playlist_id);
+&nbsp;&nbsp;&nbsp;&nbsp;media_playlist_get_name(playlist, &amp;name);
+&nbsp;&nbsp;&nbsp;&nbsp;media_playlist_get_playlist_id(playlist, &amp;playlist_id);
 </pre></li>
 
 <li><p>Access the records within the playlist using the playlist ID.</p> 
 <p>In the following example, 2 searches are executed for the records. The first search operates on all records on the playlist and retrieves the record count. The second search retrieves the first 10 records. Destroy the filters after all operations.</p>
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;filter_h temp_filter = NULL;
-&nbsp;&nbsp;&nbsp;media_filter_create(&amp;temp_filter);
+&nbsp;&nbsp;&nbsp;&nbsp;filter_h temp_filter = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_create(&amp;temp_filter);
 
-&nbsp;&nbsp;&nbsp;media_filter_set_offset(temp_filter, -1, -1);
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_set_offset(temp_filter, -1, -1);
 
-&nbsp;&nbsp;&nbsp;media_playlist_get_media_count_from_db(playlist_id, temp_filter, &amp;count);
-&nbsp;&nbsp;&nbsp;filter_h audio_fltr;
+&nbsp;&nbsp;&nbsp;&nbsp;media_playlist_get_media_count_from_db(playlist_id, temp_filter, &amp;count);
+&nbsp;&nbsp;&nbsp;&nbsp;filter_h audio_fltr;
 
-&nbsp;&nbsp;&nbsp;media_filter_create(&amp;audio_fltr);
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_create(&amp;audio_fltr);
 
-&nbsp;&nbsp;&nbsp;media_filter_set_offset(audio_fltr, 0, 10);
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_set_offset(audio_fltr, 0, 10);
 
-&nbsp;&nbsp;&nbsp;media_playlist_foreach_media_from_db(playlist_id, audio_fltr, audio_list_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;media_playlist_foreach_media_from_db(playlist_id, audio_fltr, audio_list_cb, NULL);
 
-&nbsp;&nbsp;&nbsp;media_filter_destroy(audio_fltr);
-&nbsp;&nbsp;&nbsp;media_filter_destroy(temp_filter);
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_destroy(audio_fltr);
+&nbsp;&nbsp;&nbsp;&nbsp;media_filter_destroy(temp_filter);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li>
 
@@ -1630,15 +1572,15 @@ playlist_list_cb(media_playlist_h playlist, void* user_data)
 <li><span style="font-family: Courier New,Courier,monospace;">media_info_get_size()</span></li></ul>
 
 <pre class="prettyprint">
-static bool 
-audio_list_cb(int playlist_member_id, media_info_h media_hndl, void *user_data) 
+static bool
+audio_list_cb(int playlist_member_id, media_info_h media_hndl, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;char * id;
-&nbsp;&nbsp;&nbsp;media_info_get_media_id(media_hndl, &amp;id);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Media on the playlist: %s\n&quot;, id);
-&nbsp;&nbsp;&nbsp;free(id);
+&nbsp;&nbsp;&nbsp;&nbsp;char * id;
+&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_media_id(media_hndl, &amp;id);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Media on the playlist: %s\n&quot;, id);
+&nbsp;&nbsp;&nbsp;&nbsp;free(id);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li>
 </ol>
@@ -1711,30 +1653,30 @@ media_tag_destroy(tag);
 <ol>
 <li>Define callback functions for the <span style="font-family: Courier New,Courier,monospace;">media_tag_foreach_tag_from_db()</span> and <span style="font-family: Courier New,Courier,monospace;">media_tag_foreach_media_from_db()</span> functions, called for each available tag and each available media item for a specific tag. Use the callbacks to create a list of tags and media items. 
 <pre class="prettyprint">
-// glib library is used, so include glib.h
+/* glib library is used, so include glib.h */
 
-bool 
+bool
 gallery_tag_item_cb(media_tag_h tag, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;media_tag_h new_tag = NULL;
-&nbsp;&nbsp;&nbsp;media_tag_clone(&amp;new_tag, tag);
+&nbsp;&nbsp;&nbsp;&nbsp;media_tag_h new_tag = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;media_tag_clone(&amp;new_tag, tag);
 
-&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
-&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_tag);
+&nbsp;&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_tag);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 
-bool 
+bool
 gallery_media_item_cb(media_info_h media, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;media_info_h new_media = NULL;
-&nbsp;&nbsp;&nbsp;media_info_clone(&amp;new_media, media);
+&nbsp;&nbsp;&nbsp;&nbsp;media_info_h new_media = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;media_info_clone(&amp;new_media, media);
 
-&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
-&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_media);
+&nbsp;&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_media);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li>
 <li>To find the tags and related media items, use the <span style="font-family: Courier New,Courier,monospace;">media_tag_foreach_tag_from_db()</span> and <span style="font-family: Courier New,Courier,monospace;">media_tag_foreach_media_from_db()</span> functions with the defined callbacks. The functions are synchronous, and they block until the callbacks have been called for all items or the callbacks return <span style="font-family: Courier New,Courier,monospace;">false</span>.
@@ -1748,68 +1690,60 @@ GList *media_list_in_tag = NULL;
 
 ret = media_tag_foreach_tag_from_db(NULL, gallery_tag_item_cb, &amp;tag_list);
 
-if (ret != MEDIA_CONTENT_ERROR_NONE)
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_tag_foreach_tag_from_db() failed: %d&quot;, ret);
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_tag_foreach_tag_from_db() failed: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;return ret;
-} 
-else 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_tag_foreach_tag_from_db() successful&quot;);
-&nbsp;&nbsp;&nbsp;char *tag_name = NULL;
-&nbsp;&nbsp;&nbsp;int tag_id;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_tag_foreach_tag_from_db() successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;char *tag_name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;int tag_id;
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(tag_list); i++) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tag_handle = (media_tag_h)g_list_nth_data(tag_list, i);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_tag_get_tag_id(tag_handle, &amp;tag_id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_tag_get_name(tag_handle, &amp;tag_name);
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(tag_list); i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tag_handle = (media_tag_h)g_list_nth_data(tag_list, i);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_tag_get_tag_id(tag_handle, &amp;tag_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_tag_get_name(tag_handle, &amp;tag_name);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_tag_foreach_media_from_db(tag_id, NULL, gallery_media_item_cb, &amp;media_list_in_tag);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_tag_foreach_media_from_db() failed: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_tag_foreach_media_from_db(tag_id, NULL, gallery_media_item_cb, &amp;media_list_in_tag);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_tag_foreach_media_from_db() failed: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ret;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_tag_foreach_media_from_db() successful&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int j = 0;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_h tag_media_handle;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *media_id = NULL;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *media_name = NULL;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *media_path = NULL;
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_content_type_e media_type = MEDIA_CONTENT_TYPE_IMAGE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return ret;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;media_tag_foreach_media_from_db() successful&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int j = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_h tag_media_handle;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *media_id = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *media_name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *media_path = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_content_type_e media_type = MEDIA_CONTENT_TYPE_IMAGE;
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0; j &lt; g_list_length(media_list_in_tag); j++) 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tag_media_handle = (media_info_h)g_list_nth_data(media_list_in_tag, j);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_media_id(tag_media_handle, &amp;media_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (j = 0; j &lt; g_list_length(media_list_in_tag); j++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tag_media_handle = (media_info_h)g_list_nth_data(media_list_in_tag, j);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_media_id(tag_media_handle, &amp;media_id);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_display_name(tag_media_handle, &amp;media_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_display_name(tag_media_handle, &amp;media_name);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_file_path(tag_media_handle, &amp;media_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_file_path(tag_media_handle, &amp;media_path);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_media_type(tag_media_handle, &amp;media_type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = media_info_get_media_type(tag_media_handle, &amp;media_type);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_id [%d]: %s&quot;, tag_name, j, media_id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_type [%d]: %d&quot;, tag_name, j, media_type);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_name [%d]: %s&quot;, tag_name, j, media_name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_path [%d]: %s&quot;, tag_name, j, media_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_id [%d]: %s&quot;, tag_name, j, media_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_type [%d]: %d&quot;, tag_name, j, media_type);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_name [%d]: %s&quot;, tag_name, j, media_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[%s] media_path [%d]: %s&quot;, tag_name, j, media_path);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_path);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_destroy(tag_media_handle);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(tag_name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_tag_destroy(tag_handle);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_list_free(media_list_in_tag);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_list_in_tag = NULL;
-&nbsp;&nbsp;&nbsp;}
-&nbsp;&nbsp;&nbsp;g_list_free(tag_list);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(media_path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_info_destroy(tag_media_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(tag_name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_tag_destroy(tag_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_list_free(media_list_in_tag);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_list_in_tag = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;g_list_free(tag_list);
 }
 </pre></li>
 </ol>
@@ -1832,21 +1766,20 @@ media_tag_foreach_tag_from_db(NULL, gallery_tag_item_cb, &amp;tag_list);
 int len = g_list_length(tag_list);
 
 int i;
-for (i = 0; i &lt; len; i++)
-{
-&nbsp;&nbsp;&nbsp;tag_handle = (media_tag_h) g_list_nth_data(tag_list, i);
-&nbsp;&nbsp;&nbsp;ret = media_tag_get_tag_id(tag_handle, &amp;tag_id);
+for (i = 0; i &lt; len; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;tag_handle = (media_tag_h) g_list_nth_data(tag_list, i);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_tag_get_tag_id(tag_handle, &amp;tag_id);
 </pre>
 </li>
 <li>Delete the tag with the <span style="font-family: Courier New,Courier,monospace;">media_tag_delete_from_db()</span> function.
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;ret = media_tag_delete_from_db(tag_id);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_tag_delete_from_db(tag_id);
 </pre>
 </li>
 
 <li>When no longer needed, destroy the handle:
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;ret = media_tag_destroy(tag_handle);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = media_tag_destroy(tag_handle);
 }
 </pre>
 </li>
@@ -1866,14 +1799,14 @@ tag_list = NULL;
 <ol>
 <li>Define a callback function for the <span style="font-family: Courier New,Courier,monospace;">media_storage_foreach_storage_from_db()</span> function, called for each available storage. Use the callback to create a list of storages.
 <pre class="prettyprint">
-void 
+void
 storage_cb(media_storage_h storage, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;media_storage_h new_storage = NULL;
-&nbsp;&nbsp;&nbsp;media_storage_clone(&amp;new_storage, storage);
+&nbsp;&nbsp;&nbsp;&nbsp;media_storage_h new_storage = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;media_storage_clone(&amp;new_storage, storage);
 
-&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
-&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_media);
+&nbsp;&nbsp;&nbsp;&nbsp;GList **list = (GList**)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;*list = g_list_append(*list, new_media);
 }
 </pre></li>
 <li>To find the storages, call the <span style="font-family: Courier New,Courier,monospace;">media_storage_foreach_storage_from_db()</span> function with the defined callback. After the callback has created the storage list, you can access the storage details with various <span style="font-family: Courier New,Courier,monospace;">media_storage_get_XXX()</span> functions. 
@@ -1881,33 +1814,29 @@ storage_cb(media_storage_h storage, void *user_data)
 char *id = NULL;
 char *name = NULL;
 char *path = NULL;
-GList *storage_list = NULL; // Include glib.h
+GList *storage_list = NULL; /* Include glib.h */
 media_storage_h storage = NULL;
 
 ret = media_storage_foreach_storage_from_db(NULL, storage_cb, &amp;storage_list);
-if (ret != MEDIA_CONTENT_ERROR_NONE) 
-{
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_storage_foreach_storage_from_db failed: %d&quot;, ret);
+if (ret != MEDIA_CONTENT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;media_storage_foreach_storage_from_db failed: %d&quot;, ret);
 
-&nbsp;&nbsp;&nbsp;return ret;
-}
-else
-{
-&nbsp;&nbsp;&nbsp;int i;
+&nbsp;&nbsp;&nbsp;&nbsp;return ret;
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
 
-&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(storage_list); i++)
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;storage = (media_storage_h)g_list_nth_data(storage_list, i);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_storage_get_id(new_storage, &amp;id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_storage_get_name(new_storage, &amp;name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_storage_get_path(new_storage, &amp;path);
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; g_list_length(storage_list); i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;storage = (media_storage_h)g_list_nth_data(storage_list, i);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_storage_get_id(new_storage, &amp;id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_storage_get_name(new_storage, &amp;name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_storage_get_path(new_storage, &amp;path);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;id:[%s] name:[%s] path:[%s]&quot;, id, name, path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;id:[%s] name:[%s] path:[%s]&quot;, id, name, path);
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(id);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(storage);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(storage);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 }
 </pre></li>
 </ol>
@@ -1927,7 +1856,7 @@ filter_h filter;
 
 media_filter_create(&amp;filter);
 
-#define BUFLEN 200 // This is just an example
+#define BUFLEN 200 /* This is just an example */
 char buf[BUFLEN] = {&#39;\0&#39;};
 
 snprintf(buf, BUFLEN, &quot;%s LIKE &#39;%%.jpg&#39;&quot;, MEDIA_DISPLAY_NAME);
@@ -1940,7 +1869,7 @@ media_filter_set_condition(filter, buf, MEDIA_CONTENT_COLLATE_DEFAULT);
 
 <pre class="prettyprint">
 media_group_e group = MEDIA_CONTENT_GROUP_MIME_TYPE;
-int count = -1; 
+int count = -1;
 
 media_group_get_group_count_from_db(NULL, group, &amp;count);
 dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Group count: %d\n&quot;, count);
@@ -1952,14 +1881,14 @@ dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Group count: %d\n&quot;, count);
 
 <p>To find only a subset of the groups, use a filter. If you want to find all groups, set the filter parameter to <span style="font-family: Courier New,Courier,monospace;">NULL</span>.</p>
 <pre class="prettyprint">
-// Find all media group items
-media_group_foreach_group_from_db(NULL, group, group_cb, (void *) group);
+/* Find all media group items */
+media_group_foreach_group_from_db(NULL, group, group_cb, (void *)group);
 
-// Find filtered media group items
-media_group_foreach_group_from_db(filter, group, group_cb, (void *) group);
+/* Find filtered media group items */
+media_group_foreach_group_from_db(filter, group, group_cb, (void *)group);
 </pre>
 
-<p>The <span style="font-family: Courier New,Courier,monospace;">media_group_foreach_group_from_db</span> function requires a callback, which is called for every found media item group. The function is synchronous, and it blocks until the callback is called for all media item groups or the callback returns <span style="font-family: Courier New,Courier,monospace;">false</span>. For information on how to implement the callback, see <a href="#read_group">Reading Media Item Group Information</a>.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace;">media_group_foreach_group_from_db()</span> function requires a callback, which is called for every found media item group. The function is synchronous, and it blocks until the callback is called for all media item groups or the callback returns <span style="font-family: Courier New,Courier,monospace;">false</span>. For information on how to implement the callback, see <a href="#read_group">Reading Media Item Group Information</a>.</p>
 </li>
 </ol></li>
 <li>Destroy the filter:
@@ -1975,7 +1904,7 @@ media_filter_destroy(filter);
 <ol>
 <li>Read the media item group details within the callback:
 <pre class="prettyprint">
-bool 
+bool
 group_cb(const char *name, void *user_data)
 {
 </pre>
@@ -1988,39 +1917,38 @@ group_cb(const char *name, void *user_data)
 <p>Get the number of items in the group using the <span style="font-family: Courier New,Courier,monospace;">media_group_get_media_count_from_db()</span> function.</p> 
 <p>The third parameter is the filter. If it is set to <span style="font-family: Courier New,Courier,monospace;">NULL</span>, all items in the group are counted.</p>
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;media_content_error_e ret = MEDIA_CONTENT_ERROR_NONE;
-&nbsp;&nbsp;&nbsp;media_group_e group = (media_group_e) user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;media_content_error_e ret = MEDIA_CONTENT_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;media_group_e group = (media_group_e) user_data;
 
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;\n&quot;);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Group name: %s\n&quot;, name);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Group name: %s\n&quot;, name);
 
-&nbsp;&nbsp;&nbsp;int count = -1; 
-&nbsp;&nbsp;&nbsp;media_group_get_media_count_from_db(name, group, NULL, &amp;count);
-&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Media count in group: %d\n&quot;, count);
+&nbsp;&nbsp;&nbsp;&nbsp;int count = -1;
+&nbsp;&nbsp;&nbsp;&nbsp;media_group_get_media_count_from_db(name, group, NULL, &amp;count);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Media count in group: %d\n&quot;, count);
 </pre></li>
 <li>
 <p>Get all items in the group using the <span style="font-family: Courier New,Courier,monospace;">media_group_foreach_media_from_db()</span> function. Define a callback (<span style="font-family: Courier New,Courier,monospace;">media_cb()</span>) for the function to be triggered for each found item.</p>
 
 <pre class="prettyprint">
-&nbsp;&nbsp;&nbsp;media_group_foreach_media_from_db(name, group, NULL, media_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;media_group_foreach_media_from_db(name, group, NULL, media_cb, NULL);
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 
-bool 
+bool
 media_cb(media_info_h media, void *user_data)
 {
-&nbsp;&nbsp;&nbsp;media_content_error_e ret = MEDIA_CONTENT_ERROR_NONE;
-&nbsp;&nbsp;&nbsp;char *name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;media_content_error_e ret = MEDIA_CONTENT_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;char *name = NULL;
 
-&nbsp;&nbsp;&nbsp;media_info_get_display_name(media, &amp;name);
-&nbsp;&nbsp;&nbsp;if (name != NULL) 
-&nbsp;&nbsp;&nbsp;{
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Name: %s\n&quot;, name);
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
-&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;media_info_get_display_name(media, &amp;name);
+&nbsp;&nbsp;&nbsp;&nbsp;if (name != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Name: %s\n&quot;, name);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(name);
+&nbsp;&nbsp;&nbsp;&nbsp;}
 
-&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
 }
 </pre></li></ul></li></ol>
 

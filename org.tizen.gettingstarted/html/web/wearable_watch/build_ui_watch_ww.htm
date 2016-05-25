@@ -1,0 +1,437 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Building a Simple Wearable Web Watch UI</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Wearable Web" src="../../images/wearable_s_w.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#init">Initializing the Watch Application</a></li>
+			<li><a href="#draw">Drawing the Watch UI</a></li>
+			<li><a href="#ambient">Using the Ambient Mode</a></li>
+		</ul>
+       		
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Building a Simple Wearable Web Watch UI</h1>
+
+<p>The following example is based on a template project for a wearable watch application, which was introduced in <a href="create_project_watch_ww.htm">Creating a Wearable Watch Application Project</a>.</p>
+
+<p>The template project makes it easy to create your watch application. Without modification, you can build and run the project. However, it is important to understand the following template code to customize it.</p>
+
+<h2 id="init">Initializing the Watch Application</h2>
+
+<p>To initialize the watch application:</p>
+<ol>
+<li>
+<p>To set the application configuration, use the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p> 
+
+
+	<ul>
+	<li>By default, the BasicWatch sample has the application category defined as <span style="font-family: Courier New,Courier,monospace">&lt;tizen:category name=&quot;http://tizen.org/category/wearable_clock&quot; /&gt;</span>.
+	<p>To run your application on Samsung Gear 2, Samsung Gear 2 Neo, and Samsung Gear S devices, use <span style="font-family: Courier New,Courier,monospace">&lt;tizen:category name=&quot;com.samsung.wmanager.WATCH_CLOCK&quot; /&gt;</span> instead.</p>
+		</li>
+		<li>
+	<p>To enable a custom UI for the <a href="../details/event_handling_w.htm#ambient">ambient mode</a>, the <span style="font-family: Courier New,Courier,monospace">ambient_support</span> attribute must be set to <span style="font-family: Courier New,Courier,monospace">enable</span>.</p>
+	</li>
+	</ul>
+
+<pre class="prettyprint">
+&lt;widget xmlns=&quot;http://www.w3.org/ns/widgets&quot; xmlns:tizen=&quot;http://tizen.org/ns/widgets&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id=&quot;http://yourdomain/BasicWatch&quot; version=&quot;1.0.0&quot; viewmodes=&quot;maximized&quot;&gt;
+&nbsp;&nbsp;&nbsp;<span class="highlight">&lt;tizen:category name=&quot;http://tizen.org/category/wearable_clock&quot;/&gt;</span>
+&nbsp;&nbsp;&nbsp;&lt;tizen:application id=&quot;OEYCjlM8hl.BasicWatch&quot; package=&quot;OEYCjlM8hl&quot; required_version=&quot;2.3&quot; 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">ambient_support=&quot;enable&quot;</span>/&gt;
+
+&nbsp;&nbsp;&nbsp;&lt;!--Get timetick events, occuring once a minute to enable the UI to be updated--&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:privilege name=&quot;http://tizen.org/privilege/alarm&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:setting background-support=&quot;disable&quot; encryption=&quot;disable&quot; hwkey-event=&quot;enable&quot;/&gt;
+&lt;/widget&gt;
+</pre>
+</li>
+<li>
+<p>To initialize the application and define basic features, use the <span style="font-family: Courier New,Courier,monospace">main.js</span> file.</p>
+<p>Modify the <span style="font-family: Courier New,Courier,monospace">window.requestAnimationFrame()</span> method to make the application compatible with the main browsers:</p>
+<pre class="prettyprint">
+window.requestAnimationFrame = window.requestAnimationFrame ||
+&nbsp;&nbsp;&nbsp;window.webkitRequestAnimationFrame ||
+&nbsp;&nbsp;&nbsp;window.mozRequestAnimationFrame ||
+&nbsp;&nbsp;&nbsp;window.oRequestAnimationFrame ||
+&nbsp;&nbsp;&nbsp;window.msRequestAnimationFrame ||
+&nbsp;&nbsp;&nbsp;function (callback) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window.setTimeout(callback, 1000 / 60);
+&nbsp;&nbsp;&nbsp;};</pre>
+</li>
+<li>Initialize the canvas context and define the canvas area:
+<pre class="prettyprint">
+window.onload = function onLoad() 
+{
+&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+
+&nbsp;&nbsp;&nbsp;canvas = document.querySelector(&#39;canvas&#39;);
+&nbsp;&nbsp;&nbsp;context = canvas.getContext(&#39;2d&#39;);
+&nbsp;&nbsp;&nbsp;clockRadius = document.body.clientWidth / 2;
+
+&nbsp;&nbsp;&nbsp;canvas.width = document.body.clientWidth;
+&nbsp;&nbsp;&nbsp;canvas.height = canvas.width;</pre>
+</li>
+<li>Define an event listener to detect back key events and time tick:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;/* Add eventListener for tizenhwkey */
+&nbsp;&nbsp;&nbsp;window.addEventListener(&#39;tizenhwkey&#39;, function (e) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (e.keyName == &#39;back&#39;) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tizen.application.getCurrentApplication().exit();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;catch (err) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.error(&#39;Error: &#39;, err.message);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;});
+
+&nbsp;&nbsp;&nbsp;/* Add eventListener for timetick */
+&nbsp;&nbsp;&nbsp;window.addEventListener(&#39;timetick&#39;, function() 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;timetick is called&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ambientWatch();
+&nbsp;&nbsp;&nbsp;});
+}
+</pre>
+</li>
+
+</ol>
+
+<h2 id="draw">Drawing the Watch UI</h2>
+
+<p>To draw the watch UI:</p>
+<ol>
+<li>
+<p>To define the application layout, use the <span style="font-family: Courier New,Courier,monospace">index.html</span> file.</p>
+
+<p>By default, the BasicWatch sample application layout contains only the main screen that displays the clock on a <a href="http://www.w3.org/TR/2012/WD-html5-20120329/the-canvas-element.html#the-canvas-element" target="_blank">canvas</a> element.</p> 
+
+<pre class="prettyprint lang-html">
+&lt;head&gt;
+&nbsp;&nbsp;&nbsp;&lt;meta charset=&quot;utf-8&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0, maximum-scale=1.0&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&lt;meta name=&quot;description&quot; content=&quot;Basic Watch based on HTML canvas element&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&lt;title&gt;BasicWatch&lt;/title&gt;
+&nbsp;&nbsp;&nbsp;&lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;css/style.css&quot; /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&nbsp;&nbsp;&nbsp;&lt;div id=&quot;box&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;canvas class=&quot;canvas&quot;&gt;&lt;/canvas&gt;
+&nbsp;&nbsp;&nbsp;&lt;/div&gt;
+&nbsp;&nbsp;&nbsp;&lt;script src=&quot;js/main.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;
+</pre> 
+</li>
+<li>
+<p>To draw the watch face on the canvas, use the <span style="font-family: Courier New,Courier,monospace">main.js</span> file:</p>
+<ol type="a">
+<li>
+<p>Create the clock in the middle of the canvas, and define the watch face style:</p>
+<pre class="prettyprint">
+function renderDots() 
+{
+&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+
+&nbsp;&nbsp;&nbsp;var dx = 0,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dy = 0,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;i = 1,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;angle = null;
+
+&nbsp;&nbsp;&nbsp;context.save();
+&nbsp;&nbsp;&nbsp;context.translate(canvas.width / 2, canvas.height / 2);
+&nbsp;&nbsp;&nbsp;context.beginPath();
+&nbsp;&nbsp;&nbsp;context.fillStyle = &#39;#999999&#39;;</pre>
+</li>
+<li>Create 4 dots on the sides of the watch face and use the <span style="font-family: Courier New,Courier,monospace">fill()</span> method to style the dots:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;for (i = 1; i &lt;= 4; i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;angle = (i - 3) * (Math.PI * 2) / 4;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dx = clockRadius * 0.9 * Math.cos(angle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dy = clockRadius * 0.9 * Math.sin(angle);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context.arc(dx, dy, 3, 0, 2 * Math.PI, false);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;context.fill();
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;context.closePath();</pre>
+</li>
+<li>Create the center point:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;context.beginPath();
+
+&nbsp;&nbsp;&nbsp;context.fillStyle = &#39;#ff9000&#39;;
+&nbsp;&nbsp;&nbsp;context.strokeStyle = &#39;#fff&#39;;
+&nbsp;&nbsp;&nbsp;context.lineWidth = 4;
+
+&nbsp;&nbsp;&nbsp;context.arc(0, 0, 7, 0, 2 * Math.PI, false);
+&nbsp;&nbsp;&nbsp;context.fill();
+&nbsp;&nbsp;&nbsp;context.stroke();
+&nbsp;&nbsp;&nbsp;context.closePath();
+}</pre>
+</li>
+</ol>
+</li>
+<li><p>To display the actual time on the watch face, create the clock needles and set their position using the <span style="font-family: Courier New,Courier,monospace">main.js</span> file.</p>
+<p>Render the clock needles:</p>
+<ol type="a"> 
+<li>The needles can be created using the <span style="font-family: Courier New,Courier,monospace">renderNeedle()</span> method.
+<p>To create the needle as a triangle or a polygon, assign the coordinate of the beginning point with the <span style="font-family: Courier New,Courier,monospace">moveTo()</span> method. To assign the rest of the points of the triangle or polygon, use the <span style="font-family: Courier New,Courier,monospace">lineTo()</span> method, which defines the position of the next connecting vertex. You can also adjust the size of each clock needle with the <span style="font-family: Courier New,Courier,monospace">lineTo()</span> method.</p>
+<pre class="prettyprint">
+function renderNeedle(angle, radius) 
+{
+&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+&nbsp;&nbsp;&nbsp;context.save();
+&nbsp;&nbsp;&nbsp;context.rotate(angle);
+&nbsp;&nbsp;&nbsp;context.beginPath();
+&nbsp;&nbsp;&nbsp;context.lineWidth = 4;
+&nbsp;&nbsp;&nbsp;context.strokeStyle = &#39;#fff&#39;;
+&nbsp;&nbsp;&nbsp;context.moveTo(6, 0);
+&nbsp;&nbsp;&nbsp;context.lineTo(radius, 0);
+&nbsp;&nbsp;&nbsp;context.closePath();
+&nbsp;&nbsp;&nbsp;context.stroke();
+&nbsp;&nbsp;&nbsp;context.closePath();
+&nbsp;&nbsp;&nbsp;context.restore();
+}</pre>
+</li>
+<li>Create the hour needle using the <span style="font-family: Courier New,Courier,monospace">renderHourNeedle()</span> method:
+<pre class="prettyprint">
+function renderHourNeedle(hour) 
+{
+&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+
+&nbsp;&nbsp;&nbsp;var angle = null,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radius = null;
+
+&nbsp;&nbsp;&nbsp;angle = (hour - 3) * (Math.PI * 2) / 12;
+&nbsp;&nbsp;&nbsp;radius = clockRadius * 0.55;
+&nbsp;&nbsp;&nbsp;renderNeedle(angle, radius);
+}</pre>
+</li>
+<li>Create the minute needle using the <span style="font-family: Courier New,Courier,monospace">renderMinuteNeedle()</span> method:
+<pre class="prettyprint">
+function renderMinuteNeedle(minute)
+{
+&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+
+&nbsp;&nbsp;&nbsp;var angle = null,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;radius = null;
+
+&nbsp;&nbsp;&nbsp;angle = (minute - 15) * (Math.PI * 2) / 60;
+&nbsp;&nbsp;&nbsp;radius = clockRadius * 0.75;
+&nbsp;&nbsp;&nbsp;renderNeedle(angle, radius);
+}</pre>
+</li>
+</ol>
+</li>
+<li>Indicate the current time in the <span style="font-family: Courier New,Courier,monospace">main.js</span> file:
+<ol>
+<li>Determine the current time using the <span style="font-family: Courier New,Courier,monospace">new Date()</span> method. 
+<p>To point the needles accurately, define variables for the current hour and minute.</p>
+<pre class="prettyprint">
+function getDate() 
+{
+&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+
+&nbsp;&nbsp;&nbsp;var date;
+&nbsp;&nbsp;&nbsp;try 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;date = tizen.time.getCurrentDateTime();
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;catch (err) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.error(&#39;Error: &#39;, err.message);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;date = new Date();
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;return date;
+}
+
+function watch() 
+{
+&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+
+&nbsp;&nbsp;&nbsp;if (isAmbientMode === true) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;var date = new Date(),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hours = date.getHours(),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;minutes = date.getMinutes(),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;seconds = date.getSeconds(),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hour = hours + minutes / 60,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;minute = minutes + seconds / 60;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;nextMove = 1000 - date.getMilliseconds();</pre>
+</li>
+<li>Every time a new time is indicated, erase the previous time (the previously positioned needles) using the <span style="font-family: Courier New,Courier,monospace">clearRect()</span> method:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;context.clearRect(0, 0, context.canvas.width, context.canvas.height);</pre>
+</li>
+<li>Point the clock needles to display the current time:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;renderDots();
+&nbsp;&nbsp;&nbsp;renderHourNeedle(hour);
+&nbsp;&nbsp;&nbsp;renderMinuteNeedle(minute);
+
+&nbsp;&nbsp;&nbsp;context.restore();
+&nbsp;&nbsp;&nbsp;setTimeout(function() 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window.requestAnimationFrame(watch);
+&nbsp;&nbsp;&nbsp;}, nextMove);
+}</pre>
+</li>
+
+</ol>
+</li>
+</ol>	
+
+
+<h2 id="ambient">Using the Ambient Mode</h2>
+
+<p>In a low-powered wearable device, an ambient mode is available. In this mode, the watch application shows a limited UI and receives only the ambient tick event every minute to reduce power consumption.</p>
+<p>The details of the limited UI drawn in the ambient mode depend on the device. Usually, when designing the ambient mode UI, draw a black and white UI only, and use less than 20% of the pixels on the screen. If you do not want to draw your own ambient mode UI, set the <span style="font-family: Courier New,Courier,monospace">ambient-support</span> attribute to <span style="font-family: Courier New,Courier,monospace">false</span> in the watch application manifest file to allow the platform to show a default ambient mode UI.</p>
+
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">To use the ambient mode, the user must enable it in the device settings. In addition, in the Gear S2 device, the ambient mode activates only when you are wearing the watch on the wrist.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+  
+<p>To use the ambient mode:</p>
+<ol>
+<li>Define an event listener for the ambient mode:
+<pre class="prettyprint">
+/* Add eventListener for ambientmodechanged */
+window.addEventListener(&#39;ambientmodechanged&#39;, function(e) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;ambientmodechanged: &quot; + e.detail.ambientMode);
+&nbsp;&nbsp;&nbsp;if (e.detail.ambientMode === true) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Render ambient mode */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;isAmbientMode = true;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ambientWatch();
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Render normal mode */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;isAmbientMode = false;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;window.requestAnimationFrame(watch);
+&nbsp;&nbsp;&nbsp;}
+});
+
+/* Normal mode */
+isAmbientMode = false;
+window.requestAnimationFrame(watch);
+};
+</pre>
+</li>
+
+<li>Create the ambient mode dots:
+<pre class="prettyprint">
+function renderAmbientDots() 
+{
+&nbsp;&nbsp;&nbsp;&quot;use strict&quot;;
+
+&nbsp;&nbsp;&nbsp;context.save();
+
+&nbsp;&nbsp;&nbsp;context.translate(canvas.width / 2, canvas.height / 2);
+	
+&nbsp;&nbsp;&nbsp;context.beginPath();
+
+&nbsp;&nbsp;&nbsp;context.fillStyle = &#39;#000000&#39;;
+&nbsp;&nbsp;&nbsp;context.strokeStyle = &#39;#fff&#39;;
+&nbsp;&nbsp;&nbsp;context.lineWidth = 4;
+
+&nbsp;&nbsp;&nbsp;context.arc(0, 0, 7, 0, 2 * Math.PI, false);
+&nbsp;&nbsp;&nbsp;context.fill();
+&nbsp;&nbsp;&nbsp;context.stroke();
+&nbsp;&nbsp;&nbsp;context.closePath();
+}
+</pre>
+</li>
+<li>Indicate time in the ambient mode:
+<pre class="prettyprint">
+function ambientWatch() 
+{
+&nbsp;&nbsp;&nbsp;&#39;use strict&#39;;
+&nbsp;&nbsp;&nbsp;/* Get the current time */
+&nbsp;&nbsp;&nbsp;var date = getDate(),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hours = date.getHours(),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;minutes = date.getMinutes(),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;seconds = date.getSeconds(),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hour = hours + minutes / 60,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;minute = minutes + seconds / 60;
+
+&nbsp;&nbsp;&nbsp;/* Erase the previous time */
+&nbsp;&nbsp;&nbsp;context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+&nbsp;&nbsp;&nbsp;renderAmbientDots();
+&nbsp;&nbsp;&nbsp;renderHourNeedle(hour);
+&nbsp;&nbsp;&nbsp;renderMinuteNeedle(minute);
+
+&nbsp;&nbsp;&nbsp;context.restore();
+}
+</pre>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

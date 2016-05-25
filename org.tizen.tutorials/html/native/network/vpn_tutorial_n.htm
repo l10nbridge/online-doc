@@ -1,0 +1,381 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>VPN Service: Using Virtual Private Networks</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#init">Initializing the VPN Connection</a></li>
+            <li><a href="#get_param">Getting Interface Parameters</a></li>
+            <li><a href="#set_param">Setting Interface Parameters</a></li>
+            <li><a href="#config">Configuring the Interface</a></li>
+            <li><a href="#block">Blocking and Unblocking Networks</a></li>
+            <li><a href="#read">Reading and Writing Data</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/network/vpn_n.htm">VPN Service Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__VPN__SERVICE__MODULE.html">VPN Service API for Mobile Native</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>VPN Service: Using Virtual Private Networks</h1>
+
+<p>This tutorial demonstrates how you can create and configure the tunnel interface, and get and set the tunnel parameters and data transfer statistics.</p>
+
+<p>This feature is supported in mobile applications only.</p>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the VPN Service API basics by learning about:</p>
+
+<ul>
+	<li><a href="#init">Initializing the VPN Connection</a>
+	<p>Create a handle for maintaining the tunnel information.</p></li>
+	<li><a href="#get_param">Getting Interface Parameters</a>
+	<p>Pass the handle and get the required interface parameter details.</p></li>
+	<li><a href="#set_param">Setting Interface Parameters</a>
+	<p>Update the parameter value, and set the parameter as per the client application.</p></li>
+	<li><a href="#config">Configuring the Interface</a>
+	<p>Set up the tunnel interface, bring it up, and install specified routes and servers.</p></li>
+	<li><a href="#block">Blocking and Unblocking Networks</a>
+	<p>Add routing details for blocked and allowed networks, and remove restrictions when needed.</p></li>
+	<li><a href="#read">Reading and Writing Data</a>
+	<p>Set a timeout interval for reading and writing.</p></li>
+</ul>
+
+<h2 id="init" name="init">Initializing the VPN Connection</h2>
+
+<p>To initialize the VPN service for use:</p>
+
+<ol>
+<li>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__VPN__SERVICE__MODULE.html">VPN Service</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;vpn_service.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;vpn_service.h&gt;
+</pre>
+</li>
+<li>To be able to use all VPN functions, you must create a handle that contains information about the VPN. At the beginning, create a <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__VPN__SERVICE__MODULE.html#gaef3a3f46336ee7e8c43dd16144b22ac5">vpnsvc_h</a> type variable, which is a <span style="font-family: Courier New,Courier,monospace">void*</span> that stores the VPN handle.
+<pre class="prettyprint">
+vpnsvc_h handle = NULL;
+</pre>
+</li>
+<li>Create the VPN handle using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_init()</span> function that allows you to obtain the VPN state and data transfer information:
+<pre class="prettyprint">
+char *name = TEST_VPN_IF_NAME;
+int ret = VPNSVC_ERROR_NONE;
+
+ret = vpnsvc_init(name, &amp;handle);
+
+if (ret != VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_init failed: %d\n&quot;, ret);
+</pre>
+</li>
+<li>When the VPN handle is no longer needed, destroy it using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_deinit()</span> function:
+<pre class="prettyprint">
+if (handle)
+&nbsp;&nbsp;&nbsp;&nbsp;vpnsvc_deinit(handle);
+
+handle = NULL;
+</pre>
+</li>
+</ol>
+
+
+<h2 id="get_param" name="get_param">Getting Interface Parameters</h2> 
+
+<p>To get the interface parameters after successfully initializing the VPN service:</p>
+<ul>
+<li>Get the tunnel file descriptor using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_get_tun_fd()</span> function:
+<pre class="prettyprint">
+int int_value;
+
+if (vpnsvc_get_tun_fd(handle, &amp;int_value) == VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;tun_fd: %d\n&quot;, int_value);
+</pre>
+</li>
+<li>Get the tunnel index using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_get_tun_index()</span> function:
+<pre class="prettyprint">
+int int_value;
+
+if (vpnsvc_get_tun_index(handle, &amp;int_value) == VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;tun_index: %d\n&quot;, int_value);
+</pre>
+</li>
+<li>Get the tunnel name using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_get_tun_name()</span> function:
+<pre class="prettyprint">
+char* result_name = NULL;
+int ret = VPNSVC_ERROR_NONE;
+
+ret = vpnsvc_get_tun_name(handle, &amp;result_name);
+if (ret == VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;tun_name: %s\n&quot;, result_name);
+</pre>
+</li>
+<li>Get the session for the tunnel interface using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_get_session()</span> function:
+<pre class="prettyprint">
+int ret = VPNSVC_ERROR_NONE;
+char *get_session = NULL;
+
+ret = vpnsvc_get_session(handle, &amp;get_session);
+printf(&quot;Session Name = %s\n&quot;, get_session);
+printf(&quot;vpnsvc_set_session succeeded!\n&quot;);
+</pre>
+</li>
+</ul>
+
+<h2 id="set_param" name="set_param">Setting Interface Parameters</h2>
+
+<p>To set the interface parameters:</p> 
+<ul>
+<li>Set the MTU configuration for the tunnel interface using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_set_mtu()</span> function. The MTU value is used when the user brings up the VPN interface using the VPN UP API.
+<pre class="prettyprint">
+int ret;
+
+ret = vpnsvc_set_mtu(handle, 9000);
+if (ret != VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_set_mtu failed!\n&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_set_mtu succeeded!\n&quot;);
+</pre>
+</li>
+<li>Set the session name for the tunnel interface using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_set_session()</span> function:
+<pre class="prettyprint">
+char *set_session = &quot;vpnsvc_test VPN Session&quot;;
+int ret;
+
+ret = vpnsvc_set_session(handle, set_session);
+if (ret != VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_set_session failed!\n&quot;);
+</pre>
+</li>
+</ul>
+
+<h2 id="config" name="config">Configuring the Interface</h2> 
+
+<p>To configure the interface:</p>
+<ol> 
+<li>Protect the underlying VPN traffic to be routed to the VPN itself by binding the socket to the underlying network interface, such as <span style="font-family: Courier New,Courier,monospace">wlan0</span>:
+<pre class="prettyprint">
+int sock;
+int ret;
+
+ret = vpnsvc_protect(handle, sock, &quot;wlan0&quot;);
+if (ret != VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_protect failed!\n&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_protect succeeded!\n&quot;);
+</pre>
+</li>
+<li>Set up the tunnel interface. 
+<p>The <span style="font-family: Courier New,Courier,monospace">vpnsvc_up()</span> function configures the VPN tunnel interface based on the configured parameters passed by the client application.</p>
+<p>To change the MTU parameter of the configured interface, the client application must invoke the <span style="font-family: Courier New,Courier,monospace">vpnsvc_set_mtu()</span> function that is used to set the MTU value. The client application must invoke the function before the <span style="font-family: Courier New,Courier,monospace">vpnsvc_up()</span> function call.</p>
+<pre class="prettyprint">
+int ret;
+char local[VPNSVC_IP4_STRING_LEN] = {&#39;\0&#39;,};
+char remote[VPNSVC_IP4_STRING_LEN] = {&#39;\0&#39;,};
+char *routes[2];
+int prefix[2];
+int nr_routes = 2;
+const char *dns_server[2];
+int nr_dns = 2;
+char dns_suffix[100] = &quot;tizen.org&quot;;
+
+if (!handle) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;invalid handle\n&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+}
+
+strncpy(local, &quot;192.168.0.82&quot;, VPNSVC_IP4_STRING_LEN);
+strncpy(remote, &quot;192.168.0.1&quot;, VPNSVC_IP4_STRING_LEN);
+
+routes[0] = malloc(sizeof(char) * VPNSVC_IP4_STRING_LEN);
+routes[1] = malloc(sizeof(char) * VPNSVC_IP4_STRING_LEN);
+
+memset(routes[0], 0, sizeof(char) * VPNSVC_IP4_STRING_LEN);
+memset(routes[1], 0, sizeof(char) * VPNSVC_IP4_STRING_LEN);
+
+strncpy(routes[0], &quot;192.168.0.10&quot;, VPNSVC_IP4_STRING_LEN);
+prefix[0] = 32;
+
+strncpy(routes[1], &quot;192.168.0.11&quot;, VPNSVC_IP4_STRING_LEN);
+prefix[1] = 32;
+
+char *dns1 = &quot;1.1.1.1&quot;;
+char *dns2 = &quot;2.2.2.2&quot;;
+
+dns_server[0] = dns1;
+dns_server[1] = dns2;
+
+ret = vpnsvc_up(handle, local, remote, routes, prefix, nr_routes,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dns_server, nr_dns, dns_suffix);
+
+if (ret != VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_up failed!\n&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_up succeeded!\n&quot;);
+</pre>
+</li>
+<li>Set down the tunnel interface, and remove it using the <span style="font-family: Courier New,Courier,monospace">vpnsvc_down()</span> function:
+<pre class="prettyprint">
+int ret;
+
+if (!handle) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;invalid handle\n&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+}
+
+ret = vpnsvc_down(handle);
+
+if (ret != VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_down failed!\n&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_down succeeded!\n&quot;);
+</pre>
+</li>
+</ol>
+
+<h2 id="block" name="block">Blocking and Unblocking Networks</h2> 
+
+<p>To block or unblock the network:</p>
+<ul>
+<li>Block all traffic, except specified allowed networks, and send the specified UP addresses to a specified interface:
+<pre class="prettyprint">
+char* block_nets[2];
+int block_prefix[2];
+int block_nr_nets = 2;
+char* allow_nets[2];
+int allow_prefix[2];
+int allow_nr_nets = 2;
+int ret;
+
+if (!handle) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;invalid handle\n&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+}
+
+block_nets[0] = malloc(sizeof(char) * VPNSVC_IP4_STRING_LEN);
+block_nets[1] = malloc(sizeof(char) * VPNSVC_IP4_STRING_LEN);
+memset(block_nets[0], 0, sizeof(char) * VPNSVC_IP4_STRING_LEN);
+memset(block_nets[1], 0, sizeof(char) * VPNSVC_IP4_STRING_LEN);
+strncpy(block_nets[0], &quot;125.209.222.141&quot;, VPNSVC_IP4_STRING_LEN);
+block_prefix[0] = 32;
+strncpy(block_nets[1], &quot;180.70.134.19&quot;, VPNSVC_IP4_STRING_LEN);
+block_prefix[1] = 32;
+
+allow_nets[0] = malloc(sizeof(char) * VPNSVC_IP4_STRING_LEN);
+allow_nets[1] = malloc(sizeof(char) * VPNSVC_IP4_STRING_LEN);
+memset(allow_nets[0], 0, sizeof(char) * VPNSVC_IP4_STRING_LEN);
+memset(allow_nets[1], 0, sizeof(char) * VPNSVC_IP4_STRING_LEN);
+strncpy(allow_nets[0], &quot;216.58.221.142&quot;, VPNSVC_IP4_STRING_LEN);
+allow_prefix[0] = 32;
+strncpy(allow_nets[1], &quot;206.190.36.45&quot;, VPNSVC_IP4_STRING_LEN);
+allow_prefix[1] = 32;
+
+ret = vpnsvc_block_networks(handle, block_nets, block_prefix, block_nr_nets,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;allow_nets, allow_prefix, allow_nr_nets);
+
+if (ret != VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_block_networks failed!\n&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_block_networks succeeded!\n&quot;);
+</pre>
+</li>
+<li>Remove any restrictions from the VPN network:
+<pre class="prettyprint">
+int ret;
+
+if (!handle) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;invalid handle\n&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+}
+
+ret = vpnsvc_unblock_networks(handle);
+
+if (ret != VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_unblock_networks failed!\n&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_unblock_networks succeeded!\n&quot;);
+</pre>
+</li>
+</ul>
+
+<h2 id="read" name="read">Reading and Writing Data</h2>
+
+<p>To read or write data:</p>
+<ul>
+<li>Check whether there is data to read within a specified time period:
+<pre class="prettyprint">
+int ret;
+int timeout_ms = 20;
+
+ret = vpnsvc_read(handle, timeout_ms);
+
+if (ret == VPNSVC_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_read: Data available to read!\n&quot;);
+</pre>
+</li>
+<li>Write data directly to the underlying socket using a system call for performance. The number of bytes written is returned on success (the same as the system write call).
+<pre class="prettyprint">
+int ret;
+char *message = &quot;test message&quot;;
+
+ret = vpnsvc_write(handle, message, strlen(message));
+
+if (ret &lt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_write: failed!\n&quot;);
+else if (ret == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_write: Nothing written!\n&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;vpnsvc_read: %d bytes written!\n&quot;, ret);
+</pre>
+</li>
+</ul>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
