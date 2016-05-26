@@ -26,6 +26,7 @@
 			<li><a href="#prerequisites">Prerequisites</a></li>
 			<li><a href="#map1">Working with Map-type Data Controls</a></li>
 			<li><a href="#map2">Working with SQL-type Data Controls</a></li>
+			<li><a href="#map3">Working with Data Change Notification</a></li>
 		</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
@@ -54,7 +55,9 @@
    </li>
    <li><a href="#map2">Working with SQL-type Data Controls</a>
     <p>Work with SQL-type data controls.</p></li>
-  </ul> 
+   <li><a href="#map3">Working with Data Change Notification</a>
+    <p>Work with Data Change Notification.</p></li>
+  </ul>
 
 <h2 id="prerequisites">Prerequisites</h2>
 
@@ -84,6 +87,14 @@
 #include &lt;string.h&gt;
 </pre>
 <p>To execute this application, the <span style="font-family: Courier New,Courier,monospace">&lt;sqlite3.h&gt;</span>, <span style="font-family: Courier New,Courier,monospace">&lt;stdlib.h&gt;</span>, <span style="font-family: Courier New,Courier,monospace">&lt;glib.h&gt;</span>, and <span style="font-family: Courier New,Courier,monospace">&lt;string.h&gt;</span> header files have to be included too.</p>
+</li>
+
+<li>
+<p>The data control use cases run 2 applications. Each application plays a different role: one for the consumer, another for the provider.</p>
+<ul>
+<li>For the consumer application, add the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/datasharing</span> and <span style="font-family: Courier New,Courier,monospace">http://tizen.org/privilege/appmanager.launch</span> privileges to the manifest file of the application.</li>
+<li>For the provider application, in the IDE, double-click <strong>tizen-manifest.xml</strong>, and in the Tizen Manifest Editor, go to <strong>Advanced &gt; Data Control &gt; Add</strong>. Add the <strong>Read</strong> and <strong>Write</strong> access rights to both <strong>SQL</strong> and <strong>Map</strong> types.
+</li></ul>
 </li>
 </ol>
 
@@ -705,6 +716,168 @@ app_create(void *data)
 </pre>
 </li>
 </ol>
+
+
+
+
+<h2 id="map3" name="map3">Working with Data Change Notification</h2>
+
+<p>To notify and listen data change notification using the Data Control API:</p>
+
+<ol>
+<li id="provider3">Implement the provider application.
+<p>When provider's data has been changed, provider application can notify information about changed data to consumers who register data change notification callback.</p>
+<p>The provider application can decide who can or can not listen data change notfication when consumer application try to register data change notification callback.</p>
+
+<pre class="prettyprint">
+
+bool change_noti_consumer_list_cb(
+&nbsp;&nbsp;&nbsp;data_control_h provider,
+&nbsp;&nbsp;&nbsp;char *consumer_appid,
+&nbsp;&nbsp;&nbsp;void *user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Added change noti consumer appid: %s&quot;, consumer_appid);
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+bool consumer_filter_cb_1(
+&nbsp;&nbsp;&nbsp;data_control_h provider,
+&nbsp;&nbsp;&nbsp;char *consumer_appid,
+&nbsp;&nbsp;&nbsp;void *user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;consumer appid %s try to add data change callback&quot;, consumer_appid);
+&nbsp;&nbsp;&nbsp;if (strcmp(consumer_appid, &quot;org.tizen.helloworld_consumer2&quot;) == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Invalid appid : %s&quot;, consumer_appid);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;data_control_provider_foreach_data_change_consumer(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;provider,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;change_noti_consumer_list_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+bool consumer_filter_cb_2(
+&nbsp;&nbsp;&nbsp;data_control_h provider,
+&nbsp;&nbsp;&nbsp;char *consumer_appid,
+&nbsp;&nbsp;&nbsp;void *user_data)
+{
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;consumer appid %s try to add data change callback&quot;, consumer_appid);
+&nbsp;&nbsp;&nbsp;if (strcmp(consumer_appid, &quot;org.tizen.helloworld_consumer3&quot;) == 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Invalid appid : %s&quot;, consumer_appid);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;return true;
+}
+
+int filter_callback_id_1;
+int filter_callback_id_2;
+void add_consumer_filter_cb_func(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;data_control_provider_add_data_change_consumer_filter_cb(consumer_filter_cb_1, NULL, &amp;filter_callback_id_1);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;filter_callback_id_1 id: %d&quot;, filter_callback_id_1);
+
+&nbsp;&nbsp;&nbsp;data_control_provider_add_data_change_consumer_filter_cb(consumer_filter_cb_2, NULL, &amp;filter_callback_id_2);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;filter_callback_id_2 id: %d&quot;, filter_callback_id_2);
+}
+
+void remove_consumer_filter_cb_func(void *data, Evas_Object *obj EINA_UNUSED, void *event_info EINA_UNUSED)
+{
+&nbsp;&nbsp;&nbsp;data_control_provider_remove_data_change_consumer_filter_cb(filter_callback_id_1);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;remove callback %d&quot;, filter_callback_id_1);
+
+&nbsp;&nbsp;&nbsp;data_control_provider_remove_data_change_consumer_filter_cb(filter_callback_id_2);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;remove callback %d&quot;, filter_callback_id_2);
+}
+
+void update_request_cb(int request_id, data_control_h provider, bundle *update_data, const char *where, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;char* command = data_control_provider_create_update_statement(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;provider, update_data, where);
+&nbsp;&nbsp;&nbsp;int ret = sqlite3_exec(db, command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_provider_send_error(request_id, sqlite3_errmsg(db));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(command);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;ret = data_control_provider_send_update_result(request_id);
+&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)	{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;update_send_result failed with error: %d&quot;,ret);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[update_request_cb] send result success&quot;);
+
+&nbsp;&nbsp;&nbsp;data_control_provider_send_data_change_noti(provider, DATA_CONTROL_DATA_CHANGE_SQL_UPDATE, update_data);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;[send data change notification] Notify data change&quot;);
+
+&nbsp;&nbsp;&nbsp;free(command);
+}
+
+</pre>
+</li>
+
+<li id="consumer3">Implement the consumer application.
+<p>The consumer application requests the add/remove data change callback to the provider application and receives the result from the provider application.</p>
+
+<pre class="prettyprint">
+
+void data_change_cb(data_control_h provider,
+&nbsp;&nbsp;&nbsp;data_control_data_change_type_e type,
+&nbsp;&nbsp;&nbsp;bundle *data,
+&nbsp;&nbsp;&nbsp;void *user_data)
+{
+&nbsp;&nbsp;&nbsp;char *word;
+&nbsp;&nbsp;&nbsp;char *word_desc;
+&nbsp;&nbsp;&nbsp;char *word_num;
+
+&nbsp;&nbsp;&nbsp;bundle_get_str(data, &quot;WORD&quot;, &amp;word);
+&nbsp;&nbsp;&nbsp;bundle_get_str(data, &quot;WORD_DESC&quot;, &amp;word_desc);
+&nbsp;&nbsp;&nbsp;bundle_get_str(data, &quot;WORD_NUM&quot;, &amp;word_num);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%d type noti, changed data : %s, %s, %s&quot;, type, word, word_desc, word_num);
+}
+
+void result_cb(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_h provider,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_control_error_e result,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int callback_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;void *user_data) {
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Add data change callback RESULT : %d&quot;, result);
+}
+
+int cb_id;
+void add_data_change_cb_func(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;int ret = data_control_add_data_change_cb(ad->provider_h,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data_change_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;cb_id);
+&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;add data change callback is failed with error: %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;add data change callback done: %d&quot;, cb_id);
+}
+
+void remove_data_change_cb_func(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;data_control_remove_data_change_cb(ad->provider_h, cb_id);
+&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;remove data change callback done: %d&quot;, cb_id);
+}
+
+</pre>
+</li>
+
+
+</ol>
+
   
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
