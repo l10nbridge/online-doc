@@ -42,9 +42,9 @@
 			<p class="toc-title">Related Info</p>
 			<ul class="toc">
 				<li><a href="../../../../org.tizen.guides/html/native/location/maps_n.htm">Maps Service Guide</a></li>
-		    		<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MAPS__SERVICE__MODULE.html">Maps Service API for Mobile Native</a></li>
+				<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MAPS__SERVICE__MODULE.html">Maps Service API for Mobile Native</a></li>
 			</ul>
-	    	</div>
+		</div>
 	</div>
 </div>
 
@@ -405,6 +405,89 @@ __maps_service_search_place_cb(maps_error_e error, int request_id, int index, in
 </ol>
 
 
+<p>To search for a list of places within a boundary, and get detailed information of a particular place:</p>
+<ol>
+<li>Search for a place list:
+<ul><li>Use the <span style="font-family: Courier New,Courier,monospace;">maps_service_search_place_list()</span> function for a search within a specified distance around the center coordinates:
+<pre class="prettyprint">
+maps_area_h boundary = NULL;
+/* Create the boundary with maps_area_create_rectangle() or maps_area_create_circle() */
+
+error = maps_service_search_place_list(maps, boundary, filter, preference,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__maps_service_search_place_list_cb, user_data, &amp;request_id);
+
+if (error != MAPS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre>
+</li>
+
+<li>Implement the <span style="font-family: Courier New,Courier,monospace;">__maps_service_search_place_list_cb()</span> callback to receive the service response:
+<pre class="prettyprint">
+static bool
+__maps_service_search_place_list_cb(maps_error_e error, int request_id, int total,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maps_place_list_h place_list, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Handle the obtained place data */
+&nbsp;&nbsp;&nbsp;&nbsp;maps_place_list_foreach(place_list, __maps_place_details_cb, user_data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release the results */
+&nbsp;&nbsp;&nbsp;&nbsp;maps_place_list_destroy(place_list);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+
+<li>Implement the <span style="font-family: Courier New,Courier,monospace;">__maps_place_details_cb()</span> callback to receive the service response:
+<pre class="prettyprint">
+static bool
+__maps_place_details_cb(int index, maps_place_h place, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Handle the obtained place data */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get and store the uri in somewhere to get place details later */
+&nbsp;&nbsp;&nbsp;&nbsp;char *place_uri = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;maps_place_get_uri(place, &place_uri);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Don't release the place handle, because it is just a reference to data of the list */
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+</ul></li>
+
+<li>Get for place details:
+<ul><li>Use the <span style="font-family: Courier New,Courier,monospace;">maps_service_get_place_details()</span> function for a search for place details:
+<pre class="prettyprint">
+error = maps_service_get_place_details(maps, place_uri,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__maps_service_get_place_details_cb, user_data, &amp;request_id);
+
+if (error != MAPS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre>
+</li>
+
+<li>Implement the <span style="font-family: Courier New,Courier,monospace;">__maps_service_get_place_details_cb()</span> callback to receive the service response:
+<pre class="prettyprint">
+static void
+__maps_service_get_place_details_cb(maps_error_e result, int request_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;maps_place_h place, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Handle the obtained place data */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release the results */
+&nbsp;&nbsp;&nbsp;&nbsp;maps_place_destroy(place);
+}
+</pre>
+</li>
+
+</ul></li>
+</ol>
+
+
+
+
 <h2 id="search_route" name="search_route">Using the Routing Service</h2>
 
 <p>To query a route from point A to point B, use one of the following approaches. The service requests can be <a href="#preference">customized</a>.</p>
@@ -515,19 +598,16 @@ free(street);
 
 <p>The result of the <a href="#search_place">place search request</a> (<span style="font-family: Courier New,Courier,monospace;">maps_service_search_place()</span>, <span style="font-family: Courier New,Courier,monospace;">maps_service_search_place_by_area()</span>, or <span style="font-family: Courier New,Courier,monospace;">maps_service_search_place_by_address()</span>) is retrieved from the map service using multiple iterations of the <span style="font-family: Courier New,Courier,monospace;">maps_service_search_place_cb()</span> callback. The result is an instance of place data.</p>
 
-	<table class="note"> 
-<tbody> 
-    <tr> 
-     <th class="note">Note</th> 
-    </tr> 
-    <tr> 
-     <td class="note">Different map providers are capable of providing different sets of place data features. Some map providers can extend the place data features with extra properties that are not specified in the Maps Service API. Such properties are organized as a key-value storage where the keys are the names of the properties.
-	 
-	 <p>If your map provider does not support a specific feature, the get function for the feature returns an error. To prevent problems, you can <a href="#start">check which data features are available</a> in your map provider using the <span style="font-family: Courier New,Courier,monospace;">maps_service_provider_is_data_supported()</span> function.</p>
-	 </td> 
-    </tr> 
-   </tbody> 
-  </table>
+<table class="note"><tbody>
+<tr>
+	<th class="note">Note</th>
+</tr>
+<tr>
+	<td class="note">Different map providers are capable of providing different sets of place data features. Some map providers can extend the place data features with extra properties that are not specified in the Maps Service API. Such properties are organized as a key-value storage where the keys are the names of the properties.
+	<p>If your map provider does not support a specific feature, the get function for the feature returns an error. To prevent problems, you can <a href="#start">check which data features are available</a> in your map provider using the <span style="font-family: Courier New,Courier,monospace;">maps_service_provider_is_data_supported()</span> function.</p>
+	</td>
+</tr>
+</tbody></table>
 
 <p>To parse place data:</p>
 
@@ -658,24 +738,21 @@ __maps_place_properties_cb(int index, int total, char* key, void* value, void* u
 
 <p>The result of the <a href="#search_route">route calculation request</a> (<span style="font-family: Courier New,Courier,monospace;">maps_service_search_route()</span> or <span style="font-family: Courier New,Courier,monospace;">maps_service_search_route_waypoints()</span>) is retrieved from the map service using multiple iterations of the <span style="font-family: Courier New,Courier,monospace;">maps_service_search_route_cb()</span> callback. The result is an instance of route data.</p>
 
-	<table class="note"> 
-<tbody> 
-    <tr> 
-     <th class="note">Note</th> 
-    </tr> 
-    <tr> 
-     <td class="note">Different map providers are capable of providing different sets of route data features. Some map providers can extend the route data features with extra properties that are not specified in the Maps Service API. Such properties are organized as a key-value storage where the keys are the names of the properties.
-	 
-	 <p>If your map provider does not support a specific feature, the get function for the feature returns an error. To prevent problems, you can <a href="#start">check which data features are available</a> in your map provider using the <span style="font-family: Courier New,Courier,monospace;">maps_service_provider_is_data_supported()</span> function.</p>
-	 </td> 
-    </tr> 
-   </tbody> 
-  </table>
+<table class="note"><tbody>
+<tr>
+	<th class="note">Note</th>
+</tr>
+<tr>
+	<td class="note">Different map providers are capable of providing different sets of route data features. Some map providers can extend the route data features with extra properties that are not specified in the Maps Service API. Such properties are organized as a key-value storage where the keys are the names of the properties.
+	<p>If your map provider does not support a specific feature, the get function for the feature returns an error. To prevent problems, you can <a href="#start">check which data features are available</a> in your map provider using the <span style="font-family: Courier New,Courier,monospace;">maps_service_provider_is_data_supported()</span> function.</p>
+	</td>
+</tr>
+</tbody></table>
 
-  
+
 <p>To parse route data:</p>
 
-<ol><li><p>To get the route information features, such as route ID, origin, destination, and total distance, use the following functions with a <span style="font-family: Courier New,Courier,monospace;">maps_route_h</span> place handle:</p>  
+<ol><li><p>To get the route information features, such as route ID, origin, destination, and total distance, use the following functions with a <span style="font-family: Courier New,Courier,monospace;">maps_route_h</span> place handle:</p>
 <ul>
 <li>To obtain the route ID, use the <span style="font-family: Courier New,Courier,monospace;">maps_route_get_route_id()</span> function:
 <pre class="prettyprint">
@@ -1199,7 +1276,7 @@ if (error != MAPS_ERROR_NONE)
 var _gaq = _gaq || [];
 _gaq.push(['_setAccount', 'UA-25976949-1']);
 _gaq.push(['_trackPageview']);
-(function() 
+(function()
 {
 	var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
 	ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
