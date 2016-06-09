@@ -23,10 +23,11 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#on_demand_sync">Initializing the On-demand Sync</a></li>
-			<li><a href="#periodic_sync">Initializing the Periodic Sync</a></li>
-			<li><a href="#data_change_sync">Initializing the Data Change Sync</a></li>
-            <li><a href="#foreach_sync">Initializing the ForEach Sync</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#on_demand_sync">Defining an On-demand Sync Job</a></li>
+			<li><a href="#periodic_sync">Defining a Periodic Sync Job</a></li>
+			<li><a href="#data_change_sync">Defining a Data Change Sync Job</a></li>
+            <li><a href="#foreach_sync">Defining a ForEach Sync Job</a></li>
 			<li>Sync adapter
 			<ul class="toc">
 				<li><a href="#set_callback">Setting the Callback Functions</a></li>
@@ -47,18 +48,18 @@
 
 	<p>This tutorial demonstrates how you can manage the data synchronizing schedule and control sync operations manually or periodically.</p>
 
-<p>To use the Sync Manager API features, the service application must first <a href="#set_callback">set the callback functions</a>. A UI application cannot initialize and set callbacks through the Sync Adapter API. Instead, the UI application must call the Sync Manager API to request sync operations.</p>
-
   <h2>Warm-up</h2>
     <p>Become familiar with the Sync Manager API basics by learning about:</p>
 	<ul>
-		<li><a href="#on_demand_sync">Initializing the On-demand Sync</a>
+		<li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the sync manager functionality.</p></li>	
+		<li><a href="#on_demand_sync">Defining an On-demand Sync Job</a>
 		<p>Add an on-demand sync job for a one-time operation.</p></li>
-		<li><a href="#periodic_sync">Initializing the Periodic Sync</a>
+		<li><a href="#periodic_sync">Defining a Periodic Sync Job</a>
 		<p>Add a periodic sync job with a recurring cycle.</p></li>
-        <li><a href="#data_change_sync">Initializing the Data Change Sync</a>
+        <li><a href="#data_change_sync">Defining a Data Change Sync Job</a>
         <p>Add a data change sync job for receiving notifications whenever a specific database change occurs.</p></li>
-        <li><a href="#foreach_sync">Initializing the ForEach Sync</a>
+        <li><a href="#foreach_sync">Defining a ForEach Sync Job</a>
         <p>Iterate all the registered sync jobs for managing them more efficiently.</p></li>
 		<li>Sync adapter
 		<ul>
@@ -68,11 +69,23 @@
 		</li>
 	</ul>
 
-<h2 id="on_demand_sync" name="on_demand_sync">Initializing the On-demand Sync</h2>
+<h2 id="prerequisites">Prerequisites</h2>
 
-<p>To inform a service application of the time to operate a one-time sync job:</p>
-
+<p>To enable your application to use the sync manager functionality:</p>
 <ol>
+
+<li>To use the Sync Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">wearable</a> applications), the application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file:
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;!--To set an alarm--&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/alarm.set&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;!--To use the calendar capability--&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/calendar.read&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;!--To use the contact capability--&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/contact.read&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+</li>
 <li><a href="#set_callback">Set the sync adapter callbacks</a> in the service application:
 <pre class="prettyprint">
 #include &lt;sync_adapter.h&gt;
@@ -80,13 +93,27 @@
 int result;
 result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
 </pre>
-</li>
 
-<li>To use the functions and data types of the Sync Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in your UI application:
+<p>A UI application cannot initialize and set callbacks through the Sync Adapter API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__ADAPTER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYNC__ADAPTER__MODULE.html">wearable</a> applications). Instead, the UI application must call the Sync Manager API to request sync operations.</p>
+
+</li>
+<li>To use the functions and data types of the Sync Manager API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in the UI application:
  <pre class="prettyprint">
 #include &lt;sync_manager.h&gt;
 </pre></li>
+<li>To use the functions and data types of the Sync Adapter API, include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_adapter.h&gt;</span> header file in the service application:
 
+<pre class="prettyprint">
+#include &lt;sync_adapter.h&gt;
+</pre>
+</li>
+</ol>
+	
+<h2 id="on_demand_sync" name="on_demand_sync">Defining an On-demand Sync Job</h2>
+
+<p>To inform a service application of the time to operate a one-time sync job:</p>
+
+<ol>
 <li>If you want to use an account, create the account and obtain the parameters that are used to call the <span style="font-family: Courier New,Courier,monospace">sync_manager_on_demand_sync_job()</span> function.
 <p>For more information, see <a href="account_tutorial_n.htm#add">Creating and Managing an Account</a> and <a href="../app_framework/bundle_tutorial_n.htm#manage">Managing and Using the Bundle Content</a>.</p>
 
@@ -158,26 +185,11 @@ sync_adapter_unset_callbacks();
 </li>
 </ol>
 		
-<h2 id="periodic_sync" name="periodic_sync">Initializing the Periodic Sync</h2>
+<h2 id="periodic_sync" name="periodic_sync">Defining a Periodic Sync Job</h2>
 
 <p>To inform periodically a service application of the time to operate a sync job with its sync interval:</p>
 
 <ol>
-<li><a href="#set_callback">Set the sync adapter callbacks</a> in your service application:
-<pre class="prettyprint">
-#include &lt;sync_adapter.h&gt;
-
-int result;
-result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
-</pre>
-</li>
-
-<li>To use the functions and data types of the Sync Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in your UI application:
-<pre class="prettyprint">
-#include &lt;sync_manager.h&gt;
-</pre>
-</li>
-
 <li>If you want to use an account, create the account and obtain the parameters that are used to call the <span style="font-family: Courier New,Courier,monospace">sync_manager_add_periodic_sync_job()</span> function.
 <p>For more information, see <a href="account_tutorial_n.htm#add">Creating and Managing an Account</a> and <a href="../app_framework/bundle_tutorial_n.htm#manage">Managing and Using the Bundle Content</a>.</p>
 <pre class="prettyprint">
@@ -271,26 +283,11 @@ sync_adapter_unset_callbacks();
 </ol>
 
 
-<h2 id="data_change_sync" name="data_change_sync">Initializing the Data Change Sync</h2>
+<h2 id="data_change_sync" name="data_change_sync">Defining a Data Change Sync Job</h2>
 
 <p>To inform a service application of the time to operate a sync job whenever a corresponding database change occurs:</p>
 
 <ol>
-<li><a href="#set_callback">Set the sync adapter callbacks</a> in your service application:
-<pre class="prettyprint">
-#include &lt;sync_adapter.h&gt;
-
-int result;
-result = sync_adapter_set_callbacks(on_start_cb, on_cancel_cb);
-</pre>
-</li>
-
-<li>To use the functions and data types of the Sync Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in your UI application:
-<pre class="prettyprint">
-#include &lt;sync_manager.h&gt;
-</pre>
-</li>
-
 <li>If you want to use an account, create the account and obtain the parameters that are used to call the <span style="font-family: Courier New,Courier,monospace">sync_manager_add_data_change_sync_job()</span> function.
 <p>For more information, see <a href="account_tutorial_n.htm#add">Creating and Managing an Account</a> and <a href="../app_framework/bundle_tutorial_n.htm#manage">Managing and Using the Bundle Content</a>.</p>
 
@@ -387,17 +384,11 @@ sync_adapter_unset_callbacks();
 </li>
 </ol>
 
-<h2 id="foreach_sync" name="set_callback">Initializing the ForEach Sync</h2>
+<h2 id="foreach_sync" name="set_callback">Defining a ForEach Sync Job</h2>
 
 <p>To iterate all registered sync jobs to manage them more efficiently:</p>
 
 <ol>
-<li>To use the functions and data types of the Sync Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_manager.h&gt;</span> header file in your UI application:
-<pre class="prettyprint">
-#include &lt;sync_manager.h&gt;
-</pre>
-</li>
-
 <li>Set the callback to be invoked and call the iterate function at the same time:
 <pre class="prettyprint">
 int result;
@@ -420,16 +411,9 @@ sync_job_cb(account_h account, const char *sync_job_name, const char *sync_capab
 
 <h2 id="set_callback" name="set_callback">Setting the Callback Functions</h2>
 
-<p>To set callbacks to receive notifications about sync operations:</p>
+<p>To set callbacks in the service application to receive notifications about sync operations:</p>
 
 <ol>
-<li>To use the functions and data types of the Sync Adapter API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__ADAPTER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYNC__ADAPTER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;sync_adapter.h&gt;</span> header file in your service application:
-
-<pre class="prettyprint">
-#include &lt;sync_adapter.h&gt;
-</pre>
-</li>
-
 <li>Subscribe to the callback functions to receive notifications for the sync operation when a specific event or condition is detected on the device:
 <pre class="prettyprint">
 int result;

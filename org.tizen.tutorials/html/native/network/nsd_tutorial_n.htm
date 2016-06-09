@@ -1,0 +1,465 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+    <title>Network Service Discovery: Using Local and Remote Services</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li>DNSSD
+			<ul class="toc">
+			<li><a href="#dnssd_service">Managing a Local Service with DNSSD</a></li>
+			<li><a href="#dnssd_search">Browsing Remote Services with DNSSD</a></li>
+			</ul>
+			</li>			
+			<li>SSDP
+			<ul class="toc">
+			<li><a href="#ssdp_service">Managing a Local Service with SSDP</a></li>
+			<li><a href="#ssdp_search">Browsing Remote Services with SSDP</a></li>
+			</ul>
+			</li>
+		</ul>        
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/network/nsd_n.htm">Network Service Discovery Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__DNSSD__MODULE.html">DNSSD API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__SSDP__MODULE.html">SSDP API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__DNSSD__MODULE.html">DNSSD API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__SSDP__MODULE.html">SSDP API for Wearable Native</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Network Service Discovery: Using Local and Remote Services</h1>
+
+<p>This tutorial demonstrates how you can register local services and browse remote services on networks using the DNS Service Discovery (DNS-SD) or Simple Service Discovery Protocol (SSDP).</p>  
+
+<h2>Warm-up</h2>
+<p>Become familiar with the DNSSD and SSDP API basics by learning about:</p>
+		<ul>
+			<li><a href="#prerequisites">Prerequisites</a>
+		    <p>Prepare your application to use the network service discovery functionality.</p></li>
+			<li>DNSSD
+			<ul>
+			<li><a href="#dnssd_service">Managing a Local Service with DNSSD</a>
+		    <p>Create and register a local service, and announce it on a network.</p></li>
+			<li><a href="#dnssd_search">Browsing Remote Services with DNSSD</a>
+		    <p>Search for services on a network with a service type or target information.</p></li>
+			</ul>
+			</li>			
+			<li>SSDP
+			<ul>
+			<li><a href="#ssdp_service">Managing a Local Service with SSDP</a>
+		    <p>Create and register a local service, and announce it on a network.</p></li>
+			<li><a href="#ssdp_search">Browsing Remote Services with SSDP</a>
+		    <p>Search for services on a network with a service type or target information.</p></li>
+			</ul>
+			</li>
+		</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+<p>To enable your application to use the network service discovery functionality:</p>
+<ul>
+<li>To use the DNS-SD protocol:
+<ol>
+<li>
+<p>To use the functions and data types of the DNSSD API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__DNSSD__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__DNSSD__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;dnssd.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;dnssd.h&gt;
+</pre>
+</li>
+<li>
+<p>Initialize DNS-SD using the <span style="font-family: Courier New,Courier,monospace;">dnssd_initialize()</span> function:</p>
+<pre class="prettyprint">
+int error_code;
+
+error_code = dnssd_initialize();
+if (error_code != DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+</pre>
+
+<p>When no longer needed, release the DNS-SD:</p> 
+<pre class="prettyprint">
+dnssd_deinitialize();
+</pre>
+</li>
+</ol>
+</li>
+<li>To use the SSDP protocol:
+<ol>
+<li>
+<p>To use the functions and data types of the SSDP API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__SSDP__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__SSDP__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;ssdp.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;ssdp.h&gt;
+</pre>
+</li>
+<li>
+<p>Initialize SSDP using the <span style="font-family: Courier New,Courier,monospace;">ssdp_initialize()</span> function:</p>
+<pre class="prettyprint">
+int error_code;
+
+error_code = ssdp_initialize();
+if (error_code != SSDP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+</pre>
+
+<p>When no longer needed, release the SSDP:</p> 
+<pre class="prettyprint">
+ssdp_deinitialize();
+</pre>
+</li>
+</ol>
+</li>
+</ul>
+
+ <h2 id="dnssd_service" name="dnssd_service">Managing a Local Service with DNSSD</h2>
+
+<p>To manage a local service, you must create and register the service:</p>
+
+<ol>
+<li>Create the local service:
+<ol type="a">
+<li>To provide a local service on a network, you must create a handle containing information about the service.
+<p>At the beginning, define a <span style="font-family: Courier New,Courier,monospace">dnssd_service_h</span> variable to store the service handle. The target is used to create the handle, which represents a DNS-SD service to be advertised through a network. To set the service type, see <a href="http://www.dns-sd.org/ServiceTypes.html" target="_blank">http://www.dns-sd.org/ServiceTypes.html</a>.</p>
+
+<pre class="prettyprint">
+dnssd_service_h service_handle;
+char *service_type = &quot;_http._tcp&quot;;
+int error_code;
+
+error_code = dnssd_create_local_service(service_type, &amp;service_handle);
+if (error_code == DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;prinf(&quot;Success in creating a service handle.&quot;);
+</pre>
+</li>
+
+<li>Set a unique service name and a port number for the created service:
+<pre class="prettyprint">
+char* service_name = &quot;SamsungTest&quot;;
+int port = 80;
+
+if (dnssd_service_set_name(service_handle, service_name) == DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Success in setting service name&quot;);
+if (dnssd_service_set_port(service_handle, port) == DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Success in setting port&quot;);
+</pre>
+</li>
+<li>You can add a TXT record, which gives additional information about the created service. The TXT record is stored in a structured form using key-value pairs.
+<p>For more information, see section 6 of <a href="http://files.dns-sd.org/draft-cheshire-dnsext-dns-sd.txt" target="_blank">http://files.dns-sd.org/draft-cheshire-dnsext-dns-sd.txt</a>. The TXT record of the known service types can be found at <a href="http://www.dns-sd.org/ServiceTypes.html" target="_blank">http://www.dns-sd.org/ServiceTypes.html</a>.</p>
+
+<pre class="prettyprint">
+char* key = &quot;path&quot;;
+char* value = &quot;http://www.samsung.com&quot;;
+int length = 30;
+
+if (dnssd_service_add_txt_record_value(service_handle, key, length, value) == DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Success in setting service TXT&quot;);
+</pre>
+
+<p>When no longer needed, you can remove the TXT record from the created service:</p> 
+
+<pre class="prettyprint">
+char* key = &quot;path&quot;;
+
+if (dnssd_service_remove_txt_record_value(service_handle, key) == DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Success in removing service TXT&quot;);
+</pre>
+</li>
+<li>When the service is no longer provided, destroy the created service handle:
+<pre class="prettyprint">
+dnssd_destroy_local_service(service_handle);
+</pre>
+</li>
+</ol>
+</li>
+<li>Register the local service:
+<ol type="a">
+<li>Register the service to announce its availability on a network:
+
+<pre class="prettyprint">
+error_code = dnssd_register_local_service(service_handle, __registered_cb, NULL);
+if (error_code == DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;prinf(&quot;Success in registering a local service.&quot;);
+</pre>
+</li>
+<li>The callback defined in the <span style="font-family: Courier New,Courier,monospace">dnssd_register_local_service()</span> function is called when the service registration is finished:
+<pre class="prettyprint">
+void
+__registered_cb(dnssd_error_e result, dnssd_service_h dnssd_service, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (result == DNSSD_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Service is registered successfully */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Registered&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (result == DNSSD_NAME_CONFLICT) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Name conflict exists */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Name conflict&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (result == DNSSD_ALREADY_REGISTERED) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Service is already registered */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Already registered&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Result is unknown */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Unknown result&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ol>
+</li>
+</ol>
+
+ <h2 id="dnssd_search" name="dnssd_search">Browsing Remote Services with DNSSD</h2>
+
+<p>To search for available services on a network, use a service type or target information:</p>
+
+<ol>
+<li>To start searching, use the <span style="font-family: Courier New,Courier,monospace">dnssd_start_browsing_service()</span> function.
+<p>The DNS-SD browser handle is stored in a <span style="font-family: Courier New,Courier,monospace">dnssd_browser_h</span> variable. For more information on the service types, see <a href="http://www.dns-sd.org/ServiceTypes.html" target="_blank">http://www.dns-sd.org/ServiceTypes.html</a>.</p>
+
+<pre class="prettyprint">
+dnssd_browser_h browser_handle;
+char *service_type = &quot;_ftp._tcp&quot;;
+int error_code;
+
+error_code = dnssd_start_browsing_service(service_type, &amp;browser_handle, __found_cb, NULL);
+if (error_code == DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;prinf(&quot;Start browsing&quot;);
+</pre>
+</li>
+<li>The callback defined in the <span style="font-family: Courier New,Courier,monospace">dnssd_start_browsing_service()</span> function is called when the remote service becomes available or unavailable:
+<pre class="prettyprint">
+void
+__dnssd_print_found(dnssd_service_h dnssd_remote_service)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Handling the found service */
+&nbsp;&nbsp;&nbsp;&nbsp;char *service_name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *service_type = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *ip_v4_address = NULL
+&nbsp;&nbsp;&nbsp;&nbsp;char *ip_v6_address = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *txt_record_value = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;int length = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int port = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = dnssd_service_get_name(dnssd_remote_service, &amp;service_name);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code == DNSSD_ERROR_NONE &amp;&amp; service_ name!= NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Service name [%s]&quot;, service_ name);
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = dnssd_service_get_type(dnssd_remote_service, &amp;service_type);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code == DNSSD_ERROR_NONE &amp;&amp; service_type != NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Service type [%s]&quot;, service_type);
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = dnssd_service_get_ip(dnssd_remote_service, &amp;ip_v4_address, &amp;ip_v6_address)
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code == DNSSD_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(ip_v4_address)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPV4 address [%s]&quot;, ip_v4_address);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if(ip_v6_address)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPV6 address [%s]&quot;, ip_v6_address);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = dnssd_service_get_port(dnssd_remote_service, &amp;port)
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code == DNSSD_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Service port [%d]&quot;, port);
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = dnssd_service_get_txt_record_value(dnssd_remote_service, &amp;txt_record_value, &amp;value);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code == DNSSD_ERROR_NONE &amp;&amp; txt_record_value!= NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Service TXT [%s]&quot;, txt_record_value);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if(service_name)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(service_name);
+&nbsp;&nbsp;&nbsp;&nbsp;if(service_type)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(service_type);
+&nbsp;&nbsp;&nbsp;&nbsp;if(ip_v4_address)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(ip_v4_address);
+&nbsp;&nbsp;&nbsp;&nbsp;if(ip_v6_address)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(ip_v6_address);
+&nbsp;&nbsp;&nbsp;&nbsp;if(txt_record_value)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(txt_record_value);
+}
+
+void
+__found_cb(dnssd_service_h dnssd_remote_service, dnssd_service_state_e state, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Browse Service Callback\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Handler       : %u\n&quot;, dnssd_remote_service);
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;State      : &quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;switch (browse_state) {
+&nbsp;&nbsp;&nbsp;&nbsp;case DNSSD_SERVICE_STATE_AVAILABLE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* DNS-SD service found */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;__dnssd_print_found(dnssd_remote_service);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Available\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case DNSSD_SERVICE_STATE_UNAVAILABLE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* DNS-SD service becomes unavailable */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Un-Available\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case DNSSD_SERVICE_STATE_NAME_LOOKUP_FAILED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Browsing failed */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Browse Failure\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case DNSSD_SERVICE_STATE_HOST_NAME_LOOKUP_FAILED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Resolving service name failed */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Resolve Service Name Failure\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case DNSSD_SERVICE_STATE_ADDRESS_LOOKUP_FAILED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Resolving service address failed */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Resolve Service Address\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Unknown Browse State\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+<li>When the services no longer interest you, stop the search using the browser handle:
+<pre class="prettyprint">
+dnssd_stop_browsing_service(browser_handle);
+</pre>
+</li></ol>
+
+
+ <h2 id="ssdp_service" name="ssdp_service">Managing a Local Service with SSDP</h2>
+
+<p>To manage a local service, you must create and register the service:</p>
+
+<ol>
+<li>Create the local service:
+<ol type="a">
+<li>To provide a local service on a network, you must create a handle containing information about the service.
+<p>At the beginning, define an <span style="font-family: Courier New,Courier,monospace">ssdp_service_h</span> variable to store the service handle. The target is used to create the handle, which represents a device or service type specified in the <a href="http://upnp.org" target="_blank">UPnP forum</a>.</p>
+
+<pre class="prettyprint">
+ssdp_service_h service_handle;
+char *target = &quot;upnp:rootdevice&quot;;
+int error_code;
+
+error_code = ssdp_create_local_service(target, &amp;service_handle);
+if (error_code == SSDP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;prinf(&quot;Success in creating a service handle.&quot;);
+</pre>
+</li>
+
+<li>Set a USN (Unique Service Name) and a URL (Uniform Resource Locator) for the created service.
+<p>The USN format is also specified in the UPnP forum. For the URL, see the RFC 3986.</p>
+<pre class="prettyprint">
+char* usn = &quot;uuid:1234abcd-12ab-12ab-12ab-1234567abc12::upnp:rootdevice&quot;;
+char* url = &quot;192.168.0.2:1234&quot;;
+
+if (ssdp_service_set_usn(service_handle, usn) == SSDP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Success in setting USN&quot;);
+if (ssdp_service_set_url(service_handle, url) == SSDP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Success in setting URL&quot;);
+</pre>
+</li>
+<li>When the service is no longer provided, destroy the created service handle:
+<pre class="prettyprint">
+ssdp_destroy_local_service(service_handle);
+</pre>
+</li>
+</ol>
+</li>
+<li>Register the local service:
+<ol type="a">
+<li>Register the service to announce its availability on a network.
+<p>The target can be a device or service type specified in the UPnP forum.</p>
+
+<pre class="prettyprint">
+error_code = ssdp_register_local_service(service_handle, __registered_cb, NULL);
+if (error_code == SSDP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;prinf(&quot;Success in registering a local service.&quot;);
+</pre>
+</li>
+<li>The callback defined in the <span style="font-family: Courier New,Courier,monospace">ssdp_register_local_service()</span> function is called when the service registration is finished:
+<pre class="prettyprint">
+void
+__registered_cb(ssdp_error_e result, ssdp_service_h ssdp_service, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Register result: %d\n&quot;, result);
+}
+</pre>
+</li>
+</ol>
+</li>
+</ol>
+
+ <h2 id="ssdp_search" name="ssdp_search">Browsing Remote Services with SSDP</h2>
+
+<p>To search for available services on a network, use a service type or target information:</p>
+
+<ol>
+<li>To start searching, use the <span style="font-family: Courier New,Courier,monospace">ssdp_start_browsing_service()</span> function.
+<p>The SSDP browser handle is stored in an <span style="font-family: Courier New,Courier,monospace">ssdp_browser_h</span> variable.</p>
+
+<pre class="prettyprint">
+ssdp_browser_h browser_handle;
+char *target = &quot;upnp:rootdevice&quot;;
+int error_code;
+
+error_code = ssdp_start_browsing_service(target, &amp;browser_handle, __found_cb, NULL);
+if (error_code == SSDP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;prinf(&quot;Start browsing&quot;);
+</pre>
+</li>
+<li>The callback defined in the <span style="font-family: Courier New,Courier,monospace">ssdp_start_browsing_service()</span> function is called when the remote service becomes available or unavailable:
+<pre class="prettyprint">
+void
+__found_cb(ssdp_service_h ssdp_remote_service, ssdp_service_state_e state, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *usn;
+&nbsp;&nbsp;&nbsp;&nbsp;char *url;
+&nbsp;&nbsp;&nbsp;&nbsp;ssdp_service_get_usn(ssdp_remote_service, &amp;usn);
+&nbsp;&nbsp;&nbsp;&nbsp;ssdp_service_get_url(ssdp_remote_service, &amp;url);
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;state: %s\n&quot;, state==SSDP_SERVICE_STATE_AVAILABLE ? &quot;AVAILABLE&quot;:&quot;UNAVAILABLE&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;usn: %s\n&quot;, usn);
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;url: %s\n&quot;, url);
+}
+</pre>
+</li>
+
+<li>When the services no longer interest you, stop the search using the browser handle:
+<pre class="prettyprint">
+ssdp_stop_browsing_service(browser_handle);
+</pre>
+</li></ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+  <script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+ </body>
+</html>

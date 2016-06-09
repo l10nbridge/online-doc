@@ -1,0 +1,560 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Video Playback and Recording</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#video_play">Playing Video</a></li>
+			<li><a href="#video_record">Recording Video</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>		
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/multimedia/multimedia_guide_n.htm">Multimedia Guides</a></li>
+			<li><a href="../../../../org.tizen.tutorials/html/native/multimedia/multimedia_tutorials_n.htm">Multimedia Tutorials</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__FRAMEWORK.html">Multimedia API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__FRAMEWORK.html">Multimedia API for Wearable Native</a></li>
+        </ul>		
+	</div></div>
+</div>		
+<div id="container"><div id="contents"><div class="content">	
+<h1>Video Playback and Recording</h1>
+
+<p>Tizen enables your application to manage video content and provides control functions for using video resources. To play and record video files, use the Player (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">wearable</a> applications) and Recorder (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">wearable</a> applications) APIs. Managing video files is very similar to managing audio content, but it requires more consideration to display the visual content.</p>
+
+<p>Tizen supports various video formats, including WMV, ASF, MP4, 3GP, AVI, MKV, and OGG. The available formats depend on the target device.</p>
+			
+<h2 id="video_play">Playing Video</h2>
+
+<p>To play video files stored on the device, use the Player API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">wearable</a> applications). The Player API also provides interfaces for getting media content information and controlling media operations, such as play, pause, resume, and stop.</p>
+<p>Video content requires a drawing area for visual display, so you have to get an overlay region and set it to the player instance to display the drawing area:</p>
+<ol>
+<li>Get the overlay region or Evas from the Graphics module. You can display video on a UI layer with the Evas object as well as on an overlay layer.</li>
+<li>Create the player instance.</li>
+<li>Set the surface type and display a handle to the player using the <span style="font-family: Courier New,Courier,monospace;">player_set_display()</span> function.</li>
+</ol>
+<p>The following figure illustrates the player state changes.</p>
+
+<p class="figure">Figure: Player state changes</p>
+<p align="center"><img src="../../images/player_state_changes_n.png" alt="Player state changes" /></p>
+
+<h3 id="video_init">Initializing the Video Player</h3>
+
+<p>You can create a player by calling the <span style="font-family: Courier New,Courier,monospace;">player_create()</span> function, which returns a player handle on success. You need the player handle in setting which files to play and with which configuration. You also have to register appropriate callback functions to handle notifications about interruptions, ends, and errors during playback.</p>
+
+<p>To prepare the player for playback, and to define the necessary callbacks to handle playback events:</p>
+
+<ol>
+<li>
+<p>To use the data types and functions of the Player API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace;">&lt;player.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;player.h&gt;
+</pre>
+</li>
+<li>Define a variable for the player handle, and create the handle:
+<pre class="prettyprint">
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;player_h player;
+};
+typedef struct appdata appdata_s;
+
+static void
+init_base_player(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_create(&amp;ad-&gt;player);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to create&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Perform more playback configuration, such as setting callbacks,
+&nbsp;&nbsp;&nbsp;&nbsp;   setting the source file URI, and preparing the player
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+}
+</pre>
+</li>
+<li>Set configurations, such as the source file URI.
+<p>To set a specific path for video files to play, retrieve the default internal storage paths. To access and use internal storage, include the <span style="font-family: Courier New,Courier,monospace;">&lt;storage.h&gt;</span> header file in your application.</p>
+<pre class="prettyprint">
+#include &lt;storage.h&gt;
+
+#define MP4_SAMPLE &quot;SampleVideo.mp4&quot;;
+
+int internal_storage_id;
+char *video_storage_path = NULL;
+char *video_path = NULL;
+
+static bool
+storage_cb(int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (type == STORAGE_TYPE_INTERNAL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_storage_id = storage_id;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+void
+_get_storage_path()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;char *path = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = storage_foreach_device_supported(storage_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_VIDEOS, &amp;path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != STORAGE_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_storage_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+void
+_set_test_path()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int path_len = 0;
+
+&nbsp;&nbsp;&nbsp;&nbsp;path_len = strlen(video_storage_path) + strlen(MP4_SAMPLE) + 1;
+&nbsp;&nbsp;&nbsp;&nbsp;video_path = malloc(path_len);
+&nbsp;&nbsp;&nbsp;&nbsp;memset(video_path, 0x0, path_len);
+
+&nbsp;&nbsp;&nbsp;&nbsp;strncat(video_path, video_storage_path, strlen(video_storage_path));
+&nbsp;&nbsp;&nbsp;&nbsp;strncat(video_path, MP4_SAMPLE, strlen(MP4_SAMPLE));
+}
+</pre>
+<p>Once the storage path is set, you can specify the video file to play using the <span style="font-family: Courier New,Courier,monospace;">player_set_uri()</span> function with the player handle:</p>
+<pre class="prettyprint">
+error_code = player_set_uri(ad-&gt;player, video_path);
+if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to set URI: error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>Create UI buttons and add callback functions for your application to control the playback:
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a window */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a button */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add a callback to the button */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button_init, &quot;clicked&quot;, init_base_player, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button_end, &quot;clicked&quot;, release_base_player, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create an Evas image object for the video surface */
+}
+
+static void
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;create_base_gui(ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+<li>Register callback functions.
+<p>To receive notifications, register and define appropriate callback functions for interruption, playback ending, and error events:</p>
+<ul>
+<li>Interruption notifications:
+<pre class="prettyprint">
+static void
+_player_interrupted_cb(player_interrupted_code_e code, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;player_state_e state;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* All the interrupted_code_e is deprecated from Tizen 3.0 except PLAYER_INTERRUPTED_BY_RESOURCE_CONFLICT */
+&nbsp;&nbsp;&nbsp;&nbsp;player_get_state(ad-&gt;player, &amp;state);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;current player state = %d&quot;, state);
+&nbsp;&nbsp;&nbsp;&nbsp;/* If the state is PLAYER_STATE_PAUSED, update the UI (for example, button) */
+}
+
+static void
+init_base_player(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set an interruption callback if the application wants to know the reason */
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_set_interrupted_cb(ad-&gt;player, _player_interrupted_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to set interrupt cb&quot;);
+}
+</pre>
+</li>
+<li>End notifications: 
+<pre class="prettyprint">
+static void
+_player_completed_cb(void *_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Playback End&quot;);
+}
+
+static void
+init_base_player(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_set_completed_cb(ad-&gt;player, _player_completed_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to set completed cb&quot;);
+}
+</pre>
+</li>
+<li>Error notifications:
+<pre class="prettyprint">
+static void
+_player_error_cb(int error_code, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;playback failed, error = %x&quot;, error_code);
+}
+
+static void
+init_base_player(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_set_error_cb(ad-&gt;player, _player_error_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to set error cb&quot;);
+}
+</pre>
+</li>
+</ul>
+</li>
+</ol>
+
+<h3 id="video_playback">Managing Video Playback</h3>
+
+<p>To manage playback:</p>
+
+<ol>
+<li>
+<p>Unlike in audio playback, the video player needs a region to display. To set the display, use the <span style="font-family: Courier New,Courier,monospace;">player_set_display()</span> function with the player handle, display type, and display handle. After the function has been successfully executed, the player is connected to the display. The display handle can be retrieved using the <span style="font-family: Courier New,Courier,monospace;">GET_DISPLAY()</span> function.</p>
+<pre class="prettyprint">
+error_code = player_set_display(ad-&gt;player, PLAYER_DISPLAY_TYPE_OVERLAY, GET_DISPLAY(evas_obj));
+</pre>
+</li>
+<li>
+<p>When the player is created, it is in the <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_IDLE</span> state. To start playback, it must be in the <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY</span> state.</p>
+<p>Get the player ready for playback by calling the <span style="font-family: Courier New,Courier,monospace;">player_prepare()</span> function, which changes the player state from <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_IDLE</span> to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY</span>:</p>
+<pre class="prettyprint">
+error_code = player_prepare(ad-&gt;player);
+if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to prepare player: error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>
+<p>Once the player is ready, start playing the video file using the <span style="font-family: Courier New,Courier,monospace;">player_start()</span> function. The player state changes to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_PLAYING</span>.</p>
+<pre class="prettyprint">
+error_code = player_start(ad-&gt;player);
+if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to start player: error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>
+<p>Stop playback by calling the <span style="font-family: Courier New,Courier,monospace;">player_stop()</span> function. The player state changes back to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY</span>.</p>
+<p>By calling the <span style="font-family: Courier New,Courier,monospace;">player_pause()</span> function, you can pause playback and change the player state to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_PAUSED</span>.</p>
+</li>
+</ol>
+
+<h3 id="video_configure">Configuring the Video Playback</h3> 
+
+<p>During video playback, you can manage the display settings – display mode and display orientation – as needed. Before setting the parameters, make sure that the player handle has been created, the display set, and the player started.</p>
+
+<p>To configure the display settings:</p>
+
+<ol>
+<li>Check whether the display is visible.
+<p>If the display is not visible, make it visible using the <span style="font-family: Courier New,Courier,monospace;">player_set_display_visible()</span> function with <span style="font-family: Courier New,Courier,monospace;">true</span> as the second parameter:</p>
+<pre class="prettyprint">
+bool is_visible;
+
+error_code = player_is_display_visible(ad-&gt;player, &amp;is_visible);
+dlog_print(DLOG_ERROR, LOG_TAG, &quot;player_is_display_visible = %d&quot;, error_code);
+
+if (!is_visible) {
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_set_display_visible(ad-&gt;player, true);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;player_set_display_visible = %d&quot;, error_code);
+}
+</pre>
+</li>
+<li>Set the display mode.
+<p>The available display modes are defined in the <span style="font-family: Courier New,Courier,monospace;">player_display_mode_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__PLAYER__DISPLAY__MODULE.html#gaafcf6f7487d8cb376e1851a6e1253f3a">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__PLAYER__DISPLAY__MODULE.html#gaafcf6f7487d8cb376e1851a6e1253f3a">wearable</a> applications). Note that the DST ROI mode is deprecated from Tizen 3.0.</p>
+<pre class="prettyprint">
+error_code = player_set_display_mode(ad-&gt;player, PLAYER_DISPLAY_MODE_FULL_SCREEN);
+dlog_print(DLOG_ERROR, LOG_TAG, &quot;player_set_display_mode = %d&quot;, error_code);
+</pre>
+</li>
+<li>Set the display orientation.
+<p>The display orientations are defined in the <span style="font-family: Courier New,Courier,monospace;">player_display_rotation_e</span> enumeration (in <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__PLAYER__DISPLAY__MODULE.html#gab8c4c170d4b2628a09831edc8d652302">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__PLAYER__DISPLAY__MODULE.html#gab8c4c170d4b2628a09831edc8d652302">wearable</a> applications).</p>
+<pre class="prettyprint">
+error_code = player_set_display_rotation(ad-&gt;player, PLAYER_DISPLAY_ROTATION_90);
+dlog_print(DLOG_ERROR, LOG_TAG, &quot;player_set_display_mode = %d&quot;, error_code);
+</pre>
+</li>
+</ol>
+
+<h3 id="video_terminate">Terminating the Video Player</h3>
+
+<p>When you are finished using the player, release all the resources allocated to it:</p>
+
+<ol>
+<li>Reset the player by calling the <span style="font-family: Courier New,Courier,monospace;">player_unprepare()</span>  function, which changes the player state to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_IDLE</span>.</li>
+<li>Destroy the player handle using the <span style="font-family: Courier New,Courier,monospace;">player_destroy()</span> function.</li>
+</ol>
+
+<pre class="prettyprint">
+error_code = player_stop(ad-&gt;player);
+error_code = player_unprepare(ad-&gt;player);
+error_code = player_destroy(ad-&gt;player);
+
+if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;fail to destroy player: error code = %d&quot;, error_code);
+</pre>
+
+
+<h2 id="video_record">Recording Video</h2>
+
+<p>To record video, use the Recorder API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">wearable</a> applications). The main features of the Recorder API include:</p>
+<ul>
+<li>Basic recording functionalities: record, stop, pause, cancel, and mute</li>
+<li>Setting the maximum recording time and size</li>
+<li>Controlling the system volume level</li>
+</ul>
+<p>The supported formats in video recording are MP4 and 3GP.</p>
+<p>The following figure illustrates the general recorder state changes.</p>
+
+<p class="figure">Figure: Recorder state changes</p>
+<p align="center"><img src="../../images/recorder_state_changes_n.png" alt="Recorder state changes" /></p>
+
+<h3 id="init_video_rec">Initializing the Video Recorder</h3>
+
+<p>To prepare the recorder for the recording session, and to define the necessary callbacks to handle recording events:</p>
+
+<ol>
+<li>
+<p>To use the data types and functions of the Recorder API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace;">&lt;recorder.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;recorder.h&gt;
+</pre>
+</li>
+<li>
+<p>To initialize the video recorder, configure the camera and video recorder, and register callback functions for the event of reaching the recording limit.</p>
+<p>Before you start configuring and initializing, define a structure for the camera and video recorder handles. This structure contains a Boolean variable specifying whether the video recorder is switched off.</p>
+<pre class="prettyprint">
+#include &lt;camera.h&gt;
+
+struct recdata {
+&nbsp;&nbsp;&nbsp;&nbsp;bool shutdown;
+&nbsp;&nbsp;&nbsp;&nbsp;recorder_h recorder;
+&nbsp;&nbsp;&nbsp;&nbsp;camera_h camera;
+};
+</pre>
+</li>
+<li>
+<p>Define configuration values for the camera and the video recorder:</p>
+<pre class="prettyprint">
+static const int RECORD_TIME=2;
+static const int RECORD_LIMIT=4;
+#define FILENAME_PREFIX &quot;VIDEO&quot;
+static int g_bitrate = 288000;
+static int duration;
+static int playing=0;
+static int ret;
+</pre>
+
+<ul>
+<li>Configure the camera.
+<p>Create a handle for the camera using the <span style="font-family: Courier New,Courier,monospace;">camera_create()</span> function. The parameters are the hardware camera to access and the camera handle to be returned. The camera state is set as <span style="font-family: Courier New,Courier,monospace;">CAMERA_STATE_CREATED</span>.</p>
+<pre class="prettyprint">
+static recdata rec_data;
+
+int error_code = 0;
+
+rec_data.shutdown = FALSE;
+rec_data.camera = NULL;
+rec_data.recorder = NULL;
+
+/* Create the camera handle */
+error_code = camera_create(CAMERA_DEVICE_CAMERA0, &amp;rec_data.camera);
+if (error_code != CAMERA_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;fail to create camera: error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>Configure the video recorder.
+<p>To create a handle for the video recorder, use the <span style="font-family: Courier New,Courier,monospace;">recorder_create_videorecorder()</span> function with the camera and video recorder handles as parameters. The state of the video recorder is set as <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_CREATED</span>.</p>
+<pre class="prettyprint">
+/* Create the video recorder handle */
+error_code = recorder_create_videorecorder(rec_data.camera, &amp;rec_data.recorder);
+if (error_code != RECORDER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;fail to create a Video Recorder: error code = %d&quot;, error_code);
+</pre>
+</li>
+</ul>
+</li>
+<li>
+<p>Register appropriate callback functions to receive notifications about recorder state changes or reaching the recording limit:</p>
+<pre class="prettyprint">
+/* Set the state change callback for the video recorder */
+error_code = recorder_set_state_changed_cb(rec_data.recorder, on_state_changed_cb, NULL);
+if (error_code != RECORDER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
+
+/* Define the change callback for the video recorder */
+static void
+on_state_changed_cb(recorder_state_e previous, recorder_state_e current, bool by_asm, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;_recorder_state_changed_cb (prev: %d, curr: %d)\n&quot;, previous, current);
+}
+</pre>
+</li>
+<li>
+<p>You can set various attributes of video recording, such as video codec, file format, file name, encoder bitrate, as well as audio attributes:</p>
+<ul>
+<li>To set the video codec, you need to check first which codecs the device supports by calling the <span style="font-family: Courier New,Courier,monospace;">recorder_foreach_supported_video_encoder()</span> function. The possible video codec values are defined in the <span style="font-family: Courier New,Courier,monospace;">recorder_video_codec_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#gaaf3f0deeb1717f568e2b93bb9a375b63">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#gaaf3f0deeb1717f568e2b93bb9a375b63">wearable</a> applications). Using the returned value and the <span style="font-family: Courier New,Courier,monospace;">recorder_set_video_encoder()</span> function, you can set the video recorder codec:
+<pre class="prettyprint">
+recorder_video_codec_e supported_codec;
+
+static bool
+_video_encoder_cb(recorder_video_codec_e codec, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;recorder_video_codec_e * supported_codec = (recorder_video_codec_e*)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;*supported_codec = codec;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+}
+
+error_code = recorder_foreach_supported_video_encoder(rec_data.recorder, _video_encoder_cb, &amp;supported_codec);
+
+/* Set the video encoder for the video recorder */
+error_code = recorder_set_video_encoder(rec_data.recorder, supported_codec);
+</pre>
+</li>
+<li>To set the video encoder bitrate, use the <span style="font-family: Courier New,Courier,monospace;">recorder_attr_set_video_encoder_bitrate()</span> function:
+<pre class="prettyprint">
+/* Set the video encoder bitrate */
+error_code = recorder_attr_set_video_encoder_bitrate(rec_data.recorder, g_bitrate);
+</pre>
+</li>
+<li>To set the file format, use the <span style="font-family: Courier New,Courier,monospace;">recorder_set_file_format()</span> function. Make sure that the file format matches the video codec.
+<pre class="prettyprint">
+/* Set the file format */
+error_code = recorder_set_file_format(rec_data.recorder, RECORDER_FILE_FORMAT_MP4);
+</pre>
+</li>
+<li>To set the file name, use the <span style="font-family: Courier New,Courier,monospace;">recorder_set_filename()</span> function:
+<pre class="prettyprint">
+struct tm localtime = {0};
+time_t rawtime = time(NULL);
+char filename[256] = {&#39;\0&#39;};
+size_t size;
+
+/* Create the file name */
+if (localtime_r(&amp;rawtime, &amp;localtime) != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;size = snprintf(filename, sizeof(filename), &quot;%s/%s-%04i-%02i-%02i_%02i:%02i:%02i.mp4&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_get_data_path(), FILENAME_PREFIX,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_year + 1900, localtime.tm_mon + 1, localtime.tm_mday,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_hour, localtime.tm_min, localtime.tm_sec);
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+/* Set the full path and file name */
+error_code = recorder_set_filename(rec_data.recorder, filename);
+</pre>
+</li>
+<li>To set the audio attributes, such as encoder, encoder bitrate, and sample rate, use the <span style="font-family: Courier New,Courier,monospace;">recorder_set_audio_encoder()</span>, <span style="font-family: Courier New,Courier,monospace;">recorder_attr_set_audio_encoder_bitrate()</span>, and <span style="font-family: Courier New,Courier,monospace;">recorder_attr_set_audio_samplerate()</span> functions, respectively.</li>
+</ul>
+</li>
+</ol>
+
+<h3 id="video_rec">Managing Video Recording</h3>
+
+<p>When the recorder handle is created, the video recorder is in the <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_CREATED</span> state. To start recording, the video recorder must be in the <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_READY</span> state.</p>
+
+<p>To manage playback:</p>
+
+<ol>
+<li>
+<p>Change the player state from <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_CREATED</span> to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_READY</span> by calling the <span style="font-family: Courier New,Courier,monospace;">recorder_prepare()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_prepare(rec_data.recorder);
+</pre>
+</li>
+<li>
+<p>Once the recorder is ready, start video recording using the <span style="font-family: Courier New,Courier,monospace;">recorder_start()</span> function. The recorder state changes to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_RECORDING</span>.</p>
+<pre class="prettyprint">
+error_code = recorder_start(rec_data.recorder);
+</pre>
+</li>
+<li>
+<p>In the <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_RECORDING</span> state, you can pause or stop recording:</p>
+<ul>
+<li>To pause recording, call the <span style="font-family: Courier New,Courier,monospace;">recorder_pause()</span> function that changes the recorder state to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_PAUSED</span>. In this state, you can resume or stop recording. To resume,  call the <span style="font-family: Courier New,Courier,monospace;">recorder_start()</span> function.
+<pre class="prettyprint">
+error_code = recorder_pause(rec_data.recorder);
+</pre>
+</li>
+<li>You can stop recording either in the <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_RECORDING</span> or <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_PAUSED</span> state. In stopping recording, you can save or discard the recorded data. To save the recorded data, use the <span style="font-family: Courier New,Courier,monospace;">recorder_commit()</span> function, and to discard, use the <span style="font-family: Courier New,Courier,monospace;">recorder_cancel()</span> function. Both functions set the video recorder state to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_READY</span>.
+<pre class="prettyprint">
+error_code = recorder_commit(rec_data.recorder);
+/* OR */
+error_code = recorder_cancel(rec_data.recorder);
+</pre>
+</li>
+</ul>
+</li>
+</ol>
+
+<h3 id="terminate_video_rec">Terminating the Video Recorder</h3>
+
+<p>After you finish video recording, release all the resources allocated to the video recorder:</p>
+<ol>
+<li>Reset the video recorder by calling the <span style="font-family: Courier New,Courier,monospace;">recorder_unprepare()</span> function, which changes the recorder state from <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_READY</span> to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_CREATED</span>.</li>
+<li>Release the video recorder resources by calling the <span style="font-family: Courier New,Courier,monospace;">recorder_destroy()</span> function. The recorder state changes to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_NONE</span>.</li>
+</ol>
+<pre class="prettyprint">
+error_code = recorder_unprepare(rec_data-&gt;recorder);
+error_code = recorder_destroy(rec_data.recorder);
+
+if (error_code != RECORDER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;fail to destroy recorder: error code = %d&quot;, error_code);
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

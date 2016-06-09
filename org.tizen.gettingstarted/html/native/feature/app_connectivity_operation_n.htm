@@ -1,0 +1,709 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Network Operations</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#connection">Connecting to the Network</a></li>
+			<li><a href="#download">Downloading HTTP Content</a></li>
+			<li><a href="#parse">Parsing XML and JSON</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/network/network_guide_n.htm">Network Guides</a></li>
+			<li><a href="../../../../org.tizen.tutorials/html/native/network/network_tutorials_n.htm">Network Tutorials</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__FRAMEWORK.html">Network API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__FRAMEWORK.html">Network API for Wearable Native</a></li>
+        </ul>		
+	</div></div>
+</div>		
+<div id="container"><div id="contents"><div class="content">	
+<h1>Network Operations</h1>
+
+<p>The basic tasks involved in network operations are connecting to the network, downloading HTTP content, and parsing data in the XML and JSON format. The following sections provide you with the fundamental building blocks for creating Tizen applications that download content and parse data efficiently.</p>
+
+<h2 id="connection">Connecting to the Network</h2>
+
+<p>You can write applications that create a network connection and check the connection status over that connection. The connected application can access connection details, such as the IP address, proxy information, gateway information, and connection statistics.</p>
+
+<h3>Required Privileges and Features</h3>
+
+<p>Applications that use the Network (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__FRAMEWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__FRAMEWORK.html">wearable</a> applications) and Telephony (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__FRAMEWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__FRAMEWORK.html">wearable</a> applications) APIs must declare the required privileges in the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file. For more information on the Tizen privileges, see <a href="../details/sec_privileges_n.htm">Security and API Privileges</a>.</p>
+
+<p>To perform the network operations, the application manifest must include the following privileges:</p>
+
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/network.get&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+
+<p>To perform the network operations, the device must support the following <a href="../details/app_filtering_n.htm">features</a>:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.wifi</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.telephony</span></li>
+</ul>
+
+<h3>Network Selection</h3>
+
+<p>The supported network connections differ based on the device. When Wi-Fi on your device is available, the device tries to first use the Wi-Fi network to connect to the Internet, and only selects the mobile (cellular) network if the Wi-Fi network is not available. If the device does not support Wi-Fi, you must check whether it supports the mobile network and whether mobile data is switched on.</p>
+
+<h3>Checking the Network Connection</h3>
+
+<p>The Connection Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html">wearable</a> applications) provides functions for managing data connections. It allows you to get a state of the connection interface, such as Bluetooth, mobile network, and Wi-Fi. It also contains functions for getting the IP address, proxy information, and gateway information.</p>
+
+<p>Before your application attempts to connect to a network, it must check whether a network connection is available, by using the <span style="font-family: Courier New,Courier,monospace">connection_get_type()</span> function. This is necessary, because the device can be out of range of a network, or the user may have disabled both Wi-Fi and mobile data access.</p>
+
+<p>The following example demonstrates how to create a connection handle and check the currently used connection type with the Connection API:</p>
+
+<pre class="prettyprint">
+#include &lt;tizen.h&gt;
+#include &lt;service_app.h&gt;
+#include &quot;service.h&quot; /* Auto-generated header file by the Tizen IDE */
+#include &lt;net_connection.h&gt;
+
+static connection_h connection;
+
+bool
+service_app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a connection handle */
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = connection_create(&amp;connection);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Get the type of the current profile for data connection
+&nbsp;&nbsp;&nbsp;&nbsp;   net_state is the network type defined in the connection_type_e enumerator
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;connection_type_e net_state;
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = <span class="highlight">connection_get_type(connection, &amp;net_state);</span>
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code == CONNECTION_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Network connection type : %d&quot;, net_state);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+void
+service_app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Destroy the created connection handle */
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = connection_destroy(connection);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+
+/* Assume that auto-generated functions from the Tizen IDE are here */
+
+int
+main(int argc, char* argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char ad[50] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_lifecycle_callback_s event_callback;
+&nbsp;&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.create = service_app_create;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.terminate = service_app_terminate;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.app_control = service_app_control;
+
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_low_battery, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_low_memory, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_lang_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_region_changed, &amp;ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return service_app_main(argc, argv, &amp;event_callback, ad);
+}
+</pre>
+
+<h2 id="download">Downloading HTTP Content</h2>
+
+<p>After a network connection is established, the application can download HTTP content from the Internet. There are 2 ways to download HTTP content:</p>
+
+<ul>
+<li>With <a href="http://curl.haxx.se/libcurl/" target="_blank">libcurl</a>, which is an open source library.</li>
+<li>With the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__WEB__DOWNLOAD__MODULE.html">Download</a> API, which is one of the Tizen Framework APIs.</li>
+</ul>
+
+<h3>Required Privileges</h3>
+
+<p>To download HTTP content, the application must declare the required privileges in the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file. The files that the application downloads from the Internet are stored in the storage of a device. The privileges are required to access the resources for downloading content and to save them to the media storage. For more information on the Tizen privileges, see <a href="../details/sec_privileges_n.htm">Security and API Privileges</a>.</p>
+
+<p>To perform the HTTP download operations, the application manifest must include the following privileges:</p>
+
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/download&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/mediastorage&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+
+<h3>Downloading HTTP Content with libcurl</h3>
+
+<p>The Curl API (in <a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__CURL__FRAMEWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__OPENSRC__CURL__FRAMEWORK.html">wearable</a> applications) is a client-side URL transfer library supporting various protocols, such as HTTP, HTTPS, FTP, and file URIs. It allows applications to perform URL-related activities without having to involve a Web browser.</p>
+
+<p>The following example demonstrates how to perform an HTTP download with libcurl:</p>
+
+<pre class="prettyprint">
+#include &lt;tizen.h&gt;
+#include &lt;service_app.h&gt;
+#include &quot;service.h&quot; /* Auto-generated header file by the Tizen IDE */
+#include &lt;curl/curl.h&gt;
+
+/*
+   start_downloading() function utilizes the ecore_thread_feedback_run() function
+   to allow the download_thread_run_cb() function to call the download_feedback_cb function
+*/
+static void
+start_downloading(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;Ecore_Thread *thread;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a thread that communicates with the main thread */
+&nbsp;&nbsp;&nbsp;&nbsp;thread = <span class="highlight">ecore_thread_feedback_run(download_thread_run_cb</span>, download_feedback_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;download_thread_end_cb, download_thread_cancel_cb,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad, EINA_FALSE);
+}
+
+bool
+service_app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;start_downloading(data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+/* Assume that auto-generated functions from the Tizen IDE are here */
+
+int
+main(int argc, char* argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char ad[50] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_lifecycle_callback_s event_callback;
+&nbsp;&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.create = service_app_create;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.terminate = service_app_terminate;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.app_control = service_app_control;
+
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_low_battery, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_low_memory, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_lang_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_region_changed, &amp;ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return service_app_main(argc, argv, &amp;event_callback, ad);
+}</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">ecore_thread_feedback()</span> function allows the <span style="font-family: Courier New,Courier,monospace">download_thread_run_cb()</span> callback to call the <span style="font-family: Courier New,Courier,monospace">download_feedback_cb()</span> callback:</p>
+
+<pre class="prettyprint">
+static void
+download_thread_run_cb(void *data, Ecore_Thread *thread)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;download_contents(data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* ecore_thread_feedback() invokes download_feedback_cb() registered by ecore_thread_feedback_run () */
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">ecore_thread_feedback(thread, data);</span>
+}
+
+static void
+download_contents(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (data == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;CURL *curl;
+
+&nbsp;&nbsp;&nbsp;&nbsp;const char error_message[BUFFER_SIZE];
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Initialize the curl session */
+&nbsp;&nbsp;&nbsp;&nbsp;curl = curl_easy_init();
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;curl_easy_init()&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Download the header */
+&nbsp;&nbsp;&nbsp;&nbsp;if (curl) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Set URL to get */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CURLcode error_code = curl_easy_setopt(curl, CURLOPT_URL, &quot;http://developer.tizen.org&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Verify the SSL certificate */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0L);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Verify the host name in the SSL certificate */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYHOST, 0L);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Follow HTTP 3xx redirects */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1L);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Callback for writing data */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, WriteMemoryCb);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Data pointer to pass to the write callback */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&amp;chunk);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* User-Agent: header */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, &quot;TizenMaps/1.0&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Provide a buffer for storing errors */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_ERRORBUFFER, errbuf);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Timeout for the entire request */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, TIZEN_CFG_CURL_TIMEOUT);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Callback to progress meter function */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_XFERINFOFUNCTION, XferInfoCb);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Switch off the progress meter */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 0L);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Perform a blocking file transfer */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error_code = curl_easy_perform(curl);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;curl_easy_perform(curl): %s (%d)&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_strerror(error_code), error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error_code == CURLE_ABORTED_BY_CALLBACK)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Clean up and display cancel message */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else if (error_code != CURLE_OK)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Display failure message */
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;curl_easy_cleanup(curl);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;curl_easy_cleanup(ad-&gt;curl)&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Display failure message */
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+/*
+   This function is called in the main thread whenever ecore_thread_feedback()
+   is called in the download thread
+*/
+static void
+download_feedback_cb(void *data, Ecore_Thread *thread, void *msg_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* TODO: Something that you want here */
+&nbsp;&nbsp;&nbsp;&nbsp;if (msg_data == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;msg_data is NULL&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+static void
+download_thread_end_cb(void *data, Ecore_Thread *thread)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;thread end!&quot;);
+}
+
+static void
+download_thread_cancel_cb(void *data, Ecore_Thread *thread)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;thread cancel!&quot;);
+}
+</pre>
+
+<h3>Downloading HTTP Content with the Download API</h3>
+
+<p>You can download content asynchronously from a given URL into the device storage. The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__WEB__DOWNLOAD__MODULE.html">Download</a> API provides functions to create and manage one or more download requests.</p>
+
+<p>This feature is supported in mobile applications only.</p>
+
+<p>The following figure illustrates the download states:</p>
+
+<p class="figure">Figure: Download states</p> 
+<p align="center"><img alt="Download states" src="../../images/connectivity_download_state.png" /></p> 
+
+<p>The <strong>Start</strong> step begins to download content. If the queue is empty, the state is transited to downloading ( <span style="font-family: Courier New,Courier,monospace">DOWNLOAD_STATE_COMPLETED</span>). Otherwise, the request is queued. The application can pause, cancel, or resume the download based on user interaction. Whenever the user makes a request, the state of the download is transited accordingly to paused, canceled, or downloading.</p>
+
+<p>The following example demonstrates how to perform an HTTP download:</p>
+
+<pre class="prettyprint">
+#include &lt;tizen.h&gt;
+#include &lt;service_app.h&gt;
+#include &quot;service.h&quot; /* Auto-generated header file by the Tizen IDE */
+#include &lt;download.h&gt;
+
+download_error_e error;
+int download_id;
+/* Callback to be triggered by download_set_state_changed_cb() */
+void
+state_changed_cb(int download_id, download_state_e state, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Download state is completed, failed, or canceled, destroy the handle */
+&nbsp;&nbsp;&nbsp;&nbsp;if (state &gt;= DOWNLOAD_STATE_COMPLETED) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Download completed!&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (download_destroy(download_id) == DOWNLOAD_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Successfully released the memory of a download request!&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+/* Callback to be triggered by download_set_progress_cb() */
+static void
+progress_cb(int download_id, unsigned long long received, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;received: %llu of %llu&quot;, received, *((unsigned long long*)user_data));
+}
+
+/* Download the file with notification to default file name and location */
+int
+start_downloading()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a download handle */
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_create(&amp;download_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set a callback to get the state */
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_set_state_changed_cb(download_id, state_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_set_progress_cb(download_id, progress_cb, &amp;content_size);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the URL for downloading content */
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_set_url(download_id, &quot;http://developer.tizen.org&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Set the destination path and file name
+&nbsp;&nbsp;&nbsp;&nbsp;   If the values are not given, the default storage and an auto-generated file name are used
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;char *data_path = app_get_data_path();
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_set_destination(download_id, data_path);
+&nbsp;&nbsp;&nbsp;&nbsp;free(data_path);
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_set_file_name(download_id, &quot;downloaded_file.bin&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Set auto download
+&nbsp;&nbsp;&nbsp;&nbsp;   If you set the second parameter to true, the download manager continues downloading
+&nbsp;&nbsp;&nbsp;&nbsp;   even after the client process is terminated
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_set_auto_download(download_id, true);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Start content download */
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_start(download_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return error;
+}
+
+int
+end_downloading()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release callbacks */
+&nbsp;&nbsp;&nbsp;&nbsp;download_unset_progress_cb(download_id);
+&nbsp;&nbsp;&nbsp;&nbsp;download_unset_state_changed_cb(download_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Destroy the download handle */
+&nbsp;&nbsp;&nbsp;&nbsp;error = download_destroy(download_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return error;
+}
+
+bool
+service_app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;start_downloading(data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+void
+service_app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;end_downloading();
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+
+/* Assume that auto-generated functions from the Tizen IDE are here */
+
+int
+main(int argc, char* argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char ad[50] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_lifecycle_callback_s event_callback;
+&nbsp;&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.create = service_app_create;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.terminate = service_app_terminate;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.app_control = service_app_control;
+
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_low_battery, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_low_memory, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_lang_changed, &amp;ad);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_region_changed, &amp;ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return service_app_main(argc, argv, &amp;event_callback, ad);
+}
+</pre>
+
+<h2 id="parse">Parsing XML and JSON</h2>
+
+<p>The responses of many open APIs are composed of XML or JSON data. Tizen provides the <a href="https://developer.gnome.org/json-glib/" target="_blank">JSON-GLIB</a> library for parsing JSON and <a href="http://www.xmlsoft.org/" target="_blank">libxml2</a> for parsing XML.</p>
+
+<h3>Required Privileges</h3>
+
+<p>Applications that read and write to a device file system must declare the required privileges in the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file. For more information on the Tizen privileges, see <a href="../details/sec_privileges_n.htm">Security and API Privileges</a>.</p>
+
+<p>To perform the download operations and read and write to a file system, the application manifest must include the following privileges:</p>
+
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/filesystem.read&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/filesystem.write&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+
+
+<h3>Parsing JSON</h3>
+
+<p><a href="https://developer.gnome.org/json-glib/stable/" target="_blank">JSON-GLib</a> is a library aimed at providing an API for efficient parsing and writing of JSON (JavaScript Object Notation) streams, using GLib data types and API. As Tizen supports JSON-GLIB natively, you do not need to manually download this library and install it on your project. </p>
+
+<p>The following example demonstrates how to parse a JSON file:</p>
+
+<pre class="prettyprint">
+#include &lt;json-glib/json-glib.h&gt;
+
+/* Called a moment after downloading */
+static void
+parse_downloaded(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *file_name = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;download_get_downloaded_file_path((int)data, &amp;file_name);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;got file %s&quot;, file_name);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Parse a file */
+&nbsp;&nbsp;&nbsp;&nbsp;call_parser(file_name);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Remove the file when no longer used */
+&nbsp;&nbsp;&nbsp;&nbsp;remove(file_name);
+}
+
+static void
+call_parser(char *file_name)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int parse_reply = json_parse(file_name, ad_);
+&nbsp;&nbsp;&nbsp;&nbsp;if (parse_reply == -1) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad_-&gt;popup_label, &quot;&lt;align=center&gt;This file is not in JSON format&lt;/align&gt;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (parse_reply == 1) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad_-&gt;popup_label, &quot;&lt;align=center&gt;File parsed, however some nodes &quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;weren&#39;t imported due to the limit of nesting level&lt;/align&gt;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad_-&gt;popup_label, &quot;&lt;align=center&gt;File parsed&lt;/align&gt;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+/* Parse a given JSON file */
+int
+json_parse(char *file_name, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s *)data;
+&nbsp;&nbsp;&nbsp;&nbsp;GError *error = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;JsonParser *parser = json_parser_new();
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Load a file to parse */
+&nbsp;&nbsp;&nbsp;&nbsp;json_parser_load_from_file(parser, file_name, &amp;error);
+
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;parsing  %s&quot;, file_name);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (error) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;parsing failed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_object_unref(parser);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_error_free(error);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Iterate through root members */
+&nbsp;&nbsp;&nbsp;&nbsp;JsonNode *root = json_parser_get_root(parser);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (json_node_get_node_type(root) == JSON_NODE_NULL
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|| json_node_get_node_type(root) == JSON_NODE_VALUE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;not supported root&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_object_unref(parser);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;parsing_in_progress = true;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show editor item */
+&nbsp;&nbsp;&nbsp;&nbsp;create_editor_view(data, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;switch (json_node_get_node_type(root)) {
+&nbsp;&nbsp;&nbsp;&nbsp;case JSON_NODE_OBJECT:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JsonObject *object;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;object = json_node_get_object(root);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;json_object_foreach_member(object, object_member_cb, (gpointer) root_associated);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case JSON_NODE_ARRAY:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;JsonArray *array;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;array = json_node_get_array(root);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;json_array_foreach_element(array, array_element_cb, (gpointer) root_associated);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;root_associated-&gt;type = json_node_get_node_type(root);
+
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;parsing_in_progress = false;
+
+&nbsp;&nbsp;&nbsp;&nbsp;g_object_unref(parser);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (nodes_omitted)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return 1;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+}
+</pre>
+
+<h3>Parsing XML</h3>
+
+<p>Libxml2 is the XML C parser and toolkit developed for the Gnome project (but usable outside the Gnome platform). It is free software available under the MIT License. XML itself is a metalanguage to design markup languages: it is a text language where semantics and structure are added to the content using extra <strong>markup</strong> information enclosed between angle brackets. HTML is the most well-known markup language. Though the library is written in C, a variety of language bindings make it available in other environments.</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">For more examples and tutorials, see <a href="http://www.xmlsoft.org/tutorial/index.html" target="_blank">libxml Tutorial</a>.</td> 
+    </tr> 
+   </tbody> 
+  </table>  
+
+<p>The following example comes from the libxml Tutorial. It demonstrates how to parse and validate an XML file to a tree and free the result:</p>
+
+<pre class="prettyprint">
+/*
+   section: Parsing
+   synopsis: Parse and validate an XML file to a tree and free the result
+   purpose: Create a parser context for an XML file, then parse and validate
+            the file, creating a tree, check the validation result
+            and xmlFreeDoc() to free the resulting tree
+   usage: parse2 test2.xml
+   test: parse2 test2.xml
+   author: Daniel Veillard
+   copy: see Copyright for the status of this software
+*/
+
+#include &lt;stdio.h&gt;
+#include &lt;libxml/parser.h&gt;
+#include &lt;libxml/tree.h&gt;
+
+/*
+   exampleFunc:
+   @filename: a filename or an URL
+
+   Parse and validate the resource and free the resulting tree
+*/
+static void
+exampleFunc(const char *filename)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;xmlParserCtxtPtr ctxt; /* Parser context */
+&nbsp;&nbsp;&nbsp;&nbsp;xmlDocPtr doc; /* Resulting document tree */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a parser context */
+&nbsp;&nbsp;&nbsp;&nbsp;ctxt = xmlNewParserCtxt();
+&nbsp;&nbsp;&nbsp;&nbsp;if (ctxt == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fprintf(stderr, &quot;Failed to allocate parser context\n&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Parse the file, activating the DTD validation option */
+&nbsp;&nbsp;&nbsp;&nbsp;doc = xmlCtxtReadFile(ctxt, filename, NULL, XML_PARSE_DTDVALID);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Check whether parsing succeeds */
+&nbsp;&nbsp;&nbsp;&nbsp;if (doc == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fprintf(stderr, &quot;Failed to parse %s\n&quot;, filename);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Check whether validation succeeds */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (ctxt-&gt;valid == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fprintf(stderr, &quot;Failed to validate %s\n&quot;, filename);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Free up the resulting document */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xmlFreeDoc(doc);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Free up the parser context */
+&nbsp;&nbsp;&nbsp;&nbsp;xmlFreeParserCtxt(ctxt);
+}
+
+int
+main(int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (argc != 2)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return(1);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Initialize the library and check potential ABI mismatches
+&nbsp;&nbsp;&nbsp;&nbsp;   between the version it was compiled for and the actual shared
+&nbsp;&nbsp;&nbsp;&nbsp;   library used
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;LIBXML_TEST_VERSION
+
+&nbsp;&nbsp;&nbsp;&nbsp;exampleFunc(argv[1]);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Cleanup function for the XML library */
+&nbsp;&nbsp;&nbsp;&nbsp;xmlCleanupParser();
+&nbsp;&nbsp;&nbsp;&nbsp;/* This is to debug memory for regression tests */
+&nbsp;&nbsp;&nbsp;&nbsp;xmlMemoryDump();
+
+&nbsp;&nbsp;&nbsp;&nbsp;return(0);
+}
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+
