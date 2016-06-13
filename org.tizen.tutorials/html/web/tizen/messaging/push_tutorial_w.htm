@@ -26,6 +26,8 @@
 			<li><a href="#prerequisites">Prerequisites</a></li>
 			<li><a href="#Registering">Registering to the Push Service</a></li>
 			<li><a href="#Receiving">Receiving Push Notifications</a></li>
+            <li><a href="#UnreadNotifications">Retrieving missed push messages</a></li>
+            <li><a href="#GetPushMessage">When the application is launched by the push service</a></li>
 		</ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
@@ -41,47 +43,54 @@
   
  <p>This tutorial demonstrates how you can register your application, connect to the push service, and start receiving push notifications.</p>
  
-<p>The Push API is optional for both Tizen mobile and wearable profiles, which means that it may not be supported in all mobile and wearable devices. The Push API is supported on all Tizen Emulators.</p> 
+<p>The Push API is optional for both Tizen mobile and wearable profiles, which means that it may not be supported in all mobile and wearable devices. The Push API is supported on all Tizen Emulators.</p>
     
       <h2>Warm-up</h2>
       <p>Become familiar with the Push API basics by learning about:</p>
       <ul>
-	   <li><a href="#prerequisites">Prerequisites</a> <p>Prepare your application to use the push functionality.</p></li>
-       <li><a href="#Registering">Registering to the Push Service</a> <p>Register to the push service and get the registration identifier.</p> </li>
-       <li><a href="#Receiving">Receiving Push Notifications</a> <p>Connect to the push service and start receiving push notifications.</p></li>
+          <li><a href="#prerequisites">Prerequisites</a> <p>Prepare your application to use the push functionality.</p></li>
+          <li><a href="#Registering">Registering to the Push Service</a> <p>Register to the push service and get the registration identifier.</p></li>
+          <li><a href="#Receiving">Receiving Push Notifications</a> <p>Connect to the push service and start receiving push notifications.</p></li>
+          <li><a href="#UnreadNotifications">Retrieving missed push messages</a> <p>While the application is not running, messages cannot be delivered. This method allows retrieving such missed push messages.</p></li>
+          <li><a href="#GetPushMessage">When the application is launched by the push service</a> <p>The last message delivered from the push service, if the application is launched by the push service.</p></li>
       </ul>
-	  
-	  <h2 id="prerequisites">Prerequisites</h2>
-<p>To use the Push API (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/push.html">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/push.html">wearable</a> applications), the application has to request permission by adding the following privilege to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+<p>To use the Push API (in <a href="../../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/push.html">mobile</a> and <a href="../../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/push.html">wearable</a> applications),
+the application has to request permission by adding the following privilege to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p>
 <pre class="prettyprint">
 &lt;tizen:privilege name=&quot;http://tizen.org/privilege/push&quot;/&gt;
 </pre>
 
-	  
-  <h2 id="Registering" name="Registering">Registering to the Push Service</h2>
+<h2 id="Registering" name="Registering">Registering to the Push Service</h2>
   
-  <p>To receive push notifications, you must learn how to register your application to the push service:</p> 
-  <ol> 
-   <li><p>Define the data to be used when the process is launched by the notification service:</p> <pre class="prettyprint">
-var service = new tizen.ApplicationControl(&quot;http://tizen.org/appcontrol/operation/push_test&quot;);
-</pre> </li> 
-   <li><p>Define event handlers for the registration results:</p> <pre class="prettyprint">
-function errorCallback(response) 
-{
-&nbsp;&nbsp;&nbsp;console.log(&#39;The following error occurred: &#39; +  response.name);
+<p>To receive push notifications, you must learn how to register your application to the push service:</p>
+  <ol>
+   <li><p>Define event handlers for the registration results:</p>
+   <pre class="prettyprint">// Defines the error callback.
+function errorCallback(response) {
+  console.log("The following error occurred: " +  response.name);
 }
 
-function registerSuccessCallback(id) 
-{
-&nbsp;&nbsp;&nbsp;console.log(&quot;Registration succeeded with id: &quot; + id);
-}
-</pre> </li> 
-   <li> <p>Register the application for the service with the <span style="font-family: Courier New,Courier,monospace">registerService()</span> method:</p> <pre class="prettyprint">tizen.push.registerService(service, registerSuccessCallback, errorCallback);</pre> <p>If the registration is successful, the <span style="font-family: Courier New,Courier,monospace;">registerSuccessCallback()</span> event handler returns the registration ID.</p> </li> 
-  </ol> 
+// Defines the registration success callback
+function registerSuccessCallback(id) {
+  console.log("Registration succeeded with id: " + id);
+}</pre>
+    </li>
+    <li><p>Register the application for the service with the <span style="font-family: Courier New,Courier,monospace">register()</span> method. This operation only needs to be done once.</p>
+    <pre class="prettyprint"> // Requests application registration.
+tizen.push.register(registerSuccessCallback, errorCallback);</pre>
+    <p>If the registration is successful, the <span style="font-family: Courier New,Courier,monospace;">registerSuccessCallback()</span> is called, and regisration ID is passed as a parameter.</p></li>
+  </ol>
+  <p>Any time after successfull registration you can get registration ID using <span style="font-family: Courier New,Courier,monospace;">getRegistrationId()</span> function.</p>
+  <pre class="prettyprint">var registrationId = tizen.push.getRegistrationId();
+if ( registrationId != null ) {
+  console.log("The registration id: " + registrationId);
+}</pre>
   
   <h2 id="Receiving" name="Receiving">Receiving Push Notifications</h2>
   
-  <p>To take advantage of the push technology, you must learn how to connect to the push service and receive push notifications:</p> 
+  <p>To take advantage of the push technology, you must learn how to connect to the push service and receive push notifications.</p>
   <ol> 
    <li><p>Define the event handlers for the push connection. The push notifications are delivered in the success event handler.</p> <pre class="prettyprint">
 function errorCallback(response)
@@ -91,12 +100,40 @@ function errorCallback(response)
 
 function notificationCallback(noti)
 {
-&nbsp;&nbsp;&nbsp;console.log(&quot;Notification received with alert message: &quot; + noti.alertMessage);
+&nbsp;&nbsp;&nbsp;console.log("New push message : " + message.alertMessage + ", date : " + message.date + ", data : " + message.appData);
 }
-</pre> </li> 
-   <li> <p>Request the push service connection with the <span style="font-family: Courier New,Courier,monospace">connectService()</span> method:</p> <pre class="prettyprint">tizen.push.connectService(notificationCallback, errorCallback);</pre> <p>If the connection is established, you start receiving push notifications.</p> </li> 
+</pre></li>
+   <li> <p>Request the push service connection with the <span style="font-family: Courier New,Courier,monospace">connectService()</span> method:</p> <pre class="prettyprint">tizen.push.connectService(notificationCallback, errorCallback);</pre> <p>If the connection is established, you start receiving push notifications.</p> </li>
   </ol>
-     
+  <p>To stop listening for new push messages call <span style="font-family: Courier New,Courier,monospace">disconnectService</span>.</p>
+  <pre class="prettyprint">// Requests disconnection
+ tizen.push.disconnectService();</pre>
+
+<h2 id="UnreadNotifications">Retrieving missed push messagess</h2>
+<p>While the application is not running, messages cannot be delivered. This method allows retrieving such missed push messages.</p>
+<ol>
+    <li>connectService() method must be called to connect to Tizen push server and receive push notifications before calling the getUnreadNotifications() method. See <a href="#Receiving">above</a>.</li>
+    <li>Receive unread messages:
+    <pre class="prettyprint">tizen.push.getUnreadNotifications();</pre>
+    Notification callback passed to connectService() method will be called for every unread message.
+    </li>
+</ol>
+
+<h2 id="GetPushMessage">Geting push messages when the application is launched by the push service</h2>
+<p>If the application was launched by the push service, getPushMessage() method returns push message. Otherwise, it returns null.</p>
+<ol>
+    <li>Retrieve message:<pre class="prettyprint">var message = tizen.push.getPushMessage();</pre></li>
+    <li>Read message contents:<pre class="prettyprint">if( message ) {
+  console.log('notification received on ' + message.date + ' from: ' + message.sender);
+  console.log('Details:');
+  console.log(' - data: ' + message.appData);
+  console.log(' - alert message: ' + message.alertMessage);
+  console.log(' - message: ' + message.message);
+  console.log(' - session: ' + message.sessionInfo);
+  console.log(' - request ID: ' + message.requestId);
+  console.log(' - type: ' + message.type);
+}</pre></li>
+</ol>
 
 <script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../../scripts/showhide.js"></script>
