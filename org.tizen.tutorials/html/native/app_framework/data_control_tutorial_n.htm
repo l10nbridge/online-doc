@@ -370,18 +370,18 @@ initialize_datacontrol_consumer(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;&nbsp;/* Add value */
 &nbsp;&nbsp;&nbsp;&nbsp;const char *key = &quot;key&quot;;
 &nbsp;&nbsp;&nbsp;&nbsp;const char *value = &quot;value&quot;;
-&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_add(provider_map, key, value, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_add(ad-&gt;provider_h, key, value, &amp;req_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;/* Get value */
-&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_get(provider_map, key, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_get(ad-&gt;provider_h, key, &amp;req_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;/* Set value */
 &nbsp;&nbsp;&nbsp;&nbsp;const char *old_value = &quot;old value&quot;;
 &nbsp;&nbsp;&nbsp;&nbsp;const char *new_value = &quot;new value&quot;;
-&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_set(provider_map, key, old_value, new_value, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_set(ad-&gt;provider_h, key, old_value, new_value, &amp;req_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;/* Remove value */
-&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_remove(provider_map, key, value, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_map_remove(ad-&gt;provider_h, key, value, &amp;req_id);
 }
 
 static bool
@@ -528,6 +528,11 @@ create_database()
 &nbsp;&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sql_command, NULL, NULL, NULL);
 &nbsp;&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;database table creation failed with error: %d&quot;, ret);
+
+&nbsp;&nbsp;&nbsp;&nbsp;sql_command = &quot;CREATE TABLE IF NOT EXISTS Note (TITLE VARCHAR(30), CONTENTS TEXT)&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = sqlite3_exec(db, sql_command, NULL, NULL, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != SQLITE_OK)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;database table creation failed with error: %d&quot;, ret);
 &nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;DB init Success.&quot;);
 
 &nbsp;&nbsp;&nbsp;&nbsp;return ret;
@@ -666,7 +671,7 @@ initialize_datacontrol_consumer(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD&quot;, &quot;&#39;test&#39;&quot;);
 &nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD_DESC&quot;, &quot;&#39;test desc&#39;&quot;);
 
-&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_insert(provider_sql, b, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_insert(ad-&gt;provider_h, b, &amp;req_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;/* Select row */
 &nbsp;&nbsp;&nbsp;&nbsp;char *column_list[2];
@@ -676,15 +681,15 @@ initialize_datacontrol_consumer(appdata_s *ad)
 &nbsp;&nbsp;&nbsp;&nbsp;const char *where = &quot;WORD = &#39;test&#39;&quot;;
 &nbsp;&nbsp;&nbsp;&nbsp;const char *order = &quot;WORD ASC&quot;;
 
-&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_select(provider_sql, column_list, 2, where, order, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_select(ad-&gt;provider_h, column_list, 2, where, order, &amp;req_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;/* Add row */
 &nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD&quot;, &quot;&#39;test_new&#39;&quot;);
-&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_update(provider_sql, b, where, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_update(ad-&gt;provider_h, b, where, &amp;req_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;/* Delete row */
 &nbsp;&nbsp;&nbsp;&nbsp;const char *where_delete = &quot;WORD = &#39;test&#39;&quot;;
-&nbsp;&nbsp;&nbsp;&nbsp;result = data_control_sql_delete(provider_sql, where_delete, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;result = data_control_sql_delete(ad-&gt;provider_h, where_delete, &amp;req_id);
 
 &nbsp;&nbsp;&nbsp;&nbsp;/* Free memory */
 &nbsp;&nbsp;&nbsp;&nbsp;bundle_free(b);
@@ -708,6 +713,41 @@ app_create(void *data)
 }
 </pre>
 </li>
+
+<li>
+<p>You can send requests to specific table using <span style="font-family: Courier New,Courier,monospace">data_control_sql_set_data_id()</span>.</p>
+<pre class="prettyprint">
+
+{
+&nbsp;&nbsp;&nbsp;&nbsp;bundle *b;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Insert data to Note table */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_sql_set_data_id(ad-&gt;provider_h, "Note");
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting data id failed with error: %d&quot;, ret);
+
+&nbsp;&nbsp;&nbsp;&nbsp;b = bundle_create();
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;TITLE&quot;, &quot;&#39;test&#39;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;CONTENTS&quot;, &quot;&#39;test contents&#39;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_insert(ad-&gt;provider_h, b, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_free(b);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Insert data to Dictionary table */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = data_control_sql_set_data_id(ad-&gt;provider_h, "Dictionary");
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != DATA_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;setting data id failed with error: %d&quot;, ret);
+
+&nbsp;&nbsp;&nbsp;&nbsp;b = bundle_create();
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD&quot;, &quot;&#39;test&#39;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_add_str(b, &quot;WORD_DESC&quot;, &quot;&#39;test desc&#39;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;data_control_sql_insert(ad-&gt;provider_h, b, &amp;req_id);
+&nbsp;&nbsp;&nbsp;&nbsp;bundle_free(b);
+}
+
+</pre>
+</li>
+
 </ol>
 
 <h2 id="map3" name="map3">Monitoring Data Changes</h2>
