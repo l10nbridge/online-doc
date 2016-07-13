@@ -24,9 +24,8 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#create">Adding a Layout Component</a></li>
-			<li><a href="#add">Adding Objects to the Layout</a></li>
-			<li><a href="#theme">Using Layout Themes</a></li>
+			<li><a href="#edc">Introduction to EDC</a></li>
+			<li><a href="#basic">Basic Usage</a></li>
 			
 			</ul>
 		<p class="toc-title">Related Info</p>
@@ -40,81 +39,204 @@
 </div>	
 
 <div id="container"><div id="contents"><div class="content">
+
+
 <h1>Layout</h1>
 
-<p>A layout is a container that takes a standard Edje design file and wraps it very thinly in a UI component. Layouts are the basis of many graphics components used in Elementary.</p>
+<p>Layout is a container component which enables you to define a look and feel of UI with animation and basic event response
+   by using Edje design file.
+   This document explains the basic usage of layout component.
+   For more information, see <a href="../../../../org.tizen.native.mobile.apireference/group__Layout.html">API Reference</a>.</p>
 
-<p>An Edje design file describes how the elements of the UI are positioned and how they behave when interacted with. For more information about Edje, see <a href="theme_n.htm">Themes</a>.</p>
 
-<h2 id="create" name="create">Adding a Layout Component</h2>
+<h2 id="edc">Introduction to EDC</h2>
 
-<p>To create a new layout, use the <span style="font-family: Courier New,Courier,monospace">elm_layout_add()</span> function:</p>
+<p>EDC is a script language provided by Edje, which is a library in charge of high level layouting in EFL.
+   An EDC file describes how the elements of the UI are positioned.
+   EDC stands for Edje Data Collection.
+   An EDC file has an extension <span style="font-family: Courier New,Courier,monospace;">".edc"</span>.
+   If you want to learn the syntax of EDC, see <a href="learn_edc_intro_n.htm">Layouting with EDC</a>.</p>
+
+<p class="figure">Figure: EDC file behavior</p>
+<p align="center"><img src="../../images/edj.png" /></p>
+
+<h2 id="basic">Basic Usage</h2>
+
+<p>You can customize a layout by writing an EDC file,
+   or use a predefined, frequently used layouts provided by Tizen.</p>
+
+<h3>Customized Layout</h3>
+
+<p>Unlike using other UI containers, you need to write a C code and an EDC script to customize a layout
+   using a layout component. You need to create a project for a basic EDC UI application.
+<ol>
+   <li>Create an EDC file under
+       <span style="font-family: Courier New,Courier,monospace">/res/edje/</span> directory
+       and define a layout in the EDC file.
+<pre class="prettyprint">
+collections {
+   group {
+      name: "main";
+         parts {
+      }
+   }
+}
+</pre>
+       If you add <span style="font-family: Courier New,Courier,monospace">example.edc</span> file,
+       SDK calls Edje tools automatically to build the final
+       <span style="font-family: Courier New,Courier,monospace">example.edj</span> file when building the project.
+       The EDJ file is installed under the application's data path.
+   </li>
+   <li>In the C code, add a layout with <span style="font-family: Courier New,Courier,monospace">elm_layout_add()</span> function.
 <pre class="prettyprint">
 Evas_Object *layout;
 
 layout = elm_layout_add(parent);
 </pre>
-<p>In Tizen, the layout component is extended to support different kinds of layouts. Rather than defining layouts yourself, you can use the following predefined default layouts:</p>
-<ul>
-<li><span style="font-family: Courier New,Courier,monospace">application/default</span>: This layout can be used to display content inside a window.</li>
-<li><span style="font-family: Courier New,Courier,monospace">drawer/panel</span>: This layout can be used to create a 2-panel view.</li>
-<li><span style="font-family: Courier New,Courier,monospace">nocontents/default</span>: This layout can be used when there is no content to display, such as in a contact or email.</li>
-</ul>
-<p>To use the <span style="font-family: Courier New,Courier,monospace">application/default</span> layout:</p>
+   </li>
+   <li>Load the EDJ file with the <span style="font-family: Courier New,Courier,monospace;">elm_layout_file_set()</span> function.
+       You can get the full path of where the EDJ file is installed using
+       <span style="font-family: Courier New,Courier,monospace">app_get_resource()</span> function.
 <pre class="prettyprint">
-Evas_Object *ly;
+char edj_path[128] = {0,};
 
-ly = elm_layout_add(parent);
-elm_layout_theme_set(ly, &quot;layout&quot;, &quot;application&quot;, &quot;default&quot;);
+app_get_resource("/edje/example.edj", edj_path, 128);
+elm_layout_file_set(layout, edj_path, "main");
 </pre>
-
-<h2 id="add" name="add">Adding Objects to the Layout</h2>
-
-<p>To add objects to the layout:</p>
-<ul>
-<li>
-<p>To add an Evas object to the layout, use the <span style="font-family: Courier New,Courier,monospace">elm_object_part_content_set()</span> function:</p>
+   </li>
+   <li>Set objects or texts to the layout with
+   <span style="font-family: Courier New,Courier,monospace">elm_object_part_content_set()</span> or
+   <span style="font-family: Courier New,Courier,monospace">elm_object_part_text_set()</span> function.</li>
+   <li>ELM can send Edje signals to the EDC part using
+   <span style="font-family: Courier New,Courier,monospace;">elm_layout_signal_emit()</span> function.
+   You can also use <span style="font-family: Courier New,Courier,monospace;">elm_layout_signal_callback_add()</span>
+   function to receive signals.
+   Use the following code to listen to any signals sent by the layout:
 <pre class="prettyprint">
+elm_layout_signal_callback_add(layout, &quot;*&quot;, &quot;*&quot;, _signal_cb, NULL);
+
+static void
+_signal_cb(void *data, Evas_Object *obj, const char *emission, const char *source)
+{
+&nbsp;&nbsp;&nbsp;printf(&quot;Info received from layout: %s %s\n&quot;, emission, source);
+}
+</pre>
+   </li>
+</ol>
+
+<p>The following example shows a simple EDC script in
+   <span style="font-family: Courier New,Courier,monospace;">example.edc</span> file
+   and how to connect the resulted EDJ file in the C code:</p>
+
+<table border="0">
+   <caption>Example: A simple use case of layout component</caption> 
+   <tbody>
+      <tr>
+         <td style="text-align:left;margin-left:auto;margin-right:auto;">
+<pre class="prettyprint">
+collections {
+   base_scale: 1.0;
+   group { name: "main";
+      parts {
+         part { name: "bg";
+            type: RECT;
+            description { state: "default" 0.0;
+            }
+         }
+         part { name: "text";
+            type: TEXT;
+            scale: 1;
+            effect: FAR_SOFT_SHADOW;
+            description { state: "default" 0.0;
+               rel1.relative: 0.0 0.0;
+               rel2.relative: 1.0 0.5;
+               color: 0 136 170 255;
+               color2: 0 136 170 50;
+               color3: 0 136 170 25;
+               text {
+                  size: 25;
+                  font: "Sans";
+                  text: "Layout Example";
+                  align: 0.5 0.5;
+               }
+            }
+         }
+         part { name: "content";
+            type: SWALLOW;
+            description { state: "default" 0.0;
+               rel1.relative: 0.5 0.6;
+               rel2.relative: 0.5 0.6;
+               min: 200 100;
+            }
+         }
+      }
+   }
+}
+</pre>
+<pre class="prettyprint">
+Evas_Object *win, *conf, *nf, *layout, *button;
+char edj_path[128] = {0, };
+
+// Starting right after the conformant in <a href="ui_layouts_n.htm#code">the basic EFL UI layout code</a>
+// (win - conformant)
+
+layout = elm_layout_add(nf);
+app_get_resource("edje/example.edj", edj_path, 128);
+elm_layout_file_set(layout, edj_path, "main");
+evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+eext_object_event_callback_add(layout, EEXT_CALLBACK_BACK, layout_back_cb, ad);
+
+button = elm_button_add(layout);
+elm_object_text_set(button, "Button1");
+elm_layout_content_set(layout, "content", button);
+evas_object_show(button);
+
+elm_naviframe_item_push(nf, "Layout", NULL, NULL, layout, NULL);
+</pre>
+         </td>
+         <td style="text-align:center;margin-left:auto;margin-right:auto;">
+            <p align="center"><img alt="Alignment" src="../../images/layout.png" /></p>
+         </td>
+      </tr>
+   </tbody>
+</table>
+
+<h3 id="theme" name="theme">Predefined Layout</h3>
+
+<p>You can skip the first step (writing an EDC script) and set a theme to the layout with
+   <span style="font-family: Courier New,Courier,monospace">elm_layout_theme_set()</span> function
+   instead of <span style="font-family: Courier New,Courier,monospace">elm_layout_file_set()</span> function
+   in the third step.</p>
+
+
+<p>The following predefined themes are available in mobile profile:</p>
+
+<ul>
+   <li><span style="font-family: Courier New,Courier,monospace">application/default</span>:
+   This layout can be used to display content inside a window.
+      <pre class="prettyprint">
+elm_layout_theme_set(layout, &quot;layout&quot;, &quot;application&quot;, &quot;default&quot;);</pre>
 elm_object_part_content_set(ly, &quot;elm.swallow.content&quot;, view);
-</pre>
-<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.content</span> is the swallow part of the application layout, and with this call you integrate the view inside the swallow object of the layout.</p>
-</li>
-<li>
-<p>The <span style="font-family: Courier New,Courier,monospace">drawer/panel</span> layout can display 2 different views, the background and the main content:</p>
-<pre class="prettyprint">
-Evas_Object *ly;
-
-ly = elm_layout_add(parent);
+   </li>
+   <li><span style="font-family: Courier New,Courier,monospace">drawer/panel</span>:
+   This layout can be used to display 2 different views, a background and a main content.
+      <pre class="prettyprint">
 elm_layout_theme_set(ly, &quot;layout&quot;, &quot;drawer&quot;, &quot;panel&quot;);
-</pre>
-<p>To swallow an object inside the main content and background views:</p>
-<pre class="prettyprint">
 elm_object_part_content_set(ly, &quot;elm.swallow.content&quot;, main_view);
-elm_object_part_content_set(ly, &quot;elm.swallow.background&quot;, background);
-</pre>
-</li>
-<li>
-<p>The <span style="font-family: Courier New,Courier,monospace">nocontents/default</span> layout is a special layout in that it does not contain any swallows. You can only set the text part. There are 2 different texts zones: <span style="font-family: Courier New,Courier,monospace">elm.text</span> and <span style="font-family: Courier New,Courier,monospace">elm.help.text</span>. To change the text:</p>
-<pre class="prettyprint">
+elm_object_part_content_set(ly, &quot;elm.swallow.background&quot;, background);</pre>
+   </li>
+   <li><span style="font-family: Courier New,Courier,monospace">nocontents/default</span>:
+   This layout can be used when there is no content to display, such as in a contact or email.
+   You can only set texts. There are 2 different texts zones:
+   <span style="font-family: Courier New,Courier,monospace">elm.text</span> and
+   <span style="font-family: Courier New,Courier,monospace">elm.help.text</span>. To change the text:</p>
+      <pre class="prettyprint">
+elm_layout_theme_set(ly, &quot;layout&quot;, &quot;noconents&quot;, &quot;default&quot;);
 elm_object_part_text_set(ly, &quot;elm.text&quot;, &quot;Hi All :)&quot;);
-elm_object_part_text_set(ly, &quot;elm.help.text&quot;, &quot;Hi All :)&quot;);
-</pre>
-</li>
+elm_object_part_text_set(ly, &quot;elm.help.text&quot;, &quot;Hi All :)&quot;);</pre>
+   </li>
 </ul>
 
-<h2 id="theme" name="theme">Using Layout Themes</h2>
-
-<p>The layout component supports the following predefined default themes:</p>
-<ul>
-<li><span style="font-family: Courier New,Courier,monospace">toolbar-content</span>: For applications with a toolbar and main content area.</li>
-<li><span style="font-family: Courier New,Courier,monospace">toolbar-content-back</span>: For applications with a toolbar, main content area (with a back button), and title area.</li>
-<li><span style="font-family: Courier New,Courier,monospace">toolbar-content-back-next</span>: For applications with a toolbar, main content area (with back and next buttons), and title area.</li>
-<li><span style="font-family: Courier New,Courier,monospace">content-back</span>: For applications with main content (with a back button) and title areas.</li>
-<li><span style="font-family: Courier New,Courier,monospace">content-back-next</span>: For applications with main content (with back and next buttons) and title areas.</li>
-<li><span style="font-family: Courier New,Courier,monospace">toolbar-vbox</span>: For applications with a toolbar and main content area as a vertical box.</li>
-<li><span style="font-family: Courier New,Courier,monospace">toolbar-table</span>: For applications with a toolbar and main content area as a table.</li>
-</ul>
-<p>To set a theme to the layout, use the <span style="font-family: Courier New,Courier,monospace">elm_layout_theme_set()</span> function.</p>
 
 <table class="note">
     <tbody>

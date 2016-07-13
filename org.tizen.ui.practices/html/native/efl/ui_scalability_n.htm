@@ -44,7 +44,251 @@
 <li><a href="scalability_n.htm">Scalability Support</a> <p>Enables you to design applications so that their UI can be scaled for diverse devices without problems.</p></li>
 <li><a href="resource_fallback_n.htm">Resource Fallback Support</a> <p>Enables you to design applications which can use alternative resources for the device display state.</p></li>
 </ul>
+
+
+ <h2 id="scalability" name="scalability">Scaling UI Components</h2> 
   
+<p>Elementary, through its configuration API (<span style="font-family: Courier New,Courier,monospace;">elm_config</span>), provides a way to scale UI components with two different parameters. <span style="font-family: Courier New,Courier,monospace;">Finger size</span> parameter is used when the interactive zones (clickable, editable) of the UI components need to be scaled in order to be comfortably used with a finger. <span style="font-family: Courier New,Courier,monospace;">Scale</span> parameter is responsible for scaling readable parts of a UI component (text or icons for example), so that it is more visible in the user interface.</p>
+
+<h3 id="Finger_Size" name="Finger_Size">Finger Size</h3>
+
+<p><span style="font-family: Courier New,Courier,monospace;">Finger size</span> parameter scales UI components based on the user&#39;s finger size. This is useful when using a touchscreen with a finger rather than with a stylus. The finger size parameter is in pixels and determines the minimum size of a square on the screen that is reliably hittable with a finger. This parameter scales the input and interactive areas.</p>
+
+<p>The global finger size is set with the <span style="font-family: Courier New,Courier,monospace;">elm_config_finger_size_set()</span> function. This adjusts the size and hit area of UI components so they are easy to hit with a finger. The current value is retrieved with the <span style="font-family: Courier New,Courier,monospace;">elm_config_finger_size_get()</span> call. The finger size is always in pixel.</p>
+
+<p>To increase the current global finger size by 20px:</p>
+
+<pre class="prettyprint">
+Evas_Coord finger_size;
+
+// Get the current finger size
+finger_size = elm_config_finger_size_get();
+
+// Add 20px to finger size parameter and set it 
+// to the global Elementary configuration
+elm_config_finger_size_set(finger_size + 20);
+</pre>
+
+<h3 id="Scale" name="Scale">Scale</h3>
+
+<p>This parameter only scales the readable areas of the UI component (text, icons). Parts that must stay pixel-perfect like the highlights, shading, textures and decorations stay as they are.</p>
+
+<p><span style="font-family: Courier New,Courier,monospace;">elm_config_scale_set()</span> function is used to set the global scaling factor, that affects to all the UI components. It is also possible to use <span style="font-family: Courier New,Courier,monospace;">elm_object_scale_set()</span> to set the scaling factor on a given Elementary UI component and all its children.</p>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">The scaling factor is multiplicative, if a child already has a scale size set, it is multiplied by its parent&#39;s scale size.</td>
+</tr>
+</tbody>
+</table>
+
+<p>The following example sets the global scaling factor to 2.0. Then, the scaling factor of an existing Elementary object is set to 2.0, meaning that this object appears as if it had a 4.0 scale factor, the rest of the application is displayed with a 2.0 scaling factor:</p>
+
+<pre class="prettyprint">
+Evas_Object *button;
+
+// The button object is created and configured
+
+// Set the global scale factor to 2.0
+elm_config_scale_set(2.0);
+
+// Set the scaling factor of the button component to 2.0, this component
+// appears 4 times bigger than its initial size
+elm_object_scale_set(button, 2.0);
+</pre>
+
+<h4 id="Example" name="Example">Example</h4>
+
+<p>This chapter shows the visual result of finger size and scaling factors modification.</p>
+
+<p class="figure">Figure: Scalability example</p>
+<p align="center"><img alt="scalability example" src="../../images/scale_3_finger_50.png" /></p>
+
+<p>The previous picture shows the example application that enables the user to set global scale factor and finger size parameter. As the user drags the sliders, the UI is updated, directly showing the result of the new parameter value.</p>
+
+<p>The next picture shows the behavior when the scale factor has been increased to 5.00. The text on the sliders and the text of the button are bigger.</p>
+
+<p class="figure">Figure: Scale increased (5.00)</p>
+<p align="center"><img alt="Scale increased (5.00)" src="../../images/scale_5_finger_50.png" /></p>
+
+<p>The image below shows that a finger size increase from 50px to 150px. Now, the button on the top gets bigger, so the user can more reliably hit them with the bigger finger.</p>
+
+<p class="figure">Figure: Finger size increased (150px)</p>
+<p align="center"><img alt="Finger size increased (150px)" src="../../images/scale_3_finger_150.png" /></p>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">It is up to the theme (Edje file) to set the parts that are scalable. This is something that needs to be taken into account when developing a new Edje theme. This can be done in EDC with the <span style="font-family: Courier New,Courier,monospace;">scale</span> parameter. For more information on how to do that, see <a href="edje_intro_n.htm">Introduction to EDC Programming</a>.</td>
+</tr>
+</tbody>
+</table> 
+
+<h3 id="Scalable_EDC_Object" name="Scalable_EDC_Object">Creating Scalable EDC Objects</h3>
+
+<h4><b>Scale Parameter</b></h4>
+
+<p>This chapter explains how to make a scalable Edje object and give hints how to write an EDC file that is scalable. The example shows a basic button that is composed of a background image part and a swallow part that can receive some content.</p>
+
+<pre class="prettyprint">
+group 
+{ 
+&nbsp;&nbsp;&nbsp;name: &quot;button&quot;;
+&nbsp;&nbsp;&nbsp;images 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;bg.png&quot; COMP;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;parts 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: IMAGE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.normal: &quot;bg.png&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;elm.swallow.content&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;visible&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>To have a scalable object, set the <span style="font-family: Courier New,Courier,monospace;">scale</span> parameter to 1 on the parts you want to be scalable. Here the <span style="font-family: Courier New,Courier,monospace;">bg</span> and <span style="font-family: Courier New,Courier,monospace;">elm.swallow.content</span> parts must be scalable.</p>
+
+<pre class="prettyprint">
+group 
+{ 
+&nbsp;&nbsp;&nbsp;name: &quot;button&quot;;
+&nbsp;&nbsp;&nbsp;images 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;bg.png&quot; COMP;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;parts
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: IMAGE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.normal: &quot;bg.png&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;elm.swallow.content&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;visible&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<h4><b>Image Set</b></h4>
+
+<p>If your application needs to be used at different resolutions it is recommended to have 2 images for the background image <span style="font-family: Courier New,Courier,monospace;">bg.png</span>. Here the <span style="font-family: Courier New,Courier,monospace;">bg_low.png</span> is added to the application. It is used when the size of the image is under 500 px, and a <span style="font-family: Courier New,Courier,monospace;">bg_high.png</span> image is for higher resolutions. Use a set on the <span style="font-family: Courier New,Courier,monospace;">bg.png</span> image.</p>
+
+<pre class="prettyprint">
+group 
+{ 
+&nbsp;&nbsp;&nbsp;name: &quot;button&quot;;
+&nbsp;&nbsp;&nbsp;images 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;set 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg.png&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;bg_low.png&quot; COMP;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 0 0 200 100;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;bg_high.png&quot; COMP;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 201 101 5000 5000;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Other blocks or properties for the group
+}
+</pre>
+
+<p>The image below shows three buttons with only a background part visible (the SWALLOW part is empty).</p>
+
+<p class="figure">Figure: Image set example</p> 
+<p align="center"><img alt="Image set example" src="../../images/scale.png" /></p> 
+
+<p>The first button&#39;s size is 100x50 pixels, the background image (<span style="font-family: Courier New,Courier,monospace;">bg_low.png</span>) is the same size. The second button is twice bigger than the first one (200x100 pixels). The image is scaled and it does not render well, the borders are quite blurry.</p>
+
+<p>To prevent this, the image set has a bigger image to use when the size is bigger than 200x100 pixels (<span style="font-family: Courier New,Courier,monospace;">bg_high.png</span>). The third button size is 201x101 pixels and it uses the new image, which has a better quality than the scaled image.</p>
+
+<h4><b>Image Borders</b></h4>
+
+<p>When the button is resized, the image part is also resized because it is marked as scalable. To get the image resized but to keep the image border as it is, use the <span style="font-family: Courier New,Courier,monospace;">border</span> parameter. It specifies the border size which is not resized even if the image is.</p>
+
+<p>To add a 40 pixel border on the left and right part of the <span style="font-family: Courier New,Courier,monospace;">bg</span> image and a 20 pixel border on top and bottom borders:</p>
+
+<pre class="prettyprint">
+parts 
+{
+&nbsp;&nbsp;&nbsp;part 
+&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: IMAGE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.normal: &quot;bg.png&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.border: 40 40 20 20;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;// Other parts
+}
+</pre>
+
+<p>The image below shows that when resizing the button, the corners keep their initial ratio. Only the middle part of the button is resized.</p>
+
+<p class="figure">Figure: Border example</p> 
+<p align="center"><img alt="Border example" src="../../images/border.png" /></p> 
+
+
+
 <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../scripts/showhide.js"></script>
 </div></div></div>

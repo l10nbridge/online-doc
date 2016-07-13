@@ -24,11 +24,10 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#create">Adding a Scroller Component</a></li>
-			<li><a href="#add">Adding Objects to the Scroller</a></li>
-			<li><a href="#manage">Managing the Properties of the Scroller</a></li>
-			<li><a href="#signal">Using the Scroller Callbacks</a></li>
-			<li><a href="#slideshow">Creating a Picture Slideshow</a></li>
+			<li><a href="#basic">Basic Usage</a></li>
+			<li><a href="#style">Styles</a></li>
+			<li><a href="#callback">Callbacks</a></li>
+			<li><a href="#example">Example</a></li>
 			
 			</ul>
 		<p class="toc-title">Related Info</p>
@@ -44,81 +43,223 @@
 <div id="container"><div id="contents"><div class="content">
 <h1>Scroller</h1>
 
-<p>A scroller holds (and clips) a single object and allows you to scroll across it. This means that you can use a scroll bar or finger to drag the viewable region across the object, moving through a much larger area than is contained in the viewport. The scroller always has a default minimum size that is not limited by its contents.</p>
-<p>The scroller component inherits from the layout component, which means that layout functions can be used on the scroller component.</p>
+<p>Scroller is a container component which holds and clips a single object and allows you to scroll across it.
+   This means that you can use a scroll bar or your finger to drag the viewable region across the object,
+   moving through a much larger area than is contained in the viewport.
+   A scroller always has a default minimum size that is not limited by its contents.
+   This document explains the basic usage of scroller component.
+   For more information, see <a href="../../../../org.tizen.native.mobile.apireference/group__Scroller.html">API Reference</a>.</p>
 
-<h2 id="create">Adding a Scroller Component</h2>
+<h2 id="basic">Basic Usage</h2>
 
-<p>To create a scroller, use the <span style="font-family: Courier New,Courier,monospace">elm_scroller_add()</span> function:</p>
+<p>Building a layout with a scroller usually has the following process:</p>
+<ol>
+   <li>Add a scroller with <span style="font-family: Courier New,Courier,monospace">elm_scroller_add()</span> function.</li>
 <pre class="prettyprint">
 Evas_Object *scroller;
 
 scroller = elm_scroller_add(parent);
 </pre>
-<h2 id="add">Adding Objects to the Scroller</h2>
-
-<p>To add an object to the scroller, use the <span style="font-family: Courier New,Courier,monospace">elm_object_content_set()</span> function:</p>
+   <li>Set a <a href="#style">style</a> to the scroller with <span style="font-family: Courier New,Courier,monospace">elm_object_style_set()</span> function.
+   You can use the default style without this step.
+<pre class="prettyprint">
+elm_object_style_set(scroller, "handler");
+</pre>
+   <li>Add an object and set it to the scroller
+       with <span style="font-family: Courier New,Courier,monospace">elm_object_content_set()</span> function.
 <pre class="prettyprint">
 Evas_Object *image;
 
-image = elm_image_add(parent);
-elm_image_file_set(image, &quot;image.png&quot;, NULL);
-evas_object_show(image);
-evas_object_size_hint_min_set(image, 2560, 1600);
 elm_object_content_set(scroller, image);
 </pre>
-<p>In the above code, a minimum size of 2560 x 1600 pixels for the image is set. The scroller is smaller than the image, so you can scroll across the image.</p>
-
-
-<h2 id="manage">Managing the Properties of the Scroller</h2>
-
-<p>When scrolling content, the scroller can &quot;bounce&quot; when reaching the edge of the content. This is a visual way of indicating that there is no more content to scroll in that direction. Bounce is enabled by default for both axes. To enable or disable the bounce for either or both axes, use the <span style="font-family: Courier New,Courier,monospace">elm_scroller_bounce_set()</span> function. The following code disables the bounce for the horizontal axis and enables it for the vertical axis:</p>
+       The content object should have a minimum size bigger than the scroller's size to be scrollable.
+   </li>
+   <li>Register <a href="#callback">callback</a> functions.
 <pre class="prettyprint">
-elm_scroller_bounce_set(scroller, EINA_FALSE, EINA_TRUE);
+evas_object_smart_callback_add(scroller, "scroll,drag,start", _scroll_start_cb, NULL);
 </pre>
-<p>The scroller can limit the scrolling to &quot;pages&quot;. In this case, the scrolling occurs in page-sized chunks of content rather than in a purely continuous fashion, with the scroller displaying a single &quot;page&quot; at a time. This feature sets the size of the page relative to the viewport of the scroller. A size of 1.0 equals 1 viewport (horizontally or vertically). A size of 0.0 disables paging for that axis. These settings are mutually exclusive with page size (see the <span style="font-family: Courier New,Courier,monospace">elm_scroller_page_size_set()</span> function). A size of 0.5 equals half a viewport. Usable size values are normally between 0.0 and 1.0, including 1.0. If you only want a single axis to scroll in pages, use 0.0 for the other axis.</p>
 
-<h2 id="signal">Using the Scroller Callbacks</h2>
-
-<p>To receive notifications about the scroller events, listen to the following signals:</p>
-
-<ul>
-<li><span style="font-family: Courier New,Courier,monospace">edge,left</span>: The left edge of the content is reached.</li>
-<li><span style="font-family: Courier New,Courier,monospace">edge,right</span>: The right edge of the content is reached.</li>
-<li><span style="font-family: Courier New,Courier,monospace">edge,top</span>: The top edge of the content is reached.</li>
-<li><span style="font-family: Courier New,Courier,monospace">edge,bottom</span>: The bottom edge of the content is reached.</li>
-<li><span style="font-family: Courier New,Courier,monospace">scroll</span>: The content is scrolled (moved).</li>
-<li><span style="font-family: Courier New,Courier,monospace">scroll,anim,start</span>: The scrolling animation has started.</li>
-<li><span style="font-family: Courier New,Courier,monospace">scroll,anim,stop</span>: The scrolling animation has stopped.</li>
-<li><span style="font-family: Courier New,Courier,monospace">scroll,drag,start</span>: Dragging the contents has started.</li>
-<li><span style="font-family: Courier New,Courier,monospace">scroll,drag,stop</span>: Dragging the contents has stopped.</li>
-<li><span style="font-family: Courier New,Courier,monospace">vbar,drag</span>: The vertical scroll bar is dragged.</li>
-<li><span style="font-family: Courier New,Courier,monospace">vbar,press</span>: The vertical scroll bar is pressed.</li>
-<li><span style="font-family: Courier New,Courier,monospace">vbar,unpress</span>: The vertical scroll bar is unpressed.</li>
-<li><span style="font-family: Courier New,Courier,monospace">hbar,drag</span>: The horizontal scroll bar is dragged.</li>
-<li><span style="font-family: Courier New,Courier,monospace">hbar,press</span>: The horizontal scroll bar is pressed.</li>
-<li><span style="font-family: Courier New,Courier,monospace">hbar,unpress</span>: The horizontal scroll bar is unpressed.</li>
-<li><span style="font-family: Courier New,Courier,monospace">scroll,page,changed</span>: The visible page has changed.</li>
-</ul>
-
-<p>To register and define a callback for the <span style="font-family: Courier New,Courier,monospace">scroll,drag,start</span> signal:</p>
 <pre class="prettyprint">
-evas_object_smart_callback_add(scroller, &quot;scroll,drag,start&quot;, _scroll_start_cb, NULL);
-
-// Callback for the &quot;scroll,drag,start&quot; signal
-// Called when the user begins scrolling the image
-void 
+void
 _scroll_start_cb(void *data, Evas_Object *obj, void *event_info)
 {
-&nbsp;&nbsp;&nbsp;printf(&quot;Scroll starts\n&quot;);
+   printf("Scroll starts\n");
 }
 </pre>
+   </li>
+</ol>
 
-<p>The signals list in the AR is more extensive, but only the signals in this topics are actually supported by Tizen.</p>
+<p>In the following example, an image objects is set into a scroller.
+   The minimum size of the image (1600 x 1600 pixels)
+   is larger than the scroller (smaller than 720 * 1280 pixels), so you can scroll across the image.</p>
 
-<h2 id="slideshow">Creating a Picture Slideshow</h2>
+<table border="0">
+   <caption>Example: A simple use case of box component</caption> 
+   <tbody>
+      <tr>
+         <td style="text-align:left;margin-left:auto;margin-right:auto;">
+<pre class="prettyprint">
+Evas_Object *win, *conf, *nf, *scroller, *img;
+
+// Starting right after <a href="ui_layouts_n.htm#code">the basic EFL UI layout code</a>
+// (win - conformant - naviframe)
+
+// Add a scroller and push it into the naviframe
+scroller = elm_scroller_add(nf);
+evas_object_show(scroller);
+elm_naviframe_item_push(nf, "Scroller", NULL, NULL, scroller, NULL);
+
+// Add an image and set it into the scroller
+img = elm_image_add(scroller);
+elm_image_file_set(img, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(img, 1600, 1600);
+evas_object_show(img);
+elm_object_content_set(scroller, img);
+</pre>
+
+         </td>
+      </tr>
+      <tr>
+         <td style="text-align:center;margin-left:auto;margin-right:auto;">
+            <img alt="Alignment" src="../../images/scroller1.png" />
+            <img alt="Alignment" src="../../images/scroller2.png" />
+            <img alt="Alignment" src="../../images/scroller3.png" />
+         </td>
+      </tr>
+   </tbody>
+</table>
+
+
+<h2 id="style">Styles</h2>
+
+<p>The following styles are available:</p>
+
+<table>
+   <caption>Table: Scroller styles</caption>
+   <col width="20%"/>
+   <col width="80%"/>
+   <tbody>
+      <tr>
+         <th>Style</th>
+         <th>Sample</th>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span></td>
+         <td align="center"><img alt="elm/scroller/base/default" src="../../images/scroller_default.png" /></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">handler</span></td>
+         <td align="center"><img alt="elm/scroller/base/handler" src="../../images/scroller_handler.png" /></td>
+      </tr>
+   </tbody>
+</table>
+
+<h2 id="callback">Callbacks</h2>
+
+<p>You can register callback functions connected to the following signals for a scroller object:
+
+<table border="1">
+   <caption>Table: Scroller callback signals</caption>
+   <tbody>
+      <tr>
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">Signal</th>
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">Description</th>
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">event_info</th>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">edge,left</span></td>
+         <td>The left edge of the content is reached.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">edge,right</span></td>
+         <td>The right edge of the content is reached.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">edge,top</span></td>
+         <td>The top edge of the content is reached.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">edge,bottom</span></td>
+         <td>The bottom edge of the content is reached.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll</span></td>
+         <td>The content is scrolled (moved).</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,anim,start</span></td>
+         <td>The scrolling animation has started.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,anim,stop</span></td>
+         <td>The scrolling animation has stopped.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,drag,start</span></td>
+         <td>Dragging the contents has started.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,drag,stop</span></td>
+         <td>Dragging the contents has stopped.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">vbar,drag</span></td>
+         <td>The vertical scroll bar is dragged.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">vbar,press</span></td>
+         <td>The vertical scroll bar is pressed.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">vbar,unpress</span></td>
+         <td>The vertical scroll bar is unpressed.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">hbar,drag</span></td>
+         <td>The horizontal scroll bar is dragged.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">hbar,press</span></td>
+         <td>The horizontal scroll bar is pressed.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">hbar,unpress</span></td>
+         <td>The horizontal scroll bar is unpressed.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,page,changed</span></td>
+         <td>The visible page has changed.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+   </tbody>
+</table>
+
+<p>The signals in <a href="../../../../org.tizen.native.mobile.apireference/group__Scroller.html">API Reference</a>
+   might be more extensive, but only the signals stated above are actually supported by Tizen.</p>
+
+
+<h2>Example</h2>
+
+<h3>Creating a Picture Slideshow</h3>
 
 <p>A good example of the scroller use is a picture slideshow: add images to the scroller and limit the scrolling to pages, meaning that one picture at a time is shown.</p>
+
+<p>A scroller can limit scrolling to "pages". In this case, the scrolling occurs in page-sized chunks of content rather than in a purely continuous fashion, with the scroller displaying a single page at a time. This feature sets the size of the page relative to the viewport of the scroller. A size of 1.0 equals 1 viewport (horizontally or vertically). A size of 0.0 disables paging for that axis. These settings are mutually exclusive with page size (see the <span style="font-family: Courier New,Courier,monospace">elm_scroller_page_size_set()</span> function). A size of 0.5 equals half a viewport. Usable size values are normally between 0.0 and 1.0, including 1.0. If you only want a single axis to scroll in pages, use 0.0 for the other axis.</p>
 
 <p>To create a picture slideshow:</p>
 <ol>

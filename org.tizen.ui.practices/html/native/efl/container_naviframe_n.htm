@@ -24,11 +24,10 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#create">Adding a Naviframe Component</a></li>
-			<li><a href="#add_view">Adding and Deleting Views</a></li>
-			<li><a href="#add_content">Adding Fixed Content</a></li>
-			<li><a href="#signal">Using the Naviframe Callbacks</a></li>		
-			</ul>
+			<li><a href="#basic">Basic Usage</a></li>
+			<li><a href="#style">Item Styles</a></li>		
+			<li><a href="#callback">Callbacks</a></li>		
+		</ul>
 		<p class="toc-title">Related Info</p>
 			<ul class="toc">
 				<li><a href="../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
@@ -40,66 +39,250 @@
 </div>	
 
 <div id="container"><div id="contents"><div class="content">
+
 <h1>Naviframe</h1>
 
-<p>A naviframe component consists of a stack of views. New views are pushed on top of previous ones, and only the top-most view on the stack is displayed. The previous views are not deleted. A previous view is displayed when the view on top of it is popped. Transitions can be animated on a push or a pop, depending on the theme applied to the UI component.</p>
+<p>Naviframe is a container component that manage many views by stacking them and displaying the top-most one.
+   This document explains the basic usage of naviframe component.
+   For more information, see <a href="../../../../org.tizen.native.mobile.apireference/group__Naviframe.html">API Reference</a>.</p>
 
-<h2 id="create">Adding a Naviframe Component</h2>
+<h2 id="basic">Basic Usage</h2>
 
-<p>To create a naviframe, use the <span style="font-family: Courier New,Courier,monospace">elm_naviframe_add()</span> function:</p>
+<p>Building a layout with a naviframe usually has the following process:</p>
+<ol>
+   <li>Add a naviframe with <span style="font-family: Courier New,Courier,monospace">elm_naviframe_add()</span> function.</li>
+   <li>Add an item (a view) and push it to the stack using
+   <span style="font-family: Courier New,Courier,monospace">elm_naviframe_item_push()</span> function.
+   The function takes six parameters and returns a handler of the item.
 <pre class="prettyprint">
-Evas_Object *nav;
-
-nav = elm_naviframe_add(parent);
-</pre>
-<h2 id="add_view">Adding and Deleting Views</h2>
-
-<p>The naviframe is a stack of views. A new view is always pushed to the top of the stack. The top-most view is deleted by popping it.</p>
-<p>To add a new view to the naviframe:</p>
+Elm_Object_Item *elm_naviframe_item_push(Evas_Object *obj,
+                                         const char *title,
+                                         Evas_Object *prev_btn,
+                                         Evas_Object *next_btn,
+                                         Evas_Object *content,
+                                         const char *item_style
+                                        );
+</pre></br>
+   In Tizen, <b>"next_btn"</b>(4th parameter) does not be shown, therefore this parameter is recomended to input <b>NULL</b>.</br>
+   <b>"prev_btn"</b>(3rd parameter) is supported, but auto pushing is also supported over 2.4 version of Tizen.</br>
+   We recommend input <b>NULL</b> to <b>"prev_btn"</b>, and then set auto pushed flag (about prev_btn) to <b>true</b>. (likes below)
 <pre class="prettyprint">
-Elm_Object_Item *nav_it;
-
-// In Tizen 2.4, the back button is automatically pushed if
-// elm_naviframe_prev_btn_auto_pushed_set(nav, EINA_TRUE) is called
-
-nav_it = elm_naviframe_item_push(nav, NULL, NULL, NULL, view, NULL);
-</pre>
-<p>When you push a new view to the stack, you receive an <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> for the view. You can use this item to modify the view.</p>
-<p>To pop and delete the top-most view:</p>
+// It makes 'prev_btn' automatically if multiple items are pushed. (default : EINA_FALSE)
+elm_naviframe_prev_btn_auto_pushed_set(nf, EINA_TRUE);
+</pre></br>
+   The last parameter is the style of the naviframe item.
+   In Tizen 2.4 mobile, various <a href="#style">item styles</a> are provided.
+   <p>If an item style supports text parts, fill the text parts with
+   <span style="font-family: Courier New,Courier,monospace">elm_object_item_part_text_set()</span> function.</p>
 <pre class="prettyprint">
-elm_naviframe_item_pop(nav);
-</pre>
-
-<h2 id="add_content">Adding Fixed Content</h2>
-
-<p>The naviframe can display fixed content on top of the current (top-most) view. Use the <span style="font-family: Courier New,Courier,monospace">elm_object_item_part_content_set()</span> function to set this content. Use the following part names to specify the location of the content:</p>
-<ul>
-<li><span style="font-family: Courier New,Courier,monospace">default</span>: The main content area of the current view.</li>
-<li><span style="font-family: Courier New,Courier,monospace">title_left_btn</span>: A button on the left side of the naviframe.</li>
-<li><span style="font-family: Courier New,Courier,monospace">title_right_btn</span>: A button on the right side of the naviframe.</li>
-</ul>
-<p>For example, to add a button to the naviframe:</p>
+elm_object_item_part_text_set(nf_it, "subtitle", "subtitle");
+</pre></br>
+   If an item style supports swallow parts, fill the swallow parts with
+   <span style="font-family: Courier New,Courier,monospace">elm_object_item_part_content_set()</span> function.
 <pre class="prettyprint">
-btn = elm_button_add(nav);
-elm_object_style_set(btn, &quot;naviframe/title_cancel&quot;);
-elm_object_item_part_content_set(nav_it, &quot;title_left_btn&quot;, btn);
+elm_object_item_part_content_set(nf_it, "title_left_btn", btn);
 </pre>
-<p>To set the title labels of the naviframe, use the <span style="font-family: Courier New,Courier,monospace">elm_object_item_part_text_set()</span> function and specify one of the following label locations:</p>
-<ul>
-<li><span style="font-family: Courier New,Courier,monospace">default</span>: Sets the title label in the title area of the current view.</li>
-<li><span style="font-family: Courier New,Courier,monospace">subtitle</span>: Sets the subtitle label in the title area of the current view.</li>
-</ul>
 
-<h2 id="signal">Using the Naviframe Callbacks</h2>
+   The <span style="font-family: Courier New,Courier,monospace">"default"</span> text part is the title,
+   and the <span style="font-family: Courier New,Courier,monospace">"default"</span> swallow part is the main content area.
+   You can fill these parts with 
+   <span style="font-family: Courier New,Courier,monospace">elm_naviframe_item_push()</span> function as well.
+   
+   </li>
+   <li>Repeat step 2. You can pop and delete the top-most view during the process using
+   <span style="font-family: Courier New,Courier,monospace">elm_naviframe_item_pop()</span> function.</li>
+</ol>
 
-<p>To receive notifications about the naviframe events, listen to the following signals:</p>
-<ul>
-<li><span style="font-family: Courier New,Courier,monospace">transition,finished</span>: The transition has finished changing the view.</li>
-<li><span style="font-family: Courier New,Courier,monospace">title,transition,finished</span>: The title area transition has finished changing the state of the title.</li>
-<li><span style="font-family: Courier New,Courier,monospace">title,clicked</span>: The title area is clicked.</li>
-</ul>
+<p>The following example shows a typical naviframe in mobile profile:</p>
 
-<p>The signals list in the AR is more extensive, but only the signals in this topics are actually supported by Tizen.</p>
+<table border="0">
+   <caption>Example: A simple use case of naviframe component</caption> 
+   <tbody>
+      <tr>
+         <td style="text-align:left;margin-left:auto;margin-right:auto;">
+<pre class="prettyprint">
+Evas_Object *nf, *ly, *tb;
+Elm_Object_Item *nf_it;
+
+// Variables for naviframe item push.
+const char *title_text = "Naviframe";
+Evas_Object *prev_btn = NULL; // recommended NULL, replace to elm_naviframe_prev_btn_auto_pushed_set()
+Evas_Object *next_btn = NULL; // recommended NULL
+Evas_Object *empty_content = NULL;
+const char *item_style_default = NULL;
+const char *item_style_tabbar = "tabbar";
+
+// Starting right after the conformant in <a href="ui_layouts_n.htm#code">the basic EFL UI layout code</a>
+// (win - conformant)
+
+nf = elm_naviframe_add(ad->conform);
+elm_naviframe_prev_btn_auto_pushed_set(nf, EINA_TRUE); // since Tizen 2.4
+elm_object_content_set(ad->conform, nf);
+evas_object_show(nf);
+
+// Add a layout
+ly = elm_layout_add(nf);
+elm_layout_theme_set(ly, "layout", "nocontents", "default");
+elm_object_part_text_set(ly, "elm.text", "Naviframe Contents Area");
+
+// Add a toolbar which
+tb = elm_toolbar_add(nf);
+elm_toolbar_shrink_mode_set(tb, ELM_TOOLBAR_SHRINK_EXPAND);
+elm_toolbar_transverse_expanded_set(tb, EINA_TRUE);
+elm_toolbar_item_append(tb, NULL, "Tab1", NULL, NULL);
+elm_toolbar_item_append(tb, NULL, "Tab2", NULL, NULL);
+evas_object_show(tb);
+
+// Push a naviframe item (push two items in total to show the back button)
+elm_naviframe_item_push(nf, title_text, prev_btn, next_btn, empty_content, item_style_default);
+
+// Push a naviframe item, set the style as "tabbar" and pass the layout as contents
+nf_it = elm_naviframe_item_push(nf, title_text, prev_btn, next_btn, ly, item_style_tabbar);
+
+// Set the toolbar into the "tabbar" part of the naviframe item
+elm_object_item_part_content_set(nf_it, "tabbar", tb);
+</pre>
+         </td>
+         <td style="text-align:center;margin-left:auto;margin-right:auto;">
+            <p align="center"><img alt="Alignment" src="../../images/naviframe_mn.png" /></p>
+         </td>
+      </tr>
+   </tbody>
+</table>
+
+
+
+<h2 id="style">Item Styles</h2>
+
+<p>The following item styles are available in Tizen 2.4 mobile version:</p>
+
+<table>
+   <caption>Table: Naviframe item styles</caption>
+   <tbody>
+      <tr>
+         <th>Style</th>
+         <th>Sample</th>
+         <th>Text part</th>
+         <th>Swallow part</th>
+         <th>Notes</th>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span></td>
+         <td align="center"><img alt="default" src="../../images/naviframe_default.png" /></td>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span>
+         <p><span style="font-family: Courier New,Courier,monospace">subtitle</span></p></td>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span>
+         <p><span style="font-family: Courier New,Courier,monospace">title_left_btn</span></p>
+         <p><span style="font-family: Courier New,Courier,monospace">title_right_btn</span></p></td>
+         <td><p><img align="left" alt="default_part_explain" src="../../images/naviframe_part_default.png" width="280" height="140" hspace="2"/>
+1. Text part: <span style="font-family: Courier New,Courier,monospace">default</span></br>
+2. Text part: <span style="font-family: Courier New,Courier,monospace">subtitle</span></br>
+3. Swallow part: <span style="font-family: Courier New,Courier,monospace">default</span></br>
+4. Swallow part: <span style="font-family: Courier New,Courier,monospace">title_left_btn</span></br>
+5. Swallow part: <span style="font-family: Courier New,Courier,monospace">title_right_btn</span></br></p>
+         </td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">tabbar</span></td>
+         <td align="center"><img alt="tabbar" src="../../images/naviframe_tabbar.png" /></td>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span>
+         <p><span style="font-family: Courier New,Courier,monospace">subtitle</span></p></td>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span>
+         <p><span style="font-family: Courier New,Courier,monospace">title_left_btn</span></p>
+         <p><span style="font-family: Courier New,Courier,monospace">title_right_btn</span></p>
+         <p><span style="font-family: Courier New,Courier,monospace">tabbar</span></p></td>
+         <td><p>The <span style="font-family: Courier New,Courier,monospace">tabbar_with_title</span> style toolbar can be set into the <span style="font-family: Courier New,Courier,monospace">tabbar</span> part.</p>
+         <p><img align="left" alt="tabbar_part_explain" src="../../images/naviframe_part_tabbar.png" width="280" height="140" hspace="2"/>
+1. Text part: <span style="font-family: Courier New,Courier,monospace">default</span></br>
+2. Text part: <span style="font-family: Courier New,Courier,monospace">subtitle</span></br>
+3. Swallow part: <span style="font-family: Courier New,Courier,monospace">default</span></br>
+4. Swallow part: <span style="font-family: Courier New,Courier,monospace">title_left_btn</span></br>
+5. Swallow part: <span style="font-family: Courier New,Courier,monospace">title_right_btn</span></br>
+6. Swallow part: <span style="font-family: Courier New,Courier,monospace">tabbar</span></br></p>
+         </td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">tabbar/notitle</span></td>
+         <td align="center"><img alt="tabbar/notitle" src="../../images/naviframe_tabbar_notitle.png" /></td>
+         <td></td>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span>
+         <p><span style="font-family: Courier New,Courier,monospace">tabbar</span></p></td>
+         <td><p>Toolbar can be set into the <span style="font-family: Courier New,Courier,monospace">tabbar</span> part.</p>
+         <p><img align="left" alt="tabbar_notitle_part_explain" src="../../images/naviframe_part_tabbar_notitle.png" width="280" height="140" hspace="2"/>
+1. Swallow part: <span style="font-family: Courier New,Courier,monospace">default</span></br>
+2. Swallow part: <span style="font-family: Courier New,Courier,monospace">tabbar</span></br></p>
+         </td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">tabbar/icon</span></td>
+         <td align="center"><img alt="tabbar/icon" src="../../images/naviframe_tabbar_icon.png" /></td>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span>
+         <p><span style="font-family: Courier New,Courier,monospace">subtitle</span></p>
+         </td>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span>
+         <p><span style="font-family: Courier New,Courier,monospace">title_left_btn</span></p>
+         <p><span style="font-family: Courier New,Courier,monospace">title_right_btn</span></p>
+         <p><span style="font-family: Courier New,Courier,monospace">tabbar</span></p>
+         </td>
+         <td><p>The <span style="font-family: Courier New,Courier,monospace">tabbar_with_title</span> style toolbar with icons can be set into the <span style="font-family: Courier New,Courier,monospace">tabbar</span> part.</p>
+         <p><img align="left" alt="tabbar_icon_part_explain" src="../../images/naviframe_part_tabbar_icon.png" width="280" height="140" hspace="2"/>
+1. Text part: <span style="font-family: Courier New,Courier,monospace">default</span></br>
+2. Text part: <span style="font-family: Courier New,Courier,monospace">subtitle</span></br>
+3. Swallow part: <span style="font-family: Courier New,Courier,monospace">default</span></br>
+4. Swallow part: <span style="font-family: Courier New,Courier,monospace">title_left_btn</span></br>
+5. Swallow part: <span style="font-family: Courier New,Courier,monospace">title_right_btn</span></br>
+6. Swallow part: <span style="font-family: Courier New,Courier,monospace">tabbar</span></br></p>
+         </td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">tabbar/icon/notitle</span></td>
+         <td align="center"><img alt="tabbar/icon/notitle" src="../../images/naviframe_tabbar_icon_notitle.png" /></td>
+         <td></td>
+         <td><span style="font-family: Courier New,Courier,monospace">default</span>
+         <p><span style="font-family: Courier New,Courier,monospace">tabbar</span></p>
+         </td>
+         <td><p>Toolbar with icons can be set into the <span style="font-family: Courier New,Courier,monospace">tabbar</span> part.</p>
+         <p><img align="left" alt="tabbar_icon_notitle_part_explain" src="../../images/naviframe_part_tabbar_icon_notitle.png" width="280" height="140" hspace="2"/>
+1. Swallow part: <span style="font-family: Courier New,Courier,monospace">default</span></br>
+2. Swallow part: <span style="font-family: Courier New,Courier,monospace">tabbar</span></br></p>
+         </td>
+      </tr>
+   </tbody>
+</table>
+
+
+<h2 id="callback">Callbacks</h2>
+
+<p>You can register callback functions connected to the following signals for a naviframe object:
+
+<table border="1">
+   <caption>Table: Naviframe callback signals</caption>
+   <tbody>
+      <tr>
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">Signal</th> 
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">Description</th> 
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">event_info</th> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">transition,finished</span></td>
+         <td>The transition has finished changing the view.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">title,transition,finished</span></td>
+         <td>The title area transition has finished changing the state of the title.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">title,clicked</span></td>
+         <td>The title area is clicked.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+    </tbody>
+</table>
+
+<p>The signals in <a href="../../../../org.tizen.native.mobile.apireference/group__Naviframe.html">API Reference</a>
+   might be more extensive, but only the signals stated above are actually supported by Tizen.</p>
 
 <table class="note">
     <tbody>

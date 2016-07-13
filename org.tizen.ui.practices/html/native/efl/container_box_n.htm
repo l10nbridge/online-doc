@@ -24,14 +24,9 @@
 	<div id="toc_border"><div id="toc">
 		<p class="toc-title">Content</p>
 		<ul class="toc">
-			<li><a href="#create">Adding a Box Component</a></li>
-			<li><a href="#add">Adding Objects to the Box</a></li>
-			<li><a href="#set">Setting the Padding</a></li>
-			<li><a href="#size">Handling the Element Size</a></li>
-			<li><a href="#align">Setting the Alignment</a></li>
-			<li><a href="#hint">Using Size Hints</a></li>
-			
-			</ul>
+			<li><a href="#basic">Basic Usage</a></li>
+			<li><a href="#layout">Various Box Layouts</a></li>
+		</ul>
 		<p class="toc-title">Related Info</p>
 			<ul class="toc">
 				<li><a href="../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
@@ -43,171 +38,320 @@
 </div>	
 
 <div id="container"><div id="contents"><div class="content">
+
 <h1>Box</h1>
 
-<p>The box container allows you to arrange the UI components in a specific order horizontally or vertically. The box layout has no theme. If you want to arrange the components vertically, you can also use the <a href="form_tutorial_n.htm">form container</a>.</p>				
+<p>Box is a container component that arranges UI components in a linear order, horizontally or vertically.
+   A box is a non-graphical object: it adds no graphics to or around the objects it holds.
+   This document explains the basic usage of box component.
+   For more information, see <a href="../../../../org.tizen.native.mobile.apireference/group__Box.html">API Reference</a>.</p>
 
-  <p class="figure">Figure: Box container</p>
-  <p align="center"><img alt="Box container" src="../../images/box.png" /></p>
+<p class="figure">Figure: The structure of box component</p>
+<p align="center"><img alt="Box container" src="../../images/box.png" /></p>
 
-<h2 id="create">Adding a Box Component</h2>
+<h2 id="basic">Basic Usage</h2>
 
-<p>To create a box:</p>
-<ul>
-<li>
-<p>To create a vertical box, use the <span style="font-family: Courier New,Courier,monospace">elm_box_add()</span> function.</p>
+<p>Building a layout with a box usually has the following process:</p>
+<ol>
+   <li>Add a box with <span style="font-family: Courier New,Courier,monospace">elm_box_add()</span> function.</li>
 <pre class="prettyprint">
-Evas_Object *vbox;
+Evas_Object *box;
 
-vbox = elm_box_add(parent);
+box = elm_box_add(parent);
 </pre>
-</li>
-<li>
-<p>To create a horizontal box, create a box and set its orientation to  horizontal with the <span style="font-family: Courier New,Courier,monospace">elm_box_horizontal_set()</span> function.</p>
-<p>By default, the <span style="font-family: Courier New,Courier,monospace">elm_box_add()</span> function creates a vertical box.</p>
+   <li>Set the direction of the box with
+   <span style="font-family: Courier New,Courier,monospace">elm_box_horizontal_set()</span> function.
+   A box is vertical by default.</li>
 <pre class="prettyprint">
-Evas_Object *hbox;
-
-hbox = elm_box_add(parent);
-elm_box_horizontal_set(hbox, EINA_TRUE);
+elm_box_horizontal_set(box, EINA_TRUE);
 </pre>
-</li>
-</ul>
+   <li>Add objects and pack them into the box using
+   <span style="font-family: Courier New,Courier,monospace">elm_box_pack_end()</span>,
+   <span style="font-family: Courier New,Courier,monospace">elm_box_pack_start()</span>, etc.
+   </li>
+<pre class="prettyprint">
+Evas_Object *box, btn;
 
-  <table class="note">
+btn = elm_button_add(parent);
+elm_box_pack_end(box, btn);
+</pre>
+</ol>
+
+<p>In the following example, five button objects are packed into a vertical box.
+   <span style="font-family: Courier New,Courier,monospace">elm_box_pack_end()</span> function is used
+   to pack each button into the end of the box.</p>
+
+<table border="0">
+   <caption>Example: A simple use case of box component</caption> 
+   <colgroup> 
+      <col /><col />
+   </colgroup> 
    <tbody>
-    <tr>
-     <th class="note">Note</th>
-    </tr>
-    <tr>
-     <td class="note">The box is a non-graphical object. It adds no graphics to or around the objects it holds.</td>
-    </tr>
-   </tbody>
-  </table>
-
-<h2 id="add">Adding Objects to the Box</h2>
-
-<p>You can add any Evas object to the box. In the following example, 5 button components are created and added to a box.</p>
-<p>The most important function in the following code is <span style="font-family: Courier New,Courier,monospace">elm_box_pack_end()</span>, which is used to add the button component to the end of the box.</p>
+      <tr>
+         <td style="text-align:left;margin-left:auto;margin-right:auto;">
 <pre class="prettyprint">
+Evas_Object *win, *conf, *nf, *box, *btn;
+char tmp[16];
 int i;
-Evas_Object *bt;
-Evas_Object *vbox;
 
-vbox = elm_box_add(parent);
+// Starting right after <a href="ui_layouts_n.htm#code">the basic EFL UI layout code</a>
+// (win - conformant - naviframe)
 
-for (i = 0; i &lt; 5; i++)
+// Add a box and push it into the naviframe
+box = elm_box_add(nf);
+evas_object_show(box);
+elm_naviframe_item_push(nf, "Box", NULL, NULL, box, NULL);
+
+for(i = 1; i <= 5; i++)
 {
-&nbsp;&nbsp;&nbsp;char tmp[16];
-&nbsp;&nbsp;&nbsp;snprintf(tmp, sizeof(tmp), &quot;Button %d&quot;, i);
-&nbsp;&nbsp;&nbsp;bt = elm_button_add(vbox);
-&nbsp;&nbsp;&nbsp;elm_object_text_set(bt, tmp);
-&nbsp;&nbsp;&nbsp;elm_box_pack_end(vbox, bt);
-&nbsp;&nbsp;&nbsp;evas_object_show(bt);
+   btn = elm_button_add(box);
+   snprintf(tmp, sizeof(tmp), "Button %d", i);
+   elm_object_text_set(btn, tmp);
+
+   // Set size hints for weight and align
+   evas_object_size_hint_weight_set(btn, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+   evas_object_size_hint_align_set(btn, EVAS_HINT_FILL, 0.5);
+
+   evas_object_show(btn);
+   elm_box_pack_end(box, btn);
 }
-evas_object_show(vbox);
 </pre>
-
-<h2 id="set">Setting the Padding</h2>
-
-<p>You can set the padding between the objects in a box with the <span style="font-family: Courier New,Courier,monospace">elm_box_padding_set()</span> function. The padding values are the number of pixels horizontally and vertically.</p>
-<pre class="prettyprint">
-elm_box_padding_set(vbox, 16, 64);
-</pre>
-
-<h2 id="size">Handling the Element Size</h2>
-
-<p>You can add elements of different sizes to a container. For example, to add an image with a size of 128 x 128 pixels as the first element in a box, use the <span style="font-family: Courier New,Courier,monospace">elm_box_pack_start()</span> function:</p>
-<pre class="prettyprint">
-ic = elm_icon_add(vbox);
-elm_image_file_set(ic, &quot;./c1.png&quot;, NULL);
-evas_object_size_hint_min_set(ic, 128, 128);
-evas_object_show(ic);
-elm_box_pack_start(vbox, ic);
-</pre>
-<p>Evas is requested to set the size hint for the icon object with the <span style="font-family: Courier New,Courier,monospace">elm_object_size_hint_min_set()</span> function. Evas tries to set the minimum size of this object accordingly.</p>
-<p>If you want to create a homogeneous box, where all objects have the same height or width, depending on the orientation of the box, use the <span style="font-family: Courier New,Courier,monospace">elm_box_homogeneous_set()</span> function:</p>
-<pre class="prettyprint">
-elm_box_homogeneous_set(vbox, EINA_TRUE);
-</pre>
-<p>Elementary sets the height of the tallest object as the height of all objects, or the width of the widest object as the width of all objects.</p>
-
-<h2 id="align">Setting the Alignment</h2>
-
-<p>You can set the alignment of UI components inside a box using the <span style="font-family: Courier New,Courier,monospace">elm_box_align_set()</span> function. The function takes 2 doubles values, a horizontal value and a vertical value, representing the percentage between 0 and 1.0 of the alignment in the horizontal and vertical axes. When you add a UI component with the <span style="font-family: Courier New,Courier,monospace">elm_box_pack_end()</span> or <span style="font-family: Courier New,Courier,monospace">elm_box_pack_start()</span> function, Elementary computes the global size of the box. If the global size is bigger than the size of the box&#39;s parent, the box takes up all the space occupied by the parent, and the size of the parent can be extended to hold the box. If the global size is smaller than the parent&#39;s size, the alignment values set the position of the box inside the parent.</p>
-
-<p class="figure">Figure: Alignment</p>
-<p align="center"><img alt="Alignment" src="../../images/align.png" /></p>
-
-<p>To set the alignment to 0.8 vertically:</p>
-<pre class="prettyprint">
-elm_box_align_set(vbox, 0.0, 0.8);
-</pre>
-
-  <table class="note">
-   <tbody>
-    <tr>
-     <th class="note">Note</th>
-    </tr>
-    <tr>
-     <td class="note">Alignment only takes effect in the opposite direction than the one defined with the <span style="font-family: Courier New,Courier,monospace">elm_box_horizontal_set()</span> function.</td>
-    </tr>
+         </td>
+         <td style="text-align:center;margin-left:auto;margin-right:auto;">
+            <p align="center"><img alt="Alignment" src="../../images/box_example.png" /></p>
+         </td>
+      </tr>
    </tbody>
-  </table>
+</table>
+
+<p>In the above example, two functions are used to arrange buttons inside the box:
+   <span style="font-family: Courier New,Courier,monospace">evas_object_size_hint_weight_set()</span> and
+   <span style="font-family: Courier New,Courier,monospace">evas_object_size_hint_align_set()</span> function.
+   The former sets a hint on how to resize a given child object within a container's area.
+   The latter sets a hint on how to align a child object inside the boundaries of a container.
+   If you change the weight hint or align hint value, the results will be changed.</p>
+
+<h2 id="layout">Various Box Layouts</h2>
+
+<p>When building a box layout, you need to use <a href="ui_layouts_n.htm#hint">size hint functions</a>
+   to adjust the size and position of each element inside it.
+   Basically, an object contained in a box take up a space based on its minimum size.
+   If the sum of the objects' minimum size is bigger than the size of the box's parent,
+   the box takes up all the space occupied by the parent,
+   and the size of the parent might be extended to hold the box.
+   If the sum of the objects' minimum size is smaller than the space given for the box,
+   the objects are positioned at the center by default.
+   You can adjust the position of the image objects
+   using <span style="font-family: Courier New,Courier,monospace">elm_box_align_set()</span> function.
+   The function takes two double values, a horizontal value and a vertical value,
+   representing the percentage between 0.0 and 1.0 of the alignment in the horizontal and vertical axes.
+   Remember that a box has a linear structure: the alignment only takes effect in the opposite direction
+   than the one defined with <span style="font-family: Courier New,Courier,monospace">elm_box_horizontal_set()</span> function.</p>
+
+<p>In the following example, two images are packed into a box.
+   Minimum size hints are set to the image objects with
+   <span style="font-family: Courier New,Courier,monospace">elm_object_size_hint_min_set()</span> function.
+   Since the sum of the minimun size is smaller than the box area which is equal to the window area in this case,
+   the images are bound together and positioned at the center.</p>
 
 
-<p>The <span style="font-family: Courier New,Courier,monospace">elm_box_layout_transition()</span> function animates the motion of the objects in a box when switching from one layout to another.</p>
+<table border="0">
+   <caption>Example: Various box layouts</caption> 
+   <tbody>
+      <tr>
+         <td>
+<pre class="prettyprint">
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
 
-<h2 id="hint">Using Size Hints</h2>
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+</pre>
+         </td>
+         <td>
+            <p align="center"><img src="../../images/box1.png" /></p>
+         </td>
+      </tr>
+      <tr>
+         <td>
+<pre class="prettyprint">
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
 
-<p>Size hints are a set of functions that can be used on any Evas object. You request Evas to take care of various properties, and Evas honors these requests if it can. This is why they are called &quot;hints&quot;.</p>
-<p>You can also use the respective get functions to get the current hint values.</p>
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
 
-<p>To set the size hints:</p> 
-<ul>
-<li>
-<p>To set the minimum size of an object, use the <span style="font-family: Courier New,Courier,monospace">evas_object_size_hint_min_set()</span> function. Evas respects the minimum size you define for the object. For example, to set the minimum size of an icon to 64 x 64 pixels:</p>
-<pre class="prettyprint">
-evas_object_size_hint_min_set(ic, 64, 64);
+<strong>elm_box_align_set(box, 0.5, 0.0);</strong>
 </pre>
+         </td>
+         <td>
+            <p align="center"><img src="../../images/box2.png" /></p>
+         </td>
+      </tr>
+      <tr>
+         <td>
+<pre class="prettyprint">
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
 
-<p>You can also set a maximum size for the same icon:</p>
-<pre class="prettyprint">
-evas_object_size_hint_max_set(ic, 128, 128);
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>elm_box_align_set(box, 0.5, 1.0);</strong>
 </pre>
-<p>When you resize the parent of the icon, the minimum size of the parent is the minimum hint size of the icon, if there are no constraints to the parent. If you increase the parent size, the icon grows larger until its maximum hint size is reached. After this point, the icon does not grow any larger and there is empty space around the icon within the parent.</p>
-</li>
-<li>
-<p>To fix the dimensional proportions of the object, use the <span style="font-family: Courier New,Courier,monospace">evas_object_size_hint_aspect_set()</span> function. When the aspect size hint is set, Evas tries to fix the dimensional proportions of the object. In the following example, the proportion of the icon is respected, and the width is the same as the height:</p>
+         </td>
+         <td>
+            <p align="center"><img src="../../images/box3.png" /></p>
+         </td>
+      </tr>
+      <tr>
+         <td>
 <pre class="prettyprint">
-evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_VERTICAL, 1, 1);
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);</strong>
+
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);</strong>
 </pre>
-<p>In this example, the width is twice the height:</p>
+         </td>
+         <td>
+            <p align="center"><img src="../../images/box4.png" /></p>
+         </td>
+      </tr>
+      <tr>
+         <td>
 <pre class="prettyprint">
-evas_object_size_hint_aspect_set(ic, EVAS_ASPECT_CONTROL_VERTICAL, 2, 1);
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);</strong>
+<strong>evas_object_size_hint_align_set(image, 0.0, 0.0);</strong>
+
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);</strong>
+<strong>evas_object_size_hint_align_set(image, 0.0, 0.0);</strong>
 </pre>
-</li>
-<li>
-<p>To change the alignment of the icon relative to the parent, use the <span style="font-family: Courier New,Courier,monospace">evas_object_size_hint_align()</span> function. By default, the icon is centered, so it is aligned with a value of 0.5. To change the alignment:</p>
+         </td>
+         <td>
+            <p align="center"><img src="../../images/box5.png" /></p>
+         </td>
+      </tr>
+      <tr>
+         <td>
 <pre class="prettyprint">
-evas_object_size_hint_align_set(ic, EVAS_HINT_FILL, EVAS_HINT_FILL);
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);</strong>
+<strong>evas_object_size_hint_align_set(image, 1.0, 1.0);</strong>
+
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);</strong>
+<strong>evas_object_size_hint_align_set(image, 1.0, 1.0);</strong>
 </pre>
-<p>In the above case, the icon is aligned to the bottom left corner of the parent.</p>
-</li>
-<li>
-<p>To set a weight size hint, use the <span style="font-family: Courier New,Courier,monospace">evas_object_size_hint_weight_set()</span> function. By default, the weight is not set, so the size of the icon is the minimum size. But if you set this value to 1, the icon expands as much as it can inside the container.</p>
+         </td>
+         <td>
+            <p align="center"><img src="../../images/box6.png" /></p>
+         </td>
+      </tr>
+      <tr>
+         <td>
 <pre class="prettyprint">
-evas_object_size_hint_weight_set(ic, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);</strong>
+<strong>evas_object_size_hint_align_set(image, EVAS_HINT_FILL, EVAS_HINT_FILL);</strong>
+
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);</strong>
+<strong>evas_object_size_hint_align_set(image, EVAS_HINT_FILL, EVAS_HINT_FILL);</strong>
 </pre>
-</li>
-<li>
-<p>You can also use the alignment and weight hints together. In the following example, the icon takes up all the space in its parent:</p>
+         </td>
+         <td>
+            <p align="center"><img src="../../images/box7.png" /></p>
+         </td>
+      </tr>
+      <tr>
+         <td>
 <pre class="prettyprint">
-evas_object_size_hint_align_set(ic, EVAS_HINT_FILL, EVAS_HINT_FILL);
-evas_object_size_hint_weight_set(ic, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, 0.3);</strong>
+<strong>evas_object_size_hint_align_set(image, EVAS_HINT_FILL, EVAS_HINT_FILL);</strong>
+
+image = elm_image_add(box);
+elm_image_file_set(image, ICON_DIR"/tizen.png", NULL);
+evas_object_size_hint_min_set(image, 200, 200);
+evas_object_show(image);
+elm_box_pack_end(box, image);
+
+<strong>evas_object_size_hint_weight_set(image, EVAS_HINT_EXPAND, 0.7);</strong>
+<strong>evas_object_size_hint_align_set(image, EVAS_HINT_FILL, EVAS_HINT_FILL);</strong>
 </pre>
-</li>
-</ul>
+         </td>
+         <td>
+            <p align="center"><img src="../../images/box8.png" /></p>
+         </td>
+      </tr>
+   </tbody>
+</table>
 
 <table class="note">
     <tbody>
