@@ -1,0 +1,392 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Advanced Manipulation of Evas Objects</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+	
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#create">Creating the Basic Application</a></li>
+			<li><a href="#scale">Modifying the Object Scale</a></li>
+			<li><a href="#render">Configuring the Evas Object Rendering Mode</a></li>
+		</ul>	
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Ecore.html">Ecore API for Mobile Native</a></li>
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Evas.html">Evas API for Mobile Native</a></li>
+			<li><a href="../../../../../org.tizen.native.wearable.apireference/group__Ecore__Group.html">Ecore API for Wearable Native</a></li>
+			<li><a href="../../../../../org.tizen.native.wearable.apireference/group__Evas.html">Evas API for Wearable Native</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Advanced Manipulation of Evas Objects</h1>
+
+
+<p>This topic shows how to create an application that enables scaling an Evas text object by clicking buttons. The data setter and getter functions are used to pass the scalable object through the clicked button object to a callback.</p>
+<p>The topic also shows how to change the Evas object rendering mode using the Extra Object Manipulation API (in <a href="../../../../../org.tizen.native.mobile.apireference/group__Evas__Object__Group__Extras.html">mobile</a> and <a href="../../../../../org.tizen.native.wearable.apireference/group__Evas__Object__Group__Extras.html">wearable</a> applications). </p>  
+
+<p class="figure">Figure: Extra object function application</p> 
+<p align="center"><img alt="Extra object function application" src="../../../images/evas_advanced.png" /></p>
+
+
+<h2 id="create" name="create">Creating the Basic Application</h2>
+<p>To create the basic application:</p>
+<ol>
+<li>To use the required functions, include the following header files:
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;Elementary.h&gt;
+#include &lt;system_settings.h&gt;
+#include &lt;efl_extension.h&gt;
+</pre>
+</li>
+
+<li>For the application data structure, define objects for an Elementary window and buttons for scaling and changing the object render mode. In addition, you need a render text object and 2 rectangle objects to illustrate the object render mode.
+
+<pre class="prettyprint">
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *scale_incr_button;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *scale_decr_button;
+
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *render_text;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *blend_mode_button;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *copy_mode_button;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *render_rect1;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *render_rect2;
+};
+typedef struct appdata appdata_s;
+</pre>
+</li>
+<li>To create the Elementary window:
+<ol type="a">
+<li>Create the window object using the <span style="font-family: Courier New,Courier,monospace">elm_win_util_standard_add()</span> function and passing the name and title of the application as parameters:
+
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Window */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(&quot;Extra object function&quot;, &quot;Extra object function&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+</pre>
+</li>
+<li>Set callbacks for the window deletion and the <strong>Back</strong> key press using the <span style="font-family: Courier New,Courier,monospace">evas_object_smart_callback_add()</span> and <span style="font-family: Courier New,Courier,monospace">eext_object_event_callback_add()</span> functions:
+
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;/* Window callbacks */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;win, EEXT_CALLBACK_BACK, back_cb, ad);
+</pre>
+</li>
+<li>Display the window Evas object using the <span style="font-family: Courier New,Courier,monospace">evas_object_show()</span> function:
+
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show the window */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre>
+</li>
+<li>Implement the callback functions to enable closing the application:
+
+<pre class="prettyprint">
+/* When the Back key is pressed, move the window to the background */
+static void
+back_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_lower(ad-&gt;win);
+}
+
+/* When the window is deleted, exit the application main loop */
+static void
+win_delete_request_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;ui_app_exit();
+}
+</pre>
+</li>
+</ol>
+</li>
+<li>To start the application:
+<ol type="a">
+<li>Create the UI components by calling the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function when the application is initialized:
+
+<pre class="prettyprint">
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create the application UI */
+&nbsp;&nbsp;&nbsp;&nbsp;create_base_gui(ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+<li>Define the application life-cycle events (the <span style="font-family: Courier New,Courier,monospace">app_create</span> callback), and start the application main loop with the <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> function:
+<pre class="prettyprint">
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s ad = {0,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = {0,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Run the main loop */
+&nbsp;&nbsp;&nbsp;&nbsp;return ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+}
+</pre>
+</li></ol></li>
+</ol>
+
+<h2 id="scale" name="scale">Modifying the Object Scale</h2>
+
+<p>To implement the scaling features for the application:</p>
+
+<ol>
+<li>Create the scalable text object using the <span style="font-family: Courier New,Courier,monospace">evas_object_text_add()</span> function:
+
+<pre class="prettyprint">
+evas = evas_object_evas_get(ad-&gt;win);
+evas_text = evas_object_text_add(evas);
+evas_object_text_text_set(evas_text, &quot;Scalable Text Object&quot;);
+evas_object_text_font_set(evas_text, &quot;Sans&quot;, 10);
+evas_object_color_set(evas_text, 50, 100, 200, 255);
+evas_object_move(evas_text, 10, 90);
+evas_object_show(evas_text);
+</pre>
+</li>
+
+<li>Create the buttons for increasing and decreasing the scale.
+<p>The <span style="font-family: Courier New,Courier,monospace">evas_object_move()</span> and <span style="font-family: Courier New,Courier,monospace">evas_object_resize()</span> functions configure the button position and size.</p>
+
+<pre class="prettyprint">
+/* Scale + button */
+ad-&gt;scale_incr_button = elm_button_add(ad-&gt;win);
+elm_object_text_set(ad-&gt;scale_incr_button, &quot;Scale +&quot;);
+evas_object_resize(ad-&gt;scale_incr_button, 120, 50);
+evas_object_move(ad-&gt;scale_incr_button, 180, 20);
+evas_object_show(ad-&gt;scale_incr_button);
+
+/* Scale - button */
+ad-&gt;scale_decr_button = elm_button_add(ad-&gt;win);
+elm_object_text_set(ad-&gt;scale_decr_button, &quot;Scale -&quot;);
+evas_object_resize(ad-&gt;scale_decr_button, 120, 50);
+evas_object_move(ad-&gt;scale_decr_button, 180, 170);
+evas_object_show(ad-&gt;scale_decr_button);
+</pre>
+</li>
+
+<li>Attach the scalable text object as data to the scale buttons.
+<p>The scale info is passed to the text object through the buttons. To attach the data, use the <span style="font-family: Courier New,Courier,monospace">evas_object_data_set()</span> function for the buttons, and give a key name to associate with the data and a pointer to the attach data:</p>
+
+<pre class="prettyprint">
+evas_object_data_set(ad-&gt;scale_incr_button, &quot;evas_text&quot;, evas_text);
+evas_object_data_set(ad-&gt;scale_decr_button, &quot;evas_text&quot;, evas_text);
+</pre>
+
+<p>When the attached data is no longer needed, delete it with the <span style="font-family: Courier New,Courier,monospace">evas_object_data_del()</span> function:</p>
+
+<pre class="prettyprint">
+evas_object_data_del(obj, &quot;evas_text&quot;);
+</pre>
+</li>
+
+<li>
+<p>Register a callback for both buttons:</p>
+
+<pre class="prettyprint">
+evas_object_smart_callback_add(ad-&gt;scale_incr_button, &quot;clicked&quot;, scale_incr_cb, NULL);
+evas_object_smart_callback_add(ad-&gt;scale_decr_button, &quot;clicked&quot;, scale_decr_cb, NULL);
+</pre>
+</li>
+
+<li>
+<p>Implement the callback functions to enable changing the scale:</p>
+<ol type="a">
+<li>Get the file data (the scalable text object) attached to the button by using the <span style="font-family: Courier New,Courier,monospace">evas_object_data_get()</span> function with the data key name added when you attached the data.</li>
+
+<li>Get the current scale of the scalable text object with the <span style="font-family: Courier New,Courier,monospace">evas_object_scale_get()</span> function.</li>
+
+<li>If the current scale is smaller than the maximum scale or larger than the minimum scale, increase or decrease the scale factor for the object accordingly. The text object is updated on the screen and its size changes.
+
+<p>To set the scale factor to a single Evas object instead of setting scale to the entire application, use the <span style="font-family: Courier New,Courier,monospace">evas_object_scale_set()</span> function. This is useful when you want scalable UI elements at runtime. However, only text and textblock objects have scaling change handlers. Other objects do not change visually on this call.</p></li>
+</ol>
+<pre class="prettyprint">
+/* Scale + button */
+/* If the current scale of the text object is less than 5.0, increase it by 0.2 */
+static void
+scale_incr_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *evas_text = evas_object_data_get(obj, &quot;evas_text&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;if (!evas_text)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;double current_scale = evas_object_scale_get(evas_text);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (current_scale &gt;= 5.0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_scale_set(evas_text, current_scale + 0.2);
+}
+
+/* Scale - button */
+/* If the current scale of the text object is more than 0.0, decrease it by 0.2 */
+static void
+scale_decr_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *evas_text = evas_object_data_get(obj, &quot;evas_text&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;if (!evas_text)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;double current_scale = evas_object_scale_get(evas_text);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (current_scale &lt;= 0.0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_scale_set(evas_text, current_scale - 0.2);
+}
+</pre>
+</li>
+</ol>
+
+
+<h2 id="render" name="render">Configuring the Evas Object Rendering Mode</h2>
+
+<p>The object rendering mode defines how the object is rendered to output. The <span style="font-family: Courier New,Courier,monospace">EVAS_RENDER_BLEND</span> mode is the default mode, where all colors are drawn using the <span style="font-family: Courier New,Courier,monospace">d = d*(1-sa) + s</span> formula, where <span style="font-family: Courier New,Courier,monospace">d</span> is destination color, <span style="font-family: Courier New,Courier,monospace">sa</span> is source alpha, and <span style="font-family: Courier New,Courier,monospace">s</span> is source color. In the <span style="font-family: Courier New,Courier,monospace">EVAS_RENDER_COPY</span> mode, the formula is <span style="font-family: Courier New,Courier,monospace">(d = s)</span>.</p>
+
+<p>To implement the rendering mode change feature for the application:</p>
+
+<ol>
+<li>Create the Evas rectangle objects that illustrate the rendering mode:
+
+<pre class="prettyprint">
+/* Rectangle with a yellow background */
+ad-&gt;render_rect1 = evas_object_rectangle_add(evas);
+evas_object_color_set(ad-&gt;render_rect1, 240, 220, 50, 191);
+evas_object_resize(ad-&gt;render_rect1, 260, 260);
+evas_object_move(ad-&gt;render_rect1, 60, 400);
+evas_object_show(ad-&gt;render_rect1);
+
+/* Translucent rectangle with a blue foreground */
+ad-&gt;render_rect2 = evas_object_rectangle_add(evas);
+evas_object_color_set(ad-&gt;render_rect2, 25, 110, 220, 127);
+evas_object_resize(ad-&gt;render_rect2, 260, 260);
+evas_object_move(ad-&gt;render_rect2, 170, 500);
+evas_object_show(ad-&gt;render_rect2);
+</pre>
+</li>
+
+<li>Create the render mode change buttons:
+
+<pre class="prettyprint">
+/* BLEND Mode button */
+ad-&gt;blend_mode_button = elm_button_add(ad-&gt;win);
+elm_object_text_set(ad-&gt;blend_mode_button, &quot;BLEND Mode&quot;);
+evas_object_resize(ad-&gt;blend_mode_button, 190, 50);
+evas_object_move(ad-&gt;blend_mode_button, 30, 280);
+evas_object_show(ad-&gt;blend_mode_button);
+
+/* COPY Mode button */
+ad-&gt;copy_mode_button = elm_button_add(ad-&gt;win);
+elm_object_text_set(ad-&gt;copy_mode_button, &quot;COPY Mode&quot;);
+evas_object_resize(ad-&gt;copy_mode_button, 190, 50);
+evas_object_move(ad-&gt;copy_mode_button, 260, 280);
+evas_object_show(ad-&gt;copy_mode_button);
+</pre>
+</li>
+
+<li>Register a callback for both buttons:
+
+<pre class="prettyprint">
+evas_object_smart_callback_add(ad-&gt;blend_mode_button, &quot;clicked&quot;, blend_mode_cb, ad);
+evas_object_smart_callback_add(ad-&gt;copy_mode_button, &quot;clicked&quot;, copy_mode_cb, ad);
+</pre>
+</li>
+
+<li>Implement the callback functions to enable changing the render mode.
+<p>To change the render operation to be used for rendering the Evas object, use the <span style="font-family: Courier New,Courier,monospace">evas_object_render_op_set()</span> function. The following example changes the render mode of the blue rectangle.</p>
+<p>To get the current render operation, you can use the <span style="font-family: Courier New,Courier,monospace">evas_object_render_op_get()</span> function.</p>
+
+<pre class="prettyprint">
+/* BLEND Mode button */
+static void
+blend_mode_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Modify the render text object text */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_text_text_set(ad-&gt;render_text, &quot;EVAS_RENDER_BLEND: d = d * (1-sa) + s&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the blend mode */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_render_op_set(ad-&gt;render_rect2, EVAS_RENDER_BLEND);
+}
+
+/* COPY Mode button */
+static void
+copy_mode_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Modify the render text object text */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_text_text_set(ad-&gt;render_text, &quot;EVAS_RENDER_COPY: d = s&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the copy mode */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_render_op_set(ad-&gt;render_rect2, EVAS_RENDER_COPY);
+}
+</pre>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>	
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

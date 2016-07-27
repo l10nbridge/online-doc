@@ -1,0 +1,1136 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Media Recording</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#record_pcm">Recording Uncompressed Audio</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+            <li>Audio recorder
+                <ul class="toc">
+                    <li><a href="#prepare_audio">Preparing the Audio Recorder</a></li>
+                    <li><a href="#record_audio">Recording Audio</a></li>
+                </ul>
+            </li>
+            <li>Video recorder
+                <ul class="toc">
+                    <li><a href="#prepare_video">Preparing the Video Recorder</a></li>
+                    <li><a href="#record_video">Recording a Video</a></li>
+                </ul>
+			</li>
+            <li>Uncompressed Audio
+                <ul class="toc">
+					<li><a href="#simple">Managing Synchronous Recording</a></li>
+					<li><a href="#async">Managing Asynchronous Recording</a></li>
+				</ul>
+            </li>
+        </ul>		
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html">Audio I/O API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">Camera API for Mobile Native</a></li>			
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">Recorder API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html">Audio I/O API for Wearable Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">Camera API for Wearable Native</a></li>			
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">Recorder API for Wearable Native</a></li>
+			<li><a href="https://developer.tizen.org/development/sample/native/Multimedia/Media" target="_blank">Media Sample Description</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Media Recording</h1>
+
+<p>Tizen offers basic recorder features, including an audio and video recorder.</p>
+ 
+  <p>The main features of the Recorder API include:</p> 
+  <ul> 
+    <li>Basic recording functionalities (record, stop, pause, cancel, and mute).
+	</li>	
+    <li>Setting the maximum recording time and size</li>
+	<li>Controlling the system volume level</li>	
+  </ul>
+  
+  <p>To <a href="#record_audio">record audio</a> or <a href="#record_video">record a video</a>, you need to <a href="#prepare_audio">prepare the audio recorder</a> or <a href="#prepare_video">the video recorder</a>.</p>
+  
+  <p>Before you start, remember to <a href="#prerequisites">prepare your application to use the recorder functionality</a>.</p>
+ 
+  <p>The following file formats are supported:</p>
+<ul>  
+    <li>Video: <span style="font-family: Courier New,Courier,monospace">mp4</span> and <span style="font-family: Courier New,Courier,monospace">3gp</span></li>
+	<li>Audio: <span style="font-family: Courier New,Courier,monospace">m4a</span> and <span style="font-family: Courier New,Courier,monospace">amr</span></li> 
+   </ul>
+  <p>Valid input sources consist of internal and external microphones and a camera. The used input audio or video source depends on the currently connected audio path and camera module of the device. The recorder APIs in the video recorder serve as the interface with the hardware. Input is processed through that handle.</p>
+
+  <p>During testing, you can use the Emulator to imitate audio or video recording, as long as your computer has a proper input source device.</p> 
+
+  <p>The following figure illustrates the general recorder state changes.</p> 
+  <p class="figure">Figure: Recorder states</p> 
+  <p align="center"><img src="../../images/using_recorder_states.png" alt="Recorder states" /></p> 
+  
+    <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">While running applications on the Emulator, audio-video synchronization errors can occur due to the computer performance.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+  
+<h2 id="record_pcm" name="record_pcm">Recording Uncompressed Audio</h2>
+
+<p>The Pulse Code Modulated (PCM) data contains non-compressed audio. The Audio Input API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IN__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__AUDIO__IN__MODULE.html">wearable</a> applications) enables your application to record such data from a microphone type input device. You can <a href="#simple">record audio synchronously</a>, or <a href="#async">do it asynchronously</a>.</p>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the audio input functionalities</a>.</p>
+
+  <p>Audio data is captured periodically, so to receive the audio PCM data from the input device, you must implement the audio input interface to notify the application of audio data events, such as the end of filling audio data.</p>
+  <p>Before recording audio, you must define the following PCM data settings:</p>
+  <ul>
+   <li>Input device type:
+    <ul>
+     <li>Microphone</li>
+    </ul> </li>
+   <li>Audio channels:
+    <ul>
+     <li>Mono (1 channel)</li>
+     <li>Stereo (2 channels)</li>
+    </ul> </li>
+   <li>Audio sample type:
+    <ul>
+     <li>Unsigned 8-bit PCM</li>
+     <li>Signed 16-bit little endian PCM</li>
+    </ul> </li>
+   <li>Audio sample rate:
+   <ul>
+    <li>8000 ~ 48000 Hz</li>
+   </ul></li>
+  </ul>
+  <p>To minimize the overhead of the audio input API, use the optimal channel type, sample type and sampling rate, which can be retrieved using the <span style="font-family: Courier New,Courier,monospace">audio_in_get_channel()</span>, <span style="font-family: Courier New,Courier,monospace">audio_in_get_sample_type()</span> and <span style="font-family: Courier New,Courier,monospace">audio_in_get_sample_rate()</span> functions, respectively.</p>
+
+
+  <p>The following figures illustrate the general audio input states, and how the state changes when the audio input is interrupted by the system.</p>
+  <p class="figure">Figure: Audio input states</p>
+  <p align="center"><img src="../../images/audio_input.png" alt="Audio input states" /></p>
+  <p class="figure">Figure: Audio input states when interrupted by system</p>
+   <p align="center"><img src="../../images/audio_input_interrupt_state.png" alt="Audio input states when interrupted by system" /></p>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Recorder, Camera, and Audio I/O API basics by learning about:</p>
+
+<ul>
+	<li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the recording functionality.</p></li>
+    <li>Audio recorder
+        <ul>
+            <li><a href="#prepare_audio">Preparing the Audio Recorder</a>
+                <p>Initialize the audio recorder for use.</p></li>
+            <li><a href="#record_audio">Recording Audio</a>
+                <p>Record audio and save the recording.</p></li>
+        </ul>
+    </li>
+    <li>Video recorder
+        <ul>
+            <li><a href="#prepare_video">Preparing the Video Recorder</a>
+                <p>Initialize the video recorder for use.</p></li>
+            <li><a href="#record_video">Recording a Video</a>
+                <p>Record video and save the recording.</p></li>
+        </ul>
+    </li>
+	<li>Uncompressed Audio
+		<ul>
+			<li><a href="#simple">Managing Synchronous Recording and Playback</a>
+				<p>Using a synchronous API, record an audio sample from the audio input device.</p>
+			</li>
+			<li><a href="#async">Managing Asynchronous Recording and Playback</a>
+				<p>Using an asynchronous API, record an audio sample from the audio input device.</p>
+			</li>
+		</ul>
+	</li>
+</ul>
+
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+
+<p>To enable your application to use the recording functionality:</p>
+<ol>
+<li>
+<p>To use the functions and data types of the Recorder (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">wearable</a> applications) and Camera (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">wearable</a> applications) APIs, include the <span style="font-family: Courier New,Courier,monospace;">&lt;camera.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace;">&lt;recorder.h&gt;</span> header files in your application:</p>
+<pre class="prettyprint">
+#include &lt;recorder.h&gt;
+#include &lt;camera.h&gt;
+
+#include &lt;stdio.h&gt;
+#include &lt;unistd.h&gt;
+</pre>
+<p>In this guide, you also need the <span style="font-family: Courier New,Courier,monospace;">&lt;stdio.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace;">&lt;unistd.h&gt;</span> header files to use standard file input and output functions and system calls.</p>
+</li>
+<li>
+<p>To use the functions and data types of the Audio I/O (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html">wearable</a> applications) and Sound Manager (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__SOUND__MANAGER__MODULE.html">wearable</a> applications) APIs, include the <span style="font-family: Courier New,Courier,monospace">&lt;audio_io.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace">&lt;sound_manager.h&gt;</span> header files in your application:</p>
+<pre class="prettyprint">
+#include &lt;audio_io.h&gt;
+#include &lt;sound_manager.h&gt;
+</pre>
+</li>
+
+<li><p>To initialize the audio input and output devices, use the <span style="font-family: Courier New,Courier,monospace">audio_in_create()</span> and <span style="font-family: Courier New,Courier,monospace">audio_out_create()</span> functions:</p>
+
+<pre class="prettyprint">
+/* Define the sample rate for recording audio */
+#define SAMPLE_RATE 44100
+
+/* Declare the variable used for checking function results */
+audio_io_error_e error_code;
+
+/* Initialize the audio input device */
+audio_in_h input;
+
+error_code = audio_in_create(SAMPLE_RATE, AUDIO_CHANNEL_MONO, AUDIO_SAMPLE_TYPE_S16_LE, &amp;input);
+
+/* Initialize the audio output device */
+audio_out_h output;
+
+error_code = audio_out_create(SAMPLE_RATE, AUDIO_CHANNEL_MONO, AUDIO_SAMPLE_TYPE_S16_LE, SOUND_TYPE_SYSTEM, &amp;output);
+</pre>
+<p>The audio input and output devices support the channel types defined in the <span style="font-family: Courier New,Courier,monospace">audio_channel_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga4e07ead99d581a0a049e8ee632b858b4">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga4e07ead99d581a0a049e8ee632b858b4">wearable</a> applications), and the sample types defined in the <span style="font-family: Courier New,Courier,monospace">audio_sample_type_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga1e66f976b2890f5fc2e9e6ec71af7536">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__AUDIO__IO__MODULE.html#ga1e66f976b2890f5fc2e9e6ec71af7536">wearable</a> applications). For playing the recorded audio, use the same channel and sample type in both audio devices.</p>
+
+<p>The sound types are defined in the <span style="font-family: Courier New,Courier,monospace">sound_type_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__SOUND__MANAGER__VOLUME__MODULE.html#gab0b52eeab59765b94c7a751097738a0b">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__SOUND__MANAGER__VOLUME__MODULE.html#gab0b52eeab59765b94c7a751097738a0b">wearable</a> applications). You can select the sound type according to the audio sample type.</p></li></ol>
+
+
+<h2 id="prepare_audio" name="prepare_audio">Preparing the Audio Recorder</h2>
+
+<p>To initialize the audio recorder for use:</p>
+
+<ol>
+
+<li>
+<p>To create a handle for the audio recorder, use the <span style="font-family: Courier New,Courier,monospace">recorder_create_audiorecorder()</span> function:</p>
+<pre class="prettyprint">
+static recorder_h g_recorder;
+
+/* Create the audio recorder handle */
+int error_code = recorder_create_audiorecorder(&amp;g_recorder);
+if (error_code == RECORDER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error code = %d&quot;, error_code);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
+</pre>
+<p>The function sets the audio recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span>.</p>
+</li>
+
+<li>
+<p>To receive a notification whenever the audio recorder state changes:</p>
+<ol type="a">
+<li>
+<p>Register a callback using the <span style="font-family: Courier New,Courier,monospace">recorder_set_state_changed_cb()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_set_state_changed_cb(g_recorder, _state_changed_cb, NULL);
+</pre>
+</li>
+<li>
+<p>Define the state change callback.</p>
+<p>The following example code implements a simple callback that prints the previous and current audio recorder states:</p>
+<pre class="prettyprint">
+static void
+_state_changed_cb(recorder_state_e previous, recorder_state_e current, bool by_policy, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;_recorder_state_changed_cb (prev: %d, curr: %d)\n&quot;, previous, current);
+}
+</pre>
+</li>
+</ol>
+</li>
+
+<li id="init_audio_att">
+<p>To set various audio recording attributes:</p>
+<ul>
+<li>
+<p>Set the audio codec for encoding the audio stream using the <span style="font-family: Courier New,Courier,monospace">recorder_set_audio_encoder()</span> function:</p>
+<pre class="prettyprint">
+#define FILENAME_PREFIX &quot;AUDIO&quot;
+struct tm localtime = {0};
+time_t rawtime = time(NULL);
+char filename[256] = {&#39;\0&#39;};
+size_t size;
+
+/* Set the audio encoder */
+error_code = recorder_set_audio_encoder(g_recorder, RECORDER_AUDIO_CODEC_AAC);
+
+/* Set the audio sample rate */
+error_code = recorder_attr_set_audio_samplerate(rec_data.recorder, 44100);
+</pre>
+<p>The possible audio codec values are defined in the <span style="font-family: Courier New,Courier,monospace">recorder_audio_codec_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga431bd585d929f13a71ecefd58ed17d46">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga431bd585d929f13a71ecefd58ed17d46">wearable</a> applications).</p>
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">In the Emulator, set the sample rate to 44100 and use a stereo channel with the AAC codec, and set the sample rate below 8000 and use a mono channel with the AMR codec.</td>
+        </tr>
+    </tbody>
+</table>
+</li>
+<li>
+<p>Based on the audio codec, set the correct file format using the <span style="font-family: Courier New,Courier,monospace">recorder_set_file_format()</span> function. For example, if you set the codec to AAC, set the file format to 3GP.</p>
+<pre class="prettyprint">
+/* Set the file format according to the audio encoder */
+error_code = recorder_set_file_format(g_recorder, RECORDER_FILE_FORMAT_3GP);
+</pre>
+<p>The possible file format values are defined in the <span style="font-family: Courier New,Courier,monospace">recorder_file_format_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga7d3dbf7b0b3ef68101562b89e81ecf1e">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga7d3dbf7b0b3ef68101562b89e81ecf1e">wearable</a> applications).</p>
+</li>
+<li>
+<p>Based on the file format, define the correct file name, and set it using the <span style="font-family: Courier New,Courier,monospace">recorder_set_filename()</span> function. The function takes as a parameter the full path and name of the file to which the recorded audio data is to be stored.</p>
+<pre class="prettyprint">
+/* Create the file name */
+if (localtime_r(&amp;rawtime, &amp;localtime) != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;size = snprintf(filename, sizeof(filename), &quot;%s/%s-%04i-%02i-%02i_%02i:%02i:%02i.3gp&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_get_data_path(), FILENAME_PREFIX,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_year + 1900, localtime.tm_mon + 1, localtime.tm_mday,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_hour, localtime.tm_min, localtime.tm_sec);
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+/* Set the full path and file name */
+/* Set the file name according to the file format */
+error_code = recorder_set_filename(g_recorder, filename);
+</pre>
+</li>
+<li>
+<p>Set the file size limit, encoder bitrate, audio device, and sample rate:</p>
+<pre class="prettyprint">
+/* Set the maximum file size to 1024 (kB) */
+error_code = recorder_attr_set_size_limit(g_recorder, 1024);
+
+/* Set the audio encoder bitrate */
+error_code = recorder_attr_set_audio_encoder_bitrate(g_recorder, 28800);
+
+/* Set the audio device to microphone */
+error_code = recorder_attr_set_audio_device(g_recorder, RECORDER_AUDIO_DEVICE_MIC);
+
+/* Set the audio sample rate */
+error_code = recorder_attr_set_audio_samplerate(g_recorder, 44100);
+</pre>
+<p>The possible audio device values are defined in the <span style="font-family: Courier New,Courier,monospace">recorder_audio_device_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga0e73accfbca1b992c29a2128acebbbf3">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga0e73accfbca1b992c29a2128acebbbf3">wearable</a> applications).</p>
+</li>
+</ul>
+<p>For more information on available attributes, see the Attributes API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__ATTRIBUTES__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__ATTRIBUTES__MODULE.html">wearable</a> applications).</p>
+</li>
+
+<li>
+<p>To receive a notification when the audio recorder reaches the recording limit:</p>
+<ol type="a">
+<li>
+<p>Register a callback using the <span style="font-family: Courier New,Courier,monospace">recorder_set_recording_limit_reached_cb()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_set_recording_limit_reached_cb(g_recorder, _recorder_recording_limit_reached_cb, NULL);
+</pre>
+</li>
+<li>
+<p>Define the recording limit callback.</p>
+<p>The following example code implements a simple callback that prints a notification about reaching the recording limit:</p>
+<pre class="prettyprint">
+static void
+_recorder_recording_limit_reached_cb(recorder_recording_limit_type_e type, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Recording limit reached: %d\n&quot;, type);
+}
+</pre>
+</li>
+</ol>
+</li>
+
+</ol>
+
+<h2 id="record_audio" name="record_audio">Recording Audio</h2>
+
+<p>To record audio:</p>
+
+<ol>
+
+<li>
+<p>Prepare the audio recorder using the <span style="font-family: Courier New,Courier,monospace">recorder_prepare()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_prepare(g_recorder);
+</pre>
+<p>The function sets the audio recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>.</p>
+</li>
+
+<li>
+<p>Start recording audio using the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function. If the target file path and name have been set to an existing file, the existing file is replaced with a new file.</p>
+<pre class="prettyprint">
+error_code = recorder_start(g_recorder);
+</pre>
+<p>The function sets the audio recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span>.</p>
+</li>
+
+<li>
+<p>To pause and resume recording:</p>
+<ol type="a">
+<li>
+<p>Check the audio recorder state using the <span style="font-family: Courier New,Courier,monospace">recorder_get_state()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_get_state(g_recorder, &amp;state);
+</pre>
+<p>If the state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span>, you can pause recording.</p>
+</li>
+<li>
+<p>Pause recording using the <span style="font-family: Courier New,Courier,monospace">recorder_pause()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_pause(g_recorder);
+</pre>
+<p>The function sets the audio recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span>.</p>
+</li>
+<li><p>Resume recording using the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function.</p></li>
+</ol>
+</li>
+
+<li>
+<p>To stop recording:</p>
+<ol type="a">
+<li><p>Check the audio recorder state using the <span style="font-family: Courier New,Courier,monospace">recorder_get_state()</span> function. If the state is <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span> or <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span>, you can stop recording.</p></li>
+<li>
+<p>To stop recording:</p>
+<ul><li>To discard the recording, use the <span style="font-family: Courier New,Courier,monospace">recorder_cancel()</span> function.</li>
+<li>To save the recorded data, use the <span style="font-family: Courier New,Courier,monospace">recorder_commit()</span> function.</li></ul>
+
+<p>Both functions set the audio recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>.</p>
+<p>The following example code first checks the audio recorder state, and then stops the recorder and saves the recorded data to a file:</p>
+<pre class="prettyprint">
+/* Check the audio recorder state */
+static bool
+_recorder_expect_state(recorder_h recorder, recorder_state_e expected_state)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;recorder_state_e state;
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code = recorder_get_state(recorder, &amp;state);
+
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;recorder state = %d, expected recorder state = %d&quot;, state, expected_state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (state == expected_state)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return TRUE;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
+}
+
+/* Stop the recorder and save the recorded data to a file */
+if (_recorder_expect_state(g_recorder, RECORDER_STATE_RECORDING) || _recorder_expect_state(g_recorder, RECORDER_STATE_PAUSED)) {
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = recorder_commit(g_recorder);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != RECORDER_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ol>
+</li>
+
+<li>
+<p>After you have finished recording, release all resources allocated to the audio recorder:</p>
+<ol type="a">
+<li>
+<p>Deregister the recording limit callback using the <span style="font-family: Courier New,Courier,monospace">recorder_unset_recording_limit_reached_cb()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_unset_recording_limit_reached_cb(g_recorder);
+</pre>
+</li>
+<li>
+<p>Reset the audio recorder using the <span style="font-family: Courier New,Courier,monospace">recorder_unprepare()</span> function.</p>
+<pre class="prettyprint">
+error_code = recorder_unprepare(g_recorder);
+</pre>
+<p>The function changes the audio recorder state from <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span> to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span>.</p>
+</li>
+<li>
+<p>Deregister the state change callback using the <span style="font-family: Courier New,Courier,monospace">recorder_unset_state_changed_cb()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_unset_state_changed_cb(g_recorder);
+</pre>
+</li>
+<li>
+<p>Release the audio recorder resources using the <span style="font-family: Courier New,Courier,monospace">recorder_destroy()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_destroy(g_recorder);
+</pre>
+<p>The function sets the audio recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_NONE</span>.</p>
+</li>
+</ol>
+</li>
+
+</ol>
+
+<h2 id="prepare_video" name="prepare_video">Preparing the Video Recorder</h2>
+
+<p>To initialize the video recorder for use:</p>
+
+<ol>
+
+<li>
+<p>Define a structure for storing the camera and video recorder handles and a Boolean variable specifying whether the video recorder is switched off:</p>
+<pre class="prettyprint">
+struct recdata {
+&nbsp;&nbsp;&nbsp;&nbsp;bool shutdown;
+&nbsp;&nbsp;&nbsp;&nbsp;recorder_h recorder;
+&nbsp;&nbsp;&nbsp;&nbsp;camera_h camera;
+};
+</pre>
+</li>
+
+<li>
+<p>Define variables for configuring the camera and video recorder:</p>
+<pre class="prettyprint">
+static const int RECORD_TIME=2;
+static const int RECORD_LIMIT=4;
+#define FILENAME_PREFIX &quot;VIDEO&quot;
+static int g_bitrate = 288000;
+static int duration;
+static int playing=0;
+static int ret;
+</pre>
+</li>
+
+<li><p><a href="#camera_config">Configure the camera.</a></p></li>
+
+<li><p><a href="#register_callbacks">Register notifications for reaching the recording limit.</a></p></li>
+
+<li><p><a href="#recorder_config">Configure the video recorder.</a></p></li>
+
+</ol>
+
+<h3 id="camera_config">Configuring the Camera</h3>
+
+<p>To configure the camera:</p>
+
+<ol>
+
+<li>
+<p>Create the structure for the camera and video recorder handles:</p>
+<pre class="prettyprint">
+static recdata rec_data;
+</pre>
+<p>You can also declare variables to store, for example, the  record time, video file paths, bit rate, record limit, flag, and return value.</p>
+</li>
+
+<li>
+<p>Create the camera handle using the <span style="font-family: Courier New,Courier,monospace">camera_create()</span> function. The function takes as parameters the camera handle and the hardware camera to access.</p>
+<pre class="prettyprint">
+int error_code = 0;
+
+rec_data.shutdown = FALSE;
+rec_data.camera = NULL;
+rec_data.recorder = NULL;
+
+/* Create the camera handle */
+error_code = camera_create(CAMERA_DEVICE_CAMERA0, &amp;rec_data.camera);
+if (error_code == CAMERA_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error code = %d&quot;, error_code);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
+</pre>
+<p>The function sets the camera state to <span style="font-family: Courier New,Courier,monospace">CAMERA_STATE_CREATED</span>. To query the state, use the <span style="font-family: Courier New,Courier,monospace">camera_get_state()</span> function.</p>
+</li>
+
+<li><p>Set the display for the camera preview using the <span style="font-family: Courier New,Courier,monospace">camera_set_display()</span> function. For more information, see <a href="camera_n.htm#configuring_callback">Configuring the Camera and its Callbacks</a> in the Camera guide.</p></li>
+
+</ol>
+
+<h3 id="register_callbacks">Registering the Recording Limit Callback</h3>
+
+<p>To receive notifications about reaching the recording limit:</p>
+
+<ol>
+
+<li>
+<p>Register a callback using the <span style="font-family: Courier New,Courier,monospace;">recorder_set_recording_limit_reached_cb()</span> function:</p>
+<pre class="prettyprint">
+ret = recorder_set_recording_limit_reached_cb(rec_data.recorder, _recorder_recording_limit_reached_cb, 0);
+</pre>
+</li>
+
+<li>
+<p>Define the recording limit callback.</p>
+<p>The following example code implements a simple callback that prints a notification about reaching the recording limit:</p>
+<pre class="prettyprint">
+static void
+_recorder_recording_limit_reached_cb(recorder_recording_limit_type_e type, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, &quot;Video Recorder&quot;, &quot;Recording limit reached: %d\n&quot;, type);
+}
+</pre>
+</li>
+
+<li>
+<p>To test whether the callback works properly, use the <span style="font-family: Courier New,Courier,monospace;">sleep()</span> function to reach the recording limit:</p>
+<pre class="prettyprint">
+ret = recorder_start(rec_data.recorder);
+
+sleep(RECORD_LIMIT + 1); /* Waits longer than the recording limit */
+ret = recorder_pause(rec_data.recorder);
+</pre>
+</li>
+
+</ol>
+
+<h3 id="recorder_config">Configuring the Video Recorder</h3>
+
+<p>To configure the video recorder:</p>
+
+<ol>
+
+<li>
+<p>To create the video recorder handle, use the <span style="font-family: Courier New,Courier,monospace">recorder_create_videorecorder()</span> function. The function takes as parameters the camera handle and the video recorder handle.</p>
+<pre class="prettyprint">
+/* Create the video recorder handle */
+error_code = recorder_create_videorecorder(rec_data.camera, &amp;rec_data.recorder);
+if (error_code == RECORDER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error code = %d&quot;, error_code);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
+</pre>
+<p>The function sets the video recorder state to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span>. To query the state, use the <span style="font-family: Courier New,Courier,monospace">recorder_get_state()</span> function.</p>
+</li>
+
+<li>
+<p>To receive a notification whenever the video recorder state changes:</p>
+<ol type="a">
+<li>
+<p>Register a callback using the <span style="font-family: Courier New,Courier,monospace">recorder_set_state_changed_cb()</span> function:</p>
+<pre class="prettyprint">
+/* Set the state change callback for the video recorder */
+error_code = recorder_set_state_changed_cb(rec_data.recorder, on_state_changed_cb, NULL);
+if (error_code == RECORDER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error code = %d&quot;, error_code);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>
+<p>Define the state change callback.</p>
+<p>The following example code implements a simple callback that prints the previous and current video recorder states:</p>
+<pre class="prettyprint">
+/* State change callback for the video recorder */
+static void
+on_state_changed_cb(recorder_state_e previous, recorder_state_e current, bool by_asm, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;_recorder_state_changed_cb (prev: %d, curr: %d)\n&quot;, previous, current);
+}
+</pre>
+</li>
+</ol>
+</li>
+
+<li>
+<p>To set various video recording attributes:</p>
+<ul>
+<li>
+<p>To set the video codec for encoding the video stream:</p>
+<ol type="a">
+<li>
+<p>Check which video codecs the device supports.</p>
+<p>To check the codecs, use the <span style="font-family: Courier New,Courier,monospace">recorder_foreach_supported_video_encoder()</span> function. The function takes as its second parameter a callback that is invoked once for each codec supported by the video recorder (defined in the first parameter).</p>
+<p>While the callback returns <span style="font-family: Courier New,Courier,monospace">true</span>, the loop continues to the next supported codec, if any. The loop ends when the callback returns <span style="font-family: Courier New,Courier,monospace">false</span>.</p>
+<p>In the following example code, the callback loop ends after finding the first supported codec:</p>
+<pre class="prettyprint">
+recorder_video_codec_e supported_codec;
+
+static bool
+_video_encoder_cb(recorder_video_codec_e codec, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;recorder_video_codec_e * supported_codec = (recorder_video_codec_e*)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;*supported_codec = codec;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+}
+
+error_code = recorder_foreach_supported_video_encoder(rec_data.recorder, _video_encoder_cb, &amp;supported_codec);
+</pre>
+<p>The possible video codec values are defined in the <span style="font-family: Courier New,Courier,monospace">recorder_video_codec_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#gaaf3f0deeb1717f568e2b93bb9a375b63">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#gaaf3f0deeb1717f568e2b93bb9a375b63">wearable</a> applications).</p>
+</li>
+<li>
+<p>Set the video codec using the <span style="font-family: Courier New,Courier,monospace">recorder_set_video_encoder()</span> function:</p>
+<pre class="prettyprint">
+/* Set the video encoder for the video recorder */
+error_code = recorder_set_video_encoder(rec_data.recorder, supported_codec);
+</pre>
+</li>
+</ol>
+</li>
+<li>
+<p>To set the video encoder bitrate, use the <span style="font-family: Courier New,Courier,monospace">recorder_attr_set_video_encoder_bitrate()</span> function:</p>
+<pre class="prettyprint">
+/* Set the video encoder bitrate */
+error_code = recorder_attr_set_video_encoder_bitrate(rec_data.recorder, g_bitrate);
+</pre>
+</li>
+<li>
+<p>To set the file format for the video file:</p>
+<ol type="a">
+<li>
+<p>Check which file formats the device supports.</p>
+<p>To check the formats, use the <span style="font-family: Courier New,Courier,monospace">recorder_foreach_supported_file_format()</span> function. The function takes as its second parameter a callback that is invoked once for each format supported by the video recorder (defined in the first parameter).</p>
+</li>
+<li>
+<p>Set the file format using the <span style="font-family: Courier New,Courier,monospace">recorder_set_file_format()</span> function. Make sure the file format matches the video codec.</p>
+<pre class="prettyprint">
+/* Set the file format */
+error_code = recorder_set_file_format(rec_data.recorder, RECORDER_FILE_FORMAT_MP4);
+</pre>
+<p>The possible file format values are defined in the <span style="font-family: Courier New,Courier,monospace">recorder_file_format_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga7d3dbf7b0b3ef68101562b89e81ecf1e">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga7d3dbf7b0b3ef68101562b89e81ecf1e">wearable</a> applications).</p>
+</li>
+</ol>
+</li>
+<li>
+<p>To set the file name, use the <span style="font-family: Courier New,Courier,monospace">recorder_set_filename()</span> function. The function takes as a parameter the full path and name of the file to which the recorded video data is to be stored. Make sure the file extension matches the file format.</p>
+<pre class="prettyprint">
+struct tm localtime = {0};
+time_t rawtime = time(NULL);
+char filename[256] = {&#39;\0&#39;};
+size_t size;
+
+/* Create the file name */
+if (localtime_r(&amp;rawtime, &amp;localtime) != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;size = snprintf(filename, sizeof(filename), &quot;%s/%s-%04i-%02i-%02i_%02i:%02i:%02i.mp4&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_get_data_path(), FILENAME_PREFIX,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_year + 1900, localtime.tm_mon + 1, localtime.tm_mday,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_hour, localtime.tm_min, localtime.tm_sec);
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+/* Set the full path and file name */
+error_code = recorder_set_filename(rec_data.recorder, filename);
+</pre>
+</li>
+<li><p>To set the audio encoder, audio encoder bitrate, and audio sample rate, use the <span style="font-family: Courier New,Courier,monospace">recorder_set_audio_encoder()</span>, <span style="font-family: Courier New,Courier,monospace">recorder_attr_set_audio_encoder_bitrate()</span>, and <span style="font-family: Courier New,Courier,monospace">recorder_attr_set_audio_samplerate()</span> functions, <a href="#init_audio_att">as with the audio encoder</a>.</p></li>
+</ul>
+<p>For more information on available attributes, see the Attributes API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__ATTRIBUTES__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__ATTRIBUTES__MODULE.html">wearable</a> applications).</p>
+</li>
+
+
+
+</ol>
+
+<h2 id="record_video" name="record_video">Recording a Video</h2>
+
+<p>To record a video:</p>
+
+<ol>
+
+<li>
+<p>Prepare the video recorder using the <span style="font-family: Courier New,Courier,monospace">recorder_prepare()</span> function:</p>
+<pre class="prettyprint">
+/* Prepare the recorder */
+error_code = recorder_prepare(rec_data.recorder);
+</pre>
+<p>The function changes the video recorder state from <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span> to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>.</p>
+</li>
+
+<li>
+<p>Start recording using the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function. If the target file path and name have been set to an existing file, the existing file is replaced with a new file.</p>
+ <pre class="prettyprint">
+/* Start the recorder */
+error_code = recorder_start(rec_data.recorder);
+</pre>
+<p>The function changes the video recorder state from <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span> to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span>.</p>
+</li>
+
+<li>
+<p>To pause and resume recording:</p>
+<ol type="a">
+<li>
+<p>Pause recording using the <span style="font-family: Courier New,Courier,monospace">recorder_pause()</span> function:</p>
+<pre class="prettyprint">
+/* Pause the recorder */
+error_code = recorder_pause(rec_data.recorder);
+</pre>
+<p>The function changes the video recorder state from <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span> to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span>.</p>
+</li>
+<li><p>Resume recording using the <span style="font-family: Courier New,Courier,monospace">recorder_start()</span> function.</p></li>
+</ol>
+</li>
+
+<li>
+<p>To stop recording:</p>
+<ul>
+<li>
+<p>To stop recording without saving the recorded data, use the <span style="font-family: Courier New,Courier,monospace">recorder_cancel()</span> function. No data is saved to the target file.</p>
+<pre class="prettyprint">
+/* Stop the recorder without saving the recorded data */
+error_code = recorder_cancel(rec_data.recorder);
+</pre>
+</li>
+
+<li>
+<p>To stop recording and save the recorded data, use the <span style="font-family: Courier New,Courier,monospace">recorder_commit()</span> function. The data is saved to the target file.</p>
+<pre class="prettyprint">
+/* Stop the recorder and save the recorded data to a file */
+error_code = recorder_commit(rec_data.recorder);
+</pre>
+</li>
+</ul>
+<p>Both functions change the video recorder state from <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_RECORDING</span> or <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_PAUSED</span> to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span>.</p>
+</li>
+
+<li>
+<p>After you have finished recording, release all resources allocated to the video recorder:</p>
+<ol type="a">
+<li>
+<p>Deregister the recording limit callback using the <span style="font-family: Courier New,Courier,monospace;">recorder_unset_recording_limit_reached_cb()</span> function:</p>
+<pre class="prettyprint">
+/* Deregister the recording limit callback */
+ret = recorder_unset_recording_limit_reached_cb(rec_data.recorder);
+</pre>
+</li>
+<li>
+<p>Reset the video recorder using the <span style="font-family: Courier New,Courier,monospace">recorder_unprepare()</span> function:</p>
+<pre class="prettyprint">
+/* Unprepare the recorder */
+error_code = recorder_unprepare(rec_data-&gt;recorder);
+</pre>
+<p>The function changes the video recorder state from <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_READY</span> to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span>.</p>
+</li>
+<li>
+<p>Deregister the state change callback using the <span style="font-family: Courier New,Courier,monospace">recorder_unset_state_changed_cb()</span> function:</p>
+<pre class="prettyprint">
+/* Deregister the state change callback */
+error_code = recorder_unset_state_changed_cb(rec_data.recorder);
+</pre>
+</li>
+<li>
+<p>Release the video recorder resources using the <span style="font-family: Courier New,Courier,monospace">recorder_destroy()</span> function:</p>
+<pre class="prettyprint">
+/* Destroy the recorder handle */
+error_code = recorder_destroy(rec_data.recorder);
+</pre>
+<p>The function changes the video recorder state from <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_CREATED</span> to <span style="font-family: Courier New,Courier,monospace">RECORDER_STATE_NONE</span>.</p>
+</li>
+</ol>
+</li>
+
+</ol>
+
+<h2 id="simple" name="simple">Managing Synchronous Recording</h2>
+
+<p>Recording audio synchronously involves:</p>
+
+<ol>
+    <li><p><a href="#set">Creating a local buffer for storing the audio data</a></p></li>
+    <li><p><a href="#record">Recording an audio sample</a></p></li>
+</ol>
+
+<h3 id="set" name="set">Creating a Buffer for Audio Data</h3>
+
+<p>Before starting the synchronous recording process, you need to create a local buffer for storing the audio data. To create the buffer, you need to know its required size based on the expected duration of the recording, since the recording process ends when the buffer is full.</p>
+
+<p>To determine the required buffer size, use one of the following options:</p>
+
+<ul>
+
+<li><p>To determine the required buffer size based on what is recommended by the Audio I/O API:</p>
+
+<ol><li>
+<p>Retrieve the recommended buffer size using the <span style="font-family: Courier New,Courier,monospace">audio_in_get_buffer_size()</span> function. The function retrieves the buffer size recommended by the sound server (such as PulseAudio).</p>
+
+<pre class="prettyprint">
+int buffer_size;
+
+error_code = audio_in_get_buffer_size(input, &amp;buffer_size);
+</pre>
+
+<p>If no error occurs, the <span style="font-family: Courier New,Courier,monospace">buffer_size</span> parameter returns the preferred size of the buffer that must be allocated (in bytes), based on the specified audio parameters.</p>
+ 
+<p>The recommended buffer size depends on the device. The size can be different for TV, mobile, and wearable devices.</p>
+</li>
+
+<li>
+
+<p>Set the buffer size to correspond to the desired duration of the recording.</p>
+
+<p>For example, for the device used in creating this example code, the <span style="font-family: Courier New,Courier,monospace">audio_in_get_buffer_size()</span> function returns the recommended buffer size for 100 milliseconds of recording time. To determine the actual, required buffer size in seconds, multiply the recommended buffer size by 10 (to increase the duration from 100 milliseconds to 1 second) and by the number of seconds the recording lasts (here, 5 seconds):</p>
+
+<pre class="prettyprint">
+#define RECORDING_SEC 5
+
+buffer_size *= 10 * RECORDING_SEC;
+</pre>
+
+</li>
+
+</ol></li>
+<li>
+<p>To explicitly calculate the required buffer size:</p>
+
+<ol>
+
+<li>
+<p>Retrieve the audio channel type using the <span style="font-family: Courier New,Courier,monospace">audio_in_get_channel()</span> function:</p>
+
+<pre class="prettyprint">
+audio_channel_e channel;
+
+error_code = audio_in_get_channel(input, &amp;channel);
+</pre>
+</li>
+
+<li>
+<p>Retrieve the audio sample type using the <span style="font-family: Courier New,Courier,monospace">audio_in_get_sample_type()</span> function:</p>
+
+<pre class="prettyprint">
+audio_sample_type_e sample_type;
+
+error_code = audio_in_get_sample_type(input, &amp;sample_type);
+</pre>
+</li>
+
+<li>
+<p>Calculate the buffer size based on the retrieved information:</p>
+
+<pre class="prettyprint">
+int buffer_size = SAMPLE_RATE * (channel == AUDIO_CHANNEL_STEREO ? 2 : 1) * (sample_type == AUDIO_SAMPLE_TYPE_S16_LE ? 2 : 1);
+</pre>
+</li>
+
+<li>
+<p>Multiply the buffer size by the number of seconds the recording lasts:</p>
+
+<pre class="prettyprint">
+buffer_size *= RECORDING_SEC;
+</pre>
+</li>
+</ol></li></ul>
+
+<p>After determining the required buffer size, allocate the memory to the buffer using the <span style="font-family: Courier New,Courier,monospace">malloc()</span> function:</p>
+
+<pre class="prettyprint">
+void *buffer = malloc(buffer_size);
+</pre>
+
+<p>You have created the local buffer for storing the audio data. You can now start the synchronous recording process.</p>
+
+<h3 id="record" name="record">Recording an Audio Sample</h3>
+
+<p>The synchronous recording process blocks other processes running in the same thread. Launching a recording process from the main thread of the application can make the application unresponsive. To prevent this, launch the recording process from its own thread. For example, in this use case, the recording process is run inside the <span style="font-family: Courier New,Courier,monospace">synchronous_playback()</span> function, which is executed in a separate thread using the <span style="font-family: Courier New,Courier,monospace">ecore_thread_run()</span> function:</p>
+
+<pre class="prettyprint">
+ecore_thread_run(synchronous_playback, NULL, NULL, NULL);
+</pre>
+
+<p>To record audio:</p>
+
+<ol><li>
+<p>Prepare the audio input device and start the recording process using the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function:</p>
+
+<pre class="prettyprint">
+/* Prepare the audio input device (starts the hardware recording process) */
+error_code = audio_in_prepare(input);
+</pre>
+<p>The hardware device starts buffering the audio recorded by the audio input device. The audio data is buffered to the internal input buffer.</p>
+</li>
+<li><p>Copy the audio data from the internal input buffer to the local buffer using the <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> function:</p>
+
+<pre class="prettyprint">
+/* Copy the audio data from the internal input buffer to the local buffer */
+int bytes_number = audio_in_read(input, buffer, buffer_size);
+</pre>
+
+<p>The returned value represents the number of bytes read from the internal input buffer. A negative value represents an error code.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> function can behave in the following ways:</p>
+<ul>
+<li>If the function is called immediately after preparing the audio input device, the function blocks the thread it is launched from until the local buffer is full.</li>
+<li>If the function is called with a delay long enough to allow the internal input buffer to store more audio data than the local buffer can hold, the function executes immediately without blocking its thread.</li></ul>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> function fills the local buffer by copying audio data from the internal input buffer. If the internal input buffer does not contain enough data to fill up the local buffer, the function waits until enough data is recorded. If you want to start recording audio immediately after clicking a button, call the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function just before the <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> function inside the same button callback function. If you prepare the audio input device earlier in a separate function and only run the <span style="font-family: Courier New,Courier,monospace">audio_in_read()</span> function inside the button callback function, the local buffer is filled with audio data recorded before the button is clicked.</p>
+</li>
+
+<li><p>Stop the recording process using the <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> function:</p>
+
+<pre class="prettyprint">
+/* Stop the hardware recording process */
+error_code = audio_in_unprepare(input);
+</pre></li>
+
+<li><p>After you have finished working with the audio input device, deinitialize it using the <span style="font-family: Courier New,Courier,monospace">audio_in_destroy()</span> function:</p>
+<pre class="prettyprint">
+/* Deinitialize the audio input device */
+error_code = audio_in_destroy(input);
+</pre></li>
+</ol>
+
+<h2 id="async" name="async">Managing Asynchronous Recording</h2>
+
+<p>Recording audio asynchronously involves:</p>
+
+<ol>
+    <li><p><a href="#async_rec">Starting asynchronous recording</a></p></li>
+    <li><p><a href="#stop">Stopping asynchronous recording</a></p></li>
+</ol>
+
+<h3 id="async_rec" name="async_rec">Starting Asynchronous Recording</h3>
+
+<p>The asynchronous recording process uses a callback function for storing the audio recorded by the audio input device. The callback function is invoked asynchronously for each chunk of recorded audio. In this use case, the audio data is stored in a file rather than a local buffer.</p>
+
+<p>To start recording audio:</p>
+
+<ol><li><p>Set the callback function using the <span style="font-family: Courier New,Courier,monospace">audio_in_set_stream_cb()</span> function. Use this function before calling the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function, because otherwise the callback function is never invoked.</p>
+
+<pre class="prettyprint">
+/* Set a callback function that is invoked asynchronously for each chunk of recorded audio */
+error_code = audio_in_set_stream_cb(input, _audio_io_stream_read_cb, NULL);
+</pre>
+</li>
+
+<li>
+<p>Create and open the file for storing the audio data:</p>
+
+<pre class="prettyprint">
+#include &lt;storage.h&gt;
+
+/* Prepare the file where the recorded audio data is stored */
+char io_stream_w_path[200];
+char *storage_path;
+/* You can find the storage ID using the storage_foreach_device_supported() function */
+int error = storage_get_directory(storage_id, STORAGE_DIRECTORY_SOUNDS, &amp;storage_path);
+snprintf(io_stream_w_path, 200, &quot;%s/%s&quot;, storage_path, &quot;pcm_w.raw&quot;);
+free(storage_path);
+
+FILE* fp_w = fopen(io_stream_w_path, &quot;w&quot;);
+if (!fp_w)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;fopen() function failed while opening %s file!&quot;, io_stream_w_path);
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">storage_get_directory()</span> function of the Storage API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__STORAGE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__STORAGE__MODULE.html">wearable</a> applications) retrieves the storage path based on the storage ID. To retrieve the storage ID, use the <span style="font-family: Courier New,Courier,monospace">storage_foreach_device_supported()</span> function of the Storage API.</p>
+</li>
+
+<li>
+<p>Prepare the audio input device and start the recording process using the <span style="font-family: Courier New,Courier,monospace">audio_in_prepare()</span> function:</p>
+
+<pre class="prettyprint">
+/* Prepare the audio input device (starts the hardware recording process) */
+error_code = audio_in_prepare(input);
+</pre>
+
+<p>The hardware device starts buffering the audio recorded by the audio input device. The audio data is buffered to the internal input buffer. The callback function is invoked separately for each chunk of audio data.</p>
+</li>
+
+<li>
+<p>To store the recorded audio data in the file (inside the callback function):</p>
+<ol type="a">
+<li>Retrieve a pointer to the internal input buffer and the number of recorded audio data bytes using the <span style="font-family: Courier New,Courier,monospace">audio_in_peek()</span> function.</li>
+<li>Retrieve the recorded audio data from the internal input buffer and store it in the file using the <span style="font-family: Courier New,Courier,monospace">fwrite()</span> function.</li>
+<li>Remove the recorded audio data, since it is no longer needed, from the internal input buffer using the <span style="font-family: Courier New,Courier,monospace">audio_in_drop()</span> function.</li>
+</ol>
+
+<pre class="prettyprint">
+/* Callback invoked for each chunk of recorded audio */
+void
+_audio_io_stream_read_cb(audio_in_h handle, size_t nbytes, void *userdata)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;const void * buffer = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (nbytes &gt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve a pointer to the internal input buffer and the number of recorded audio data bytes */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int error_code = audio_in_peek(handle, &amp;buffer, &amp;nbytes);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != AUDIO_IO_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;audio_in_peek() failed! Error code = %d&quot;, error_code);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Store the recorded audio data in the file */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fwrite(buffer, sizeof(char), nbytes, fp_w);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Remove the recorded audio data from the internal input buffer */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error_code = audio_in_drop(handle);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != AUDIO_IO_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;audio_in_drop() failed! Error code = %d&quot;, error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+</ol>
+
+<h3 id="stop" name="stop">Stopping Asynchronous Recording</h3>
+
+<p>To stop recording audio:</p>
+
+<ol><li><p>Stop the recording process using the <span style="font-family: Courier New,Courier,monospace">audio_in_unprepare()</span> function:</p>
+
+<pre class="prettyprint">
+/* Stop the hardware recording process */
+error_code = audio_in_unprepare(input);
+</pre>
+<p>The device no longer invokes the callback function.</p>
+</li>
+<li>
+<p>If you no longer need asynchronous recording, or if you want to set the callback function separately for each asynchronous recording session, unset the callback function using the <span style="font-family: Courier New,Courier,monospace">audio_in_unset_stream_cb()</span> function:</p>
+<pre class="prettyprint">
+/* Unset the callback function used for asynchronous recording */
+error_code = audio_in_unset_stream_cb(input);
+</pre>
+</li>
+
+<li><p>After you have finished working with the audio input device, deinitialize it using the <span style="font-family: Courier New,Courier,monospace">audio_in_destroy()</span> function:</p>
+<pre class="prettyprint">
+/* Deinitialize the audio input device */
+error_code = audio_in_destroy(input);
+</pre></li>
+
+<li><p>Close the file where the recorded audio is stored using the <span style="font-family: Courier New,Courier,monospace">fclose()</span> function:</p>
+
+<pre class="prettyprint">
+/* Close the file used for asynchronous recording */
+error_code = fclose(fp_w);
+fp_w = NULL;
+</pre>
+</li>
+
+</ol>
+  
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

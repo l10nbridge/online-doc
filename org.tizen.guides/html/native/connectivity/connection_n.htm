@@ -1,0 +1,965 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Connection Manager</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+			<li><a href="#manager">Connection Manager</a></li>
+			<li><a href="#con_profile">Connection Profile</a></li>
+			<li><a href="#statistics">Connection Statistics</a></li>		
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#detail">Getting Network Connection Details</a></li>
+			<li><a href="#info">Getting Connection Information</a></li>
+			<li><a href="#register">Registering Property Change Callbacks</a></li>
+			<li>IP sockets
+			<ul class="toc">
+		   		<li><a href="#socket_init">Initializing a Socket</a></li>
+				<li><a href="#socket_family">Retrieving the Address Family for a Client-side Socket</a></li>
+				<li><a href="#socket_familyserver">Retrieving the Address Family for a Server-side Socket</a></li>
+				<li><a href="#socket_create">Creating the Client-side Socket and Managing the Remote Host Connection</a></li>
+				<li><a href="#socket_createserver">Creating the Server-side Socket and Managing the Connection</a></li>
+				<li><a href="#socket_close">Closing the Socket</a></li>
+			</ul></li>	
+		</ul>		
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">Connection API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">Connection API for Wearable Native</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Connection Manager</h1>
+
+<p>The connection features enable you to create a network connection and perform various operations over the connection. The application can access connection details, such as the IP address, proxy information, gateway information, and connection statistics.</p>
+<p>With the connection APIs, you can work with IP sockets:</p>
+  <ul>
+  <li><a href="#socket_init">Initialize a socket</a></li>
+  <li><a href="#socket_family">Get IP addresses for a client-side socket</a></li>
+  <li><a href="#socket_familyserver">Get IP addresses for a server-side socket</a></li>
+  <li><a href="#socket_create">Create the client-side socket and manage the connection</a></li>
+  <li><a href="#socket_createserver">Create the server-side socket and manage the connection</a></li>
+  <li><a href="#socket_close">Close the socket</a></li>
+  </ul>
+
+<h2 id="manager" name="manager">Connection Manager</h2>
+<p>The Connection Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html">wearable</a> applications) provides functions for managing data connections. It allows you to <a href="#detail">get a state of the connection interface</a> such as Bluetooth, cellular, and Wi-Fi. It also contains functions for getting the IP address, proxy, and gateway information, and <a href="#register">registering property change callbacks</a>.</p>
+
+<p>The Connection Manager API is related to <a href="http://curl.haxx.se/libcurl/" target="_blank">libcurl</a> (see the <a href="curl_n.htm">Curl</a> guide) and sockets. After a network connection is established, you can create a socket on the kernel Linux stack to be used directly or by libcurl or any other network library. If you want to create a socket directly without libcurl, you must check whether you are using the IPv4 or IPv6 environment, and create an applicable IP socket.</p>
+
+<p>The Connection Manager provides the following typedefs and enumerators for managing data connections:</p>
+
+<ul><li><span style="font-family: Courier New,Courier,monospace">connection_h</span>
+<p>Connection handle for all connection functions. To use the Connection Manager API, first create a connection handle using the <span style="font-family: Courier New,Courier,monospace">connection_create()</span> function. Afterwards, you can obtain network information.</p></li>
+<li><span style="font-family: Courier New,Courier,monospace">connection_profile_h</span>
+<p>Profile handle, which provides information according to the connection type.</p></li>
+<li>Connection state enumerators
+<p>One of the following states is returned by the <span style="font-family: Courier New,Courier,monospace">connection_get_[interface]_state()</span> function:</p> 
+<ul><li><span style="font-family: Courier New,Courier,monospace">connection_bt_state_e</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">connection_cellular_state_e</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">connection_wifi_state_e</span></li></ul>
+<p>The Connection Manager supports getting the connection state for Bluetooth, cellular and Wi-Fi.</p></li>
+<li><span style="font-family: Courier New,Courier,monospace">connection_address_family_e</span>
+<p>Enumeration for the address family. It provides IPv4 and IPv6. You can use it as a parameter when you get the IP address of the current connection or proxy.</p></li></ul>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the connection functionality</a>.</p>
+
+<table class="note">
+ <tbody>
+  <tr>
+   <th class="note">Note</th>
+  </tr>
+  <tr>
+   <td class="note">To handle HTTP and HTTPS request in a proxy environment, <a href="#detail">get the proxy address</a> using the Connection Manager and then set the proxy address using the Connection Profile API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__PROFILE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__PROFILE__MODULE.html">wearable</a> applications).
+   <p>In case of libcurl, you can <a href="curl_n.htm#manage">use the <span style="font-family: Courier New,Courier,monospace">CURLOPT_PROXY</span> option</a>.</p></td>
+  </tr>
+ </tbody>
+</table>
+
+
+<h2 id="con_profile" name="con_profile">Connection Profile</h2>
+<p>The Connection Profile API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__PROFILE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__PROFILE__MODULE.html">wearable</a> applications) provides functions for mapping a connection profile. It allows you to use a <span style="font-family: Courier New,Courier,monospace">connection_profile_h</span> handle for getting details about the connection.</p>
+
+<p>Each profile is defined by a set of configuration information defined in the <span style="font-family: Courier New,Courier,monospace">connection_profile_h</span> handle. The profile provides different information according to the connection type (such as Bluetooth, cellular, ethernet, and Wi-Fi).</p>
+
+<p>The following tables define the available profile information, which you can get using the <span style="font-family: Courier New,Courier,monospace">connection_profile_get_XXX()</span> function.</p>
+
+<table> 
+   <caption>
+     Table: Common information 
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Information</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td>Profile type</td> 
+     <td>Profile type indicating the network connection type</td> 
+    </tr> 
+    <tr> 
+     <td>Profile ID</td> 
+     <td>Unique profile ID; when you create a new profile, this value is determined</td> 
+    </tr>
+    <tr> 
+     <td>Profile name</td> 
+     <td>Profile name associated with the profile ID</td> 
+    </tr>
+    <tr> 
+     <td>Profile state</td> 
+     <td>Profile state, such as disconnected, association, configuration, or connected</td> 
+    </tr>
+    <tr> 
+     <td>DNS address</td> 
+     <td>DNS address; you can get the first and second DNS address</td> 
+    </tr>
+    <tr> 
+     <td>Gateway address</td> 
+     <td>Gateway address</td> 
+    </tr>
+    <tr> 
+     <td>Subnet mask</td> 
+     <td>Subnet mask</td> 
+    </tr>
+    <tr> 
+     <td>Proxy address</td> 
+     <td>Proxy address</td> 
+    </tr>
+    <tr> 
+     <td>Proxy type</td> 
+     <td>Proxy method, such as direct or auto</td> 
+    </tr>	
+    <tr> 
+     <td>Network interface name</td> 
+     <td>Name of the network interface, such as eth0 or pdp0</td> 
+    </tr> 
+    <tr> 
+     <td>IP address</td> 
+     <td>IP address</td> 
+    </tr> 
+    <tr> 
+     <td>IP configuration type</td> 
+     <td>IP address configuration type, such as static, dynamic, auto, or fixed</td> 
+    </tr> 	
+   </tbody> 
+  </table> 
+
+<table> 
+   <caption>
+     Table: Profile-specific information for Wi-Fi 
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Information</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td>Essid</td> 
+     <td>Extended service set identifier</td> 
+    </tr>
+    <tr> 
+     <td>Bssid</td> 
+     <td>Basic service set identifier</td> 
+    </tr> 
+    <tr> 
+     <td>Encryption type</td> 
+     <td>Type for encryption modes, such as WEP, TKIP, AES or TKIP/AES mixed</td> 
+    </tr> 
+    <tr> 
+     <td>Frequency</td> 
+     <td>Frequency (in MHz)</td> 
+    </tr> 
+    <tr> 
+     <td>Max speed</td> 
+     <td>Maximum speed (in Mbps)</td> 
+    </tr> 
+    <tr> 
+     <td>Passphrase required</td> 
+     <td>Passphrase compulsion</td> 
+    </tr> 
+	<tr>
+	 <td>WPS supported</td>
+	 <td>WPS (Wi-Fi Protected Setup) support</td>
+	</tr>
+    <tr> 
+     <td>Security type</td> 
+     <td>Wi-Fi security type; supports WEP, WPA-PSK, WPA2-PSK, and EAP</td> 
+    </tr> 
+    <tr> 
+     <td>Rssi</td> 
+     <td>Received signal strength indication</td> 
+    </tr> 	
+   </tbody> 
+  </table> 
+
+<table> 
+   <caption>
+     Table: Profile-specific information for cellular
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Information</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td>APN</td> 
+     <td>Access Point Name</td> 
+    </tr> 
+	    <tr> 
+     <td>Cellular authentication info</td> 
+     <td>Authentication information, including user name and password</td> 
+    </tr>
+	    <tr> 
+     <td>Cellular home URL</td> 
+     <td>Home URL</td> 
+    </tr>
+	    <tr> 
+     <td>Service type</td> 
+     <td>Cellular service type</td> 
+    </tr>
+   </tbody> 
+  </table> 
+	
+
+<h2 id="statistics" name="statistics">Connection Statistics</h2>
+
+<p>Use the Connection Statistics API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__STATISTICS__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__STATISTICS__MODULE.html">wearable</a> applications) to <a href="#info">gather statistics on the network usage</a>, such as the amount of sent or received data. The statistics also provide functions for getting the cumulative size of packets sent or received since the last reset based on the operation mode, such as packet switching (PS).</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Only Wi-Fi and cellular connections are supported in the statistics.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+  <p>The following table lists the connection type constants.</p>
+  
+  <table> 
+   <caption>
+     Table: Connection type constants
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Constant</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_WIFI</span></td> 
+     <td>Wi-Fi type</td> 
+    </tr> 
+	    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_CELLULAR</span></td> 
+     <td>Cellular type</td> 
+    </tr>
+   </tbody> 
+  </table> 
+  
+<p>The following table lists the statistics constants.</p>
+  <table> 
+   <caption>
+     Table: Statistics constants
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Constant</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CONNECTION_STATISTICS_TYPE_LAST_RECEIVED_DATA</span></td> 
+     <td>Last received data</td> 
+    </tr> 
+	    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CONNECTION_STATISTICS_TYPE_LAST_SENT_DATA</span></td> 
+     <td>Last sent data</td> 
+    </tr>
+	    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CONNECTION_STATISTICS_TYPE_TOTAL_RECEIVED_DATA</span></td> 
+     <td>Total received data</td> 
+    </tr>
+	    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CONNECTION_STATISTICS_TYPE_TOTAL_SENT_DATA</span></td> 
+     <td>Total sent data</td> 
+    </tr>	
+   </tbody> 
+  </table> 
+
+<p>Use the <span style="font-family: Courier New,Courier,monospace">connection_reset_statistics()</span> function to re-initialize the statistics.</p>	
+
+<h2>Warm-up</h2>
+ <p>Become familiar with the Connection API basics by learning about:</p>
+	 <ul>
+		  <li><a href="#prerequisites">Prerequisites</a>
+		  <p>Prepare your application to use the connection functionality.</p></li>
+		  <li><a href="#detail">Getting Network Connection Details</a>
+		  <p>Get the current connection type, IP address, and proxy information.</p></li>
+		  <li><a href="#info">Getting Connection Information</a>
+		  <p>Obtain cellular and Wi-Fi connection information with data transfer statistics, such as the amount of total sent/received data and last sent/received data.</p></li>
+		   <li><a href="#register">Registering Property Change Callbacks</a>
+		  <p>Register a callback for receiving notifications about connection property changes.</p></li>
+		  <li>IP sockets
+		  	<ul>
+				<li><a href="#socket_init">Initializing a Socket</a>
+				<p>Initialize a socket for use and check the default connection.</p></li>
+				<li><a href="#socket_family">Retrieving the Address Family for a Client-side Socket</a>
+				<p>Get the IP addresses for the hostname.</p></li>
+				<li><a href="#socket_familyserver">Retrieving the Address Family for a Server-side Socket</a>
+				<p>Get the IP addresses for the hostname.</p></li>
+				<li><a href="#socket_create">Creating the Client-side Socket and Managing the Remote Host Connection</a>
+				<p>Create the socket, and communicate with the remote host.</p></li>
+				<li><a href="#socket_createserver">Creating the Server-side Socket and Managing the Connection</a>
+				<p>Create the socket, and communicate with the client.</p></li>
+				<li><a href="#socket_close">Closing the Socket</a>
+				<p>Close the socket and release resources.</p></li>
+			</ul>
+		</li>
+	  </ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the connection functionality:</p>
+<ol>
+<li>
+<p>To use the Connection API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">wearable</a> applications), the application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/network.get&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/network.set&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/network.profile&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>	  
+</li>
+<li> 
+<p>To use the functions and data types of the Connection API, include the <span style="font-family: Courier New,Courier,monospace">&lt;net_connection.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;net_connection.h&gt;
+</pre>
+</li>
+<li>
+<p>To be able to use all connection functions, you must create a handle that contains information about the connection. Use the <span style="font-family: Courier New,Courier,monospace;">connection</span> static variable that stores the connection handle.</p>
+<pre class="prettyprint">
+static connection_h connection;
+</pre>
+
+<p>Create the connection handle using the <span style="font-family: Courier New,Courier,monospace;">connection_create()</span> function that allows you to obtain the connection state and data transfer information:</p>
+<pre class="prettyprint">
+int error_code;
+
+error_code = connection_create(&amp;connection);
+if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+</pre>
+</li>
+<li>
+<p>When no longer needed, destroy the created connection handle:</p>
+<pre class="prettyprint">
+connection_destroy(connection);
+</pre>
+</li>
+</ol>
+ <h2 id="detail" name="detail">Getting Network Connection Details</h2>
+
+<p>To get the type of the current connection, IP address, and proxy information:</p>
+
+<ol>
+<li>To get the type of the current profile for data connection, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_type()</span> function. The second parameter is the network type defined in the <span style="font-family: Courier New,Courier,monospace;">connection_type_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#ga85c33901b8ac24f2e5f66440ec4519ee">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#ga85c33901b8ac24f2e5f66440ec4519ee">wearable</a> applications).
+
+<pre class="prettyprint">
+int error_code;
+connection_type_e net_state;
+error_code = connection_get_type(connection, &amp;net_state);
+if (error_code == CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Network connection type: %d&quot;, net_state);
+</pre>
+<p>To monitor changes in the connection type, register and define a callback:</p>
+
+<pre class="prettyprint">
+connection_set_type_changed_cb(connection, __connection_changed_cb, NULL);
+
+static void
+__connection_changed_cb(connection_type_e type, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Type changed callback, connection type: %d&quot;, type);
+}
+</pre></li>
+
+<li>To get the connection IPv4 address, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_ip_address()</span> function. The Connection API supports both IPv4 and IPv6, as defined in the <span style="font-family: Courier New,Courier,monospace;">connection_address_family_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__PROFILE__MODULE.html#ga5910989495b39e8c4dbbd05ec9482d19">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__PROFILE__MODULE.html#ga5910989495b39e8c4dbbd05ec9482d19">wearable</a> applications).
+<p>The IP address can be printed using the dlog util tool (as in the following example), or shown to the user in another way. Free the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">ip_addr</span> temporary variable.</p>
+
+<pre class="prettyprint">
+char *ip_addr = NULL;
+error_code = connection_get_ip_address(connection, CONNECTION_ADDRESS_FAMILY_IPV4, &amp;ip_addr);
+if (error_code == CONNECTION_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IP address: %s&quot;, ip_addr);
+&nbsp;&nbsp;&nbsp;&nbsp;free(ip_addr);
+}
+</pre></li>
+
+<li>To get the connection proxy information, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_proxy()</span> function. The following example prints the proxy address using the dlog util tool. 
+<p>Free the memory allocated for the <span style="font-family: Courier New,Courier,monospace;">proxy_addr</span> variable.</p>
+
+<pre class="prettyprint">
+error_code = connection_get_proxy(connection, address_family, &amp;proxy_addr);
+if (error_code == CONNECTION_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Proxy address: %s&quot;, proxy_addr);
+&nbsp;&nbsp;&nbsp;&nbsp;free(proxy_addr);
+}
+</pre></li></ol>
+
+ <h2 id="info" name="info">Getting Connection Information</h2>
+
+<p>To obtain cellular and Wi-Fi connection information with data transfer statistics, such as the amount of total sent or received data and last sent or received data (only cellular and Wi-Fi statistics information is supported):</p>
+
+<ol><li>To get the cellular connection state, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_cellular_state()</span> function. The function fills the second parameter with the current state, whose possible values are defined in the <span style="font-family: Courier New,Courier,monospace;">connection_cellular_state_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#ga9ca508e61d795be15ee1795581a66396">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#ga9ca508e61d795be15ee1795581a66396">wearable</a> applications).
+
+<p>In the following example, a <span style="font-family: Courier New,Courier,monospace;">switch</span> statement is used to show the cellular state:</p>
+
+<pre class="prettyprint">
+connection_cellular_state_e cellular_state;
+connection_get_cellular_state(connection, &amp;cellular_state);
+switch (cellular_state) {
+case CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Out of service&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_FLIGHT_MODE:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Flight mode&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_ROAMING_OFF:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Roaming is turned off&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_CALL_ONLY_AVAILABLE:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Call only&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_AVAILABLE:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Available&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_CONNECTED:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Connected&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+default:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+}
+</pre></li>
+
+<li>To get the Wi-Fi connection state, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_wifi_state()</span> function. The function fills the second parameter with the current state, whose possible values are defined in the <span style="font-family: Courier New,Courier,monospace;">connection_wifi_state_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#gab3ad7fdb200354b3c34878d88fc97dcd">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#gab3ad7fdb200354b3c34878d88fc97dcd">wearable</a> applications).
+
+<p>In the following example, a <span style="font-family: Courier New,Courier,monospace;">switch</span> statement is used to show the Wi-Fi state:</p>
+
+<pre class="prettyprint">
+connection_wifi_state_e wifi_state;
+connection_get_wifi_state(connection, &amp;wifi_state);
+switch (wifi_state) {
+case CONNECTION_WIFI_STATE_DEACTIVATED:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Deactivated state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_WIFI_STATE_DISCONNECTED:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Disconnected state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_WIFI_STATE_CONNECTED:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Connected state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+default:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+}
+</pre></li>
+
+<li>To get connection statistics, use the <span style="font-family: Courier New,Courier,monospace;">connection_get_statistics()</span> function.
+<p>Connection statistics include the amount of total sent and received data and the last sent and received data. The function parameters determine which statistics are received, and for which connection type:</p>
+
+<ul>
+<li>The second parameter defines the connection type using the <span style="font-family: Courier New,Courier,monospace;">connection_type_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#ga85c33901b8ac24f2e5f66440ec4519ee">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#ga85c33901b8ac24f2e5f66440ec4519ee">wearable</a> applications).</li>
+<li>The third parameter defines the statistic type using the <span style="font-family: Courier New,Courier,monospace;">connection_statistics_type_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__STATISTICS__MODULE.html#ga24b29d70490e8cd9ee34f45615ea1c63">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__STATISTICS__MODULE.html#ga24b29d70490e8cd9ee34f45615ea1c63">wearable</a> applications).</li>
+</ul>
+
+<p>The following example reads all statistics for cellular and Wi-Fi connections:</p>
+
+<pre class="prettyprint">
+long long last_received_size;
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_LAST_RECEIVED_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;last_received_size);
+/* Handle statistics */
+
+long long last_sent_size;
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_LAST_SENT_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;last_sent_size);
+/* Handle statistics */
+
+long long total_received_size;
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_TOTAL_RECEIVED_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;total_received_size);
+/* Handle statistics */
+
+long long total_sent_size;
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_TOTAL_SENT_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;total_sent_size);
+/* Handle statistics */
+
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_LAST_RECEIVED_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;last_received_size);
+/* Handle statistics */
+
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_LAST_SENT_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;last_sent_size);
+/* Handle statistics */
+
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_TOTAL_RECEIVED_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;total_received_size);
+/* Handle statistics */
+
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_WIFI,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_TOTAL_SENT_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;total_sent_size);
+/* Handle statistics */
+</pre></li></ol>
+
+ <h2 id="register" name="register">Registering Property Change Callbacks</h2>
+
+<p>To register callback functions that are called when information changes:</p>
+
+<ol><li>Define callback functions.
+
+<p>In this use case, the registered callbacks are the <span style="font-family: Courier New,Courier,monospace;">__ip_changed_cb()</span> and <span style="font-family: Courier New,Courier,monospace;">__proxy_changed_cb()</span> functions, used for address changes. When an address changes, an information message is printed in the file (or shown to the user in another way). The message contains information on which address has been changed and what the new value is.</p>
+
+<pre class="prettyprint">
+static void
+__ip_changed_cb(const char* ipv4_address, const char* ipv6_address, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%s callback, IPv4 address: %s, IPv6 address: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(char *)user_data, ipv4_address, (ipv6_address ? ipv6_address : &quot;NULL&quot;));
+}
+
+static void
+__proxy_changed_cb(const char* ipv4_address, const char* ipv6_address, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;%s callback, IPv4 address: %s, IPv6 address: %s&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(char *)user_data, ipv4_address, (ipv6_address ? ipv6_address : &quot;NULL&quot;));
+}
+</pre></li>
+
+<li>Register the defined callback functions.
+
+<p>You have to register the previously defined callback functions using the <span style="font-family: Courier New,Courier,monospace;">connection_set_ip_address_changed_cb()</span> and <span style="font-family: Courier New,Courier,monospace;">connection_set_proxy_address_changed_cb()</span> functions. The last parameter (<span style="font-family: Courier New,Courier,monospace;">user_data</span>) is set to a message which is printed in the callback.</p>
+
+<pre class="prettyprint">
+error_code = connection_set_ip_address_changed_cb(connection, __ip_changed_cb, &quot;IP addr changed:&quot;);
+if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+error_code = connection_set_proxy_address_changed_cb(connection, __proxy_changed_cb, &quot;Proxy IP addr changed:&quot;);
+if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre></li>
+
+<li>Deregister the callback functions.
+
+<p>When the callbacks are no longer needed, deregister them with the applicable unset functions:</p>
+
+<pre class="prettyprint">
+error_code = connection_unset_ip_address_changed_cb(connection);
+if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+error_code = connection_unset_proxy_address_changed_cb(connection);
+if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre></li></ol>
+
+<h2 id="socket_init" name="socket_init">Initializing a Socket</h2>
+
+<p>To initialize a client or server-side socket for use:</p>
+<ol>
+<li>To use the functions and data types of the Socket API, include the following header files in your application:
+<pre class="prettyprint">
+#include &lt;sys/stat.h&gt;
+#include &lt;arpa/inet.h&gt;
+#include &lt;netdb.h&gt;
+#include &lt;net/if.h&gt;
+</pre>
+</li>
+
+<li>Declare the necessary variables:
+<pre class="prettyprint">
+int
+main(int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int rv = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;int ip_type = -1;
+&nbsp;&nbsp;&nbsp;&nbsp;char user_url[100] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;char user_port[10] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;char user_msg[200] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;char *local_ipv4 = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *local_ipv6 = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *interface_name = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;connection_type_e net_state;
+&nbsp;&nbsp;&nbsp;&nbsp;connection_h connection = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;connection_profile_h profile_h = NULL;
+</pre></li>
+<li><a href="#prerequisites">Include the required header file and create a connection handle</a>.
+</li>
+<li>Check whether the default connection is available:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;connection_type_e net_state;
+
+&nbsp;&nbsp;&nbsp;&nbsp;rv = connection_get_type(connection, &amp;net_state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (rv != CONNECTION_ERROR_NONE || net_state == CONNECTION_TYPE_DISCONNECTED) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Not connected %d\n&quot;, rv);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connection_destroy(connection);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+</pre>
+</li>
+<li>Check the address type of the default connection.
+<p>The address type can be IPv4 or IPv6.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;int ip_type = -1;
+&nbsp;&nbsp;&nbsp;&nbsp;char *local_ipv4 = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *local_ipv6 = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;connection_profile_h profile_h = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;rv = connection_get_current_profile(connection, &amp;profile_h);
+&nbsp;&nbsp;&nbsp;&nbsp;if (rv != CONNECTION_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to get profile handle %d\n&quot;, rv);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;connection_destroy(connection);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return -1;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;rv = connection_profile_get_ip_address(profile_h, CONNECTION_ADDRESS_FAMILY_IPV6, &amp;local_ipv6);
+&nbsp;&nbsp;&nbsp;&nbsp;if (rv == CONNECTION_ERROR_NONE &amp;&amp; g_strcmp0(local_ipv6, &quot;::&quot;) != 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ip_type = CONNECTION_ADDRESS_FAMILY_IPV6;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IPv6 address: %s\n&quot;, local_ipv6);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* If both IPv4 and IPv6 types are set, the IPv4 type is used as default here */
+&nbsp;&nbsp;&nbsp;&nbsp;rv = connection_profile_get_ip_address(profile_h, CONNECTION_ADDRESS_FAMILY_IPV4, &amp;local_ipv4);
+&nbsp;&nbsp;&nbsp;&nbsp;if (rv == CONNECTION_ERROR_NONE &amp;&amp; g_strcmp0(local_ipv4, &amp;0.0.0.0&amp;) != 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ip_type = CONNECTION_ADDRESS_FAMILY_IPV4;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IPv4 address: %s\n&quot;, local_ipv4);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (ip_type != CONNECTION_ADDRESS_FAMILY_IPV6 &amp;&amp; ip_type != CONNECTION_ADDRESS_FAMILY_IPV4) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;No IP address!\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;connection_profile_get_network_interface_name(profile_h, &amp;interface_name);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Interface Name: %s\n&quot;, interface_name);
+}
+</pre>
+</li>
+</ol>
+
+<h2 id="socket_family" name="socket_family">Retrieving the Address Family for a Client-side Socket</h2>
+
+<p>To get the hostname IP addresses to connect to the server-side socket:</p>
+<ol>
+<li>Define the user URL and message to be sent.</li>
+<li>Retrieve the IP addresses:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;&nbsp;struct sockaddr_in6 *addr6;
+&nbsp;&nbsp;&nbsp;&nbsp;struct addrinfo hints;
+&nbsp;&nbsp;&nbsp;&nbsp;struct addrinfo *result;
+&nbsp;&nbsp;&nbsp;&nbsp;char user_url[100] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;char user_port[10] = {0,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;memset(&amp;hints, 0x00, sizeof(struct addrinfo));
+
+&nbsp;&nbsp;&nbsp;&nbsp;hints.ai_family = PF_UNSPEC;
+&nbsp;&nbsp;&nbsp;&nbsp;hints.ai_socktype = SOCK_STREAM;
+&nbsp;&nbsp;&nbsp;&nbsp;hints.ai_protocol = IPPROTO_TCP;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (getaddrinfo(user_url, user_port, &amp;hints, &amp;result) != 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;getaddrinfo() error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ol>
+
+<h2 id="socket_familyserver" name="socket_familyserver">Retrieving the Address Family for a Server-side Socket</h2>
+
+<p>To get the hostname IP addresses to connect:</p>
+<pre class="prettyprint">
+struct addrinfo hints;
+struct addrinfo *result;
+struct addrinfo *rp;
+
+char buf[257];
+int sockfd = -1;
+int csockfd = -1;
+int count = 0;
+int rwcount = 0;
+
+memset(&amp;hints, 0x00, sizeof(struct addrinfo));
+
+hints.ai_flags = AI_PASSIVE;
+hints.ai_family = PF_UNSPEC;
+hints.ai_socktype = SOCK_STREAM;
+
+if (getaddrinfo(default_ip, argv[1], &amp;hints, &amp;result) != 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;getaddrinfo() error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+}
+</pre>
+
+<h2 id="socket_create" name="socket_create">Creating the Client-side Socket and Managing the Remote Host Connection</h2>
+
+<p>To create the socket and connect to a remote host:</p>
+<ol>
+<li>Find the proper address family and create the socket: 
+<pre class="prettyprint">
+int sockfd = -1;
+struct addrinfo *rp;
+
+rp = result;
+
+for (rp = result; rp != NULL; rp = rp-&gt;ai_next) {
+&nbsp;&nbsp;&nbsp;&nbsp;if (rp-&gt;ai_family == AF_INET &amp;&amp; ip_type == CONNECTION_ADDRESS_FAMILY_IPV4) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;socket error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IPv4\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (rp-&gt;ai_family == AF_INET6 &amp;&amp; ip_type == CONNECTION_ADDRESS_FAMILY_IPV6) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;socket error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;IPv6\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>Connect to the remote host:
+<ul>
+<li>Use the IPv4 socket: 
+<pre class="prettyprint">
+if (connect(sockfd, rp-&gt;ai_addr, rp-&gt;ai_addrlen) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;connect() error: %s\n&quot;, strerror(errno));
+&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;close(sockfd);
+}
+</pre>
+</li>
+<li>Use the IPv6 socket.
+<p>The interface index is needed for the IPv6 connection.</p>
+<pre class="prettyprint">
+char *interface_name = NULL;
+
+connection_profile_get_network_interface_name(profile_h, &amp;interface_name);
+dlog_print(DLOG_INFO, LOG_TAG, &quot;Interface Name: %s\n&quot;, interface_name);
+
+addr6 = (struct sockaddr_in6 *)rp-&gt;ai_addr;
+addr6-&gt;sin6_scope_id = if_nametoindex(interface_name);
+
+if ((sockfd = connect(sockfd, (struct sockaddr *)addr6, rp-&gt;ai_addrlen)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;connect() error: %s\n&quot;, strerror(errno));
+&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;close(sockfd);
+}
+</pre>
+</li>
+</ul>
+</li>
+<li>Manage messages:
+<ul><li>Send a message to the remote host:
+<pre class="prettyprint">
+if ((count = write(sockfd, user_msg, 200)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;write() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;close(sockfd);
+}
+dlog_print(DLOG_INFO, LOG_TAG, &quot;Sent count: %d, msg: %s\n&quot;, count, user_msg);
+</pre>
+</li>
+<li>Read a message from the remote host:
+<pre class="prettyprint">
+char buf[257];
+memset(buf, 0x00, 257);
+
+if ((count = read(sockfd, buf, 256)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;read() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;close(sockfd);
+}
+buf[count] = &#39;\0&#39;;
+dlog_print(DLOG_INFO, LOG_TAG, &quot;\nRead: %s\n&quot;, buf);
+</pre>
+</li></ul></li></ol>
+
+<h2 id="socket_createserver" name="socket_createserver">Creating the Server-side Socket and Managing the Connection</h2>
+
+<p>To create the socket and manage the connection to a client:</p>
+<ol>
+<li>Find the proper address family and create the socket: 
+<pre class="prettyprint">
+int sockfd = -1;
+struct addrinfo *rp;
+
+rp = result;
+
+for (rp = result; rp != NULL; rp = rp-&gt;ai_next) {
+&nbsp;&nbsp;&nbsp;&nbsp;if (rp-&gt;ai_family == AF_INET &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ip_type == CONNECTION_ADDRESS_FAMILY_IPV4) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;socket error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPv4\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (rp-&gt;ai_family == AF_INET6 &amp;&amp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ip_type == CONNECTION_ADDRESS_FAMILY_IPV6) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if ((sockfd = socket(AF_INET6, SOCK_STREAM, 0)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;socket error\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;IPv6\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>Bind the found address:
+<pre class="prettyprint">
+if (bind(sockfd, rp-&gt;ai_addr, rp-&gt;ai_addrlen) != 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;bind() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;close(sockfd);
+
+&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+}
+</pre>
+</li>
+<li>Listen for client-side connections.
+<p>Mark the <span style="font-family: Courier New,Courier,monospace;">sockfd</span> socket as a passive socket.</p>
+<pre class="prettyprint">
+if (listen(sockfd, 5) != 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;listen() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;close(sockfd);
+
+&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+}
+</pre>
+</li>
+<li>Manage messages:
+<ul>
+<li>Read a message from the client:
+<pre class="prettyprint">
+char buf[257];
+memset(buf, 0x00, 257);
+
+if ((count = read(csockfd, buf, 256)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;read() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;close(sockfd);
+&nbsp;&nbsp;&nbsp;&nbsp;close(csockfd);
+&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+}
+buf[count] = &#39;\0&#39;;
+printf(&quot;\nRead: %s\n&quot;, buf);
+</pre>
+</li>
+<li>Echo the received message back to the client:
+<pre class="prettyprint">
+if ((count = write(csockfd, buf, 256)) &lt; 0) {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;write() error: %s\n&quot;, strerror(errno));
+
+&nbsp;&nbsp;&nbsp;&nbsp;freeaddrinfo(result);
+&nbsp;&nbsp;&nbsp;&nbsp;close(sockfd);
+&nbsp;&nbsp;&nbsp;&nbsp;close(csockfd);
+
+&nbsp;&nbsp;&nbsp;&nbsp;goto done;
+}
+
+printf(&quot;sent count: %d, msg: %s\n&quot;, count, buf);
+close(csockfd);
+</pre>
+</li>
+</ul></li></ol>
+
+<h2 id="socket_close" name="socket_close">Closing the Socket</h2>
+
+<p>To close the client or server-side socket and release the resources:</p> 
+<pre class="prettyprint">
+freeaddrinfo(result);
+close(sockfd);
+
+done:
+&nbsp;&nbsp;&nbsp;&nbsp;connection_profile_destroy(profile_h);
+&nbsp;&nbsp;&nbsp;&nbsp;connection_destroy(connection);
+
+&nbsp;&nbsp;&nbsp;&nbsp;free(local_ipv6);
+&nbsp;&nbsp;&nbsp;&nbsp;free(local_ipv4);
+&nbsp;&nbsp;&nbsp;&nbsp;free(interface_name);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

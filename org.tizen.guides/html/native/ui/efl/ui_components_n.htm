@@ -1,0 +1,657 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+  <title>UI Components</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+	<p class="toc-title">Content</p>
+		<ul class="toc">
+				<li><a href="#first">Using the Elementary Library in the Application</a></li>
+				<li><a href="#objects">Handling Elementary Objects and Callbacks</a></li>
+				<li><a href="#config">Managing the Elementary Configuration</a></li>
+		</ul>		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Elementary.html">Elementary API for Mobile Native</a></li>
+			<li><a href="../../../../../org.tizen.native.wearable.apireference/group__Edje__Group.html">Edje API for Wearable Native</a></li>
+			<li><a href="../../../../../org.tizen.native.wearable.apireference/group__Elementary.html">Elementary API for Wearable Native</a></li>
+		</ul>
+	</div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+  <h1>UI Components</h1> 
+
+<p>What is an application?</p>
+<ul>
+<li>From the user&#39;s point of view, an application is a process they can launch. The process has at least 1 window for presenting its content on the screen, and the user can interact with the content through events.</li>
+<li>From the computer&#39;s point of view, an application is a collection of code that reacts to events and displays content on the screen.</li>
+</ul>
+
+<p>The Elementary library bridges the divide between the user and the code by providing a variety of prebuilt UI components, such as layout objects and components, that allow you to build rich graphical user interfaces for your applications. Every Elementary application has at least 1 window that provides an area where the application content can be displayed and the Evas canvas placed.</p>
+
+<p>The Elementary library is a simple toolkit. It provides various UI components that can be used to compose the application UI. The UI components allow you to build your application without having to reinvent basic objects, such as buttons, lists, or text entries. The UI components also allow you to implement user interactivity, since they can generate signals that can be caught in the application when the user interacts with them.</p>
+
+<p>There are 3 main groups of objects provided by Elementary:</p>
+
+<ul>
+    <li>UI components: <a href="ui_components_mn.htm">Mobile</a> and <a href="ui_components_wn.htm">wearable</a> components with which you build your application UI.</li>
+    <li><a href="ui_containers_n.htm">UI containers</a>: Containers that hold the UI components.</li>
+    <li><a href="component_infra_n.htm">Infrastructure modules</a>: Modules that deal with Elementary as a whole.</li>
+</ul>
+
+<h2 id="first" name="first">Using the Elementary Library in the Application</h2>
+
+<p>To use the Elementary library:</p>
+
+<ol><li>Initialize the Elementary library with the <span style="font-family: Courier New,Courier,monospace">elm_init()</span> function.</li>
+<li>Start the Elementary main loop with the <span style="font-family: Courier New,Courier,monospace">elm_run()</span> function.
+<p>The function does not return. Instead, it constantly loops and runs the event and the processing tasks.</p></li>
+<li>Add Elementary UI components in the main loop.
+<p>Generally, an Elementary UI component can be added with the <span style="font-family: Courier New,Courier,monospace">elm_&lt;UI component name&gt;_add()</span> function, which returns an Evas object (<span style="font-family: Courier New,Courier,monospace">Evas_Object*</span>). The Evas object is passed to the functions that are used to configure the UI component.</p></li>
+<li>Stop the main loop and return to the application <span style="font-family: Courier New,Courier,monospace">main()</span> function with the <span style="font-family: Courier New,Courier,monospace">elm_exit()</span> function.</li>
+<li>When your application terminates, shut down the Elementary library with the <span style="font-family: Courier New,Courier,monospace">elm_shutdown()</span> function.
+<p>The function frees the Elementary objects that were allocated in the main loop, so you do not need to separately deallocate them.</p></li></ol>
+
+
+<p>The following code snippet shows the <span style="font-family: Courier New,Courier,monospace">main()</span> function of a minimal Elementary application:</p>
+
+<pre class="prettyprint">
+#include &lt;Elementary.h&gt;
+int
+main(int argc, char **argv)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;elm_init(argc, argv);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_run();
+&nbsp;&nbsp;&nbsp;&nbsp;elm_shutdown();
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+}</pre>
+
+
+<h2 id="objects" name="objects">Handling Elementary Objects and Callbacks</h2>
+
+<p>All UI components (objects) created using Elementary are of the <span style="font-family: Courier New,Courier,monospace">Evas_Object*</span> type. This means that, in principle, both Evas and Elementary functions can be used on an Elementary object, since it has an underlying <a href="evas_objects_n.htm">Evas object</a>. However, only use Elementary functions on Elementary objects, unless you know what you are doing.</p>
+
+<p>Elementary UI components are built in a hierarchical fashion. The idea is to factorize as much code as possible between UI components that behave in a similar manner to facilitate the creation of new UI components. The Elementary UI components inherit a lot of their code from the container UI components and the <a href="container_layout_n.htm">layout</a> component (which is a container component that takes a standard Edje design file and wraps it very thinly). When managing the UI components, you can use on them the container and layout functions, as well as the general Elementary object functions, such as <span style="font-family: Courier New,Courier,monospace">elm_object_part_content_set()</span>, <span style="font-family: Courier New,Courier,monospace">elm_object_part_content_get()</span>, and <span style="font-family: Courier New,Courier,monospace">elm_object_part_content_unset()</span>.</p>
+
+<p>Since an Elementary object can take up a lot of memory, you can use the <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> type in situations where you need a lot of items, such as in a genlist or gengrid component, and to save memory. Using the <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> type, an Elementary UI component can, in theory, contain a lot of items while maintaining a small memory footprint. In practice, the <span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> instance is bigger than expected, but can still help in saving memory.</p>
+
+<p>The Elementary objects and their underlying Evas objects can generate various events. To react to Elementary object events, you can register the following callback types:</p>
+
+<ul>
+<li>Evas event callback
+<p>Use the <span style="font-family: Courier New,Courier,monospace">evas_object_event_callback_add()</span> function to add a callback for input events (such as key up, key down, or mouse wheel) on an Evas object. In case of an Elementary object, the callback is registered on the underlying Evas object without considering the Elementary object infrastructure (no event propagation).</p>
+</li>
+
+<li>Evas smart callback
+<p>Use the <span style="font-family: Courier New,Courier,monospace">evas_object_smart_callback_add()</span> function to add a callback for a smart event emitted by an Elementary object. Smart callbacks can only be registered on smart objects, and the &quot;smart event&quot; to register must be implemented by the corresponding smart object. Otherwise, the callback does nothing. The callback does not apply to input events (keyboard or mouse).</p>
+</li>
+
+<li>Edje signal callback
+<p>Use the <span style="font-family: Courier New,Courier,monospace">edje_object_signal_callback_add()</span> function to add a callback for a signal coming from an Edje object (a theme object).</p>
+</li>
+
+<li>Elementary signal callback
+<p>Use the <span style="font-family: Courier New,Courier,monospace">elm_object_signal_callback_add()</span> function to add a callback for a signal coming from an Elementary UI component&#39;s theme. The callback does not apply to input events (keyboard or mouse).</p>
+</li>
+
+<li>Elementary event callback
+<p>Use the <span style="font-family: Courier New,Courier,monospace">elm_object_event_callback_add()</span> function to add a callback for an input event (keyboard or mouse) coming from an Elementary object. In contrast to the Evas event callback, the Elementary event callback takes the hierarchy of the object into account: the event can be propagated to the parents of the object, and the parents can process the event.</p>
+</li>
+</ul>
+
+<p>For more information about events related to Elementary objects, see <a href="event_handling_n.htm">Event Handling</a>. For more information about Evas objects and smart objects, see <a href="graphical_objects_n.htm">Graphical Objects</a> and <a href="evas_rendering_n.htm">Evas Rendering Concept and Method</a>.</p>
+
+ <h2 id="config" name="config">Managing the Elementary Configuration</h2> 
+
+<p>The Elementary configuration consists of a set of preconfigured options, which are linked to form an Elementary profile.The configuration affects the entire look and feel of an application.</p> 
+ 
+<p>The Elementary profile can be used to store the desired set of options for use in multiple sessions. Once loaded, the Elementary profile configures all the options and sets the look and feel of your Elementary application.</p>
+
+<p>To manage Elementary profiles:</p>
+<ul>
+<li>List the existing profiles:
+<pre class="prettyprint">
+Eina_List *list = elm_config_profile_list_get();
+</pre>
+</li>
+<li>Set a particular profile to be applied to the Elementary application:
+<pre class="prettyprint">
+elm_config_profile_set(&quot;myprofile&quot;);
+</pre>
+</li>
+<li>Get the current profile:
+<pre class="prettyprint">
+char *profile = elm_config_profile_get();
+</pre>
+</li>
+<li>To reload the Elementary configuration saved for the current profile:
+<pre class="prettyprint">
+elm_config_reload();
+</pre>
+</li>
+</ul>
+
+<p>The following code snippet is a configuration example from the <span style="font-family: Courier New,Courier,monospace">base.src</span> configuration file:</p>
+
+<pre class="prettyprint">
+group &quot;Elm_Config&quot; struct {
+&nbsp;&nbsp;&nbsp;value &quot;scale&quot; double: 3.0;
+&nbsp;&nbsp;&nbsp;value &quot;finger_size&quot; int: 50;
+&nbsp;&nbsp;&nbsp;value &quot;cache_flush_enable&quot; uchar: 0;
+&nbsp;&nbsp;&nbsp;value &quot;cache_flush_poll_interval&quot; int: 512;
+&nbsp;&nbsp;&nbsp;value &quot;font_cache&quot; int: 512;
+&nbsp;&nbsp;&nbsp;value &quot;image_cache&quot; int: 4096;
+&nbsp;&nbsp;&nbsp;value &quot;edje_cache&quot; int: 32;
+&nbsp;&nbsp;&nbsp;value &quot;edje_collection_cache&quot; int: 64;
+&nbsp;&nbsp;&nbsp;value &quot;glayer_long_tap_start_timeout&quot; double: 0.5;
+&nbsp;&nbsp;&nbsp;value &quot;glayer_double_tap_timeout&quot; double: 0.33;
+&nbsp;&nbsp;&nbsp;value &quot;thumbscroll_bounce_enable&quot; uchar: 0;
+&nbsp;&nbsp;&nbsp;value &quot;thumbscroll_bounce_friction&quot; double: 0.5;
+&nbsp;&nbsp;&nbsp;value &quot;longpress_timeout&quot; double: 0.5;
+&nbsp;&nbsp;&nbsp;value &quot;tooltip_delay&quot; double: 1.0;
+&nbsp;&nbsp;&nbsp;value &quot;password_show_last&quot; uchar: 1;
+&nbsp;&nbsp;&nbsp;value &quot;password_show_last_timeout&quot; double: 2.0;
+&nbsp;&nbsp;&nbsp;value &quot;engine&quot; string: &quot;software_x11&quot;;
+&nbsp;&nbsp;&nbsp;value &quot;selection_clear_enable&quot; uchar: 1;
+&nbsp;&nbsp;&nbsp;value &quot;fps&quot; double: 60.0;
+}
+</pre>
+
+<p>You can set the following individual options in the Elementary configuration. In addition, you can <a href="#customizing_themes">customize themes</a>, <a href="#config_focus">manage focus</a>, and <a href="#scalability">scale UI components</a>.</p>
+<ul>
+<li>To manage caches:
+<ul>
+<li>Enable the globally configured cache flush, and set the flush interval (in this example, to 60 seconds):
+<pre class="prettyprint">
+elm_config_cache_flush_enabled_set(EINA_TRUE);
+elm_config_cache_flush_interval_set(60);
+</pre>
+</li>
+
+<li>Configure the font and image cache sizes (to 500 and 5 000 000 bytes, respectively):
+<pre class="prettyprint">
+elm_config_cache_font_cache_size_set(500);
+elm_config_cache_image_cache_size_set(5000000);
+</pre>
+</li>
+
+<li>Set the Edje collection and Edje file cache sizes:
+<pre class="prettyprint">
+elm_config_cache_edje_file_cache_size_set(500);
+elm_config_cache_edje_collection_cache_size_set(500);
+</pre>
+</li>
+</ul>
+</li>
+
+
+<li>To configure the gesture layer:
+<p>You can set the duration of the long tap and double tap events on the gesture layer objects. The following example sets the duration to 500 ms.</p>
+
+<pre class="prettyprint">
+elm_config_glayer_long_tap_start_timeout_set(0.5);
+elm_config_glayer_double_tap_timeout_set(0.5);
+</pre>
+</li>
+<li>To manage scrolling:
+<ul>
+<li>Make the scroller bounce when it reaches its viewport&#39;s edge during scrolling by using the <span style="font-family: Courier New,Courier,monospace">elm_config_scroll_bounce_enabled_set()</span> function:
+<pre class="prettyprint">
+elm_config_scroll_bounce_enabled_set(EINA_TRUE);
+</pre>
+</li>
+
+<li>Control the inertia of the bounce animation by using the <span style="font-family: Courier New,Courier,monospace">elm_config_scroll_bounce_friction_set()</span> function:
+<pre class="prettyprint">
+elm_config_scroll_bounce_friction_set(0.5);
+</pre>
+<p>You can also set the friction for a page scroll, include animations, and zoom animations.</p>
+</li>
+
+<li>Set the scroller to be draggable by using the <span style="font-family: Courier New,Courier,monospace">elm_config_scroll_thumbscroll_enabled_set()</span> function. You can configure several drag options, such as friction, sensitivity, acceleration, and momentum.
+
+<p>The following example sets the scroller to be draggable, defines that the number of pixels one must travel while dragging the scroller view to actually trigger  scrolling is 20 pixels.</p>
+<pre class="prettyprint">
+elm_config_scroll_thumbscroll_enabled_set(EINA_TRUE);
+elm_config_scroll_thumbscroll_threshold_set(20);
+</pre>
+</li>
+</ul>
+</li>
+
+<li>To configure long-press events:
+<p>Get the current timeout before a long-press event is retrieved, and modify it. The following example increases the timeout by 1 second.</p>
+<pre class="prettyprint">
+double lp_timeout = elm_config_longpress_timeout_get();
+elm_config_longpress_timeout_set(lp_timeout + 1.0);
+</pre>
+</li>
+
+<li>To configure tooltips:
+<p>Set the duration after which a tooltip is shown. The following example sets the delay to 2 seconds.</p>
+
+<pre class="prettyprint">
+elm_config_tooltip_delay_set(2.0);
+</pre>
+</li>
+
+<li>To configure the password show last feature:
+<p>The password show last feature enables the user to view the last input entered for a few seconds before it is masked.</p>
+
+<ul>
+<li>Enable the password show last feature:
+<pre class="prettyprint">
+elm_config_password_show_last_set(EINA_TRUE);
+</pre>
+</li>
+<li>Set the visibility timeout (how many seconds the input is visible): 
+<pre class="prettyprint">
+elm_config_password_show_last_timeout_set(5.0);
+</pre>
+</li>
+</ul>
+</li>
+<li>To set the Elementary engine:
+<p>You can define the rendering engine that Elementary uses to draw the windows. The following rendering engines are supported:</p>
+
+<ul>
+    <li>&quot;software_x11&quot;</li>
+    <li>&quot;fb&quot;</li>
+    <li>&quot;directfb&quot;</li>
+    <li>&quot;software_16_x11&quot;</li>
+    <li>&quot;software_8_x11&quot;</li>
+    <li>&quot;xrender_x11&quot;</li>
+    <li>&quot;opengl_x11&quot;</li>
+    <li>&quot;software_gdi&quot;</li>
+    <li>&quot;software_16_wince_gdi&quot;</li>
+    <li>&quot;sdl&quot;</li>
+    <li>&quot;software_16_sdl&quot;</li>
+    <li>&quot;opengl_sdl&quot;</li>
+    <li>&quot;buffer&quot;</li>
+    <li>&quot;ews&quot;</li>
+    <li>&quot;opengl_cocoa&quot;</li>
+    <li>&quot;psl1ght&quot;</li>
+</ul>
+
+<pre class="prettyprint">
+elm_config_engine_set(&quot;opengl_x11&quot;);
+</pre>
+</li>
+
+<li>To activate the access mode: 
+<p>Set the access mode as active, so that information about an Elementary object is read when the object receives an <span style="font-family: Courier New,Courier,monospace">EVAS_CALLBACK_MOUSE_IN</span> event.</p>
+</li>
+
+<li>To configure the selection mode: 
+<p>Set the selection mode so that the selection is cleared when the entry component is unfocused:</p>
+<pre class="prettyprint">
+elm_config_selection_unfocused_clear_set(EINA_TRUE);
+</pre>
+</li>
+
+<li>To enable mirroring: 
+<p>Elementary allows UI mirroring both on a single object and on the entire UI. If mirroring is enabled, an Elementary UI component displays as if there was a vertical mirror in the middle of it. Only the controls and the disposition of the UI component are mirrored. Text is not mirrored.</p>
+
+<pre class="prettyprint">
+elm_config_mirrored_set(EINA_TRUE);
+</pre>
+</li>
+
+<li>To set the frame rate:
+<p>Define the frames per second (FPS) value for the <span style="font-family: Courier New,Courier,monospace">ecore_animator_frametime</span> and <span style="font-family: Courier New,Courier,monospace">edje_frametime</span> calculations. This example sets the FPS 60.</p>
+
+<pre class="prettyprint">
+elm_config_fps_set(60.0);
+</pre>
+</li>
+</ul>
+
+<h3 id="customizing_themes" name="customizing_themes">Customizing Themes</h3>
+
+<p>Elementary uses Edje to theme its UI components. Edje provides a default theme for each UI component in an application. You can change the theme using the <span style="font-family: Courier New,Courier,monospace">ELM_THEME</span> environment variable. You can also modify the theme globally with the Elementary Config API (in <a href="../../../../../org.tizen.native.mobile.apireference/group__Config.html">mobile</a> and <a href="../../../../../org.tizen.native.wearable.apireference/group__Config.html">wearable</a> applications).</p>
+
+<p>For custom UI components, use extensions. Extensions allow you to write styles for specific UI components. Add a new extension to the list of Elementary themes with the <span style="font-family: Courier New,Courier,monospace">elm_theme_extension_add()</span> function, and apply the new style to the UI component with the <span style="font-family: Courier New,Courier,monospace">elm_object_style_set()</span> function. Once set, the extension replaces the default theme of the UI component.</p>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">When developing an extension, to respect the signals emitted and the elements that need to be in place, you must know how the UI component is themed. If something is missing from the extension, it can break the UI component&#39;s behavior.</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>To modify Elementary themes, you can also use overlays. An overlay can replace the look of all UI components by overriding the default styles. As with extensions, you must write the correct overlay theme for a UI component. When looking for a theme to apply, Elementary first checks the list of overlays, then the set theme, and finally the list of extensions. To add or remove an overlay, use the <span style="font-family: Courier New,Courier,monospace">elm_theme_overlay_add()</span> and <span style="font-family: Courier New,Courier,monospace">elm_theme_overlay_del()</span> functions.</p>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">With overlays, you can replace the default view and affect every UI component. This is very similar to setting the theme for the whole application, and probably clashes with end user options. Using overlays also runs the risk of non-matching styles across the application. Unless you have a very good reason to use them, avoid overlays.</td>
+        </tr>
+    </tbody>
+</table>
+<p>For more information on custom styles, see <a href="component_custom_n.htm">Customizing Components.</a></p>
+
+<h3 id="config_focus" name="config_focus">Managing Focus</h3>
+
+<p>When an Elementary object has the focus, input events are directly passed to that object in the application window. The focused object can also change its decoration to show the user where the focus is. In an Elementary application, only one object can have the focus at a time.</p>
+
+<p>To set the focus to a new Elementary object and take the focus away from the previous focused object, use the <span style="font-family: Courier New,Courier,monospace">elm_object_focus_set()</span> function. You can make an object unfocusable with the <span style="font-family: Courier New,Courier,monospace">elm_object_focus_allow_set()</span> function.</p>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">Only visible objects can have the focus.</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>Elementary supports focus chains that allow you to cycle through all the focusable objects in a window. By default, the focus chain is defined by the order in which the UI components are added to the code. It is also possible to define custom focus chains, when needed.</p>
+
+
+<p>To manage the focus:</p>
+
+<ul>
+<li>To define a custom focus chain, create an <span style="font-family: Courier New,Courier,monospace">Eina_List</span>, and add the Elementary objects to it in the desired focus order. Use the <span style="font-family: Courier New,Courier,monospace">elm_object_focus_custom_chain_set()</span> function to set the final list as the custom focus chain of the parent object (in the following example, <span style="font-family: Courier New,Courier,monospace">container_object</span> is the parent object).
+
+<pre class="prettyprint">
+Eina_List* list = NULL;
+
+list = eina_list_append(list, obj1);
+list = eina_list_append(list, obj4);
+list = eina_list_append(list, obj2);
+list = eina_list_append(list, obj3);
+
+elm_object_focus_custom_chain_set(container_object, list);
+</pre>
+</li>
+
+<li>To remove the custom focus chain and use the default focus chain instead, use the <span style="font-family: Courier New,Courier,monospace">elm_object_focus_custom_chain_unset()</span> function.
+</li>
+
+<li>To programmatically cycle through the focus chain, use the <span style="font-family: Courier New,Courier,monospace">elm_object_focus_next()</span> function.
+</li>
+
+<li>To show a highlight on the focused object:
+
+<pre class="prettyprint">
+elm_config_focus_highlight_enabled_set(EINA_TRUE);
+</pre>
+</li>
+
+<li>To activate an animation when the focus shifts from one object to another:
+
+<pre class="prettyprint">
+elm_config_focus_highlight_animate_set(EINA_TRUE);
+</pre>
+</li>
+</ul>
+
+<p>For more information on focus, see <a href="component_focus_n.htm">Managing Component Focus</a>.</p>
+
+ <h3 id="scalability" name="scalability">Scaling UI Components</h3> 
+  
+<p>Through its configuration (Elementary Config API in <a href="../../../../../org.tizen.native.mobile.apireference/group__Config.html">mobile</a> and <a href="../../../../../org.tizen.native.wearable.apireference/group__Config.html">wearable</a> applications), Elementary provides a way to scale UI components with 2 different parameters:</p>
+<ul>
+<li id="Finger_Size">The <span style="font-family: Courier New,Courier,monospace;">finger_size</span> parameter is used when the interactive (clickable or editable) zones of the UI components need to be scaled in order to be comfortably used with a finger.
+<p>The <span style="font-family: Courier New,Courier,monospace;">finger_size</span> parameter scales UI components based on the user&#39;s finger size. This is useful when using a touch screen with a finger rather than with a stylus. The finger size parameter is in pixels, and determines the minimum size of a square on the screen that is reliably hittable with a finger.</p>
+
+<p>The global finger size is set with the <span style="font-family: Courier New,Courier,monospace;">elm_config_finger_size_set()</span> function. This adjusts the size and hit area of the UI components so that they are easy to hit with a finger. The current value is retrieved with the <span style="font-family: Courier New,Courier,monospace;">elm_config_finger_size_get()</span> function. The finger size is always in pixels.</p>
+
+<p>To increase the current global finger size by 20 px:</p>
+
+<pre class="prettyprint">
+Evas_Coord finger_size;
+
+/* Get the current finger size */
+finger_size = elm_config_finger_size_get();
+
+/*
+   Add 20px to finger size parameter and set it
+   to the global Elementary configuration
+*/
+elm_config_finger_size_set(finger_size + 20);
+</pre>
+</li>
+<li id="Scale">The <span style="font-family: Courier New,Courier,monospace;">scale</span> parameter is responsible for scaling readable parts of a UI component (such as text or icons), so that it is more visible in the user interface.
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">scale</span> parameter only scales the readable areas of the UI component. Parts that must stay pixel-perfect, such as the highlights, shading, textures, and decorations, stay as they are.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">elm_config_scale_set()</span> function is used to set the global scaling factor that affects all UI components. It is also possible to use the <span style="font-family: Courier New,Courier,monospace;">elm_object_scale_set()</span> function to set the scaling factor on a given Elementary UI component and all its children.</p>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">The scaling factor is multiplicative: if a child already has a scale size set, it is multiplied by its parent&#39;s scale size.</td>
+</tr>
+</tbody>
+</table>
+
+<p>The following example sets the global scaling factor to 2.0 and the scaling factor of an existing Elementary button object to 2.0. As a result, the button appears as if it had a 4.0 scaling factor, while the rest of the application is displayed with a 2.0 scaling factor.</p>
+
+<pre class="prettyprint">
+Evas_Object *button;
+
+/* Button object is created and configured */
+
+/* Set the global scaling factor to 2.0 */
+elm_config_scale_set(2.0);
+
+/*
+   Set the scaling factor of the button component to 2.0, this component
+   appears 4 times bigger than its initial size
+*/
+elm_object_scale_set(button, 2.0);
+</pre>
+</li>
+</ul>
+
+<p>The following figure shows the visual result of the finger size and scaling factor modification:</p>
+
+<ul>
+<li>The screenshot on the left shows an example application that enables the user to set the global scale factor and finger size parameter. As the user drags the sliders, the UI is updated, directly showing the result of the new parameter value.</li>
+<li>The screenshot in the middle shows what happens when the scale factor is increased from 3.00 to 5.00. Everything gets bigger: all the texts, and also the actual elements, like the sliders.</li>
+<li>The screenshot on the right shows what happens when the finger size is increased from 50 px to 150 px. Only the button on the top gets bigger, enabling the user more reliably to hit it with a bigger finger.</li>
+</ul>
+
+<p class="figure">Figure: Scalability example</p>
+<p align="center"><img alt="scalability example" src="../../../images/scale_3_finger_50.png" />
+<img alt="Scale increased (5.00)" src="../../../images/scale_5_finger_50.png" />
+<img alt="Finger size increased (150 px)" src="../../../images/scale_3_finger_150.png" /></p>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">It is up to the theme (Edje file) to use the <span style="font-family: Courier New,Courier,monospace;">scale</span> parameter to define which parts are scalable. This is something that needs to be taken into account when developing a new Edje theme. For more information on how to set the scalability in EDC, see <a href="edje_intro_n.htm">Introduction to EDC Programming</a>.</td>
+</tr>
+</tbody>
+</table> 
+
+<h4 id="Scalable_EDC_Object" name="Scalable_EDC_Object">Creating Scalable EDC Objects</h4>
+
+<p>To make an Edje object scalable, you must set the <span style="font-family: Courier New,Courier,monospace;">scale</span> parameter to 1 on the parts you want to be scalable.</p>
+<p>The following example shows a basic button that is composed of a background image part and a swallow part that can receive some content. Both the background and swallow parts are set to be scalable.</p>
+
+<pre class="prettyprint">
+group
+{
+&nbsp;&nbsp;&nbsp;name: &quot;button&quot;;
+&nbsp;&nbsp;&nbsp;images
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;bg.png&quot; COMP;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;parts
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: IMAGE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">scale: 1;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.normal: &quot;bg.png&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;elm.swallow.content&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">scale: 1;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;visible&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>When you make an object scalable, you must also consider how any images within the object are handled. You can take advantage of:</p>
+
+<ul>
+<li>Image sets
+<p>If the application is potentially used at different resolutions, use image sets to provide separate image files for different resolutions. For example, in case of the button defined above, consider having 2 different image files for the <span style="font-family: Courier New,Courier,monospace;">bg.png</span> background image. Change the <span style="font-family: Courier New,Courier,monospace;">images</span> block in the above code to contain an image set named <span style="font-family: Courier New,Courier,monospace;">bg.png</span> instead of a single image file:</p>
+<ul>
+<li>Use the <span style="font-family: Courier New,Courier,monospace;">bg_low.png</span> image file when the size of the image is under 200 px.</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace;">bg_high.png</span> image file for higher resolutions.</li>
+</ul> 
+<pre class="prettyprint">
+images
+{
+&nbsp;&nbsp;&nbsp;set
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg.png&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;bg_low.png&quot; COMP;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 0 0 200 100;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image: &quot;bg_high.png&quot; COMP;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 201 101 5000 5000;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The following figure shows the effects of the image set. The screen shows 3 buttons:</p>
+<ul>
+<li>The top button size is 100 x 50 pixels, so the background image uses the <span style="font-family: Courier New,Courier,monospace;">bg_low.png</span> image file with the same size.</li>
+<li>The middle button size is twice the first one (200 x 100 pixels). The image is scaled and it does not render well, the borders are quite blurry.</li>
+<li>The bottom image uses the <span style="font-family: Courier New,Courier,monospace;">bg_high.png</span> image file, which is defined to be used when the size is bigger than 200 x 100 pixels. The bottom image size is 201 x 101 pixels, and with the <span style="font-family: Courier New,Courier,monospace;">bg_high.png</span> image file, it has much better quality than the scaled middle image.</li>
+</ul>
+
+<p class="figure">Figure: Image set example</p>
+<p align="center"><img alt="Image set example" src="../../../images/scale.png" /></p> 
+</li>
+<li>Image borders
+<p>When the button defined above is resized, its image part is also resized because it is marked as scalable. To resize only the image itself, but not its borders, use the <span style="font-family: Courier New,Courier,monospace;">border</span> parameter to specify a static unscalable border size.</p>
+
+<p>To add a 40-pixel border on the left and right side of the <span style="font-family: Courier New,Courier,monospace;">bg</span> image, and a 20-pixel border at its top and bottom, modify the <span style="font-family: Courier New,Courier,monospace;">description</span> block of the image part:</p>
+
+<pre class="prettyprint">
+parts
+{
+&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: IMAGE;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image.normal: &quot;bg.png&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">image.border: 40 40 20 20;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;/* Other parts */
+}
+</pre>
+
+<p>The following figure shows the original button at the top, and the resized button at the bottom. When the button is resized, the borders (and consequently the corners) keep their initial ratio, and only the middle part of the button is changed.</p>
+
+<p class="figure">Figure: Image border example</p> 
+<p align="center"><img alt="Image border example" src="../../../images/border.png" /></p> 
+</li></ul>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.</td>
+        </tr>
+    </tbody>
+</table>
+
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

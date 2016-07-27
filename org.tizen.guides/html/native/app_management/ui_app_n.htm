@@ -1,0 +1,470 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>UI Application</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#loop">Managing the Event Loop</a></li>
+			<li><a href="#callback">Registering Callbacks for Events</a></li>
+			<li><a href="#state_trans">Managing Application States and Transitions</a></li>
+			<li><a href="#allow_bg">Allowing Applications to Run on the Background</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#fundamentals">Handling the Application Fundamentals</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APPLICATION__MODULE.html">Application API for Mobile Native</a></li>   
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__APPLICATION__MODULE.html">Application API for Wearable Native</a></li>  
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+ <h1>UI Application</h1>
+ 
+<p>A Tizen native application is similar to a conventional Linux application, with some additional features optimized for mobile and wearable devices. The additional features have constraints, such as a relatively small screen size and lack of system resources compared to a larger system. For example, for power management reasons, the application can take actions to reduce usage when it finds out that it has its display window covered over by another application window. State change events are delivered to make it possible to detect these situations.</p>
+
+<p>The Application API provides interfaces for the following categories:</p>
+<ul>
+  <li><a href="#loop">Starting or exiting the main event loop</a> (mandatory for every Tizen native application)</li>
+  <li><a href="#callback">Registering callbacks for application state change events</a></li>
+  <li><a href="#callback">Registering callbacks for basic system events</a></li>
+  <li><a href="#state_trans">Managing application states and transitions</a></li>
+  <li><a href="#allow_bg">Allowing applications to run on the background</a></li>
+</ul>
+  
+  <p>Before you start, remember to <a href="#prerequisites">prepare your application to use the application functionality</a>.</p>
+  
+  <h2 id="loop" name="loop">Managing the Event Loop</h2>
+<p>In order for an application to operate successfully, it must receive events from the platform. For this, it must start the main event loop - this is mandatory for all Tizen native applications.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> function is used to start the event loop. Before calling this function, set up the <span style="font-family: Courier New,Courier,monospace">app_event_callback_s structure</span> variable, which is passed to the function.</p>
+
+<p>For more information about launching applications, see <a href="app_controls_n.htm">Application Controls</a>.</p>
+
+<h2 id="callback" name="callback">Registering Callbacks for Events</h2>
+<p>The following table lists the application state change events.</p>
+
+  <table> 
+   <caption>
+     Table: Application state change events
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Callback</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_create_cb()</span></td> 
+     <td>Used to take necessary actions before the main event loop starts. Place the UI generation code here to prevent missing any events from your application UI.</td> 
+    </tr> 
+     <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_pause_cb()</span></td> 
+     <td>Used to take necessary actions when the application becomes invisible. For example, release memory resources so other applications can use them. Do not starve the foreground application that is interacting with the user.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_resume_cb()</span></td> 
+     <td>Used to take necessary actions when the application becomes visible. If you relinquish anything in the  <span style="font-family: Courier New,Courier,monospace">app_pause_cb()</span> callback, re-allocate those resources here before the application resumes.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">app_terminate_cb()</span></td> 
+     <td>Used to take necessary actions when the application is terminating. Release all resources, especially any allocations and shared resources, so that other running applications can fully use any shared resources.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+ 
+<p>For more information, see <a href="#state_trans">Managing Application States and Transitions</a>.</p>
+
+<p>To listen to system events, use the <span style="font-family: Courier New,Courier,monospace">ui_app_add_event_handler()</span> function. The system events are triggered with the <span style="font-family: Courier New,Courier,monospace">app_event_cb()</span> callback function. The following table lists the event types.</p>
+
+  <table> 
+   <caption>
+     Table: Event types
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Event type</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_EVENT_LOW_MEMORY</span></td> 
+     <td>Event type for the callback function that is responsible for saving data in the main memory to a persistent memory or storage to avoid data loss in case the Tizen platform Low Memory Killer kills your application to get more free memory. The callback function must also release any cached data in the main memory to secure more free memory.</td> 
+    </tr> 
+     <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_EVENT_LOW_BATTERY</span></td> 
+     <td>Event type for the callback function that is responsible for saving data in the main memory to a persistent memory or storage to avoid data loss in case the power goes off completely. The callback function must also stop heavy CPU consumption or power consumption activities to save the remaining power.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_EVENT_DEVICE_ORIENTATION_CHANGED</span></td> 
+     <td>Event type for the callback function that is responsible for changing the display orientation to match the device orientation.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_EVENT_LANGUAGE_CHANGED</span></td> 
+     <td>Event type for the callback function that is responsible for refreshing the display into the new language.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">APP_EVENT_REGION_FORMAT_CHANGED</span></td> 
+     <td>Event type for the callback function that is responsible for refreshing the display into the new time zone.</td> 
+    </tr> 
+	<tr>
+	<td><span style="font-family: Courier New,Courier,monospace">APP_EVENT_SUSPENDED_STATE_CHANGED</span></td> 
+	<td>Event type for the callback function that is responsible for taking necessary actions before entering the suspended state or after exiting from the state. (Supported since Tizen 2.4.)</td> 
+	</tr>
+   </tbody> 
+  </table>  
+   
+<h2 id="state_trans" name="state_trans">Managing Application States and Transitions</h2> 
+
+<p>The Tizen native application can be in one of several different <a href="applications_n.htm#state_change">application states</a>.</p> 
+
+<p>The Application API defines 5 states with corresponding transition handlers. The state transition is notified through a state transition callback function, whether the application is created, running, paused, resumed, or terminated. The application must <a href="#fundamentals">react to each state change appropriately</a>.</p>
+	
+  <table> 
+   <caption>
+     Table: Application states
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>State</th> 
+     <th>Description</th> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">READY</span></td> 
+     <td>Application is launched.</td> 
+    </tr> 
+     <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">CREATED</span></td> 
+     <td>Application starts the main loop.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">RUNNING</span></td> 
+     <td>Application is running and visible to the user.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">PAUSED</span></td> 
+     <td>Application is running but invisible to the user.</td> 
+    </tr> 
+    <tr> 
+     <td><span style="font-family: Courier New,Courier,monospace">TERMINATED</span></td> 
+     <td>Application is terminated.</td> 
+    </tr> 
+   </tbody> 
+  </table>   
+  
+<p>The following figure illustrates the application state transitions.</p>
+  
+  <p class="figure">Figure: Application state transitions</p> 
+  <p align="center"><img alt="Application state transitions" src="../../images/app_state_transitions.png" /></p>
+ 
+<h2 id="allow_bg" name="allow_bg">Allowing Applications to Run on the Background</h2>
+
+<p>Since Tizen 2.4, the application is not allowed to run on the background except when it is explicitly declared to do so. The following table lists the background categories that allow the application to run on the background.</p>
+
+<table id="allow_bg_table">
+   <caption>Table: Allowed background application policy</caption> 
+   <tbody> 
+    <tr> 
+     <th>Background category</th> 
+     <th>Description</th>
+<th>Related APIs</th>
+<th>Manifest file &lt;background-category&gt; element value</th> 
+    </tr> 
+    <tr> 
+     <td>Media</td> 
+     <td>Playing audio, recording, and outputting streaming video on the background</td>
+<td>Multimedia API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__FRAMEWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__FRAMEWORK.html">wearable</a> applications)</td>
+<td><span style="font-family: Courier New,Courier,monospace">media</span></td> 
+    </tr> 
+     <tr> 
+     <td>Download</td> 
+     <td>Downloading data with the Tizen Download-manager API</td>
+<td>Download API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__WEB__DOWNLOAD__MODULE.html">mobile</a> applications)</td>
+<td><span style="font-family: Courier New,Courier,monospace">download</span></td> 
+    </tr> 
+    <tr> 
+     <td>Background network</td> 
+     <td>Processing general network operations on the background (such as sync-manager, IM, and VOIP)</td>
+<td>Sync Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYNC__MANAGER__MODULE.html">mobile</a> applications), Socket, and Curl API (in <a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__CURL__FRAMEWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__OPENSRC__CURL__FRAMEWORK.html">wearable</a> applications)</td>
+<td><span style="font-family: Courier New,Courier,monospace">background-network</span></td> 
+    </tr>
+<tr> 
+     <td>Location</td> 
+     <td>Processing location data on the background</td>
+<td>Location API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__LOCATION__FRAMEWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__LOCATION__FRAMEWORK.html">wearable</a> applications)</td>
+<td><span style="font-family: Courier New,Courier,monospace">location</span></td> 
+    </tr>
+<tr> 
+     <td>Sensor (context)</td> 
+     <td>Processing context data from the sensors, such as gesture</td>
+<td>Sensor API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">wearable</a> applications)</td>
+<td><span style="font-family: Courier New,Courier,monospace">sensor</span></td> 
+    </tr>
+<tr> 
+  <td>IoT Communication/Connectivity</td> 
+     <td>Communicating between external devices on the background (such as Wi-Fi and Bluetooth)</td>
+<td>Wi-Fi (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__WIFI__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__WIFI__MODULE.html">wearable</a> applications) and Bluetooth API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__BLUETOOTH__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__BLUETOOTH__MODULE.html">wearable</a> applications)</td>
+<td><span style="font-family: Courier New,Courier,monospace">iot-communication</span></td> 
+    </tr>
+  </tbody> 
+  </table>
+
+<h3 id="bg-category" name="bg-category">Describing the Background Category</h3>
+<p>An application with a background running capability must declare the background category in its manifest file:</p>
+
+<pre class="prettyprint">
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;manifest xmlns=&quot;http://tizen.org/ns/packages&quot; api-version=&quot;2.4&quot; package=&quot;org.tizen.test&quot; version=&quot;1.0.0&quot;&gt;
+&nbsp;&nbsp;&nbsp;&lt;ui-application appid=&quot;org.tizen.test&quot; exec=&quot;text&quot; type=&quot;capp&quot; multiple=&quot;false&quot; taskmanage=&quot;true&quot; nodisplay=&quot;false&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;icon&gt;rest.png&lt;/icon&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;label&gt;rest&lt;/label&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--For API version 2.4 or higher--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;background-category value=&quot;media&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;background-category value=&quot;download&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;background-category value=&quot;background-network&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;/ui-application&gt;
+&nbsp;&nbsp;&nbsp;&lt;service-application appid=&quot;org.tizen.test-service&quot; exec=&quot;test-service&quot; multiple=&quot;false&quot; type=&quot;capp&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;background-category value=&quot;background-network&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;background-category value=&quot;location&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;/service-application&gt;
+&lt;/manifest&gt;
+</pre>
+<table class="note">
+  <tbody>
+    <tr>
+      <th class="note">Note</th>
+    </tr>
+    <tr>
+	<td class="note">The <span style="font-family: Courier New,Courier,monospace">&lt;background-category&gt;</span> element is supported since the API version 2.4. An application with a <span style="font-family: Courier New,Courier,monospace">&lt;background-category&gt;</span> element declared can fail to be installed on devices with a Tizen version lower than 2.4. In this case, declare the background category as <span style="font-family: Courier New,Courier,monospace">&lt;metadata key=&quot;http://tizen.org/metadata/background-category/&lt;value&gt;&quot;/&gt;</span>.</td>
+     </tr>
+	<tr>
+<td class="note">
+<pre class="prettyprint">
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot;?&gt;
+&lt;manifest xmlns=&quot;http://tizen.org/ns/packages&quot; api-version=&quot;2.3&quot; package=&quot;org.tizen.test&quot; version=&quot;1.0.0&quot;&gt;
+&nbsp;&nbsp;&nbsp;&lt;ui-application appid=&quot;org.tizen.test&quot; exec=&quot;text&quot; type=&quot;capp&quot; multiple=&quot;false&quot; taskmanage=&quot;true&quot; nodisplay=&quot;false&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;icon&gt;rest.png&lt;/icon&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;label&gt;rest&lt;/label&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;!--For API version lower than 2.4--&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;metadata key=&quot;http://tizen.org/metadata/background-category/media&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;metadata key=&quot;http://tizen.org/metadata/background-category/download&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;metadata key=&quot;http://tizen.org/metadata/background-category/background-network&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;/ui-application&gt;
+&nbsp;&nbsp;&nbsp;&lt;service-application appid=&quot;org.tizen.test-service&quot; exec=&quot;test-service&quot; multiple=&quot;false&quot; type=&quot;capp&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;metadata key=&quot;http://tizen.org/metadata/background-category/background-network&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;metadata key=&quot;http://tizen.org/metadata/background-category/location&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;/service-application&gt;
+&lt;/manifest&gt;
+</pre>
+<p>The <span style="font-family: Courier New,Coruier,monospace">&lt;metadata key=&quot;http://tizen.org/metadata/bacgkround-category/&lt;value&gt;&quot;/&gt;</span> element has no effect on Tizen 2.3 devices, but, in Tizen 2.4 or higher devices, it has the same effect as the <span style="font-family: Courier New,Courier,monospace">&lt;background-category&gt;</span> element.</p>
+	</td>
+	</tr>
+   </tbody>
+ </table>
+
+<p>The background category of your application can be specified in the
+<a href="../../../../org.tizen.tutorials/html/native/process/setting_properties_n.htm#manifest">application project settings</a> in the IDE.</p>
+
+<h2>Warm-up</h2>
+<p>Become familiar with the Application API basics by learning about:</p>
+
+<ul>
+	<li><a href="#prerequisites">Prerequisites</a>
+	<p>Prepare your application to use the fundamental functionality.</p></li>
+	<li><a href="#fundamentals">Handling the Application Fundamentals</a> <p>Define the application entry point and life-cycle callbacks.</p></li>
+</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+<p>To use the functions and data types of the Application API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APPLICATION__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__APPLICATION__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;app.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+</pre>
+
+ <h2 id="fundamentals" name="fundamentals">Handling the Application Fundamentals</h2>
+
+<p>The Application API is a simple framework all Tizen applications are based on. It only handles interactions between applications and the operating system.</p>
+<p>To manage the application life-cycle:</p>
+<ol>
+<li>
+<p>Start the application with the <span style="font-family: Courier New,Courier,monospace;">main()</span> function. It initializes the Application API and starts the application.</p>
+<p>The following code is a minimal application using the Application API. It only builds and runs.</p>
+<pre class="prettyprint">
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a ui_app_lifecycle_callback_s object and initialize its contents to 0 */
+&nbsp;&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = {0,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Run the application */
+&nbsp;&nbsp;&nbsp;&nbsp;return ui_app_main(&amp;argc, &amp;argv, &amp;event_callback, NULL);
+}
+</pre>
+</li>
+<li>Define the application state callbacks.
+<p>The Application API has 2 classes of application state callbacks: those about the application life-cycle and those about the system.</p>
+<ul>
+<li>
+<p>Application life-cycle callbacks:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">create</span>: Called after the <span style="font-family: Courier New,Courier,monospace;">ui_app_main()</span> function and used to initialize the UI.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">control</span>: Triggered when the application is started to do something. It can be called several times during the lifespan of an application, and it shows the screen for the action requested. It requires specific information given to the callback.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">terminate</span>: Saves work, releases resources, and exits.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">pause</span>: Sets the application window not visible and switches to a mode which uses less resources.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">resume</span>: Sets the application window to be visible again.</li>
+</ul>
+</li>
+
+<li>
+<p>System-related events (handled with the <span style="font-family: Courier New,Courier,monospace;">app_event_cb()</span> callback):</p>
+<ul>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_LOW_MEMORY</span>: Used to save data in the main memory to a persistent memory or storage to avoid data loss in case the Tizen platform Low Memory Killer kills your application to get more free memory. The event is also used to release any cached data in the main memory to secure more free memory.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_LOW_BATTERY</span>: Used to save data in the main memory to a persistent memory or storage to avoid data loss in case the power goes off completely. The event is also used to stop heavy CPU consumption or power consumption activities to save the remaining power.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_DEVICE_ORIENTATION_CHANGED</span>: Used to change the display orientation to match the device orientation.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_LANGUAGE_CHANGED</span>: Used to refresh the display into a new language.</li>
+	   <li><span style="font-family: Courier New,Courier,monospace;">APP_EVENT_REGION_FORMAT_CHANGED</span>: Used to refresh the display into a new time zone.</li>
+</ul>
+</li>
+</ul>
+<p>The following example shows a basic application state callback implementation:</p>
+<pre class="prettyprint">
+/*
+   Structure to store the data for application logic; it is given
+   to each callback invoked through the Application API
+*/
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;char *several;
+&nbsp;&nbsp;&nbsp;&nbsp;char *fields;
+};
+typedef struct appdata appdata_s;
+
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Hook to take necessary actions before main event loop starts; this
+&nbsp;&nbsp;&nbsp;&nbsp;   usually means initializing the UI and application data (the &quot;data&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;   parameter to this function)
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;create_gui(ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* If this function returns true, the main loop starts */
+&nbsp;&nbsp;&nbsp;&nbsp;/* If this function returns false, the application is terminated */
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+static void
+app_control(app_control_h app_control, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Handle the launch request, show the user the task requested through the
+&nbsp;&nbsp;&nbsp;&nbsp;   &quot;app_control&quot; parameter (see the next step)
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+}
+
+static void
+app_pause(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Take necessary actions when application becomes invisible */
+}
+
+static void
+app_resume(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Take necessary actions when application becomes visible */
+}
+
+static void
+app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release all resources */
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (!ad)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   If specific steps are needed:
+&nbsp;&nbsp;&nbsp;&nbsp;   destroy_gui(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+}
+
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s ad = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback = {0,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the callbacks for the application logic */
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.terminate = app_terminate;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.pause = app_pause;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.resume = app_resume;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.app_control = app_control;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Note the &amp;ad below is how the struct is given to the callbacks */
+&nbsp;&nbsp;&nbsp;&nbsp;return ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+}
+</pre>
+</li>
+<li>
+<p>Define any required application controls. An app control is a mechanism through which the application receives additional information about why it was started and with which parameters.</p>
+<p>The application receives a handle to an app control object in the <span style="font-family: Courier New,Courier,monospace;">app_control</span> callback. The <span style="font-family: Courier New,Courier,monospace;">app_control_h</span> type is opaque and information can only be extracted from it through functions from the SDK, such as:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">app_control_get_operation()</span>: Retrieve a string describing which operation the application was started for.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">app_control_get_mime()</span>: Retrieve the MIME type of the data (such as image/jpg).</li>
+<li><span style="font-family: Courier New,Courier,monospace;">app_control_get_app_extra_data()</span>: Get the string value associated with a given key.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">app_control_get_app_extra_data_array()</span>: Get the string array associated with a given key (first check with <span style="font-family: Courier New,Courier,monospace;">app_control_is_extra_data_array()</span> whether the data associated with the key is an array).</li>
+</ul>
+<p>For other available functions, see the <span style="font-family: Courier New,Courier,monospace;">app.h</span> header file.</p>
+</li>
+</ol>
+ 
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

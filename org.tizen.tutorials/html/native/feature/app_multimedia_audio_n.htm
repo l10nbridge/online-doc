@@ -1,0 +1,505 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Audio Playback and Recording</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#audio_play">Playing Audio</a></li>
+			<li><a href="#audio_record">Recording Audio</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>		
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/media/media_cover_n.htm">Media and Camera Guides</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__FRAMEWORK.html">Multimedia API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__FRAMEWORK.html">Multimedia API for Wearable Native</a></li>
+        </ul>		
+	</div></div>
+</div>		
+<div id="container"><div id="contents"><div class="content">	
+<h1>Audio Playback and Recording</h1>
+	
+<p>Tizen enables your application to manage audio content. It also provides control functions for using audio resources. The resources can be media files stored on the device or streamed from a server through the network.</p>
+
+<p>Tizen supports various audio formats, including MP3, AAC, WMA, M4A, 3GA, WAV, and AMR. The available formats depend on the target device.</p>
+
+<h2 id="audio_play">Playing Audio</h2>
+
+<p>To play audio files stored on the device, use the Player API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">wearable</a> applications). The Player API also provides interfaces for getting content information and controlling operations, such as playback, pause, resume, and stop.</p>
+
+<p>The following figure illustrates the player state changes.</p>
+
+<p class="figure">Figure: Player state changes</p>
+<p align="center"><img src="../../images/player_state_changes_n.png" alt="Player state changes" /></p>
+
+<h3 id="player_init">Initializing the Audio Player</h3>
+
+<p>You can create a player by calling the <span style="font-family: Courier New,Courier,monospace;">player_create()</span> function, which returns a player handle on success. You need the player handle in setting which files to play and with which configuration. You also have to register appropriate callback functions to handle notifications about interruptions, ends, and errors during playback.</p>
+
+<p>To prepare the player for playback, and to define the necessary callbacks to handle playback events:</p>
+
+<ol>
+<li><p>To use the data types and functions of the Player API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__PLAYER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace;">&lt;player.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;player.h&gt;
+</pre>
+</li>
+<li>Define a variable for the player handle, and create the handle:
+<pre class="prettyprint">
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;player_h player;
+};
+typedef struct appdata appdata_s;
+
+static void
+init_base_player(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_create(&amp;ad-&gt;player);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to create&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Perform more playback configuration, such as setting callbacks,
+&nbsp;&nbsp;&nbsp;&nbsp;   setting the source file URI, and preparing the player
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+}
+</pre>
+</li>
+<li>Set configurations, such as the source file URI.
+<p>To set a specific path for audio files to play, retrieve the default internal storage paths. To access and use internal storage, include the <span style="font-family: Courier New,Courier,monospace;">&lt;storage.h&gt;</span> header file in your application.</p>
+<pre class="prettyprint">
+#include &lt;storage.h&gt;
+
+#define MP3_SAMPLE &quot;SampleAudio.mp3&quot;;
+
+int internal_storage_id;
+char *audio_storage_path = NULL;
+char *audio_path = NULL;
+
+static bool
+storage_cb(int storage_id, storage_type_e type, storage_state_e state, const char *path, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (type == STORAGE_TYPE_INTERNAL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_storage_id = storage_id;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+void
+_get_storage_path()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;char *path = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = storage_foreach_device_supported(storage_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_MUSIC, &amp;path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != STORAGE_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;audio_storage_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_VIDEOS, &amp;path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != STORAGE_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;video_storage_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+void
+_set_test_path()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int path_len = 0;
+
+&nbsp;&nbsp;&nbsp;&nbsp;path_len = strlen(audio_storage_path) + strlen(MP3_SAMPLE) + 1;
+&nbsp;&nbsp;&nbsp;&nbsp;audio_path = malloc(path_len);
+&nbsp;&nbsp;&nbsp;&nbsp;memset(audio_path, 0x0, path_len);
+
+&nbsp;&nbsp;&nbsp;&nbsp;strncat(audio_path, audio_storage_path, strlen(audio_storage_path));
+&nbsp;&nbsp;&nbsp;&nbsp;strncat(audio_path, MP3_SAMPLE, strlen(MP3_SAMPLE));
+}
+</pre>
+<p>Once the storage path is set, you can specify the audio file to play using the <span style="font-family: Courier New,Courier,monospace;">player_set_uri()</span> function with the player handle:</p>
+<pre class="prettyprint">
+error_code = player_set_uri(ad-&gt;player, audio_path);
+if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to set URI: error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>Create UI buttons and add callback functions for your application to control the playback:
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a window */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a button */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add a callback to the button */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button_init, &quot;clicked&quot;, init_base_player, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button_end, &quot;clicked&quot;, release_base_player, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create an Evas image object for the video surface */
+}
+
+static void
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;create_base_gui(ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+</li>
+<li>Register callback functions.
+<p>To receive notifications, register and define appropriate callback functions for interruption, playback ending, and error events:</p>
+<ul>
+<li>Interruption notifications:
+<pre class="prettyprint">
+static void
+_player_interrupted_cb(player_interrupted_code_e code, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;player_state_e state;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* All the interrupted_code_e is deprecated from Tizen 3.0 except PLAYER_INTERRUPTED_BY_RESOURCE_CONFLICT */
+&nbsp;&nbsp;&nbsp;&nbsp;player_get_state(ad-&gt;player, &amp;state);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;current player state = %d&quot;, state);
+&nbsp;&nbsp;&nbsp;&nbsp;/* If the state is PLAYER_STATE_PAUSED, update the UI (for example, button) */
+}
+
+static void
+init_base_player(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set an interruption callback if the application wants to know the reason */
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_set_interrupted_cb(ad-&gt;player, _player_interrupted_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to set interrupt cb&quot;);
+}
+</pre>
+</li>
+<li>End notifications:
+<pre class="prettyprint">
+static void
+_player_completed_cb(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Playback End&quot;);
+}
+
+static void
+init_base_player(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set a completed callback if the application wants to know when the playback ends */
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_set_completed_cb(ad-&gt;player, _player_completed_cb, ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to set completed cb&quot;);
+}
+</pre>
+</li>
+<li>Error notifications:
+<pre class="prettyprint">
+static void
+_player_error_cb(int error_code, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;playback failed, error = %x&quot;, error_code);
+}
+
+static void
+init_base_player(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = player_set_error_cb(ad-&gt;player, _player_error_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to set error cb&quot;);
+}
+</pre>
+</li>
+</ul>
+</li>
+</ol>
+
+<h3 id="playback">Managing Audio Playback</h3> 
+
+<p>When the player is created, it is in the <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_IDLE</span> state. To start playback, it must be in the <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY</span> state.</p>
+
+<p>To manage playback:</p>
+
+<ol>
+<li>
+<p>Get the player ready for playback by calling the <span style="font-family: Courier New,Courier,monospace;">player_prepare()</span> function, which changes the player state from <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_IDLE</span> to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY</span>:</p>
+<pre class="prettyprint">
+error_code = player_prepare(ad-&gt;player);
+if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to prepare player: error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>
+<p>Once the player is ready, start playing the audio file using the <span style="font-family: Courier New,Courier,monospace;">player_start()</span> function. The player state changes to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_PLAYING</span>.</p>
+<pre class="prettyprint">
+error_code = player_start(ad-&gt;player);
+if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;failed to start player: error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>
+<p>Stop playback by calling the <span style="font-family: Courier New,Courier,monospace;">player_stop()</span> function. The player state changes back to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_READY</span>.</p>
+<p>By calling the <span style="font-family: Courier New,Courier,monospace;">player_pause()</span> function, you can pause playback and change the player state to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_PAUSED</span>.</p>
+</li>
+</ol>
+
+<h3 id="player_terminate">Terminating the Audio Player</h3>
+
+<p>When you are finished using the player, release all the resources allocated to it:</p>
+<ol>
+<li>Reset the player by calling the <span style="font-family: Courier New,Courier,monospace;">player_unprepare()</span> function, which changes the player state to <span style="font-family: Courier New,Courier,monospace;">PLAYER_STATE_IDLE</span>.</li>
+<li>Destroy the player handle using the <span style="font-family: Courier New,Courier,monospace;">player_destroy()</span> function.</li>
+</ol>
+
+<pre class="prettyprint">
+error_code = player_stop(ad-&gt;player);
+error_code = player_unprepare(ad-&gt;player);
+error_code = player_destroy(ad-&gt;player);
+
+if (error_code != PLAYER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;fail to destroy player: error code = %d&quot;, error_code);
+</pre>
+
+<h2 id="audio_record">Recording Audio</h2>
+
+<p>To record audio, use the Recorder API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">wearable</a> applications). The main features of the Recorder API include:</p>
+<ul>
+<li>Basic recording functionalities: record, stop, pause, cancel, and mute</li>
+<li>Setting the maximum recording time and size</li>
+<li>Controlling the system volume level</li>
+</ul>
+<p>The supported formats in audio recording are M4A and AMR.</p>
+<p>The following figure illustrates the general recorder state changes.</p>
+
+<p class="figure">Figure: Recorder state changes</p>
+<p align="center"><img src="../../images/recorder_state_changes_n.png" alt="Recorder state changes" /></p>
+
+<h3 id="recorder_init">Initializing the Audio Recorder</h3>
+
+<p>To prepare the recorder for the recording session, and to define the necessary callbacks to handle recording events:</p>
+
+<ol>
+<li>
+<p>To use the data types and functions of the Recorder API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace;">&lt;recorder.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;recorder.h&gt;
+</pre>
+</li>
+<li>
+<p>Create an audio recorder by calling the <span style="font-family: Courier New,Courier,monospace;">recorder_create_audiorecorder()</span> function. On success, the function returns a handle for the audio recorder and the state of the audio recorder is set as <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_CREATED</span>.</p>
+<pre class="prettyprint">
+static recorder_h g_recorder;
+
+/* Create the audio recorder handle */
+int error_code = recorder_create_audiorecorder(&amp;g_recorder);
+if (error_code != RECORDER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;fail to create an Audio Recorder: error code = %d&quot;, error_code);
+</pre>
+</li>
+<li>
+<p>Register appropriate callback functions to receive notifications about recorder state changes or reaching the recording limit:
+</p>
+
+<ul>
+<li><p>The following example code implements a simple callback that prints the previous and current audio recorder states:</p>
+<pre class="prettyprint">
+error_code = recorder_set_state_changed_cb(g_recorder, _state_changed_cb, NULL);
+
+static void
+_state_changed_cb(recorder_state_e previous, recorder_state_e current, bool by_policy, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;_recorder_state_changed_cb (prev: %d, curr: %d)\n&quot;, previous, current);
+}
+</pre>
+</li>
+<li>
+<p>The following example code implements a simple callback that prints a notification about reaching the recording limit:</p>
+<pre class="prettyprint">
+error_code = recorder_set_recording_limit_reached_cb(g_recorder, _recorder_recording_limit_reached_cb, NULL);
+
+static void
+_recorder_recording_limit_reached_cb(recorder_recording_limit_type_e type, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Recording limit reached: %d\n&quot;, type);
+}
+</pre>
+</li></ul>
+</li>
+<li>
+<p>You can set various attributes of audio recording, such as audio codec, file format, file name, file size limit, encoder bitrate, audio device, and sample rate:</p>
+<ul>
+<li>Set the audio codec for encoding the audio stream using the <span style="font-family: Courier New,Courier,monospace;">recorder_set_audio_encoder()</span> function. The possible audio codec values are defined in the <span style="font-family: Courier New,Courier,monospace;">recorder_audio_codec_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga431bd585d929f13a71ecefd58ed17d46">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga431bd585d929f13a71ecefd58ed17d46">wearable</a> applications).
+<pre class="prettyprint">
+#define FILENAME_PREFIX &quot;AUDIO&quot;
+struct tm localtime = {0};
+time_t rawtime = time(NULL);
+char filename[256] = {&#39;\0&#39;};
+size_t size;
+
+/* Set the audio encoder */
+error_code = recorder_set_audio_encoder(g_recorder, RECORDER_AUDIO_CODEC_AAC);
+</pre>
+</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace;">recorder_set_file_format()</span> function to set the correct file format based on the audio codec. For example, if you set the codec to AAC, set the file format to 3GP. The possible file format values are defined in the <span style="font-family: Courier New,Courier,monospace;">recorder_file_format_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga7d3dbf7b0b3ef68101562b89e81ecf1e">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga7d3dbf7b0b3ef68101562b89e81ecf1e">wearable</a> applications).
+<pre class="prettyprint">
+/* Set the file format according to the audio encoder */
+error_code = recorder_set_file_format(g_recorder, RECORDER_FILE_FORMAT_3GP);
+</pre>
+</li>
+<li>Based on the file format, define the correct file name, and set it using the <span style="font-family: Courier New,Courier,monospace;">recorder_set_filename()</span> function. The parameters are the full path and the name of the file for the recorded audio data to be saved.
+<pre class="prettyprint">
+/* Create the file name */
+if (localtime_r(&amp;rawtime, &amp;localtime) != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;size = snprintf(filename, sizeof(filename), &quot;%s/%s-%04i-%02i-%02i_%02i:%02i:%02i.3gp&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_get_data_path(), FILENAME_PREFIX,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_year + 1900, localtime.tm_mon + 1, localtime.tm_mday,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localtime.tm_hour, localtime.tm_min, localtime.tm_sec);
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+/* Set the full path and file name */
+/* Set the file name according to the file format */
+error_code = recorder_set_filename(g_recorder, filename);
+</pre>
+</li>
+<li>Set the file size limit, encoder bitrate, audio device, and sample rate. The possible audio device values are defined in the <span style="font-family: Courier New,Courier,monospace;">recorder_audio_device_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga0e73accfbca1b992c29a2128acebbbf3">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__RECORDER__MODULE.html#ga0e73accfbca1b992c29a2128acebbbf3">wearable</a> applications).
+<pre class="prettyprint">
+/* Set the maximum file size to 1024 (kB) */
+error_code = recorder_attr_set_size_limit(g_recorder, 1024);
+
+/* Set the audio encoder bitrate */
+error_code = recorder_attr_set_audio_encoder_bitrate(g_recorder, 28800);
+
+/* Set the audio device to microphone */
+error_code = recorder_attr_set_audio_device(g_recorder, RECORDER_AUDIO_DEVICE_MIC);
+
+/* Set the audio sample rate */
+error_code = recorder_attr_set_audio_samplerate(g_recorder, 44100);
+</pre>
+</li>
+</ul>
+</li>
+</ol>
+
+<h3 id="audio_rec">Managing Audio Recording</h3>
+
+<p>When the recorder handle is created, the audio recorder is in the <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_CREATED</span> state. To start recording, the audio recorder must be in the <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_READY</span> state.</p>
+
+<p>To manage playback:</p>
+
+<ol>
+<li>
+<p>Change the player state from <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_CREATED</span> to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_READY</span> by calling the <span style="font-family: Courier New,Courier,monospace;">recorder_prepare()</span> function:</p>
+<pre class="prettyprint">
+error_code = recorder_prepare(g_recorder);
+</pre>
+</li>
+<li>
+<p>Once the recorder is ready, start audio recording using the <span style="font-family: Courier New,Courier,monospace;">recorder_start()</span> function. The recorder state changes to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_RECORDING</span>.</p>
+<pre class="prettyprint">
+error_code = recorder_start(g_recorder);
+</pre>
+</li>
+<li>
+<p>In the <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_RECORDING</span> state, you can pause or stop recording:</p>
+<ul>
+<li>To pause recording, call the <span style="font-family: Courier New,Courier,monospace;">recorder_pause()</span> function that changes the recorder state to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_PAUSED</span>. In this state, you can resume or stop recording. To resume, call the <span style="font-family: Courier New,Courier,monospace;">recorder_start()</span> function.
+<pre class="prettyprint">
+error_code = recorder_pause(g_recorder);
+</pre>
+</li>
+<li>
+<p>You can stop recording either in the <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_RECORDING</span> or <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_PAUSED</span> state. In stopping recording, you can save or discard the recorded data. To save the recorded data, use the <span style="font-family: Courier New,Courier,monospace;">recorder_commit()</span> function, and to discard, use the <span style="font-family: Courier New,Courier,monospace;">recorder_cancel()</span> function. Both functions set the audio recorder state to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_READY</span>.</p>
+<p>The following example code first checks the audio recorder state, and then stops the recorder and saves the data to a file:</p>
+<pre class="prettyprint">
+/* Check the audio recorder state */
+static bool
+_recorder_expect_state(recorder_h recorder, recorder_state_e expected_state)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;recorder_state_e state;
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code = recorder_get_state(recorder, &amp;state);
+
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;recorder state = %d, expected recorder state = %d&quot;, state, expected_state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (state == expected_state)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return TRUE;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return FALSE;
+}
+
+/* Stop the recorder and save the recorded data to a file */
+if (_recorder_expect_state(g_recorder, RECORDER_STATE_RECORDING) || _recorder_expect_state(g_recorder, RECORDER_STATE_PAUSED)) {
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = recorder_commit(g_recorder);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != RECORDER_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;error code = %d&quot;, error_code);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return true;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+</ul>
+</li>
+</ol>
+
+<h3 id="recorder_terminate">Terminating the Audio Recorder</h3> 
+
+<p>After you finish audio recording, release all the resources allocated to the audio recorder:</p>
+<ol>
+<li>Reset the audio recorder by calling the <span style="font-family: Courier New,Courier,monospace;">recorder_unprepare()</span> function, which changes the recorder state from <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_READY</span> to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_CREATED</span>.</li>
+<li>Release the audio recorder resources by calling the <span style="font-family: Courier New,Courier,monospace;">recorder_destroy()</span> function. The recorder state changes to <span style="font-family: Courier New,Courier,monospace;">RECORDER_STATE_NONE</span>.</li>
+</ol>
+<pre class="prettyprint">
+error_code = recorder_unprepare(g_recorder);
+error_code = recorder_destroy(g_recorder);
+
+if (error_code != RECORDER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;fail to destroy recorder: error code = %d&quot;, error_code);
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

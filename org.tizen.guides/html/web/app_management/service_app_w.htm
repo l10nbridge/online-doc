@@ -1,0 +1,351 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Service Application</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Wearable Web" src="../../images/wearable_s_w_optional.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#fund">Fundamentals</a></li>
+			<li><a href="#life">Life-cycle</a></li>
+			<li><a href="#package_mgmt">Package Management</a></li>
+			<li><a href="#conf">Configuration Extensions</a></li>
+			<li><a href="#feature">Required Feature</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#create">Creating a Service Application</a></li>
+			<li><a href="#package">Packaging a Service Application</a></li>
+			<li><a href="#launch">Launching a Service Application</a></li>
+			<li><a href="#terminate">Terminating a Service Application</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="https://developer.tizen.org/development/sample/web/Hybrid/Hybrid_Web_App" target="_blank">Hybrid Web App (Mobile) Sample Description</a></li>
+			<li><a href="https://developer.tizen.org/development/sample/web/Hybrid/Hybrid_Web_App_1" target="_blank">Hybrid Web App (Wearable) Sample Description</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+  <h1>Service Application</h1> 
+  
+<p>A service application is a type of Tizen Web application that provides an environment for running JavaScript in the background without a graphical user interface (the application follows the <a href="http://www.ecma-international.org/publications/standards/Ecma-262.htm" target="_blank">ECMA-262 specification</a>). The service application is used to perform tasks which need to run periodically or continuously but do not require user interaction. For example, a service application can be used for getting data or listening to platform events in the background. As service applications do not have UI components, they run on top of a more light-weight runtime than UI applications. Therefore, you can expect them to perform better and consume less memory.</p>
+  
+<p>This feature is supported in wearable applications only. The Web service application is an optional feature, which means that it may not be supported in all wearable devices.</p> 
+  
+<p>Service applications are packaged with a UI application. They can be <a href="#launch">launched</a> by another application through the <span style="font-family: Courier New,Courier,monospace">launch()</span> and <span style="font-family: Courier New,Courier,monospace">launchAppControl()</span> methods of the <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html">Application</a> API by using an explicit application ID. You can also register them to be launched automatically at boot time.</p>
+
+<p>The device main menu does not contain any icons for service applications, because the applications run in the background. The task switcher does not show them either. Service applications can run simultaneously with other service and UI applications.</p>
+    <table class="note">
+   <tbody>
+    <tr>
+     <th class="note">Note</th>
+    </tr>
+    <tr>
+     <td class="note">The wearable service application requires <a href="../../../../org.tizen.tutorials/html/web/details/sec_privileges_w.htm">partner-level certification</a> in Tizen 2.3.</td>
+    </tr>
+   </tbody>
+  </table>
+
+ <p>Before you start, remember to <a href="#prerequisites">prepare your application to use the service functionality</a>.</p>
+
+<h2 id="fund" name="fund">Fundamentals</h2>
+
+<p>You can use a selection of the following Tizen wearable Web Device APIs to interact with the platform or other service applications. More Device APIs for service applications are supported in the next release.</p>
+
+<table>
+<caption>Table: Fundamental APIs</caption>
+<tbody>
+<tr>
+ <th>API</th>
+ <th>Description</th>
+</tr>
+<tr>
+ <td><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/tizen.html">Tizen</a></td>
+ <td>The base object for accessing the Tizen wearable Web Device APIs.</td>
+</tr>
+<tr>
+ <td><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/alarm.html">Alarm</a></td>
+ <td>This API provides methods for setting and unsetting alarms.</td>
+</tr>
+<tr>
+ <td><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html">Application</a></td>
+ <td>This API provides information about the currently running and installed applications and ways to launch other applications.	
+<p>Note that the <span style="font-family: Courier New,Courier,monospace">getRequestedAppControl()</span> method is only valid inside the <span style="font-family: Courier New,Courier,monospace">onRequest()</span> callback.</p></td>
+</tr>
+<tr>
+ <td><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/package.html">Package</a></td>
+ <td>This API provides methods to install and uninstall Tizen packages and to get information about installed packages.</td>
+</tr>
+<tr>
+ <td><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/filesystem.html">Filesystem</a></td>
+ <td>This API provides methods to access the file system of a device and to read, write, copy, move, and delete files.</td>
+</tr>
+<tr>
+ <td><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/messageport.html">Message Port</a></td>
+ <td>This API provides methods for an application to communicate with other applications.</td>
+</tr>
+<tr>
+ <td><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/power.html">Power</a></td>
+ <td>This API provides interfaces and methods for controlling power resources.
+ <p>Note that the <span style="font-family: Courier New,Courier,monospace">isScreenOn()</span>, <span style="font-family: Courier New,Courier,monospace">restoreScreenBrightness()</span>, <span style="font-family: Courier New,Courier,monospace">turnScreenOn()</span>, <span style="font-family: Courier New,Courier,monospace">turnScreenOff()</span>, <span style="font-family: Courier New,Courier,monospace">setScreenBrightness()</span>, and <span style="font-family: Courier New,Courier,monospace">getScreenBrightness()</span> methods are not supported for wearable Web service applications.</p></td>
+</tr>
+<tr>
+ <td><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/systeminfo.html">System Information</a></td>
+ <td>This API provides information about the device&#39;s display, network, storage, and other capabilities.</td>
+</tr>
+</tbody>	
+</table>
+
+<h2 id="life" name="life">Life-cycle</h2>
+<p>To make sure that you can <a href="#create">run a service application</a>, export a number of methods using the <a href="http://wiki.commonjs.org/wiki/Modules/1.1" target="_blank">CommonJS Modules</a> API. The methods need to be added to the <span style="font-family: Courier New,Courier,monospace">module.exports</span> object which is provided by the environment. These methods are called when there are life-cycle changes or application control events which are triggered by the application management framework.</p>
+ 
+ <p class="figure">Figure: State transitions</p> 
+ <p align="center"><img alt="State transitions" src="../../images/service_app.png" /></p>
+
+ 
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">onStart()</span>: The entry point of the service. It is called after the service runtime finishes the set-up.</li>
+<li><span style="font-family: Courier New,Courier,monospace">onRequest()</span>: The listener for application control callbacks. It is provided to handle requests from other applications. You can understand the intention of the request and reply to it using the <span style="font-family: Courier New,Courier,monospace">tizen.application.getCurrentApplication().getRequestedAppControl()</span> method. This callback is also called when the application is first launched as an application launch is considered to be a request as well.</li>
+<li><span style="font-family: Courier New,Courier,monospace">onExit()</span>: This is called when the <a href="#terminate">service ends</a>. You can release resources or save the context by using this callback.</li></ul>
+
+<h2 id="package_mgmt" name="package_mgmt">Package Management</h2>
+<p>Service applications are <a href="#package">packaged</a> with at least one UI application in a Web application package file. The Web application package file is installed, updated, and uninstalled as a single <a href="../../../../org.tizen.tutorials/html/web/app_model/application_model_w.htm#package">package</a>, making the life-cycles of the service applications and the UI application synchronous.</p>
+
+<p>When privileges are defined, their scope covers the entire package. Hence privileges do not have to be specified for service applications because they are packaged with at least 1 UI application in a Web application package file.</p>
+
+<h2 id="conf" name="conf">Configuration Extensions</h2>
+<p>To ensure that a service application is acknowledged by the platform, the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file of the application must be extended.</p>
+<p>Define the <span style="font-family: Courier New,Courier,monospace">&lt;tizen:service&gt;</span> element and check the configuration in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file.</p>
+<p>The following is an example of a service application extension element:</p>
+<pre class="prettyprint">
+&lt;widget&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:service id=&quot;[App_ID]&quot; auto-restart=&quot;true&quot; on-boot=&quot;true&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tizen:content src=&quot;[Start_JS_File]&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tizen:name&gt;[App_Name]&lt;/tizen:name&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tizen:icon src=&quot;[App_Icon]&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tizen:description&gt;[Description]&lt;/tizen:description&gt;
+&nbsp;&nbsp;&nbsp;&lt;/tizen:service&gt;
+&lt;/widget&gt;
+</pre>
+
+<p><span style="font-family: Courier New,Courier,monospace">&lt;tizen:service&gt;</span> is a child element of the <span style="font-family: Courier New,Courier,monospace">&lt;widget&gt;</span> element in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file. With <span style="font-family: Courier New,Courier,monospace">&lt;tizen:service&gt;</span>, you can set the traits of a service application, such as application ID, auto restart, and boot launching capability. Under <span style="font-family: Courier New,Courier,monospace">&lt;tizen:service&gt;</span>, you can also set the starting script, the name, and the icon for the service application.</p>
+<p>The definition of all service elements is listed and explained in the <a href="../../../../org.tizen.devtools/html/web_tools/config_editor_w.htm#ww_extend">Extending Configuration Elements</a>.</p>
+
+<h2 id="feature" name="feature">Required Feature</h2>
+<p>The following feature must be specified in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file if you want your Web application to be visible only on devices that support the Web Service Application:</p>
+<pre class="prettyprint">
+&lt;widget&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:feature name=&quot;http://tizen.org/feature/web.service&quot;/&gt;
+&lt;/widget&gt;
+</pre>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the service application basics by learning about:</p>
+<ul>
+ <li><a href="#prerequisites">Prerequisites</a> <p>Prepare your application to use the service functionality.</p></li>
+<li><a href="#create">Creating a Service Application</a>
+<p>Create a service application by writing key components.</p></li>
+<li><a href="#package">Packaging a Service Application</a>
+<p>Package a service application.</p></li>
+<li><a href="#launch">Launching a Service Application</a>
+<p>Launch a service application.</p></li>
+<li><a href="#terminate">Terminating a Service Application</a>
+<p>Terminate a service application</p></li>
+</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To use the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html">Application</a> API, the application has to request permission by adding the following privilege to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;tizen:privilege name=&quot;http://tizen.org/privilege/application.launch&quot;/&gt;
+</pre>
+
+
+				<h2 id="create" name="create">Creating a Service Application</h2>
+				
+ <p>Learning how to create a service application is a basic application management skill:</p>
+
+
+<p>The service application consists of a number of callbacks. To write a service application, you must implement the predefined callbacks for their purpose and register them using the <a href="http://wiki.commonjs.org/wiki/Modules/1.1" target="_blank">CommonJS Modules</a> API.</p>
+
+<ol><li>Create the service entry point with the <span style="font-family: Courier New,Courier,monospace">onStart()</span> callback.
+<p>The callback is invoked when the service is launched. Within the callback, you can prepare resources and initialize whatever the service application needs during the execution.</p>
+<pre class="prettyprint">
+module.exports.onStart = function() 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;service start&quot;);
+
+&nbsp;&nbsp;&nbsp;var remoteMsgPort = tizen.messageport.requestRemoteMessagePort(&quot;websvcapp0.WebServiceApplication&quot;, &quot;SERVICE_SAMPLE1&quot;);
+&nbsp;&nbsp;&nbsp;var localMsgPort = tizen.messageport.requestLocalMessagePort(&quot;SERVICE_SAMPLE2&quot;);
+
+&nbsp;&nbsp;&nbsp;function onreceived(data, remoteMsgPort) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; data.length; i++) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (data[i].value == &quot;SERVICE_EXIT&quot;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localMsgPort.removeMessagePortListener(watchId);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tizen.application.getCurrentApplication().exit();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;var watchId = localMsgPort.addMessagePortListener(onreceived);
+}
+</pre></li>
+
+<li>Write the request handler with the <span style="font-family: Courier New,Courier,monospace">onRequest()</span> callback.
+<p>The callback is invoked to handle incoming service requests. Within the callback, write code for each request from other applications and the platform. To obtain the request, use the <span style="font-family: Courier New,Courier,monospace">getRequestedAppControl()</span> method in the <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/application.html">Application</a> API.</p>
+<pre class="prettyprint">
+module.exports.onRequest = function() 
+{
+&nbsp;&nbsp;&nbsp;var reqAppControl = tizen.application.getCurrentApplication().getRequestedAppControl();
+&nbsp;&nbsp;&nbsp;if (reqAppControl) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (reqAppControl.appControl.operation == &quot;http://tizen.org/appcontrol/operation/service&quot;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tizen.systeminfo.addPropertyValueChangeListener(&quot;DEVICE_ORIENTATION&quot;, onDeviceOrientationSuccess);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre></li>
+
+<li>Write the termination with the <span style="font-family: Courier New,Courier,monospace">onExit()</span> callback.
+<p>The callback is invoked when the service is about to be stopped. All resources can be cleared and backed up within the callback.</p>
+<pre class="prettyprint">
+module.exports.onExit = function() 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;service terminate&quot;);
+}
+</pre></li></ol>
+			
+				<h2 id="package" name="package">Packaging a Service Application</h2>
+				
+ <p>Learning how to package a service application is a basic application management skill:</p>
+
+<p>A Web application package can contain 1 Web UI application and several service applications. Each application in the Web application package shares the same package ID and has a unique application ID. In the following example, you can use the <span style="font-family: Courier New,Courier,monospace">&lt;tizen:application&gt;</span> element to contain information for the Web UI application. The <span style="font-family: Courier New,Courier,monospace">&lt;tizen:service&gt;</span> element is used to contain information about the service application. The UI application and the service application have the same package ID and different application IDs.</p>
+
+<ol><li>Define the service in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file.
+<p>The <span style="font-family: Courier New,Courier,monospace">&lt;tizen:service&gt;</span> element allows you to define the characteristics of the service application. For example, you can specify the name, icon, and starting JavaScipt file of the service application.</p>
+<pre class="prettyprint lang-js">
+&lt;?xml version=&quot;1.0&quot;encoding=&quot;TF-8&quot;&gt;
+&lt;widget xmlns=&quot;http://www.w3.org/ns/widgets&quot; xmlns:tizen=&quot;http://tizen.org/ns/widgets&quot;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;id=&quot;http://yourdomain/WebServiceApplication&quot; version=&quot;1.0.0&quot; viewmodes=&quot;maximized&quot;&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:application id=&quot;websvcapp0.WebServiceApplication&quot; package=&quot;websvcapp0&quot; required_version=&quot;2.3&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&lt;content src=&quot;index.html&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&lt;feature name=&quot;http://tizen.org/feature/screen.size.all&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&lt;icon src=&quot;icon.png&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&lt;name&gt;WebServiceApplication&lt;/name&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:service id=&quot;websvcapp0.service1&quot; auto-restart=&quot;true&quot; on-boot=&quot;false&quot;&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tizen:content src=&quot;service/service1.js&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tizen:name&gt;WebServiceApplication1&lt;/tizen:name&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tizen:icon src=&quot;icon1.png&quot; /&gt;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;tizen:description&gt;WebServiceApplication1&lt;/tizen:description&gt;
+&nbsp;&nbsp;&nbsp;&lt;/tizen:service&gt;
+&lt;/widget&gt;
+</pre></li></ol>
+ 
+ 		
+				<h2 id="launch" name="launch">Launching a Service Application</h2>
+				
+ <p>Learning how to launch a service application is a basic application management skill:</p>
+
+
+<ul>
+<li>Launch by other applications
+<p>The Web application launches a service application by calling the <span style="font-family: Courier New,Courier,monospace">launch()</span> or <span style="font-family: Courier New,Courier,monospace">launchAppControl()</span> method with the service application ID:</p>
+<pre class="prettyprint">
+tizen.application.launchAppControl(new tizen.ApplicationControl(&quot;http://tizen.org/appcontrol/operation/service&quot;),
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;websvcapp0.service1&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;function() {console.log(&quot;Launch Service succeeded&quot;);},
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;function(e) {console.log(&quot;Launch Service failed: &quot; + e.message);});
+</pre>
+</li>
+
+<li>Launch by the system
+<p>A service application can start automatically if the <span style="font-family: Courier New,Courier,monospace">on-boot</span> attribute is set to <span style="font-family: Courier New,Courier,monospace">true</span>. This requires partner-level certification.</p>
+<pre class="prettyprint">
+&lt;tizen:service id=&quot;websvcapp0.service1&quot; on-boot=&quot;true&quot;&gt;
+</pre>
+</li>
+</ul>
+
+				<h2 id="terminate" name="terminate">Terminating a Service Application</h2>
+				
+<p>Learning how to terminate a service application is a basic application management skill:</p>
+
+
+<ol>
+<li><p>The service application can terminate itself when it receives a particular request. The following example code uses the <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/messageport.html">Message Port</a> API to send such a request to the service application.</p>
+<p>The application sends a message by calling the <span style="font-family: Courier New,Courier,monospace">sendMessage()</span> method. </p>
+<pre class="prettyprint">
+var remoteMsgPort = tizen.messageport.requestRemoteMessagePort(&quot;websvcapp0.service1&quot;, &quot;SERVICE_SAMPLE2&quot;);
+remoteMsgPort.sendMessage([{key: &quot;key&quot;, value: &quot;SERVICE_EXIT&quot;}]);
+</pre>
+</li>
+
+<li>The service application can terminate itself by calling the <span style="font-family: Courier New,Courier,monospace">exit()</span> method after getting a signal through the message port:
+<pre class="prettyprint">
+var localMsgPort = tizen.messageport.requestLocalMessagePort(&quot;SERVICE_SAMPLE2&quot;);
+function onreceived(data, remoteMsgPort) 
+{
+&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; data.length; i++) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (data[i].value == &quot;SERVICE_EXIT&quot;)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;localMsgPort.removeMessagePortListener(watchId);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tizen.application.getCurrentApplication().exit();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+var watchId = localMsgPort.addMessagePortListener(onreceived);
+</pre>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

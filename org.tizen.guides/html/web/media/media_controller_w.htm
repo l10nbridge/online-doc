@@ -1,0 +1,350 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Media Controller</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile Web" src="../../images/mobile_s_w.png"/> <img alt="Wearable Web" src="../../images/wearable_s_w.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
+            <li><a href="#create">Getting the Client and Server</a></li>
+            <li><a href="#request">Managing Requests</a></li>
+            <li><a href="#noti">Receiving Notifications from the Server</a></li>
+            <li><a href="#commands">Sending and Receiving Custom Commands</a></li>
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html">Media Controller API for Mobile Web</a></li>
+			<li><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html">Media Controller API for Wearable Web</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+  <h1>Media Controller</h1>
+
+   <p>Tizen provides a functionality for you to communicate between the media controller server and client.</p>
+
+<p>The Media Controller API is mandatory for both Tizen mobile and wearable profiles, which means that it is supported in all mobile and wearable applications. All mandatory APIs are supported on the Tizen Emulators.</p> 
+   
+<p>To manage the media using the Media Controller API, you have to develop 2 applications:</p>
+<ul><li>Client that sends requests to the server in order to change, for example, the playback state and position modes.</li>
+<li>Server that directly manages the media on the device.</li></ul>  
+
+ <p>Before you start, remember to <a href="#prerequisites">prepare your application to use the media controller functionality</a>.</p>
+
+   <p>The main features of the Media Controller API include:</p>
+   <ul>
+    <li>Setting up the client and server pair
+      <p>You can <a href="#create">set up the client and server pair</a> by creating a new server using the <span style="font-family: Courier New,Courier,monospace">createServer()</span> method. On the client side, you can get a client and find active servers using the <span style="font-family: Courier New,Courier,monospace">getClient()</span> and <span style="font-family: Courier New,Courier,monospace">findServers()</span> methods.</p>
+    </li>
+    <li>Managing requests
+      <p>You can <a href="#request">send a request</a> from the client to the server to modify various playback attributes. In the server, you can set up a listener to react to the client request and perform the requested task.</p></li>
+
+    <li>Receiving notifications from the server
+	<p>You can <a href="#noti">receive notifications on changed made by the server</a> by registering a listener with the <span style="font-family: Courier New,Courier,monospace">addPlaybackInfoChangeListener()</span> method.</p>   </li>
+
+    <li>Sending custom commands
+	<p>You can <a href="#send_command">use the client to send commands</a> with the <span style="font-family: Courier New,Courier,monospace">sendCommand()</span> method.</p>
+	<p>To <a href="#receive_command">receive and handle incoming commands</a> in the server, use the <span style="font-family: Courier New,Courier,monospace">addCommandListener()</span> method.</p>
+    </li>
+   </ul>
+
+<h2>Warm-up</h2>
+<p>Become familiar with the Media Controller API basics by learning about:</p>
+<ul>
+  <li><a href="#prerequisites">Prerequisites</a> 
+    <p>Prepare your application to use the media controller functionality.</p></li>
+  <li><a href="#create">Getting the Client and Server</a>
+    <p>Create a server, and get a client and find all active servers.</p>  </li>
+  <li><a href="#request">Managing Requests</a>
+    <p>Send a request from the client and handle it in the server.</p></li>
+  <li><a href="#noti">Receiving Notifications from the Server</a>
+    <p>Receive notifications when the server makes changes in the play modes.</p></li>
+  <li><a href="#commands">Sending and Receiving Custom Commands</a>
+    <p>Send a custom command from the client, and receive and handle it in the server.</p></li>
+</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To use the Media Controller API (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html">wearable</a> applications), the application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;tizen:privilege name=&quot;http://tizen.org/privilege/mediacontroller.client&quot;/&gt;
+&lt;tizen:privilege name=&quot;http://tizen.org/privilege/mediacontroller.server&quot;/&gt;
+</pre>
+
+
+<h2 id="create" name="create">Getting the Client and Server</h2>
+
+<p>To manage the media controller features in your application, you must learn to set up the client and server pair:</p>
+
+<ol>
+<li>Create a media controller server using the <span style="font-family: Courier New,Courier,monospace">createServer()</span> method:
+<pre class="prettyprint">
+var mcServer = tizen.mediacontroller.createServer();
+</pre>
+</li>
+<li>Get the client using the <span style="font-family: Courier New,Courier,monospace">getClient()</span> method:
+
+<pre class="prettyprint">
+var mcClient = tizen.mediaController.getClient();
+</pre>
+
+</li>
+<li>Define a success (and optionally error) event handler by implementing the <span style="font-family: Courier New,Courier,monospace">MediaControllerServerInfoArraySuccessCallback</span> interface (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html#MediaControllerServerInfoArraySuccessCallback">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html#MediaControllerServerInfoArraySuccessCallback">wearable</a> applications):
+
+<pre class="prettyprint">
+var mcServerInfo;
+
+function findSuccessCallback(servers) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Found &quot; + servers.length + &quot; servers&quot;);
+&nbsp;&nbsp;&nbsp;if (servers.length &gt; 0) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mcServerInfo = servers[0];
+&nbsp;&nbsp;&nbsp;}
+}
+
+function findErrorCallback(e) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Error name: &quot; + e.name + &quot; Error message: &quot; + e.message);
+}
+</pre>
+
+</li>
+<li>To search for all activated media controller servers, use the <span style="font-family: Courier New,Courier,monospace">findServers()</span> method of the <span style="font-family: Courier New,Courier,monospace">MediaControllerClient</span> interface (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html#MediaControllerClient">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html#MediaControllerClient">wearable</a> applications):
+
+<pre class="prettyprint">
+mcClient.findServers(findSuccessCallback, findErrorCallback);</pre>
+
+</li>
+</ol>
+
+<h2 id="request" name="request">Managing Requests</h2>
+
+<p>To manage the media controller features in your application, you must learn to handle requests from the client to the server:</p>
+<ol>
+<li>Create a <span style="font-family: Courier New,Courier,monospace">MediaControllerChangeRequestPlaybackInfoCallback</span> object (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html#MediaControllerChangeRequestPlaybackInfoCallback">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html#MediaControllerChangeRequestPlaybackInfoCallback">wearable</a> applications) to define listeners for getting the requests from a client.
+
+<p>Each listener must invoke the appropriate function to perform the related update on the server and send an appropriate notification to the client. For example, the <span style="font-family: Courier New,Courier,monospace">onplaybackstaterequest</span> listener must use the <span style="font-family: Courier New,Courier,monospace">updatePlaybackState()</span> method to update the playback state.</p>
+
+<pre class="prettyprint">
+var requestPlaybackInfoCb = 
+{
+&nbsp;&nbsp;&nbsp;onplaybackstaterequest: function(state) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;Request to change the playback state to: &#39; + state);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mcServer.updatePlaybackState(state);
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;onplaybackpositionrequest: function(position) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;Request to change the playback position to: &#39; + position);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mcServer.updatePlaybackPosition(position);
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;onshufflemoderequest: function(mode) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;Request to change the playback shuffle mode to: &#39; + (mode ? &#39;TRUE&#39; : &#39;FALSE&#39;));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mcServer.updateShuffleMode(mode);
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;onrepeatmoderequest: function(mode) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;Request to change the playback repeat mode to: &#39; + (mode ? &#39;TRUE&#39; : &#39;FALSE&#39;));
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mcServer.updateRepeatMode(mode);
+&nbsp;&nbsp;&nbsp;}
+};
+</pre>
+</li>
+
+<li>Add the listeners defined in the <span style="font-family: Courier New,Courier,monospace">MediaControllerChangeRequestPlaybackInfoCallback</span> object to the server:
+<pre class="prettyprint">
+var watchId = mcServer.addChangeRequestPlaybackInfoListener(requestPlaybackInfoCb);
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">watchId</span> variable stores the value, which can be used in the future to remove the listeners from the server using the <span style="font-family: Courier New,Courier,monospace">removeChangeRequestPlaybackInfoListener()</span> method.</p>
+</li>
+
+<li>At the client side, before sending a request, define optional success and error callbacks:
+
+<pre class="prettyprint">
+function successCallback() 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Playback has been paused.&quot;);
+}
+
+function errorCallback(e) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Error name: &quot; + e.name + &quot; Error message: &quot; + e.message);
+}
+</pre>
+
+</li>
+<li>You can send a request from the client using the <span style="font-family: Courier New,Courier,monospace">sendPlaybackState()</span>, <span style="font-family: Courier New,Courier,monospace">sendPlaybackPosition()</span>, <span style="font-family: Courier New,Courier,monospace">endShuffleMode()</span>, or <span style="font-family: Courier New,Courier,monospace">sendRepeatMode()</span> method of the <span style="font-family: Courier New,Courier,monospace">MediaControllerServerInfo</span> interface (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html#MediaControllerServerInfo">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html#MediaControllerServerInfo">wearable</a> applications).
+<p>In the following example, send a request for the changing the playback state to paused using the <span style="font-family: Courier New,Courier,monospace">sendPlaybackState()</span> method:
+</p>
+
+<pre class="prettyprint">
+mcServerInfo.sendPlaybackState(&quot;PAUSE&quot;, successCallback, errorCallback);
+</pre>
+
+</li>
+</ol>
+
+<h2 id="noti" name="noti">Receiving Notifications from the Server</h2>
+
+<p>To manage the media controller features in your application, you must learn to receive notifications from the server:</p>
+<ol>
+<li>Define the needed variable:
+
+<pre class="prettyprint">
+var watcherId;
+</pre>
+
+</li>
+<li>Define the event handlers for different notifications by implementing the <span style="font-family: Courier New,Courier,monospace">MediaControllerPlaybackInfoChangeCallback</span> interface (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html#MediaControllerPlaybackInfoChangeCallback">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html#MediaControllerPlaybackInfoChangeCallback">wearable</a> applications):
+
+<pre class="prettyprint">
+var playbackListener = 
+{
+&nbsp;&nbsp;&nbsp;onplaybackchanged: function(state, position) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Current playback state: &quot; + state);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Current playback position: &quot; + position);
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;onshufflemodechanged: function(mode) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Shuffle mode changed to: &quot; + mode);
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;onrepeatmodechanged: function(mode) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; console.log(&quot;Repeat mode changed to: &quot; + mode);
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;onmetadatachanged: function(metadata) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Playback metadata changed: &quot; + JSON.stringify(metadata));
+&nbsp;&nbsp;&nbsp;}
+};
+</pre>
+
+</li>
+<li>Register the listener to start receiving notifications about playback changes:
+
+<pre class="prettyprint">
+watcherId = mcServerInfo.addPlaybackInfoChangeListener(playbackListener);
+</pre>
+
+</li>
+<li>To stop receiving notifications, use the <span style="font-family: Courier New,Courier,monospace">removePlaybackInfoChangeListener()</span> method:
+
+<pre class="prettyprint">
+mcServerInfo.removePlaybackInfoChangeListener(watcherId);
+</pre>
+
+</li>
+</ol>
+
+
+<h2 id="commands" name="commands">Sending and Receiving Custom Commands</h2>
+
+<p>To manage the media controller features in your application, you must learn to send custom commands:</p>
+<ol>
+<li id="send_command">On the client side:
+
+<ol><li>Define your custom command:
+<pre class="prettyprint">
+var exampleCustomCommandData = 
+{
+&nbsp;&nbsp;&nbsp;myFilter: &quot;rock&quot;
+};
+</pre>
+
+</li>
+<li>Define a success (and optionally error) callback implementing the <span style="font-family: Courier New,Courier,monospace">MediaControllerSendCommandSuccessCallback</span> interface (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html#MediaControllerSendCommandSuccessCallback">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html#MediaControllerSendCommandSuccessCallback">wearable</a> applications):
+
+<pre class="prettyprint">
+function sendCommandSuccessCallback(response) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Command executed with result: &quot; + JSON.stringify(response));
+}
+
+function sendCommandErrorCallback(e) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Error name: &quot; + e.name + &quot; Error message: &quot; + e.message);
+}
+</pre>
+
+</li>
+<li>Send the command to the server using the <span style="font-family: Courier New,Courier,monospace">sendCommand()</span> method:
+
+<pre class="prettyprint">
+mcServerInfo.sendCommand(&quot;myPlaylistFilter&quot;, sendCommandSuccessCallback, sendCommandErrorCallback);
+</pre>
+
+</li>
+</ol></li>
+<li id="receive_command">On the server side:
+
+<ol>
+<li>Create the <span style="font-family: Courier New,Courier,monospace">MediaControllerReceiveCommandCallback</span> object (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/mediacontroller.html#MediaControllerReceiveCommandCallback">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/mediacontroller.html#MediaControllerReceiveCommandCallback">wearable</a> applications) to define a listener for receiving custom commands from a client:
+
+<pre class="prettyprint">
+var commandReceiveListener = function(client, command, data) 
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;command: &#39; + command + &#39; client: &#39; + client + &#39; data: &#39; + JSON.stringify(data));
+
+&nbsp;&nbsp;&nbsp;return {reply: &#39;response from server&#39;};
+};
+</pre>
+<p>The callback within the listener returns the object with the response to the client. The client can obtain this value as an argument of the success callback of the <span style="font-family: Courier New,Courier,monospace">sendCommand()</span> method that it used to send the command.</p>
+</li>
+
+<li>Add the listener defined in the <span style="font-family: Courier New,Courier,monospace">MediaControllerReceiveCommandCallback</span> object to the server:
+<pre class="prettyprint">
+var watcherId = mcServer.addCommandListener(commandReceiveListener);
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">watcherId</span> variable stores the value, which can be used in the future to remove the listener from the server using the <span style="font-family: Courier New,Courier,monospace">removeCommandListener()</span> method.</p>
+</li>
+</ol></li></ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

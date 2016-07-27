@@ -1,0 +1,598 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Creating Mobile Menus</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+	
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../../images/mobile_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#structure">Defining the Menu Application Structure</a></li>
+			<li><a href="#theme">Defining the Menus in the Application Theme</a></li>
+			<li><a href="#basic_ui">Creating the Menu Bar and Views</a></li>
+			<li><a href="#hidden_menu">Creating a Hidden Menu</a></li>
+		</ul>		
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Elementary.html">Elementary API for Mobile Native</a></li>	
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Creating Mobile Menus</h1>
+
+  
+<p>This example shows how to add menus to the application. The example code creates an application with 3 views, which can be accessed from a menu bar at the top of the application window. The application also has a hidden menu that appears only when the menu button is pressed.</p>
+
+<p>This feature is supported in mobile applications only.</p>
+
+		
+  <h2 id="structure" name="structure">Defining the Menu Application Structure</h2>
+
+ <p>To define the application structure:</p>
+ <ol>
+ <li>
+<p>Define the main structure of the application:</p>
+<pre class="prettyprint">
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object* win; /* Main window */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object* layout; /* Edje layout */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object* conform; /* Conform */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *nf; /* Naviframe to handle the views */
+&nbsp;&nbsp;&nbsp;&nbsp;appmenu_s *menu; /* Main menu */
+&nbsp;&nbsp;&nbsp;&nbsp;appmenu_s *sidemenu; /* Side menu */
+&nbsp;&nbsp;&nbsp;&nbsp;mainview_s *main_view; /* Main view (dayselector) */
+&nbsp;&nbsp;&nbsp;&nbsp;calview_s *cal_view; /* Calendar view */
+&nbsp;&nbsp;&nbsp;&nbsp;dateview_s *date_view; /* Date and time view */
+&nbsp;&nbsp;&nbsp;&nbsp;settview_s *settings_view; /* Settings view */
+&nbsp;&nbsp;&nbsp;&nbsp;Eina_Bool sdmenu_up; /* Boolean variable to keep the side menu status */
+};
+typedef struct appdata appdata_s;
+</pre>
+<p>This structure contains some specific variables for the views and the menus.</p>
+</li>
+<li>
+<p>Define the main view by using the <span style="font-family: Courier New,Courier,monospace">mainview</span> structure. It is composed of a <span style="font-family: Courier New,Courier,monospace">box</span> (the main container), a <span style="font-family: Courier New,Courier,monospace">dayselector</span>, an <span style="font-family: Courier New,Courier,monospace">img</span> image, and an <span style="font-family: Courier New,Courier,monospace">lb_main</span> label.</p>
+ <pre class="prettyprint">
+struct mainview {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *box; /* Main container of the view */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *colorselector; /* Color selector */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *img; /* Image */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *lb_day; /* Label */
+};
+typedef struct mainview mainview_s;
+</pre>
+</li>
+<li>
+<p>Define the date view. The date view is very similar to the main view. It contains a <span style="font-family: Courier New,Courier,monospace">box</span>, a <span style="font-family: Courier New,Courier,monospace">datetime</span> component and an <span style="font-family: Courier New,Courier,monospace">lb_date</span> label.</p>
+<pre class="prettyprint">
+struct dateview {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *box; /* Main container of the view */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *datetime; /* Datetime component */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *lb_date; /* Label */
+};
+typedef struct dateview dateview_s;
+</pre>
+</li>
+<li>
+<p>Define the calendar view. It contains a <span style="font-family: Courier New,Courier,monospace">box</span>, a <span style="font-family: Courier New,Courier,monospace">calendar</span> and an <span style="font-family: Courier New,Courier,monospace">lb_cal</span> label.</p>
+<pre class="prettyprint">
+struct calview {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *box; /* Main container of the view */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *calendar; /* Calendar component */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *lb_cal; /* Label component */
+};
+typedef struct calview calview_s;
+</pre>
+</li>
+<li>
+<p>Define the toolbar and submenu items. The main menu is fixed and visible, and the side menu is hidden on application start. These menus are represented by the <span style="font-family: Courier New,Courier,monospace">appmenu</span> structure.</p>
+ <pre class="prettyprint">
+struct appmenu {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *tb; /* Toolbar */
+&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *submenu; /* Submenu item */
+};
+typedef struct appmenu appmenu_s;
+</pre>
+</li>
+</ol>
+
+ <h2 id="theme" name="theme">Defining the Menus in the Application Theme</h2>
+
+<p>This example uses the <strong>Basic EDC UI Application</strong> template, which defines the application theme in an EDC file.</p>
+<p>The following figure shows the application theme structure.</p>
+
+<p class="figure">Figure: Theme structure</p>
+<p align="center"><img alt="Theme structure" src="../../../images/menu_skeleton.png" /></p>
+<p>The window, conformant, and layout are set by the <strong>Basic EDC UI Application</strong> template. You only need to set up the containers for the UI components and views.</p>
+
+<p>To define the application theme for the menus and views:</p>
+<ol>
+<li>
+<p>To define the main menu at the top of the screen, create the <span style="font-family: Courier New,Courier,monospace">menu/main</span> <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> part in the <span style="font-family: Courier New,Courier,monospace">.edc</span> file.</p>
+<p>This part has 2 descriptions, one for the real menu position at the top named <span style="font-family: Courier New,Courier,monospace">up</span>, and another that is placed out of the screen as the default position.</p>
+ <pre class="prettyprint">
+part
+{
+&nbsp;&nbsp;&nbsp;name: &quot;menu/main&quot;;
+&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;up&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 0.01;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 0.18;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;}
+} /* End menu/main */
+</pre>
+</li>
+<li>
+<p>Create the <span style="font-family: Courier New,Courier,monospace">animation,menu_main</span> program to change the main menu state at the application start. The state is changed from <span style="font-family: Courier New,Courier,monospace">default</span> to <span style="font-family: Courier New,Courier,monospace">up</span>, and linearly moves the menu from its out-of-the-screen position to the top of the screen.</p>
+ <pre class="prettyprint">
+program
+{
+&nbsp;&nbsp;&nbsp;name: &quot;animation,menu_main&quot;;
+&nbsp;&nbsp;&nbsp;source: &quot;&quot;;
+&nbsp;&nbsp;&nbsp;signal: &quot;load&quot;;
+&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;up&quot; 1.0;
+&nbsp;&nbsp;&nbsp;target: &quot;menu/main&quot;;
+&nbsp;&nbsp;&nbsp;transition: LINEAR 0.5;
+} /* END animation,menu_main */
+</pre>
+</li>
+<li>
+<p>Create another <span style="font-family: Courier New,Courier,monospace">SWALLOW</span> part as a container for the views. This part also has 2 descriptions for animation purposes.</p>
+ <pre class="prettyprint">
+part
+{
+&nbsp;&nbsp;&nbsp;name: &quot;view/main&quot;;
+&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;up&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 1.1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.to: &quot;menu/main&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 255 0 255;
+&nbsp;&nbsp;&nbsp;}
+} /* END view/main */
+</pre>
+</li>
+<li>
+<p>Create the <span style="font-family: Courier New,Courier,monospace">animation,view_main</span> program to move the view along the main menu:</p>
+<pre class="prettyprint">
+program
+{
+&nbsp;&nbsp;&nbsp;name: &quot;animation,view_main&quot;;
+&nbsp;&nbsp;&nbsp;source: &quot;&quot;;
+&nbsp;&nbsp;&nbsp;signal: &quot;load&quot;;
+&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;up&quot; 1.0;
+&nbsp;&nbsp;&nbsp;target: &quot;view/main&quot;;
+&nbsp;&nbsp;&nbsp;transition: LINEAR 0.2;
+} /* END animation,view_main */
+</pre>
+</li>
+<li>
+<p>Create the <span style="font-family: Courier New,Courier,monospace">menu/side</span> side menu container. In the <span style="font-family: Courier New,Courier,monospace">default</span> state, the side menu is hidden, and in the <span style="font-family: Courier New,Courier,monospace">up</span> state, it is shown on the left of the screen.</p>
+<pre class="prettyprint">
+part
+{
+&nbsp;&nbsp;&nbsp;name: &quot;menu/side&quot;;
+&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: -0.3 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: -0.3 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 255 0 0 255;
+&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;up&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 0.01;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.3 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 255 0 0 255;
+&nbsp;&nbsp;&nbsp;}
+} /* END menu/side */
+</pre>
+</li>
+<li>
+<p>You can show the side menu by clicking the menu button.</p>
+<p>Create the <span style="font-family: Courier New,Courier,monospace">animation,menu_side</span> program to run the related animation. This program runs when it receives a <span style="font-family: Courier New,Courier,monospace">show,sidemenu</span> event from the <span style="font-family: Courier New,Courier,monospace">MenuButton</span> source, and changes the side menu state to <span style="font-family: Courier New,Courier,monospace">up</span>, making the menu visible.</p>
+<pre class="prettyprint">
+program
+{
+&nbsp;&nbsp;&nbsp;name: &quot;animation,menu_side&quot;;
+&nbsp;&nbsp;&nbsp;source: &quot;MenuButton&quot;;
+&nbsp;&nbsp;&nbsp;signal: &quot;show,sidemenu&quot;;
+&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;up&quot; 1.0;
+&nbsp;&nbsp;&nbsp;target: &quot;menu/side&quot;;
+&nbsp;&nbsp;&nbsp;transition: LINEAR 0.2;
+} /* END animation,menu_side */
+</pre>
+</li>
+<li>
+<p>You can hide the side menu with another menu button click.</p>
+<p>Create the <span style="font-family: Courier New,Courier,monospace">animation,menu_side,hide</span> program that starts when it receives a <span style="font-family: Courier New,Courier,monospace">hide,sidemenu</span> signal from the <span style="font-family: Courier New,Courier,monospace">MenuButton</span> source. It changes the side menu state back to <span style="font-family: Courier New,Courier,monospace">default</span>, hiding the menu.</p>
+ <pre class="prettyprint">
+program
+{
+&nbsp;&nbsp;&nbsp;name: &quot;animation,menu_side,hide&quot;;
+&nbsp;&nbsp;&nbsp;source: &quot;MenuButton&quot;;
+&nbsp;&nbsp;&nbsp;signal: &quot;hide,sidemenu&quot;;
+&nbsp;&nbsp;&nbsp;action: STATE_SET &quot;default&quot; 1.0;
+&nbsp;&nbsp;&nbsp;target: &quot;menu/side&quot;;
+&nbsp;&nbsp;&nbsp;transition: LINEAR 0.2;
+} /* END animation,menu_side,hide */
+</pre>
+</li>
+</ol>
+
+ <h2 id="basic_ui" name="basic_ui">Creating the Menu Bar and Views</h2>
+
+<p>The naviframe handles views, which in this example are implemented as box containers. For more information, see the <a href="ui_containers_n.htm">UI Containers</a> guide.</p>
+<p>The following figure shows the structure of the <span style="font-family: Courier New,Courier,monospace">view/main</span> container.</p>
+
+<p class="figure">Figure: Main view</p> 
+<p align="center"><img alt="Main view" src="../../../images/view_main.png" /></p>
+
+
+<p>To create the menu bar and views for the UI:</p>
+<ol>
+<li>
+<p>Create the naviframe with the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function and allocate the memory to handle the views of the application:</p>
+ <pre class="prettyprint">
+/* Memory allocation */
+ad-&gt;main_view = calloc(1, sizeof(mainview_s)); /* Allocate memory for the main view */
+ad-&gt;cal_view = calloc(1, sizeof(calview_s)); /* Allocate memory for the calendar view */
+ad-&gt;date_view = calloc(1, sizeof(dateview_s)); /* Allocate memory for the date view */
+ad-&gt;settings_view = calloc(1, sizeof(settview_s)); /* Allocate memory for the settings view */
+/* END of memory allocation */
+</pre>
+</li>
+<li>
+<p>Use the <span style="font-family: Courier New,Courier,monospace">app_terminate()</span> function to free the memory for the views and menus:</p>
+ <pre class="prettyprint">
+app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release all resources */
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;free(ad-&gt;menu);
+&nbsp;&nbsp;&nbsp;&nbsp;free(ad-&gt;sidemenu);
+&nbsp;&nbsp;&nbsp;&nbsp;free(ad-&gt;main_view);
+&nbsp;&nbsp;&nbsp;&nbsp;free(ad-&gt;cal_view);
+&nbsp;&nbsp;&nbsp;&nbsp;free(ad-&gt;settings_view);
+} /* END of app_terminate */
+</pre>
+</li>
+<li>
+<p>Create the main menu after most of the containers are created:</p>
+<ol type="a">
+<li>
+<p>Create a new <span style="font-family: Courier New,Courier,monospace">_build_main_menu()</span> function that takes <span style="font-family: Courier New,Courier,monospace">appdata_s</span> as a parameter. This function is called by the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function.</p>
+ <pre class="prettyprint">
+static void
+_build_main_menu(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Memory allocation for the main menu function */
+&nbsp;&nbsp;&nbsp;&nbsp;appmenu_s *menu = calloc(1, sizeof(appmenu_s));
+&nbsp;&nbsp;&nbsp;&nbsp;/* Put the main menu in the application data */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;menu = menu;
+</pre>
+</li>
+
+<li>
+<p>Create a toolbar with the <span style="font-family: Courier New,Courier,monospace">elm_toolbar_add()</span> function. This toolbar is a child of the main window. Set <span style="font-family: Courier New,Courier,monospace">ad-&gt;win</span> as its parameter.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create the main menu toolbar */
+&nbsp;&nbsp;&nbsp;&nbsp;menu-&gt;tb = elm_toolbar_add(ad-&gt;win);
+</pre>
+</li>
+<li>
+<p>Set up the behavior of the toolbar.</p>
+<p>The display mode is set by using the <span style="font-family: Courier New,Courier,monospace">elm_toolbar_shrink_mode_set()</span> function. The toolbar does not scroll under the <span style="font-family: Courier New,Courier,monospace">#ELM_TOOLBAR_SHRINK_NONE</span> mode, but it enforces a minimum size, so that all the items fit inside it. It does not scroll or show the items that do not fit under the <span style="font-family: Courier New,Courier,monospace">#ELM_TOOLBAR_SHRINK_HIDE</span> mode. Finally, it scrolls under the <span style="font-family: Courier New,Courier,monospace">#ELM_TOOLBAR_SHRINK_SCROLL</span> mode, and it creates a button to aggregate items which did not fit with the <span style="font-family: Courier New,Courier,monospace">#ELM_TOOLBAR_SHRINK_MENU</span> mode.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the &quot;Menu&quot; Toolbar properties */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_shrink_mode_set(menu-&gt;tb, ELM_TOOLBAR_SHRINK_NONE);
+</pre>
+<p>In this example, there is only a limited number of menu elements and the <span style="font-family: Courier New,Courier,monospace">ELM_TOOLBAR_SHRINK_NONE</span> mode is used.</p></li>
+<li>
+<p>Expand the transverse length of the item according to the transverse length of the toolbar, giving <span style="font-family: Courier New,Courier,monospace">EINA_TRUE</span> as second parameter of the <span style="font-family: Courier New,Courier,monospace">elm_toolbar_transverse_expanded_set()</span> function.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_transverse_expanded_set(menu-&gt;tb, EINA_TRUE);
+</pre>
+</li>
+<li>
+<p>Make the menu items have the same size by setting <span style="font-family: Courier New,Courier,monospace">EINA_TRUE</span> to the <span style="font-family: Courier New,Courier,monospace">elm_toolbar_homogeneous_set()</span> function. This activates the homogeneous mode of the toolbar.</p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_homogeneous_set(menu-&gt;tb, EINA_FALSE);
+</pre>
+</li>
+<li>
+<p>Add menu items to the toolbar using the <span style="font-family: Courier New,Courier,monospace">elm_toolbar_item_append()</span> functions. It takes 5 parameters:</p>
+<ul>
+<li>Target toolbar</li>
+<li>Icon path for the menu item</li>
+<li>Item label (also used in the callback function)</li>
+<li>Function to call when the item is clicked</li>
+<li>Data to associate with the item for related callbacks.</li>
+</ul>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add menu items to the main menu toolbar */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(menu-&gt;tb, ICON_DIR&quot;/home.png&quot;, &quot;Home&quot;, _menu_item_selected_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(menu-&gt;tb, ICON_DIR&quot;/calendar.png&quot;, &quot;Calendar&quot;, _menu_item_selected_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(menu-&gt;tb, ICON_DIR&quot;/clock.png&quot;, &quot;Date&quot;, _menu_item_selected_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(menu-&gt;tb, ICON_DIR&quot;/settings.png&quot;, &quot;Settings&quot;, _menu_item_selected_cb, ad);
+</pre>
+<p>For the icons, add some images in the <span style="font-family: Courier New,Courier,monospace">res/images</span>  application resource directory, and define a macro to contain this path in the application <span style="font-family: Courier New,Courier,monospace">.h</span> file. In this example, it is <span style="font-family: Courier New,Courier,monospace">inc/menututorial.h</span>.</p>
+<p>Use the <span style="font-family: Courier New,Courier,monospace">PACKAGE</span> macro to setup this <span style="font-family: Courier New,Courier,monospace">ICON_DIR</span> macro. This way you can add items to the toolbar using icon images placed in the resource directory of the application.</p>
+
+<pre class="prettyprint">
+#define ICON_DIR &quot;/opt/usr/apps/&quot;PACKAGE&quot;/res/images&quot;
+</pre>
+</li>
+<li>Show the toolbar and add the UI component to the main menu container:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show the UI component */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(menu-&gt;tb);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add the UI component to the &quot;menu/main&quot; SWALLOW container */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad-&gt;layout, &quot;menu/main&quot;, menu-&gt;tb);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the default view */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_selected_set(elm_toolbar_first_item_get(menu-&gt;tb), EINA_TRUE);
+}
+</pre>
+</li></ol>
+</li>
+<li>
+<p>Enable switching between views based on the menu item selection.</p>
+
+<p>When a menu item is selected, the <span style="font-family: Courier New,Courier,monospace">_menu_item_selected_cb()</span> callback is triggered. In this example, this same callback is used for all menu items. However, you can also create a separate callback for each item.</p> 
+
+<p>The callback must follow the <span style="font-family: Courier New,Courier,monospace">Evas_Smart_Cb</span> prototype that takes the application data, Evas Object, and event info as parameters. </p>
+
+<p>In this example, the callback creates the requested view by recovering the calling object text to call the correct view creation function. The available views are Calendar, Date, Settings, and Home (main view). The view names are stored as the menu item labels, to be able to compare the returned string with the view names. When the name matches, the view is built by calling the correct function. Store the view in the application data and set up a new content to the naviframe before exiting.</p>
+
+<p>The naviframe component destroys its content on each call of the <span style="font-family: Courier New,Courier,monospace">elm_object_content_set()</span> function. That is why the content must be built again on each item click.</p>
+<pre class="prettyprint">
+it = ev;
+
+/* Get the menu item text */
+str = elm_object_item_text_get(it);
+
+/* Compare with the possible view names */
+if (!strcmp(str, &quot;Calendar&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Build the &quot;Calendar View&quot; */
+&nbsp;&nbsp;&nbsp;&nbsp;_build_calendar_view(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the view from the application data */
+&nbsp;&nbsp;&nbsp;&nbsp;view = ad-&gt;cal_view-&gt;box;
+} else if (!strcmp(str, &quot;Date&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Build the &quot;Date View&quot; */
+&nbsp;&nbsp;&nbsp;&nbsp;_build_date_view(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the view from the application data */
+&nbsp;&nbsp;&nbsp;&nbsp;view = ad-&gt;date_view-&gt;box;
+} else if (!strcmp(str, &quot;Home&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Build the &quot;Home or main View&quot; */
+&nbsp;&nbsp;&nbsp;&nbsp;_build_main_view(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the view from the application data */
+&nbsp;&nbsp;&nbsp;&nbsp;view = ad-&gt;main_view-&gt;box;
+} else if (!strcmp(str, &quot;Settings&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Build the &quot;Settings&quot; view */
+&nbsp;&nbsp;&nbsp;&nbsp;_build_settings_view(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the view from the application data */
+&nbsp;&nbsp;&nbsp;&nbsp;view = ad-&gt;settings_view-&gt;box;
+} else if (!strcmp(str, &quot;Clock&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Build the &quot;Date View&quot; */
+&nbsp;&nbsp;&nbsp;&nbsp;_build_date_view(ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the view from the application data */
+&nbsp;&nbsp;&nbsp;&nbsp;view = ad-&gt;date_view-&gt;box;
+}
+
+/* Show the view in the naviframe */
+elm_object_content_set(ad-&gt;nf, view);
+</pre>
+</li>
+<li>
+<p>Define the functions which create the views. Each function creates a view and stores it in the application data.</p>
+ <pre class="prettyprint">
+static void
+_build_main_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;mainview_s *view = ad-&gt;main_view;
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[PATH_MAX];
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Main box */
+&nbsp;&nbsp;&nbsp;&nbsp;view-&gt;box = elm_box_add(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_horizontal_set(view-&gt;box, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_homogeneous_set(view-&gt;box, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;view-&gt;colorselector = elm_colorselector_add(view-&gt;box);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_colorselector_mode_set(view-&gt;colorselector, ELM_COLORSELECTOR_PALETTE);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_start(view-&gt;box, view-&gt;colorselector);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(view-&gt;colorselector);
+
+&nbsp;&nbsp;&nbsp;&nbsp;view-&gt;img = elm_image_add(view-&gt;box);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(view-&gt;img, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(view-&gt;img, 0.5, 0.5);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_min_set(view-&gt;img, 256, 256);
+&nbsp;&nbsp;&nbsp;&nbsp;snprintf(buf, sizeof(buf), &quot;%s/%s&quot;, ICON_DIR, &quot;tizen-logo.png&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;if (!elm_image_file_set(view-&gt;img, buf, NULL))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(view-&gt;lb_day, &quot;Problem loading image&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_start(view-&gt;box, view-&gt;img);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(view-&gt;img);
+
+&nbsp;&nbsp;&nbsp;&nbsp;view-&gt;lb_day = elm_label_add(view-&gt;box);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(view-&gt;lb_day, &quot;Main view&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(view-&gt;lb_day, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(view-&gt;box, view-&gt;lb_day);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(view-&gt;lb_day);
+}
+
+static void
+_build_calendar_view(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;calview_s *view = ad-&gt;cal_view;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Main box image = elm_image_add(win); */
+
+&nbsp;&nbsp;&nbsp;&nbsp;view-&gt;box = elm_box_add(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_horizontal_set(view-&gt;box, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_homogeneous_set(view-&gt;box, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;view-&gt;calendar = elm_image_add(ad-&gt;nf);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(view-&gt;calendar, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(view-&gt;calendar, 0.5, 0.5);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_min_set(view-&gt;calendar, 256, 256);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_image_file_set(view-&gt;calendar, ICON_DIR&quot;/calendar.png&quot;, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_start(view-&gt;box, view-&gt;calendar);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(view-&gt;calendar);
+
+&nbsp;&nbsp;&nbsp;&nbsp;view-&gt;lb_cal = elm_label_add(view-&gt;box);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(view-&gt;lb_cal, &quot;The calendar view&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(view-&gt;lb_cal, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(view-&gt;box, view-&gt;lb_cal);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(view-&gt;lb_cal);
+} /* End of_build_calendar_view */
+</pre>
+
+</li>
+</ol>
+
+ <h2 id="hidden_menu" name="hidden_menu">Creating a Hidden Menu</h2>
+
+<p>To create a hidden menu:</p>
+<ol>
+<li>
+<p>Define the <span style="font-family: Courier New,Courier,monospace">_build_side_menu()</span> function to create the side menu toolbar and add some items to it. This function takes the application data as parameter and stores the built menu in the <span style="font-family: Courier New,Courier,monospace">sidemenu</span> attribute of the structure.</p>
+ <pre class="prettyprint">
+static void 
+_build_side_menu(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appmenu_s *sidemenu = calloc(1, sizeof(appmenu_s));
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;sidemenu = sidemenu;
+
+&nbsp;&nbsp;&nbsp;&nbsp;sidemenu-&gt;tb = elm_toolbar_add(ad-&gt;win);
+
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_shrink_mode_set(sidemenu-&gt;tb, ELM_TOOLBAR_SHRINK_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_transverse_expanded_set(sidemenu-&gt;tb, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(sidemenu-&gt;tb, ICON_DIR&quot;/home.png&quot;, &quot;Home&quot;, _menu_item_selected_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(sidemenu-&gt;tb, ICON_DIR&quot;/account.png&quot;, &quot;Account&quot;, NULL, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(sidemenu-&gt;tb, ICON_DIR&quot;/contacts.png&quot;, &quot;Friends&quot;, NULL, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_append(sidemenu-&gt;tb, ICON_DIR&quot;/clock.png&quot;, &quot;Clock&quot;, _menu_item_selected_cb, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_homogeneous_set(sidemenu-&gt;tb, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(sidemenu-&gt;tb);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad-&gt;layout, &quot;menu/side&quot;, sidemenu-&gt;tb);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_horizontal_set(sidemenu-&gt;tb, EINA_FALSE);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_toolbar_item_selected_set(elm_toolbar_first_item_get(sidemenu-&gt;tb), EINA_TRUE);
+}
+</pre>
+<p>The side menu is created, but hidden by default. To make it appear, the menu (<strong>Home</strong>) button must be clicked.</p>
+</li>
+<li>
+<p>Create the hidden menu functionality.</p>
+<p>By default, the <strong>Basic EDC UI Application</strong> template creates a <span style="font-family: Courier New,Courier,monospace">keydown_cb()</span> function to handle the key down events. In the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function, an <span style="font-family: Courier New,Courier,monospace">ecore_event_handler_add()</span> function is called with the <span style="font-family: Courier New,Courier,monospace">ECORE_EVENT_KEY_DOWN</span> macro and with the <span style="font-family: Courier New,Courier,monospace">keydown_cb()</span> function as a callback. In this callback, the <span style="font-family: Courier New,Courier,monospace">KEY_END</span> event puts the window in the lower state.</p>
+ <pre class="prettyprint">
+keydown_cb(void *data, int type, void *event)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;Ecore_Event_Key *ev = event;
+&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(ev-&gt;keyname, KEY_END)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Let window go to hidden state */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_lower(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_DONE;
+}
+</pre>
+</li>
+<li>
+<p>Add the menu button key press handling to the <span style="font-family: Courier New,Courier,monospace">keydown_cb()</span> callback. The key name of the menu button is <span style="font-family: Courier New,Courier,monospace">XF86Send</span>. The menu is shown on the first press and hidden on the second press. Use <span style="font-family: Courier New,Courier,monospace">Eina_Bool sdmenu_up</span> on the application data to store the menu status during the application execution. If <span style="font-family: Courier New,Courier,monospace">ad-&gt;sdmenu_up</span> is <span style="font-family: Courier New,Courier,monospace">EINA_TRUE</span>, the menu is visible.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">animation,menu_side</span> program is defined in the <span style="font-family: Courier New,Courier,monospace">.edc</span> theme file. This program is run when the <span style="font-family: Courier New,Courier,monospace">show,sidemenu</span> signal is received from the <span style="font-family: Courier New,Courier,monospace">MenuButton</span> source. In addition, the program that hides the side menu is defined and is called <span style="font-family: Courier New,Courier,monospace">animation,menu_side,hide</span>, starting on the <span style="font-family: Courier New,Courier,monospace">hide,sidemenu</span> signal.</p>
+
+<p>Test the side menu status by sending the signals using the <span style="font-family: Courier New,Courier,monospace">elm_object_signal_emit()</span> function.</p>
+ <pre class="prettyprint">
+if (!strcmp(ev-&gt;keyname, &quot;XF86Send&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;if (ad-&gt;sdmenu_up == EINA_TRUE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If the menu is visible send a &quot;hide,sidemenu&quot; signal */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_object_signal_emit(ad-&gt;layout, &quot;hide,sidemenu&quot;, &quot;MenuButton&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Store the new menu status (hidden) */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;sdmenu_up = EINA_FALSE;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+<p>Now the menu appears and disappears when the menu button is pressed.</p>
+</li>
+<li>
+<p>When the user clicks the first side menu button (<strong>Home</strong>), the menu disappears:</p>
+ <pre class="prettyprint">
+/* Hide the side menu if it&#39;s visible */
+if (ad-&gt;sdmenu_up == EINA_TRUE) {
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_signal_emit(ad-&gt;layout, &quot;hide,sidemenu&quot;, &quot;MenuButton&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;sdmenu_up = EINA_FALSE;
+}
+</pre>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>	
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
