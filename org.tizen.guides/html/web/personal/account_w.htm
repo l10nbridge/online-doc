@@ -1,0 +1,329 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+    <title>Account Management</title>
+</head>
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile Web" src="../../images/mobile_s_w.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+		</ul>
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
+            <li><a href="#get_account">Retrieving Accounts</a></li>
+            <li><a href="#get_providers">Retrieving Providers</a></li>
+            <li><a href="#manage">Managing Accounts</a></li>
+            <li><a href="#listener">Receiving Notifications on Account Changes</a></li>
+            <li><a href="#extend">Managing Extended Account Data</a></li>			
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/account.html">Account API for Mobile Web</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+
+  <h1>Account Management</h1>
+
+<p>You can access user accounts and account providers. After getting a specific account, you can manage it, retrieve account information, and monitor changes in it. You can use existing configured on-line accounts and providers, and create new accounts of known types.</p>
+  
+<p>This feature is supported in mobile applications only.</p>
+
+<p>The basic account management concepts are:</p>
+<ul><li>Provider
+<p>An on-line service provider entity, such as Google, Vodafone, or Facebook. A service provider is identified by its application ID. The account provider is registered while the application is installed. The information is used in the <strong>Add account</strong> screen in the device settings.</p></li>
+<li>Account
+<p>An entity that collects all the data (such as user name, credentials, settings) needed for connecting to services. An account is always bound to a single provider and has a list of service instances bound to the account. The services can be individually enabled and disabled on the given account. For instance, &quot;Laccount1@gmail.com&quot; can identify a Google account, giving access to services, such as gmail, gtalk, Picasa, and Youtube, with each service having a separate service instance bound to the account.</p>
+</li></ul>
+
+<p>Some of the account management features can be invoked only in account provider applications. Such applications have a specially prepared <span style="font-family: Courier New,Courier,monospace">config.xml</span> file with an account provider section: </p>
+
+<pre class="prettyprint">
+&lt;tizen:account multiple-account-support=&quot;true&quot;&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:icon section=&quot;Account&quot;&gt;icon.png&lt;/tizen:icon&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:icon section=&quot;AccountSmall&quot;&gt;icon.png&lt;/tizen:icon&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:display-name xml:lang=&quot;en-gb&quot;&gt;Test&lt;/tizen:display-name&gt;
+&nbsp;&nbsp;&nbsp;&lt;tizen:capability&gt;http://tizen.org/account/capability/contact&lt;/tizen:capability&gt;
+&lt;/tizen:account&gt;</pre>
+
+<p>If the application is registered as a provider, it is launched to authenticate the account. You must implement the appcontrol for the account provider. The following methods are available only in an account provider application: <span style="font-family: Courier New,Courier,monospace">add()</span>, <span style="font-family: Courier New,Courier,monospace">remove()</span>, and <span style="font-family: Courier New,Courier,monospace">update()</span>.</p>
+
+<p>The main features of the Account API include:</p>
+
+<ul>
+
+<li>Accessing accounts
+<p>You can <a href="#get_account">get a specific account or all available accounts</a>.</p></li>
+
+<li>Accessing account providers
+<p>You can <a href="#get_providers">get a specific provider or all available providers</a>.</p></li>
+
+<li>Managing accounts
+<p>You can <a href="#manage">add, update, and remove accounts</a>.</p></li>
+
+<li>Monitoring account changes
+<p>You can <a href="#listener">register a listener</a> and track changes in the account database.</p></li>
+
+<li>Managing extended data
+<p>You can <a href="#extend">set and get extended data</a> for an account. The extended data is defined as key-value pairs.</p></li>
+
+</ul>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the account functionality</a>.</p>
+
+<p>The account provider application declares the account capabilities. The capability name is decided by the author of the account provider application, and must have an IRI form. For example:    </p>
+<ul><li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/account/capability/contact</span> is used when the account is related to contacts.</li>
+<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/account/capability/calendar</span> is used when the account is related to the calendar.
+</li></ul>
+
+<p>To check whether this API is supported, use the <span style="font-family: Courier New,Courier,monospace">tizen.systeminfo.getCapability()</span> method and enable or disable code that needs this API, as needed. To guarantee that the account application runs on a device with the account feature, declare the <span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/account</span> feature requirement in the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file.</p>
+
+
+
+<h2>Warm-up</h2>
+<p>Become familiar with the Account API basics by learning about:</p>
+<ul>
+<li><a href="#prerequisites">Prerequisites</a> 
+<p>Prepare your application to use the account management functionality.</p></li>
+<li><a href="#get_account">Retrieving Accounts</a>
+<p>Get all accounts or one with a specific ID.</p>
+</li>
+<li><a href="#get_providers">Retrieving Providers</a>
+<p>Get the account provider belonging to current application or get all account providers.</p>
+</li>
+<li><a href="#manage">Managing Accounts</a>
+<p>Add, update, and remove an account.</p>
+</li>
+<li><a href="#listener">Receiving Notifications on Account Changes</a>
+<p>Register and remove an account change listener.</p>
+</li>
+<li><a href="#extend">Managing Extended Account Data</a>
+<p>Get and set extended data for an account.</p>
+</li>
+</ul>
+
+	<h2 id="prerequisites">Prerequisites</h2>
+	
+<p>To use the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/account.html">Account</a> API, the application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;tizen:privilege name=&quot;http://tizen.org/privilege/account.read&quot;/&gt;
+&lt;tizen:privilege name=&quot;http://tizen.org/privilege/account.write&quot;/&gt;
+</pre>
+
+                <h2 id="get_account" name="get_account">Retrieving Accounts</h2>
+				
+
+<p>Learning how to retrieve account information enables you to include account support into your applications:</p>
+
+<ul>
+<li>To retrieve information about all available accounts, use the <span style="font-family: Courier New,Courier,monospace">getAccounts()</span> method of the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/account.html#AccountManager">AccountManager</a> interface:
+
+<pre class="prettyprint">function getAccountsSuccess(accounts)
+{
+&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; accounts.length; i++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Use the retrieved accounts */
+&nbsp;&nbsp;&nbsp;}
+}
+function getAccountsError(error)
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;Error: &#39; + error.message);
+}
+tizen.account.getAccounts(getAccountsSuccess, getAccountsError);</pre>
+</li>
+
+<li>If you already know the ID of the account, you can get the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/account.html#Account">Account</a> object using the <span style="font-family: Courier New,Courier,monospace">getAccount()</span> method of the <span style="font-family: Courier New,Courier,monospace">AccountManager</span> interface:
+
+<pre class="prettyprint">var account = tizen.account.getAccount(my_account_id);</pre>
+</li>
+</ul>
+         
+                <h2 id="get_providers" name="get_providers">Retrieving Providers</h2>
+
+<p>To create accounts, you must learn how to get access to account providers:</p>
+
+<ul>
+<li>Get a specific account provider with the given application ID using the <span style="font-family: Courier New,Courier,monospace">getProviders()</span> method of the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/application.html#ApplicationManager">ApplicationManager</a> interface.
+<p>If the current application is an account provider application (meaning that it contains the <a href="../../../../org.tizen.devtools/html/web_tools/config_editor_w.htm#mw_account">&lt;tizen:account&gt;</a> element in its <span style="font-family: Courier New,Courier,monospace">config.xml</span> file), you can use the current application ID.  Otherwise, get the ID of the current application using the <span style="font-family: Courier New,Courier,monospace">getCurrentApplication()</span> method of the <span style="font-family: Courier New,Courier,monospace">ApplicationManager</span> interface:</p>
+
+<pre class="prettyprint">var appId = tizen.application.getCurrentApplication().appInfo.id;
+var provider = tizen.account.getProvider(appId);</pre>
+</li>
+<li>To get information about all available account providers, use the <span style="font-family: Courier New,Courier,monospace">getProviders()</span> method of the <span style="font-family: Courier New,Courier,monospace">AccountManager</span> interface:
+
+<pre class="prettyprint">function getProvidersSuccess(providers)
+{
+&nbsp;&nbsp;&nbsp;/* Providers is an array whose members are providers with contact capability */
+}
+function getProvidersError(error)
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;Error: &#39; + error.message);
+}
+
+tizen.account.getProviders(getProvidersSuccess, getProvidersError, &quot;http://tizen.org/account/capability/contact&quot;);</pre>
+</li>
+</ul>
+           
+                <h2 id="manage" name="manage">Managing Accounts</h2>
+
+<p>Creating, adding, updating, and deleting accounts is a basic account management skill:</p>
+
+<table class="note">
+   <tbody>
+    <tr>
+     <th class="note">Note</th>
+    </tr>
+    <tr>
+     <td class="note">To perform these operations, your application must be the account provider.</td>
+    </tr>
+   </tbody>
+</table>
+
+<ol>
+<li>To create an account, first get an account provider. If your application is an account provider application (meaning that it contains the <a href="../../../../org.tizen.devtools/html/web_tools/config_editor_w.htm#mw_account">&lt;tizen:account&gt;</a> element in its <span style="font-family: Courier New,Courier,monospace">config.xml</span> file), use the <span style="font-family: Courier New,Courier,monospace">getProvider()</span> method:
+
+<pre class="prettyprint">var appId = tizen.application.getCurrentApplication().appInfo.id;
+var accountProvider = tizen.account.getProvider(appId);</pre>
+</li>
+<li>Create an instance of the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/account.html#Account">Account</a> interface:
+
+<pre class="prettyprint">var account = new tizen.Account(accountProvider, {userName: &#39;admin&#39;, iconUri: &#39;path/to/icon.jpg&#39;});</pre>
+</li>
+<li>Add the account to the account database:
+
+<pre class="prettyprint">tizen.account.add(account);</pre>
+</li>
+<li>To update the account information, change the attributes of the <span style="font-family: Courier New,Courier,monospace">Account</span> object for the relevant account:
+
+<pre class="prettyprint">account.userName = &#39;new username&#39;;</pre>
+</li>
+<li>To save the changed values, use the <span style="font-family: Courier New,Courier,monospace">update()</span> method of the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/account.html#AccountManager">AccountManager</a> interface:
+
+<pre class="prettyprint">tizen.account.update(account);</pre>
+</li>
+
+<li>To remove the account from the system, use the <span style="font-family: Courier New,Courier,monospace">remove()</span> method of  the <span style="font-family: Courier New,Courier,monospace">AccountManager</span> interface, providing the account ID:
+
+<pre class="prettyprint">tizen.account.remove(account.id);</pre>
+</li>
+</ol>
+           
+                <h2 id="listener" name="listener">Receiving Notifications on Account Changes</h2>
+
+<p>Learning how to register change listeners enables you to synchronize the view of your application with the changes in the account database:</p>
+
+<ol>
+<li>Define a listener implementing the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/account.html#AccountChangeCallback">AccountChangeCallback</a> interface:
+
+<pre class="prettyprint">var accountChangeListener =
+{
+&nbsp;&nbsp;&nbsp;onadded: function(account)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Called when an account is added */
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;onremoved: function(accountId)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Called when an account is removed */
+&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;onupdated: function(account)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Called when a registered account is changed */
+&nbsp;&nbsp;&nbsp;}
+};</pre>
+</li>
+<li>Register the account listener using the <span style="font-family: Courier New,Courier,monospace">addAccountListener()</span> method of the <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/account.html#AccountManager">AccountManager</a> interface to start receiving notifications about changes:
+
+<pre class="prettyprint">var watchId = tizen.account.addAccountListener(accountChangeListener);</pre>
+</li>
+<li>When notifications are no longer required, deregister the listener using the <span style="font-family: Courier New,Courier,monospace">removeAccountListener()</span> method of the <span style="font-family: Courier New,Courier,monospace">AccountManager</span> interface:
+
+<pre class="prettyprint">tizen.account.removeAccountListener(watchId);</pre>
+</li>
+</ol>
+                <h2 id="extend" name="extend">Managing Extended Account Data</h2>
+
+<p>Learning how to manage extended data for an account enables you to include account support into your applications:</p>
+
+<ol>
+<li><a href="#get_account">Retrieve the account object</a>.</li>
+<li>Manage the extended data for the retrieved account:
+<ul><li>To set extended data:
+<p>Set the additional information with the <span style="font-family: Courier New,Courier,monospace">setExtendedData()</span> method:</p>
+
+<pre class="prettyprint">var key = &#39;nickname&#39;;
+var value = &#39;nickname of anonymous user&#39;;
+account.setExtendedData(key, value);</pre>
+
+<p>To overwrite the previous data value, set a new value with the same key:</p>
+
+<pre class="prettyprint">account.setExtendedData(key, &#39;nickname updated&#39;);</pre>
+</li>
+
+<li>To get extended data:
+<ul><li>To retrieve extended data value for a specific key, use the <span style="font-family: Courier New,Courier,monospace">getExtendedData()</span> method:
+
+<pre class="prettyprint">var key = &#39;accessToken&#39;;
+var value = account.getExtendedData(key); </pre>
+
+</li>
+<li>To retrieve all extended data for an account, use the asynchronous version of the <span style="font-family: Courier New,Courier,monospace">getExtendedData()</span> method. The success callback contains an array of the extended data key-value pairs.
+
+<pre class="prettyprint">account.getExtendedData(function(extendedData)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; extendedData.length; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var key = extendedData.key;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var value = extendedData.value;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(key + &quot; : &quot; + value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;function(e)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Error: &quot; + e.message);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});</pre>
+
+</li></ul></li></ul></li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

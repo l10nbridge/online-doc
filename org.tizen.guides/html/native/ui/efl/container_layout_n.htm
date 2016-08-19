@@ -1,0 +1,256 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Layout</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../../images/wearable_s_n.png"/></p>
+
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+			<ul class="toc">
+				<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
+				<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Elementary.html">Elementary API for Mobile Native</a></li>
+				<li><a href="../../../../../org.tizen.native.wearable.apireference/group__Edje__Group.html">Edje API for Wearable Native</a></li>
+				<li><a href="../../../../../org.tizen.native.wearable.apireference/group__Elementary.html">Elementary API for Wearable Native</a></li>	
+			</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Layout</h1>
+
+<p>The layout container enables you to define a look and feel of the UI with animation and basic event response by using an Edje design file. For more information, see the Layout API (in <a href="../../../../../org.tizen.native.mobile.apireference/group__Layout.html">mobile</a> and <a href="../../../../../org.tizen.native.wearable.apireference/group__Layout.html">wearable</a> applications).</p>
+
+<p>EDC (Edje data collection) is a script language provided by Edje, which is a library in charge of the high-level layouting in EFL. An EDC file describes how the elements of the UI are positioned. An EDC file has an extension <span style="font-family: Courier New,Courier,monospace;">.edc</span>. For more information on the syntax of EDC, see <a href="learn_edc_intro_n.htm">Layouting with EDC</a>.</p>
+ 
+<p class="figure">Figure: EDC file behavior</p>
+<p align="center"><img alt="EDC file behavior" src="../../../images/edj.png" /></p>
+ 
+<h2 id="basic">Basic Usage</h2>
+ 
+<p>You can customize a layout by writing an EDC file, or use a predefined, frequently used layouts provided by Tizen.</p>
+
+<h3>Customized Layout</h3>
+
+<p>Unlike when using other UI containers, you must write C code and an EDC script to customize a layout using a layout component. You need to create a project for a basic EDC UI application.</p>
+<ol>
+   <li>Create an EDC file in the <span style="font-family: Courier New,Courier,monospace">/res/edje/</span> directory and define a layout in the EDC file.
+<pre class="prettyprint">
+collections {
+&nbsp;&nbsp;&nbsp;group {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;main&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+<p>If you add an <span style="font-family: Courier New,Courier,monospace">example.edc</span> file, the SDK calls Edje tools automatically to build the final <span style="font-family: Courier New,Courier,monospace">example.edj</span> file when building the project. The EDJ file is installed in the application data path.</p>
+   </li>
+   <li>In the C code, add a layout with the <span style="font-family: Courier New,Courier,monospace">elm_layout_add()</span> function:
+<pre class="prettyprint">
+Evas_Object *layout;
+
+layout = elm_layout_add(parent);
+</pre>
+   </li>
+   <li>Load the EDJ file with the <span style="font-family: Courier New,Courier,monospace;">elm_layout_file_set()</span> function.
+   <p>You can get the full path of where the EDJ file is installed using the <span style="font-family: Courier New,Courier,monospace">app_get_resource()</span> function.</p>
+<pre class="prettyprint">
+char edj_path[128] = {0,};
+
+app_get_resource(&quot;/edje/example.edj&quot;, edj_path, 128);
+elm_layout_file_set(layout, edj_path, &quot;main&quot;);
+</pre>
+   </li>
+   <li>Set objects or texts to the layout with the <span style="font-family: Courier New,Courier,monospace">elm_object_part_content_set()</span> or <span style="font-family: Courier New,Courier,monospace">elm_object_part_text_set()</span> function.</li>
+   <li>Elementary can send Edje signals to the EDC part using the <span style="font-family: Courier New,Courier,monospace;">elm_layout_signal_emit()</span> function. You can also use the <span style="font-family: Courier New,Courier,monospace;">elm_layout_signal_callback_add()</span> function to receive signals.
+   <p>Use the following code to listen to any signals sent by the layout:</p>
+<pre class="prettyprint">
+elm_layout_signal_callback_add(layout, &quot;*&quot;, &quot;*&quot;, _signal_cb, NULL);
+
+static void
+_signal_cb(void *data, Evas_Object *obj, const char *emission, const char *source)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;Info received from layout: %s %s\n&quot;, emission, source);
+}
+</pre>
+   </li>
+</ol>
+
+<p>The following example shows a simple use case of the layout component, with a simple EDC script in the <span style="font-family: Courier New,Courier,monospace;">example.edc</span> file and a connection from the resulted EDJ file to the C code.</p>
+
+<table border="0">
+   <caption>Example: Layout use case</caption> 
+   <tbody>
+      <tr>
+         <td>
+<pre class="prettyprint">
+/* EDC file */
+
+collections {
+&nbsp;&nbsp;&nbsp;base_scale: 1.0;
+&nbsp;&nbsp;&nbsp;group {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;main&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;parts {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;text&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: TEXT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;effect: FAR_SOFT_SHADOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 136 170 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color2: 0 136 170 50;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color3: 0 136 170 25;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 25;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;font: &quot;Sans&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text: &quot;Layout Example&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;content&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.5 0.6;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.5 0.6;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 200 100;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+
+/* C code file */
+
+Evas_Object *win;
+Evas_Object *conf;
+Evas_Object *nf;
+Evas_Object *layout;
+Evas_Object *button;
+char edj_path[128] = {0,};
+
+/* Starting right after the conformant in <a href="ui_layouts_n.htm#code">the basic EFL UI layout code</a> */
+/* (win - conformant) */
+
+layout = elm_layout_add(nf);
+app_get_resource(&quot;edje/example.edj&quot;, edj_path, 128);
+elm_layout_file_set(layout, edj_path, &quot;main&quot;);
+evas_object_size_hint_weight_set(layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+eext_object_event_callback_add(layout, EEXT_CALLBACK_BACK, layout_back_cb, ad);
+
+button = elm_button_add(layout);
+elm_object_text_set(button, &quot;Button1&quot;);
+elm_layout_content_set(layout, &quot;content&quot;, button);
+evas_object_show(button);
+
+elm_naviframe_item_push(nf, &quot;Layout&quot;, NULL, NULL, layout, NULL);
+</pre>
+         </td>
+         <td>
+            <p align="center"><img alt="Layout" src="../../../images/layout.png" /></p>
+         </td>
+      </tr>
+   </tbody>
+</table>
+ 
+<h3 id="theme" name="theme">Predefined Layout</h3>
+
+<p>You can skip the first step (writing an EDC script) and set a theme to the layout with the <span style="font-family: Courier New,Courier,monospace">elm_layout_theme_set()</span> function instead of the <span style="font-family: Courier New,Courier,monospace">elm_layout_file_set()</span> function.</p>
+
+
+<p>The following predefined themes are available in the mobile profile:</p>
+ 
+<ul>
+   <li><span style="font-family: Courier New,Courier,monospace">application/default</span>: This layout can be used to display content inside a window.
+<pre class="prettyprint">
+elm_layout_theme_set(layout, &quot;layout&quot;, &quot;application&quot;, &quot;default&quot;);
+elm_object_part_content_set(ly, &quot;elm.swallow.content&quot;, view);
+</pre>
+   </li>
+   <li><span style="font-family: Courier New,Courier,monospace">drawer/panel</span>: This layout can be used to display 2 different views: a background and a main content.
+<pre class="prettyprint">
+elm_layout_theme_set(ly, &quot;layout&quot;, &quot;drawer&quot;, &quot;panel&quot;);
+elm_object_part_content_set(ly, &quot;elm.swallow.content&quot;, main_view);
+elm_object_part_content_set(ly, &quot;elm.swallow.background&quot;, background);
+</pre>
+   </li>
+   <li><span style="font-family: Courier New,Courier,monospace">nocontents/default</span>: This layout can be used when there is no content to display, such as in a contact or email list.
+   <p>You can only set texts. There are 2 different texts zones: <span style="font-family: Courier New,Courier,monospace">elm.text</span> and <span style="font-family: Courier New,Courier,monospace">elm.help.text</span>. To change the text:</p>
+<pre class="prettyprint">
+elm_layout_theme_set(ly, &quot;layout&quot;, &quot;nocontents&quot;, &quot;default&quot;);
+elm_object_part_text_set(ly, &quot;elm.text&quot;, &quot;Hi All :)&quot;);
+elm_object_part_text_set(ly, &quot;elm.help.text&quot;, &quot;Hi All :)&quot;);
+</pre>
+   </li>
+</ul>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.</td>
+        </tr>
+    </tbody>
+</table> 
+
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div> 
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

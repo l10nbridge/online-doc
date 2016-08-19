@@ -1,0 +1,898 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Genlist</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../../images/mobile_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#basic">Basic Usage</a></li>
+			<li><a href="#option">Options</a></li>
+			<li><a href="#style">Styles</a></li>
+			<li><a href="#callback">Callbacks</a></li>
+		</ul>
+			<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Elementary.html">Elementary API for Mobile Native</a></li>			
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Genlist</h1>
+
+
+<p>The genlist UI component displays a scrollable list of items. It allows you to manage a lot of items while still being fast and having a low memory footprint, as only visible items are allocated in the memory. For more information, see the <a href="../../../../../org.tizen.native.mobile.apireference/group__Genlist.html">Genlist</a> API.</p>
+<p>This feature is supported in mobile applications only.</p>
+<p>To save up memory and speed up processing when many items exist, genlist has the concept of &quot;realization&quot; when managing items. It means that a genlist item creates its text and content when the user scrolls the list and the item shows up on the display (realize), and frees them when the item is scrolled out of the screen (unrealize). Since item realization is dynamic, you cannot set content in advance. You need to fill the item in the form of a callback function. That is the key point of using a genlist component.</p>
+
+
+<h2 id="basic">Basic Usage</h2>
+
+<p>To use a genlist component in your application:</p>
+<ol>
+<li>Add a genlist with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_add()</span> function:
+<pre class="prettyprint">
+Evas_Object *genlist;
+
+genlist = elm_genlist_add(parent);
+</pre>
+</li>
+<li>Define the genlist item class:
+<ol>
+<li>Create a genlist item class with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_class_new()</span> function, set a style to the item class, and register callback functions. The genlist item class must be freed manually with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_class_free()</span> function after all items are appended.
+<pre class="prettyprint">
+Elm_Genlist_Item_Class *itc = elm_genlist_item_class_new();
+
+itc-&gt;item_style = &quot;default&quot;; 
+itc-&gt;func.text_get = _item_label_get;
+itc-&gt;func.content_get = _item_content_get;
+itc-&gt;func.del = _item_del;
+</pre>
+</li>
+<li>Define the <span style="font-family: Courier New,Courier,monospace">text_get</span> function.
+<p>When a genlist item becomes realized, the <span style="font-family: Courier New,Courier,monospace">text_get</span> function is called repeatedly for all text parts in that item. After the text is set to the part, it is freed automatically. Do not free it manually.</p>
+<pre class="prettyprint">
+static char*
+_item_label_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(part, &quot;elm.text&quot;))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(&quot;text&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+}
+</pre>
+</li>
+<li>Define the <span style="font-family: Courier New,Courier,monospace">content_get</span> function.
+<p>The <span style="font-family: Courier New,Courier,monospace">content_get</span> function is called repeatedly for all swallow parts in the item. It must return a valid object handle to be set or <span style="font-family: Courier New,Courier,monospace">NULL</span> when no content is desired. The object is deleted by the genlist on its deletion or when the item is unrealized.</p>
+<pre class="prettyprint">
+static Evas_Object*
+_item_content_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(part, &quot;elm.swallow.icon&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *img = elm_image_add(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_image_file_Set(img, &quot;sample.png&quot;, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return img;
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+} 
+</pre>
+</li>
+<li>Define the <span style="font-family: Courier New,Courier,monospace">del</span> function.
+<p>This function is called when the genlist item is deleted. It deletes any data that has been allocated at the item&#39;s creation.</p>
+<pre class="prettyprint">
+static void
+_item_del(void *data, Evas_Object *obj)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;item(%d) is now deleted&quot;, (int)data);
+}
+</pre>
+</li>
+</ol>
+</li>
+<li>Append items to the genlist with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_append()</span> function.
+<pre class="prettyprint">
+elm_genlist_item_append(genlist, itc, (void *)i, NULL, ELM_GENLIST_ITEM_NONE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_item_selected_cb, (void *)i);
+</pre>
+</li>
+<li>Register the <a href="#callback">callback</a> functions for the genlist and its items.
+<p>The following example shows how to define a callback for when the genlist item is selected:</p>
+<pre class="prettyprint">
+static void
+_item_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;item(%d) is selected&quot;, (int)data);
+}
+</pre>
+</li>
+</ol>
+
+<p>The following example shows a simple use case of the genlist component.</p>
+
+<table>
+<caption>Example: Genlist use case</caption> 
+<tbody>
+<tr>
+<td>
+<pre class="prettyprint">
+Evas_Object *win;
+Evas_Object *conf;
+Evas_Object *nf;
+Evas_Object *genlist;
+Elm_Object_Item *nf_it;
+Elm_Genlist_Item_Class *itc;
+
+/* Starting right after <a href="ui_layouts_n.htm#code">the basic EFL UI layout code</a> */
+/* win - conformant - naviframe */
+
+genlist = elm_genlist_add(nf);
+evas_object_show(genlist);
+elm_naviframe_item_push(nf, &quot;Genlist&quot;, NULL, NULL, genlist, NULL);
+
+itc = elm_genlist_item_class_new();
+itc-&gt;item_style = &quot;default&quot;;
+itc-&gt;func.content_get = _item_content_get;
+itc-&gt;func.text_get = _item_label_get;
+itc-&gt;func.del = _item_del;
+
+int i;
+for (i = 0; i &lt; 10; i++)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist, /* Genlist object */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc, /* Genlist item class */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)i, /* Item data */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, /* Parent item */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, /* Item type */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, /* Select callback */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL); /* Callback data */
+}
+elm_genlist_item_class_free(itc);
+
+_item_label_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[16];
+&nbsp;&nbsp;&nbsp;&nbsp;int i = (int) data;
+&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(part, &quot;elm.text&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(buf, &quot;text %d&quot;, i);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(buf);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;else return NULL;
+}
+
+static Evas_Object*
+_item_content_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(part, &quot;elm.swallow.icon&quot;))
+&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *img = elm_image_add(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = elm_image_file_set(img, ICON_DIR&quot;/tizen.png&quot;, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_min_set(img, ELM_SCALE_SIZE(30), ELM_SCALE_SIZE(30));
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return img;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;else return NULL;
+}
+
+static void
+_item_del(void *data, Evas_Object *obj)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;item(%d) is now deleted&quot;, (int) data);
+}
+</pre>
+</td>
+<td>
+<p align="center"><img alt="Genlist" src="../../../images/genlist1.png" /></p>
+</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="option">Options</h2>
+
+<p>You can define the genlist item mode and compress mode as options. You can also select and update items.</p>
+
+<h3>Item Mode</h3>
+
+<p>The genlist defines the concept of the item mode to provide a way to enrich a list view. The genlist component is able to display trees or a group mode where scrolling keeps the item at the top of the component until another group comes and replaces it. This is most useful for title items. Establish the parent-children relationship when adding the children items.</p>
+
+<p>The following item types are available:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_NONE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_TREE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_GROUP</span></li>
+</ul>
+
+<p>You can use the group items in the group mode or tree mode:</p>
+<ul>
+<li>
+<p>To group several items under a parent item using the group mode, follow these steps in addition to the basic usage:</p>
+<ol>
+<li>Define another genlist item class which is used to append group items, and set the <span style="font-family: Courier New,Courier,monospace">group_index</span> style to it.</li>
+<li>Append group items with the <span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_GROUP</span>
+parameter.</li>
+<li>Append child items with the group item and the <span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_NONE</span> parameter.</li>
+</ol>
+
+<table>
+<caption>Example: Genlist group mode use case</caption> 
+<tbody>
+<tr>
+<td>
+<pre class="prettyprint">
+Elm_Genlist_Item_Class *itc;
+Elm_Genlist_Item_Class *gitc;
+Elm_Object_Item *g;
+int i;
+int j;
+
+itc = elm_genlist_item_class_new();
+itc-&gt;item_style = &quot;default&quot;;
+itc-&gt;func.content_get = _item_content_get;
+itc-&gt;func.text_get = _item_label_get;
+itc-&gt;func.del = _item_del;
+
+gitc = elm_genlist_item_class_new();
+gitc-&gt;item_style = &quot;group_index&quot;;
+gitc-&gt;func.text_get = _group_item_label_get;
+gitc-&gt;func.del = _item_del;
+
+
+for (i = 1; i &lt; 10; i++)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;g = elm_genlist_item_append(genlist,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;gitc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)i,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_GROUP, /* Group item */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;for (j = 1; j &lt; 4; j++)
+&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)j,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g, /* Pass group item as a parameter */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, /* Child item */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+elm_genlist_item_class_free(itc);
+elm_genlist_item_class_free(gitc);
+</pre>
+</td>
+<td>
+<p align="center"><img alt="Genlist group mode" src="../../../images/genlist2.png" /></p>
+</td>
+</tr>
+</tbody>
+</table>
+</li>
+<li>
+
+<p>To group several items under a parent item using the tree mode, follow these steps in addition to the basic usage:</p>
+<ol>
+<li>Define another genlist item class which is used to append group items, and set the <span style="font-family: Courier New,Courier,monospace">group_index/expandable</span> style to it.</li>
+<li>Append group items with the <span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_TREE</span>
+parameter.</li>
+<li>Append child items with the group item and the <span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_NONE</span> parameter.</li>
+</ol>
+
+<table border="0">
+<caption>Example: Genlist tree mode use case</caption> 
+<tbody>
+<tr>
+<td>
+<pre class="prettyprint">
+Elm_Genlist_Item_Class *titc;
+Elm_Object_Item *it;
+int i;
+
+/* Register the callback functions to make the genlist &quot;expanded&quot; or &quot;contracted&quot; when &quot;selected&quot; */
+evas_object_smart_callback_add(genlist, &quot;selected&quot;, gl_selected_cb, NULL);
+evas_object_smart_callback_add(genlist, &quot;expanded&quot;, gl_expanded_cb, NULL);
+evas_object_smart_callback_add(genlist, &quot;contracted&quot;, gl_contracted_cb, NULL);
+
+titc = elm_genlist_item_class_new();
+titc-&gt;item_style = &quot;group_index/expandable&quot;;
+titc-&gt;func.text_get = _group_item_label_get;
+titc-&gt;func.del = _item_del;
+
+for (i = 1; i &lt; 10; i++)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;it = elm_genlist_item_append(genlist,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;titc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)i,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_TREE, /* Tree item */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Expand each item */
+&nbsp;&nbsp;&nbsp;&nbsp;/* This causes the &quot;expanded&quot; callback to be called */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_expanded_set(it, EINA_TRUE);
+}
+
+static void
+gl_selected_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = event_info;
+&nbsp;&nbsp;&nbsp;&nbsp;Eina_Bool expanded = EINA_FALSE;
+
+&nbsp;&nbsp;&nbsp;&nbsp;expanded = elm_genlist_item_expanded_get(it);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_expanded_set(it, !expanded);
+}
+
+static void
+gl_expanded_cb(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = event_info;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *genlist = elm_object_item_widget_get(it);
+&nbsp;&nbsp;&nbsp;&nbsp;Elm_Genlist_Item_Class *itc;
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
+
+&nbsp;&nbsp;&nbsp;&nbsp;itc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;&nbsp;itc-&gt;item_style = &quot;default&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;itc-&gt;func.content_get = _item_content_get;
+&nbsp;&nbsp;&nbsp;&nbsp;itc-&gt;func.text_get = _item_label_get;
+&nbsp;&nbsp;&nbsp;&nbsp;itc-&gt;func.del = _item_del;
+
+&nbsp;&nbsp;&nbsp;&nbsp;for(i = 1; i &lt; 4; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_append(genlist,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itc,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(void *)i,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;it, /* Set the selected item as parent */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_class_free(itc);
+}
+
+static void
+gl_contracted_cb(void *data EINA_UNUSED, Evas_Object *obj EINA_UNUSED, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = event_info;
+
+&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_subitems_clear(it);
+}
+</pre>
+</td>
+<td>
+<p align="center"><img alt="Genlist tree mode" src="../../../images/genlist3.png" /></p>
+</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+
+<p>You can retrieve the parent of an item with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_parent_get()</span> function. When the children of an item are no longer needed, you can clear them with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_subitems_clear()</span> function.</p>
+
+<h3>Compress Mode</h3>
+<p>The genlist and item size can be managed through the mode set by the <span style="font-family: Courier New,Courier,monospace">elm_genlist_mode_set()</span> function:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_LIST_COMPRESS</span>
+<p>The genlist respects its container&#39;s geometry. Even if there are items exceeding the genlist in the transverse axis, the genlist is not scrollable in that direction.</p></li>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_LIST_SCROLL</span>
+<p>Same as <span style="font-family: Courier New,Courier,monospace">ELM_LIST_COMPRESS</span>, but if there are items exceeding the genlist in the transverse axis, the genlist is scrollable in that direction.</p></li>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_LIST_LIMIT</span>
+<p>Sets a minimum size hint on the list object, so that containers can respect it. A minimum size hint is set for its transverse axis, so that the largest item in that direction fits well.</p></li>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_LIST_EXPAND</span>
+<p>Besides setting a minimum size on the transverse axis, like <span style="font-family: Courier New,Courier,monospace">ELM_LIST_LIMIT</span>, the list sets a minimum size on the longitudinal axis, trying to reverse space to all its children to be visible at a time.</p></li></ul>
+
+<h3>Item Selection</h3>
+
+<p>To select or deselect items manually, use the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_selected_set()</span> function.</p>
+
+<p>By default, the genlist is in a single-selection mode: only 1 item can be selected at a time.</p>
+<p>To manage the item selection, use the following functions:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">elm_genlist_multi_select_set()</span>: Activate multi-selection mode.</li>
+<li><span style="font-family: Courier New,Courier,monospace">elm_genlist_selected_item_get()</span>: Retrieve the selected item.</li>
+<li><span style="font-family: Courier New,Courier,monospace">elm_genlist_selected_items_get()</span>: Retrieve the list of the currently selected items.</li>
+</ul>
+
+<table class="note"> 
+<tbody> 
+<tr> 
+<th class="note">Note</th> 
+</tr> 
+<tr> 
+<td class="note">The item selection comes with a highlight effect. If the user wants to cancel the highlight by touch off, you must cancel the select operation in the <span style="font-family: Courier New,Courier,monospace">select()</span> callback:
+<pre class="prettyprint">
+static void
+select_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *it = (Elm_Object_Item *)event_info;
+&nbsp;&nbsp;&nbsp;&nbsp;/* Cancel select and highlight when item is selected */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_genlist_item_selected_set(it, EINA_FALSE);
+}
+</pre>	 
+
+<p>Calling this function does not show or hide any child of an item (if it is a parent). You must manually delete and create them on the callbacks of the <span style="font-family: Courier New,Courier,monospace">expanded</span> or <span style="font-family: Courier New,Courier,monospace">contracted</span> signals.</p></td> 
+</tr> 
+</tbody> 
+</table>   
+
+
+
+<h3>Item Update</h3>
+
+<p>You can update the items using the following functions:</p>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">elm_genlist_item_update()</span>: Update an item</li>
+<li><span style="font-family: Courier New,Courier,monospace">elm_genlist_item_fields_update()</span>:
+Update only specific parts:
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_FIELD_TEXT</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">ELM_GENLIST_ITEM_FIELD_CONTENT</span></li>
+</ul></li>
+</ul>
+
+<h2 id="style">Styles</h2>
+<p>The genlist has a separate style for itself and for its items. The genlist style determines the characteristics of the entire scrollable area.</p>
+
+
+<p>In Tizen 2.4, the genlist items have a gradient opacity from the top to the bottom rather than an explicit divider. Each item is identified by its color made by blending its opacity and background color (or image). The <span style="font-family: Courier New,Courier,monospace">solid</span> prefix in a genlist style name means that genlist items have an explicit divider and background color. To set a genlist with a solid background color:</p>
+<pre class="prettyprint">
+elm_object_style_set(genlist, &quot;solid/default&quot;);
+</pre>
+
+<p>The following table lists the available component styles.</p>
+
+<table>
+<caption>Table: Genlist styles</caption>
+<tbody>
+<tr>
+<th>Style</th>
+<th>Sample</th>
+<th>Notes</th>
+</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">elm/genlist/base/solid/default</span></td>
+<td align="center"><img alt="elm/genlist/base/solid/default" src="../../../images/styleguide_genlist_def.png" /></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">default</span></td>
+<td></td>
+<td>Same as <span style="font-family: Courier New,Courier,monospace">effect</span>.</td>
+</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">effect</span></td>
+<td></td>
+<td>When the genlist reaches its edge during scrolling, it shows an effect.</td>
+</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">no_effect</span></td>
+<td></td>
+<td>The genlist has no effect when it reaches an edge.</td>
+</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">handler</span></td>
+<td></td>
+<td>Enables a scrollbar that eases scrolling through the whole list.</td>
+</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">solid/effect</span></td>
+<td></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">solid/no_effect</span></td>
+<td></td>
+<td>N/A</td>
+</tr>
+<tr>
+<td><span style="font-family: Courier New,Courier,monospace">solid/handler</span></td>
+<td></td>
+<td>N/A</td>
+</tr>
+</tbody>
+</table>
+	 
+<h3 id="item_style">Item Styles</h3>
+
+<p>The genlist item style determines the number of parts for text and content, and their arrangement within the item. For example, a default style item has 1 text part (<span style="font-family: Courier New,Courier,monospace">elm.text</span>), and 2 content parts (<span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span> and <span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span>).</p>
+
+<p>The following table lists the available item styles.</p>
+<table>
+<caption>Table: Genlist item styles</caption>
+
+<tbody>
+<tr>
+ <th>Style</th>
+ <th>Sample</th>
+ <th>Text part</th>
+ <th>Swallow part</th>
+</tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/type1/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/type1/default" src="../../../images/styleguide_genlist_type1_def.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span>
+<p><span style="font-family: Courier New,Courier,monospace">elm.text.end</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.text.sub</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.text.sub.end</span></p>
+</td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.bg</span>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon.0</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon.1</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon.2</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span></p>
+</td>
+ </tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/type2/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/type2/default" src="../../../images/styleguide_genlist_type2_def.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span>
+<p><span style="font-family: Courier New,Courier,monospace">elm.text.end</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.text.sub</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.text.sub.end</span></p>
+</td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.bg</span>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon.0</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon.1</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span></p>
+</td>
+ </tr>
+  <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/multiline/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/multiline/default" src="../../../images/styleguide_genlist_multiline.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span> 
+ <p><span style="font-family: Courier New,Courier,monospace">elm.text.multiline</span></p>
+ </td>
+  <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.bg</span>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon.0</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon.1</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon.2</span></p>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span></p>
+</td>
+ </tr>
+  <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/full/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/full/default" src="../../../images/styleguide_genlist_full.png" /></td>
+ <td>N/A</td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.bg</span>
+ <p><span style="font-family: Courier New,Courier,monospace">elm.swallow.content</span></p></td>
+ </tr>
+  <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/group_index/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/group_index/default" src="../../../images/styleguide_genlist_group.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span>
+ <p><span style="font-family: Courier New,Courier,monospace">elm.text.end</span></p></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.bg</span>
+ <p><span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span></p></td>
+ </tr>
+  <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/group_index/expandable/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/group_index/expandable/default" src="../../../images/styleguide_genlist_group_expandable.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span></td>
+ <td>N/A</td>
+ </tr>
+  <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/default/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/default/default" src="../../../images/styleguide_genlist_defstyle.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span></p></td>
+ </tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/double_label/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/double_label/default" src="../../../images/styleguide_genlist_doublelabel.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span>
+ <p><span style="font-family: Courier New,Courier,monospace">elm.text.sub</span></p></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span>
+<p><span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span></p></td>
+ </tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/one_icon/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/one_icon/default" src="../../../images/styleguide_genlist_oneicon.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.icon</span></td>
+ </tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">elm/genlist/item/end_icon/default</span></td>
+ <td align="center"><img alt="elm/genlist/item/end_icon/default" src="../../../images/styleguide_genlist_end.png" /></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.text</span></td>
+ <td><span style="font-family: Courier New,Courier,monospace">elm.swallow.end</span></td>
+ </tr>
+ </tbody>
+</table>
+
+<h2 id="callback">Callbacks</h2>
+
+<p>You can register callback functions connected to the following signals for a genlist object.</p>
+
+<table border="1">
+   <caption>Table: Genlist callback signals</caption> 
+
+   <tbody>
+      <tr>
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">Signal</th> 
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">Description</th> 
+         <th style="text-align:center;margin-left:auto;margin-right:auto;">event_info</th> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">activated</span></td>
+         <td>The item is double-clicked or pressed (enter | return | spacebar).</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">clicked,double</span></td>
+         <td>The item is double-clicked.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">selected</span></td>
+         <td>The item is selected.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">unselected</span></td>
+         <td>The item is unselected.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">expanded</span></td>
+         <td>The item is to be expanded with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_expanded_set()</span> function. The callback fills in the child items.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">contracted</span></td>
+         <td>The item is to be contracted with the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_expanded_set()</span> function. The callback deletes the child items.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">expand,request</span></td>
+         <td>The user wants to expand a tree branch item. The callback decides whether the item can expand (if it has any children) and calls the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_expanded_set()</span> function to set the state.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">contract,request</span></td>
+         <td>The user wants to contract a tree branch item. The callback decides whether the item can contract (if it has any children) and calls the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_expanded_set()</span> function to set the state.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">realized</span></td>
+         <td>The item is created as a real Evas object.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">unrealized</span></td>
+         <td>An item is going to be unrealized. Provided content objects are deleted and the item object is deleted or put into a floating cache.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">drag,start,up</span></td>
+         <td>The item in the list is dragged (not scrolled) up.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">drag,start,down</span></td>
+         <td>The item in the list is dragged (not scrolled) down.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">drag,start,left</span></td>
+         <td>The item in the list is dragged (not scrolled) left.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">drag,start,right</span></td>
+         <td>The item in the list is dragged (not scrolled) right.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">drag,stop</span></td>
+         <td>The item in the list has stopped being dragged.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">drag</span></td>
+         <td>The item in the list is being dragged.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the dragged item</td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">longpressed</span></td>
+         <td>The item is pressed for a certain amount of time. The default specified time is 1 second.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the pressed item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,anim,start</span></td>
+         <td>The scrolling animation is started.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,anim,stop</span></td>
+         <td>The scrolling animation is stopped.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,drag,start</span></td>
+         <td>Dragging the content is started.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll,drag,stop</span></td>
+         <td>Dragging the content is stopped.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">scroll</span></td>
+         <td>Scrolling is ongoing.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">edge,top</span></td>
+         <td>The genlist is scrolled to the top edge.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">edge,bottom</span></td>
+         <td>The genlist is scrolled to the bottom edge.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">edge,left</span></td>
+         <td>The genlist is scrolled to the left edge.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">edge,right</span></td>
+         <td>The genlist is scrolled to the right edge.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">multi,swipe,left</span></td>
+         <td>The genlist is multi-touch-swiped left.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the swiped item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">multi,swipe,right</span></td>
+         <td>The genlist is multi-touch-swiped right.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the swiped item</td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">multi,swipe,up</span></td>
+         <td>The genlist is multi-touch-swiped up.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the swiped item</td> 
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">multi,swipe,down</span></td>
+         <td>The genlist is multi-touch-swiped down.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the swiped item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">multi,pinch,out</span></td>
+         <td>The genlist is multi-touch-pinched out.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the pinched item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">multi,pinch,in</span></td>
+         <td>The genlist is multi-touch-pinched in.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the pinched item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">swipe</span></td>
+         <td>The genlist is swiped.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the swiped item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">moved</span></td>
+         <td>A genlist item is moved in the reorder mode.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the moved item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">moved,after</span></td>
+         <td>A genlist item is moved after another item in the reorder mode. To access the relative previous item, use the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_prev_get()</span> function. This signal is called along with the <span style="font-family: Courier New,Courier,monospace">moved</span> signal.</td> 
+		 <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the moved item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">moved,before</span></td>
+         <td>A genlist item is moved before another item in the reorder mode. To access the relative next item, use the <span style="font-family: Courier New,Courier,monospace">elm_genlist_item_next_get()</span> function. This signal is called along with the <span style="font-family: Courier New,Courier,monospace">moved</span> signal.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the moved item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">language,changed</span></td>
+         <td>The program language changes.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">tree,effect,finished</span></td>
+         <td>A genlist tree effect is finished.</td> 
+         <td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">pressed</span></td>
+         <td>The genlist item is pressed by mouse down.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the pressed item</td>
+      </tr>
+      <tr>
+         <td><span style="font-family: Courier New,Courier,monospace">released</span></td>
+         <td>The genlist item is released by mouse up.</td>
+         <td><span style="font-family: Courier New,Courier,monospace">Elm_Object_Item</span> object that contains the released item</td>
+      </tr>
+   </tbody> 
+</table>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">The signal list in the API reference can be more extensive, but only the above signals are actually supported in Tizen.</td>
+        </tr>
+    </tbody>
+</table>
+  
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">Except as noted, this content is licensed under <a href="http://opensource.org/licenses/LGPL-2.1" target="_blank">LGPLv2.1+</a>.</td>
+        </tr>
+    </tbody>
+</table>
+
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div> 
+
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

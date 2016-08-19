@@ -1,0 +1,978 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Application Controls</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+			<li><a href="#options">Handling the Launch Options</a></li>
+			<li><a href="#controls">Managing Application Controls</a></li>
+			<li><a href="#export_appcontrol">Exporting AppControl Functionality</a></li>
+			<li><a href="#resolution">Resolving Application Controls</a></li>
+			<li><a href="#group">Managing Application Groups</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#use">Running Applications Using Extra Data</a></li>
+			<li><a href="#mode">Controlling the Launch Mode</a></li>		
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html">App Control API for Mobile Native</a></li>   
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__APP__CONTROL__MODULE.html">App Control API for Wearable Native</a></li>
+			<li><a href="https://developer.tizen.org/development/sample/native/AppFW/Application_control" target="_blank">Application Control Sample Description</a></li>
+			</ul>
+	</div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Application Controls</h1> 
+
+<p>An application control (app control) is a way of sharing an application&#39;s functionality. To use another application&#39;s features through application controls reduces your efforts and time to develop your application.</p>
+
+<p>An application can be launched by the user from the Launcher or by another application. The application control can be used to describe either an action to be performed by other applications, or the results of the operation performed by a launched application. The application can receive results from the launched application.</p>
+<p>Regardless of how an application is launched, the application framework starts the application by creating a new process and calling the entry point of the application. Like a conventional Linux application, the main function of the application is its entry point. In the Tizen application, the main task is to hand over control to the application framework by calling the <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> function:</p>
+  
+<pre class="prettyprint">
+bool 
+app_create(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Take necessary actions before the main event loop starts
+&nbsp;&nbsp;&nbsp;&nbsp;   Initialize UI resources and application data
+&nbsp;&nbsp;&nbsp;&nbsp;   If this function returns true, the application main loop starts
+&nbsp;&nbsp;&nbsp;&nbsp;   If this function returns false, the application terminates
+&nbsp;&nbsp;&nbsp;&nbsp; */
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+void
+app_control(app_control_h app_control, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Handle the launch request */
+}
+
+void
+app_pause(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Take necessary actions when application becomes invisible */
+}
+
+void
+app_resume(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Take necessary actions when application becomes visible */
+}
+
+void
+app_terminate(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release all resources */
+}
+
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;struct appdata ad;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ui_app_lifecycle_callback_s event_callback;
+
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.create = app_create;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.terminate = app_terminate;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.pause = app_pause;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.resume = app_resume;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.app_control = app_control;
+
+&nbsp;&nbsp;&nbsp;&nbsp;memset(&amp;ad, 0x0, sizeof(struct appdata));
+
+&nbsp;&nbsp;&nbsp;&nbsp;return ui_app_main(argc, argv, &amp;event_callback, &amp;ad);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> function initializes the application and starts the main loop. It takes 4 parameters and uses them to initialize the application. The <span style="font-family: Courier New,Courier,monospace">argc</span> and <span style="font-family: Courier New,Courier,monospace">argv</span> parameters contain the values from the application framework, and you must never change their values. The third parameter is a state transition handler that is responsible for managing the state transitions the application goes through while it is running. The fourth parameter is application data to be passed to each state handler.</p>
+<p>When the <span style="font-family: Courier New,Courier,monospace">ui_app_main()</span> is first invoked, the application moves from the ready state to the created state. The application has to initialize itself. During this transition, the application framework calls the application&#39;s <span style="font-family: Courier New,Courier,monospace">app_create_cb()</span> state transition callback just before the application enters the main loop. Within the registered callback, you must initialize the application resources and create the main window.</p>
+<p>If the <span style="font-family: Courier New,Courier,monospace">app_create_cb()</span> callback function returns <span style="font-family: Courier New,Courier,monospace">false</span>, the application moves to the terminated state. If it returns <span style="font-family: Courier New,Courier,monospace">true</span>, the application enters the main loop.</p>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the app control functionality</a>.</p>
+
+ <h2 id="options" name="options">Handling the Launch Options</h2>
+<p>The application framework calls the application&#39;s <span style="font-family: Courier New,Courier,monospace">app_control_cb()</span> callback just after the application enters the main loop. This callback is passed to the <span style="font-family: Courier New,Courier,monospace">app_control</span> containing the reason why the application was launched. For example, the application can be launched to open a file to handle the request that has been sent by other application. In all of these cases, the application is responsible for checking the content of the <span style="font-family: Courier New,Courier,monospace">app_control</span> and responding appropriately. The content of the <span style="font-family: Courier New,Courier,monospace">app_control</span> can be empty, if the application is launched by the user from the Launcher.</p>
+
+<pre class="prettyprint">
+static void 
+app_control(app_control_h app_control, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;struct appdata *ad = (struct appdata *)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;char *operation;
+&nbsp;&nbsp;&nbsp;&nbsp;char *uri;
+&nbsp;&nbsp;&nbsp;&nbsp;char *mime_type;
+
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_get_operation(app_control, operation);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(operation, APP_CONTROL_OPERATION_VIEW)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_get_uri(app_control, &amp;uri);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_get_mime(app_control, &amp;mime_type);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (uri &amp;&amp; !strcmp(mime_type, &quot;image/jpg&quot;))
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;display_image_file(ad, uri); /* Display a specific image file */
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (ad-&gt;win)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_activate(ad-&gt;win);
+}
+</pre>
+<h2 id="controls" name="controls">Managing Application Controls</h2>
+<p>The App Control API provides functions for <a href="#use">launching other applications with a specific operation, URI, MIME type, and extra data</a>. The requesting application can get a result back from the launched application.</p>
+<p>To launch an application with the App Control API, create an <span style="font-family: Courier New,Courier,monospace">app_control</span> handle and add information to that handle. You can set the following information:</p>
+<ul>
+   <li>Operation: Action to be performed by the app control.
+     <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The operation name format is <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/&lt;verb&gt;</span>. You can also use the related macro name, <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_&lt;VERB&gt;</span>.
+	 <p>The macro name can only be used in the <span style="font-family: Courier New,Courier,monospace">.c</span> files, not in the <a href="#export_appcontrol">application manifest file for the app control export</a>.</p></td> 
+    </tr> 
+   </tbody> 
+  </table> 
+  </li>
+   <li>URI: Data itself to be performed.</li>
+   <li>MIME type: Specific type of the URI.</li>
+   <li>Application ID: ID of the application to be launched.</li>
+   <li>Extra data: Key-value pairs to provide additional information for the launch request and the result of the request.</li>
+</ul>
+<p>The operation is mandatory information for sending the launch request. The App Control API provides several functions to get and set the above information to the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle.</p>
+<p>To launch an application with the App Control API, use one of the following methods:</p>
+<ul>	
+   <li><a href="#explicit">Explicit launch</a>: Launch the application with the application ID.</li>
+   <li><a href="#implicit">Implicit launch</a>: Launch the application with an operation, URI, or MIME type.</li>
+</ul>
+<p>The application launched by the app control can return the result to the caller application.</p>
+
+<p>You can take advantage of the Tizen <a href="#common">base application functionalities</a> through the app control feature. You can also <a href="#export_appcontrol">export your application functionality</a> to allow other applications to launch your application.</p>
+
+<table class="note">
+<tbody>
+    <tr>
+        <th class="note">Note</th>
+    </tr>
+    <tr>
+        <td class="note">Since Tizen 2.4, application controls used to launch service applications outside the current package are not supported. Because of this, the service application is only allowed to be launched explicitly by the application in the same package.</td>
+    </tr>
+</tbody>
+</table>
+
+
+<h3 id="explicit" name="explicit">Explicit Launch</h3>
+
+<p>When you request an explicit launch:</p>
+
+<ul>
+   <li>If the underlying application launcher framework finds an application matched with the given application ID in the installed application list, it launches the application in a new process. If the matched application is not found, the framework returns the <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_ERROR_APP_NOT_FOUND</span> result. Additional information (such as operation, URI, or MIME type) is not used to select an application for an explicit launch.</li>
+   <li>If the operation setting in the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle is set to <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_DEFAULT</span>, the application ID must be set. Otherwise the <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_ERROR_INVALID_PARAMETER</span> result is returned.</li>
+</ul>
+<p>The following code example launches a calculator application explicitly with the application ID:</p>
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+
+#define TAG &quot;MY_TAG&quot;
+
+app_control_h app_control;
+
+app_control_create(&amp;app_control);
+app_control_set_operation(app_control, APP_CONTROL_OPERATION_DEFAULT);
+app_control_set_app_id(app_control, &quot;org.tizen.calculator&quot;);
+
+if (app_control_send_launch_request(app_control, NULL, NULL) == APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Succeeded to launch a calculator app.&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Failed to launch a calculator app.&quot;);
+
+app_control_destroy(app_control);
+</pre>
+
+<h3 id="implicit" name="implicit">Implicit Launch</h3>
+
+<p>When you request an implicit launch:</p>
+<ul>
+<li>To determine which application can be launched, the application launcher framework compares the following conditions: operation, URI (or scheme), and MIME type.</li>
+<li>The application launcher framework iterates the app controls of all applications on the device to <a href="#resolution">find the applications that match</a> the given conditions.</li>
+<li>If only one application is matched for the given conditions, that application is launched. If multiple matching applications are found, the application selector is shown and the user can select the proper application.</li>
+</ul>
+<p>To allow the application launcher framework to find and select matching applications, each application must describe its operation, URI, or MIME type correctly.</p>
+<p>The following code example launches a camera application with the operation and MIME type:</p>
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+
+#define TAG &quot;MY_TAG&quot;
+
+app_control_h app_control;
+
+app_control_create(&amp;app_control);
+app_control_set_operation(app_control, APP_CONTROL_OPERATION_CREATE_CONTENT);
+app_control_set_mime(app_control, &quot;image/jpg&quot;);
+if (app_control_send_launch_request(app_control, NULL, NULL) == APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Succeeded to launch a viewer app.&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Failed to launch a viewer app.&quot;);
+
+app_control_destroy(app_control);
+</pre>
+
+<p>The following code example launches a gallery application with the operation, URI, and MIME type:</p>
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+
+#define TAG &quot;MY_TAG&quot;
+
+app_control_h app_control;
+
+app_control_create(&amp;app_control);
+app_control_set_operation(app_control, APP_CONTROL_OPERATION_VIEW);
+app_control_set_uri(app_control, &quot;file:///home/myhome/Photos/1_photo.jpg&quot;);
+app_control_set_mime(app_control, &quot;image/*&quot;);
+
+if (app_control_send_launch_request(app_control, NULL, NULL) == APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Succeeded to launch a viewer app.&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Failed to launch a viewer app.&quot;);
+
+app_control_destroy(app_control);
+</pre>
+
+<table class="note">
+<tbody>
+    <tr>
+        <th class="note">Note</th>
+    </tr>
+    <tr>
+        <td class="note">Since Tizen 2.4, service applications are only allowed to be launched explicitly. All service applications are excluded from matches of implicit launch requests.</td>
+    </tr>
+</tbody>
+</table>
+
+<h3 id="results" name="results">Getting the App Control Results</h3>
+<p>The app control result from the requested application is delivered to the caller application in the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle with extra data. For some cases, the App Control API provides predefined extra data keys.</p>
+<p>If you cannot find a proper key, you can define your own key. However, the customized key must be shared between the caller and callee applications.</p>
+
+<p>The following code example gets the result of an app control request by implementing an <span style="font-family: Courier New,Courier,monospace">app_control</span> result callback:</p>
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+
+#define TAG &quot;MY_TAG&quot;
+
+/* Callback function to get result */
+static void
+app_control_result(app_control_h request, app_control_h reply, app_control_result_e result, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *value;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (result == APP_CONTROL_RESULT_SUCCEEDED) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (app_control_get_extra_data(reply, APP_CONTROL_DATA_SELECTED, &amp;value) == APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;[app_control_result_cb] Succeeded: value(%s)&quot;, value);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;[app_control_result_cb] Failed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;[app_control_result_cb] APP_CONTROL_RESULT_FAILED.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The following code example requests the launch of another application:</p>
+
+<pre class="prettyprint">
+#include &lt;app.h&gt;
+#include &lt;dlog.h&gt;
+
+#define TAG &quot;MY_TAG&quot;
+
+app_control_h app_control;
+
+app_control_create(&amp;app_control);
+
+app_control_set_operation(app_control, APP_CONTROL_OPERATION_CREATE_CONTENT);
+app_control_set_mime(app_control, &quot;text/plain&quot;);
+
+if (app_control_send_launch_request(app_control, app_control_result, NULL) == APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;Succeeded: the application is launched.&quot;);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;Failed to launch an application.&quot;);
+
+app_control_destroy(app_control);
+</pre>
+
+<p>The following code example implements an <span style="font-family: Courier New,Courier,monospace">app_control</span> callback in the callee application:</p>
+
+<pre class="prettyprint">
+static void app_control(app_control_h app_control, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;struct appdata *ad = (struct appdata *)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;char *operation;
+&nbsp;&nbsp;&nbsp;&nbsp;char *mime;
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_h reply;
+&nbsp;&nbsp;&nbsp;&nbsp;char *app_id;
+
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_get_operation(app_control, &amp;operation);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(operation, APP_CONTROL_OPERATION_CREATE_CONTENT)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_get_mime(app_control, &amp;mime);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!strcmp(mime, &quot;text/plain&quot;)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_create(&amp;reply);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_get_app_id(&amp;app_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_add_extra_data(reply, APP_CONTROL_DATA_SELECTED, app_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_reply_to_launch_request(reply, app_control, APP_CONTROL_RESULT_SUCCEEDED);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_control_destroy(reply);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+
+<h3 id="common" name="common">Common Application Controls</h3>
+
+<p>The Tizen common application controls specify a standard protocol for sharing application functionalities. You can use the common application controls to perform some basic tasks, such as selecting a file or taking a picture.</p>
+
+<p>The following common application controls are available:</p>
+<ul>
+	<li><a href="common_appcontrol_n.htm#browser">Browser</a></li>
+	<li><a href="common_appcontrol_n.htm#calendar">Calendar</a></li>
+	<li><a href="common_appcontrol_n.htm#call">Call</a></li>
+	<li><a href="common_appcontrol_n.htm#camera">Camera</a></li>
+	<li><a href="common_appcontrol_n.htm#contact">Contact</a></li>
+	<li><a href="common_appcontrol_n.htm#email">Email</a></li>
+	<li><a href="common_appcontrol_n.htm#file">File Storage</a></li>
+	<li><a href="common_appcontrol_n.htm#map">Map</a></li>
+	<li><a href="common_appcontrol_n.htm#message">Message</a></li>
+	<li><a href="common_appcontrol_n.htm#multimedia">Multimedia</a></li>
+	<li><a href="common_appcontrol_n.htm#settings_main">System Settings</a></li>
+	<ul>
+		<li><a href="common_appcontrol_n.htm#settings_bluetooth">Settings for Bluetooth</a></li>
+		<li><a href="common_appcontrol_n.htm#settings_location">Settings for Location</a></li>
+		<li><a href="common_appcontrol_n.htm#settings_nfc">Settings for NFC</a></li>
+		<li><a href="common_appcontrol_n.htm#settings_wifi">Settings for Wi-Fi</a></li>
+	</ul>
+	<li><a href="common_appcontrol_n.htm#voice">Voice Recorder</a></li>
+</ul>
+
+
+<h2 id="export_appcontrol" name="export_appcontrol">Exporting AppControl Functionality</h2>
+<p>You can advertise your application features to other applications by exporting your application control functionalities. To allow other applications to find and use your application features implicitly without the application ID, declare your application control information in the <span style="font-family: Courier New, Courier, monospace">tizen-manifest.xml</span> file:</p>
+	<pre class="prettyprint">
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;mime name=&quot;application/xhtml+xml&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=&quot;http://tizen.org/appcontrol/operation/view&quot;/&gt;
+&nbsp;&nbsp;&nbsp;&lt;uri name=&quot;http://test.com&quot;/&gt;
+&lt;/app-control&gt;
+&lt;app-control&gt;
+&nbsp;&nbsp;&nbsp;&lt;operation name=&quot;http://tizen.org/appcontrol/operation/call&quot;/&gt;
+&lt;/app-control&gt;
+</pre>
+
+     <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">In the application manifest file, the valid operation name format is <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/&lt;verb&gt;</span>. You cannot use the related macro name, <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_&lt;VERB&gt;</span>.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+
+	<p>
+		The resolution filter is used when resolving the application control. Each entry of the resolution filter has the <span style="font-family: Courier New, Courier, monospace">&lt;app-control&gt;</span>
+		element and forms an application resolution unit. The additional URI or MIME type information must contain the associated operation ID, and the retrieved application control must have the specified
+		application ID and operation ID when resolving the application control.
+	</p>
+	<table class="note">
+<tbody>
+    <tr>
+        <th class="note">Note</th>
+    </tr>
+    <tr>
+        <td class="note">The additional URI or MIME type can contain wildcards, such as &#39;*&#39;, to match against given conditions in the app control:
+		<ul><li>In the MIME type, you can use 2 types of wildcards: <span style="font-family: Courier New, Courier, monospace">image/*</span> and <span style="font-family: Courier New, Courier, monospace">*/*</span>.</li>
+<li>In the additional URI, a more complex pattern of wildcards with similar semantics as the standard <span style="font-family: Courier New, Courier, monospace">glob()</span> function is available: &#39;*&#39; matches an arbitrary, possibly empty, string, and &#39;?&#39; matches an arbitrary character. Unlike in the <span style="font-family: Courier New, Courier, monospace">glob()</span> function, the &#39;/&#39; character can be matched by the wildcards. There are no [...] character ranges, and the wildcards &#39;*&#39; and &#39;?&#39; cannot be escaped to include them literally in a pattern.</li></ul></td>
+    </tr>
+</tbody>
+</table>
+	<p>
+		You can specify the application control information of your application in the <a href="../../../../org.tizen.tutorials/html/native/process/setting_properties_n.htm#manifest">application project settings</a> in the IDE; an
+		operation ID must be specified for the application control.
+	</p>  
+	
+	<h2 id="resolution" name="resolution">Resolving Application Controls</h2>
+	
+<p>In case of an <a href="#implicit">implicit launch</a>, the platform resolves the application control with given conditions in the request by searching the filters (available application controls) in the device. The application control references the following conditions in its description:</p>
+<ul>
+<li>Operation: exact match required for the value in both the request and the filters.</li>
+<li>URI: exact, partial (scheme), and pattern matches are allowed according to the value in the filters.</li>
+<li>MIME type: exact and pattern matches are allowed according to the value in the filters. </li>
+</ul>
+<p>Each application control request has an operation value by default. In an application that is selected by the application control, the value in the request and the filters are always the same. Among the filters with identical operations, the URI and MIME types in the filters are compared with the following rules:</p>
+<ul>
+	<li>If the request has URI or MIME types as a condition, the comparison is done only among the filters that have URI or MIME types. For example, if the request has a URI, but a filter does not, that filter is not added to the result even if the operations are the same. Similarly, if the request has MIME types, it is not compared to the filters that have no MIME types.
+	
+	<p>An exception is applied to the URIs with a &quot;file&quot; scheme for the value. If the URI of the request contains an existing file path and no MIME types are supplied, the filters that have the MIME type of the given file path are also added to the results.</p>
+	</li>
+	<li>Unlike the operation, the URI and MIME types support wildcards on the filters. Detailed conditions for matches are:
+	<ul>
+		<li>URI filters are matched if:
+			<ul>
+				<li>Both URIs are exactly the same.</li>
+				<li>URI in the request passes the test with a <span style="font-family: Courier New, Courier, monospace">glob()</span>-like function with the URI in the filters.</li>
+				<li>Scheme and host part of the URI in the request and the URI in the filters are the same.</li>
+				<li>Scheme part of the URI in the request and the URI in the filters are the same.</li>
+			</ul>
+		</li>
+		<li>MIME type filters are matched if:
+			<ul>
+				<li>Both MIME types are exactly the same.</li>
+				<li>MIME type in the request and the filters have the same type and &#39;*&#39; for the subtype.</li>
+				<li>The filters have <span style="font-family: Courier New, Courier, monospace">*/*</span> for the MIME type.</li>
+			</ul>
+		</li>
+	</ul>
+	</li>
+</ul>
+	<table class="note">
+<tbody>
+    <tr>
+        <th class="note">Note</th>
+    </tr>
+    <tr>
+        <td class="note">
+		An application that expects to match with any form of URI and any type of MIME must use <span style="font-family: Courier New, Courier, monospace">&#39;*&#39;</span> and <span style="font-family: Courier New, Courier, monospace">*/*</span> in the resolution filter instead of leaving the value to <span style="font-family: Courier New, Courier, monospace">NULL</span>. Otherwise, the application is discarded by the application control.</td>
+    </tr>
+</tbody>
+</table>
+
+<p>The following examples show different scenarios for the results of resolving the application control:</p>
+<ul>
+<li>
+<p>Operation only provided:</p>
+<ul>
+<li>Request:
+<ul>
+<li>Operation: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></li>
+<li>URI: <span style="font-family: Courier New,Courier,monospace">NULL</span></li>
+<li>MIME: <span style="font-family: Courier New,Courier,monospace">NULL</span></li>
+</ul>
+</li>
+<li>Result (the reason for the failure is marked in <strong>bold</strong>):</li>
+</ul>
+
+<table>
+   <caption>
+     Table: Scenario when only the operation is provided
+   </caption>
+<tbody>
+	<tr>
+		<th>Filter ID</th>
+		<th>Operation</th>
+		<th>URI</th>
+		<th>MIME</th>
+		<th>Result</th>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/default</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>3</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">file</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Fail</td>
+	</tr>
+	</tbody>
+</table>
+</li>
+<li>
+<p>Operation and URI provided:</p>
+<ul>
+<li>Request:
+<ul>
+<li>Operation: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></li>
+<li>URI: <span style="font-family: Courier New,Courier,monospace">file:///usr/share/icons/calendar.png</span></li>
+<li>MIME: <span style="font-family: Courier New,Courier,monospace">NULL</span></li>
+</ul>
+</li>
+<li>Result (the reason for the failure is marked in <strong>bold</strong>):</li>
+</ul>
+<table>
+   <caption>
+     Table: Scenario when the operation and URI are provided
+   </caption>
+<tbody>
+	<tr>
+		<th>Filter ID</th>
+		<th>Operation</th>
+		<th>URI</th>
+		<th>MIME</th>
+		<th>Result</th>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">NULL</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">file:///usr/share/icons/calendar.png</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*/*</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>3</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">file:///*</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*/*</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>4</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">file</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*/*</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>5</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">http</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*/*</span></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>6</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>7</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">image/jpg</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	</tbody>
+</table>
+</li>
+<li>
+<p>Operation and MIME type provided:</p>
+<ul>
+<li>Request:
+	<ul>
+	<li>Operation: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></li>
+	<li>URI: <span style="font-family: Courier New,Courier,monospace">NULL</span></li>
+	<li>MIME: <span style="font-family: Courier New,Courier,monospace">image/png</span></li>
+	</ul>
+</li>
+<li>Result (the reason for the failure is marked in <strong>bold</strong>):</li>
+</ul>
+<table>
+   <caption>
+     Table: Scenario when the operation and MIME type are provided
+   </caption>
+<tbody>
+	<tr>
+		<th>Filter ID</th>
+		<th>Operation</th>
+		<th>URI</th>
+		<th>MIME</th>
+		<th>Result</th>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/*</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>3</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*/*</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>4</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">file:///usr/share/icons/calendar.png</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">NULL</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>5</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">image/jpg</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>6</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">NULL</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">video/*</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>7</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">http://tizen.org/favorites.png</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Fail</td>
+	</tr>
+	</tbody>
+</table>
+</li>
+<li>
+<p>Operation, URI, and MIME type provided:</p>
+<ul>
+<li>Request:
+	<ul>
+	<li>Operation: <span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></li>
+	<li>URI: <span style="font-family: Courier New,Courier,monospace">http://www.tizen.org/favorites.png</span></li>
+	<li>MIME: <span style="font-family: Courier New,Courier,monospace">image/png</span></li>
+	</ul>
+</li>
+<li>Result (the reason for the failure is marked in <strong>bold</strong>):</li>
+</ul>
+<table>
+   <caption>
+     Table: Scenario when the operation, URI, and MIME type are provided
+   </caption>
+<tbody>
+	<tr>
+		<th>Filter ID</th>
+		<th>Operation</th>
+		<th>URI</th>
+		<th>MIME</th>
+		<th>Result</th>
+	</tr>
+	<tr>
+		<td>1</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://www.tizen.org/favorites.png</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>2</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://www.tizen.org/favorites.png</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">NULL</span></strong></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>3</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://www.tizen.org/*</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>4</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">http</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Pass</td>
+	</tr>
+	<tr>
+		<td>5</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><strong><span style="font-family: Courier New,Courier,monospace">NULL</span></strong></td>
+		<td><span style="font-family: Courier New,Courier,monospace">image/png</span></td>
+		<td>Fail</td>
+	</tr>
+	<tr>
+		<td>6</td>
+		<td><span style="font-family: Courier New,Courier,monospace">http://tizen.org/appcontrol/operation/view</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*</span></td>
+		<td><span style="font-family: Courier New,Courier,monospace">*/*</span></td>
+		<td>Pass</td>
+	</tr>
+	</tbody>
+</table>
+</li>
+</ul>
+
+
+<h2 id="group" name="group">Managing Application Groups</h2>
+<p>You can <a href="#mode">define the application launch mode</a> and group your applications into entities that can be managed together.</p>
+
+  <p>The main application group features include:</p>
+  <ul>
+	<li>Defining the application launch mode
+	<p>When an application is launched through an app control, its launch mode defines its behavior:</p>
+		<ul><li>The single launch mode means that the application is launched as a main application (in a new group).</li>
+		<li>The caller launch mode means that the application is launched as a sub application belonging to the same group as the caller application who is causing the application to be launched.</li></ul>
+	<p>You can set the application launch mode <a href="../../../../org.tizen.devtools/html/native_tools/manifest_text_editor_n.htm#launch_mode">in the manifest file</a> using the <span style="font-family: Courier New,Courier,monospace">launch_mode</span> attribute of the <span style="font-family: Courier New,Courier,monospace">&lt;ui-application&gt;</span> element. If the launch mode is set to <span style="font-family: Courier New,Courier,monospace">caller</span>, the application that calls the app control can define the launch mode for the called application using the <span style="font-family: Courier New,Courier,monospace">app_control_set_launch_mode()</span> function. However, if the called application has set its launch mode in its manifest file to <span style="font-family: Courier New,Courier,monospace">single</span>, that setting overrides the caller application&#39;s launch mode request.</p>
+	</li>
+	<li>Managing the application group
+	<p>Applications in a same group act as if they are in 1 stack. For example, if an application A wants to send an email using an email application B, the application A can launch the email application B, making the email application B a sub application in the same group as the application A. When both applications are running, and the user presses the home button, both applications are hidden. When the user later resumes the caller application (application A), the email application B is shown on top of the caller application.</p>
+	<p>If an application is launched in a group, it can be terminated by the main (first) application in the group. If the main application is terminated or killed, the sub applications in the group are terminated automatically (they can be terminated by the framework even if they are hidden).</p>
+
+	<p class="figure">Figure: Group behavior</p> 
+<p align="center"><img alt="Group behavior" src="../../images/app_group_behavior.png" /></p> 
+	
+	</li>
+</ul>
+
+<h2>Warm-up</h2>
+<p>Become familiar with the App Control API basics by learning about:</p>
+
+<ul>
+	<li><a href="#prerequisites">Prerequisites</a>
+	<p>Prepare your application to use the app control functionality.</p></li>
+	<li><a href="#use">Running Applications Using Extra Data</a> <p>Run a specific application control with preconfigured parameters.</p></li>
+	<li><a href="#mode">Controlling the Launch Mode</a> <p>Set the launch mode when calling for an application through an application control to manage application groups.</p></li>
+</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+<p>To use the functions and data types of the App Control API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__APP__CONTROL__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;app_control.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;app_control.h&gt;
+</pre>
+
+ <h2 id="use" name="use">Running Applications Using Extra Data</h2>
+
+<p>To run a specific application control with some preconfigured parameters:</p>
+
+<ol>
+<li>
+<p>Prepare the application control:</p>
+<pre class="prettyprint">
+ret = app_control_create(&amp;app);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_create() failed. err = %d&quot;, ret);
+</pre>
+</li>
+<li>
+<p>When the <span style="font-family: Courier New,Courier,monospace">app_control</span> instance is created, set the operation and MIME type. In this example, the <span style="font-family: Courier New,Courier,monospace">app_control</span> launches an application which has the <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_VIEW</span> operation and the <span style="font-family: Courier New,Courier,monospace">image/jpeg</span> MIME type.</p>
+<p>The operation is mandatory information for the launch request. If the operation is not specified, <span style="font-family: Courier New,Courier,monospace">APP_CONTROL_OPERATION_DEFAULT</span> is used for the launch request.</p>
+<pre class="prettyprint">
+ret = app_control_set_operation(app, APP_CONTROL_OPERATION_VIEW);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_set_operation() failed. err = %d&quot;, ret);
+
+ret = app_control_set_mime(app, &quot;image/jpeg&quot;);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_set_mime() failed. err = %d&quot;, ret);
+</pre>
+
+<p>For more information on the common application services and the extra data related to them, see <a href="common_appcontrol_n.htm">Common Application Controls</a>.</p>
+</li>
+<li>
+<p>Add extra data to the <span style="font-family: Courier New,Courier,monospace">app_control</span> instance using the <span style="font-family: Courier New,Courier,monospace">app_control_add_extra_data()</span> or <span style="font-family: Courier New,Courier,monospace">app_control_add_extra_data_array()</span> function. In this example, a message is added as extra data:</p>
+<pre class="prettyprint">
+ret = app_control_add_extra_data(app, Your Message Key, message);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_add_extra_data() failed. err = %d&quot;, ret);
+</pre>
+</li>
+<li>
+<p>Launch the <span style="font-family: Courier New,Courier,monospace">app_control</span> instance using the <span style="font-family: Courier New,Courier,monospace">app_control_send_launch_request()</span> function:</p>
+
+<pre class="prettyprint">
+ret = app_control_send_launch_request(app, NULL, NULL);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_send_launch_request() failed. err = %d&quot;, ret);
+</pre>
+<table class="note">
+	<tbody>
+	    <tr>
+        <th class="note">Note</th>
+    </tr>
+    <tr>
+        <td class="note">Since Tizen 2.4, service applications are only allowed to be launched explicitly and the caller must be an application in the same package. Otherwise, the <span style="font-family: Courier New,Courier,monospace">app_control</span> instance returns an error.</td>
+    </tr>
+</tbody>
+</table>
+</li>
+
+<li>
+  <p>Read the extra data set to the <span style="font-family: Courier New,Courier,monospace">app_control</span> instance using the <span style="font-family: Courier New,Courier,monospace">app_control_foreach_extra_data()</span> function. The same function used on the <span style="font-family: Courier New,Courier,monospace">app_control_h</span> instance returned by the <span style="font-family: Courier New,Courier,monospace">app_control</span> reply allows you to read the reply message.</p>
+
+<pre class="prettyprint">
+bool
+_app_control_extra_data_cb(app_control_h app_control, const char *key, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;char *value;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = app_control_get_extra_data(app, key, &amp;value);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_get_extra_data() failed. err = %d&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[value] %s&quot;, value);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+ret = app_control_foreach_extra_data(app, _app_control_extra_data_cb, 0);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_foreach_extra_data() failed. err = %d&quot;, ret);
+</pre>
+</li>
+
+<li>
+  <p>When your work with the application control is finished, clean up. 
+  	To do this, pass the <span style="font-family: Courier New,Courier,monospace">app_control</span> handle to the 
+  	<span style="font-family: Courier New,Courier,monospace">app_control_destroy()</span> function.</p>
+<pre class="prettyprint">
+ret = app_control_destroy(app);
+if (ret != APP_CONTROL_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;app_control_destroy() failed. err = %d&quot;, ret);
+</pre>
+</li>
+</ol>
+
+ <h2 id="mode" name="mode">Controlling the Launch Mode</h2>
+
+<p>In this use case, the caller application has a <strong>Launch</strong> button. When it is clicked, an application control is used to launch a sub application within the same group.</p>
+ 
+<p>To control the launch mode:</p>
+<ol>
+<li>Create the UI with the <strong>Launch</strong> button:
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *bigbox;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *bx;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *bt;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(ad-&gt;win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;win, EEXT_CALLBACK_BACK, win_back_cb, ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;bigbox = elm_box_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(bigbox, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, bigbox);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(bigbox);
+
+&nbsp;&nbsp;&nbsp;&nbsp;bx = elm_box_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(bigbox, bx);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(bx);
+
+&nbsp;&nbsp;&nbsp;&nbsp;bt = elm_label_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(bt, &quot;AGT3&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(bx, bt);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(bt);
+
+&nbsp;&nbsp;&nbsp;&nbsp;bt = elm_button_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(bt, &quot;Launch&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(bx, bt);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(bt);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(bt, &quot;clicked&quot;, button_click_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}</pre></li>
+
+<li>When the button is clicked, use an application control to launch the sub application.
+<p>Define the launch mode for the application to be called using the <span style="font-family: Courier New,Courier,monospace">app_control_set_launch_mode()</span> function. The second parameter defines the launch mode with the <span style="font-family: Courier New,Courier,monospace">app_control_launch_mode_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__APP__CONTROL__MODULE.html#gadf26b03f2f6b18acba4a946e7eb7b31c">mobile</a> applications).</p>
+<pre class="prettyprint">
+static void
+button_click_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_h h;
+
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_create(&amp;h);
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_set_operation(h, &quot;http://tizen.org/appcontrol/operation/view&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_set_mime(h, &quot;application/pdf&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_set_launch_mode(h, APP_CONTROL_LAUNCH_MODE_GROUP);
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_send_launch_request(h, NULL, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;app_control_destroy(h);
+}
+
+static void
+app_control(app_control_h app_control, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Handle the launch request */
+}
+</pre>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>	

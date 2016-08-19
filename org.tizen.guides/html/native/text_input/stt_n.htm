@@ -1,0 +1,685 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Speech-to-text</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#basic_stt">Basic STT Processes</a></li>
+			<li><a href="#info_stt">Getting STT Information</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#set">Setting and Unsetting Callbacks</a></li>
+			<li><a href="#get">Getting Information</a></li>
+			<li><a href="#prepare">Connecting and Disconnecting the STT</a></li>
+			<li><a href="#option">Setting Options and Controlling Recording</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__STT__MODULE.html">STT API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__UIX__STT__MODULE.html">STT API for Wearable Native</a></li>
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Speech-to-text</h1> 
+
+<p>The STT (speech-to-text) features enable recognizing sound data recorded by the user and sending the result as text. When your application creates a handle and <a href="#prepare">prepares the STT service</a> by the API, the STT daemon is invoked and connected for background work. This daemon and your application communicate as the server and the client.</p>
+
+<h2 id="basic_stt" name="basic_stt">Basic STT Processes</h2>
+
+<p>Using STT, you can:</p>
+<ul>
+<li>Create a handle and register callback functions.
+ <ul>
+ <li>Create a STT handle, which is used for distinguishing your application from other applications also using the STT.</li>
+ <li><a href="#set">Get notifications on state changes</a>, language changes, recognition results, and errors by registered callback functions.</li>
+ </ul>
+</li>
+<li>Start, stop, and cancel recognition.
+ <ul>
+ <li><a href="#option">Start recording the user voice</a> by microphone and analyze the recorded data as text.</li>
+ <li>If you stop the recording manually by the API, the STT stops the recording and recognizes the sound data. The recognized text is then sent by the registered callback function.</li>
+ <li>You also can set sounds which are played before the STT recording starts or after the recording stops.</li>
+ </ul>
+</li>
+<li>Get the recognition result.
+ <ul>
+ <li>The recognition result is sent by the registered callback function.</li>
+ <li>With a specific STT engine, you can obtain the time stamp information for the recognition result.</li>
+ <li>Some STT engines send the recognition result partially during the user recording. You can get the result information using the parameter of the recognition result callback function.</li>
+ </ul>
+</li>
+</ul>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the STT functionality</a>.</p>
+
+<p>The STT life-cycle is described in the following figure.</p>
+ 
+   <p class="figure">Figure: STT life-cycle</p> 
+  <p align="center"><img src="../../images/stt_lifecycle.png" alt="STT life-cycle" /></p>
+  
+<h2 id="info_stt" name="info_stt">Getting STT Information</h2>
+<p>You can get the following information about the STT:</p>
+<ul>
+<li><a href="#get">Get the current state</a> of the STT. The state is also applied as a precondition for each function.</li>
+<li>Get the default language.
+<ul><li>You can start recognition with the language that you want as a parameter of the start API. However, if you do not set a specific language, the STT starts recording and uses the default language for recognition.</li>
+<li>The default language can be changed by the STT setting an application or by the display language changing. If the display language is changed to a non-supported one, the STT language is changed to UK English.</li></ul></li>
+<li>Get a list of the supported languages to check whether the language you want is supported.</li>
+<li>Get a list of the supported engines and the selection of current engines. Additional features, such as silence detection and partial result, are provided by specific engines.</li>
+</ul>
+
+				
+<h2>Warm-up</h2>
+<p>Become familiar with the STT API basics by learning about:</p>
+	<ul>
+		<li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the STT functionality.</p></li>
+
+		<li><a href="#set">Setting and Unsetting Callbacks</a>
+		<p>Set and unset callbacks for obtaining notifications about recognition results, state changes, and errors.</p></li>
+
+		<li><a href="#get">Getting Information</a>
+		<p>Get information that includes, for example, language and state.</p></li>
+
+		<li><a href="#prepare">Connecting and Disconnecting the STT</a>
+		<p>Connect and disconnect the STT.</p></li>
+
+		<li><a href="#option">Setting Options and Controlling Recording</a>
+		<p>Set the options and control recording for the STT.</p></li>
+	</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the STT functionality:</p>
+<ol>
+<li>To use the functions and data types of the STT (speech-to-text) API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__UIX__STT__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__UIX__STT__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace;">&lt;stt.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;stt.h&gt;
+</pre>
+</li>
+<li><p>To use the STT library, create an STT handle.</p> 
+<p>The STT handle is used in other STT functions as a parameter. After the handle creation, the STT state changes to <span style="font-family: Courier New,Courier,monospace;">STT_STATE_CREATED</span>.</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">STT is not thread-safe and depends on the ecore main loop. Implement STT within the ecore main loop and do not use it in a thread.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+
+<pre class="prettyprint">
+void
+create_stt_handle()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;stt_h stt;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_create(&amp;stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre></li>
+<li><p>When you no longer need the STT library, destroy the STT handle using the <span style="font-family: Courier New,Courier,monospace;">stt_destroy()</span> function:</p>
+
+
+<pre class="prettyprint">
+void
+destroy_stt_handle(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_destroy(stt); /* stt is the STT handle */
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">Do not use the <span style="font-family: Courier New,Courier,monospace;">stt_destroy()</span> function in a callback. Within a callback, the <span style="font-family: Courier New,Courier,monospace;">stt_destroy()</span> function fails and returns <span style="font-family: Courier New,Courier,monospace;">STT_ERROR_OPERATION_FAILED</span>.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+</li> </ol>
+
+<h2 id="set" name="set" >Setting and Unsetting Callbacks</h2>
+
+<p>The enum values, as well as the parameter details, for the callback parameters are defined in the <span style="font-family: Courier New,Courier,monospace;">stt.h</span> header file.</p>
+<p>To set and unset callbacks:</p>
+<ol>
+<li><p>The STT provides various callbacks to get the information, such as the recognition result, state changes, language changes, and errors.</p>
+<p>Set the callbacks in the <span style="font-family: Courier New,Courier,monospace;">STT_STATE_CREATED</span> state.</p>
+
+<p>You can use the following callbacks:</p>
+<ul>
+<li>State changed
+<p>If you set the state changed callback, it is invoked when the STT state changes.</p>
+<pre class="prettyprint">
+/* Callback */
+void
+state_changed_cb(stt_h stt, stt_state_e previous, stt_state_e current, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Your code */
+}
+
+/* Set */
+void
+set_state_changed_cb(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_set_state_changed_cb(stt, state_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+/* Unset */
+void
+unset_state_changed_cb(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_unset_state_changed_cb(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+<li>Default language changed
+<p>The default language of the STT is changed either when the system language is changed, or through the STT settings. To get a notification of a language change, set the default language changed callback:</p>
+<pre class="prettyprint">
+/* Callback */
+void
+default_language_changed_cb(stt_h stt, const char* previous_language,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char* current_language, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Your code */
+}
+
+/* Set */
+void
+set_default_language_changed_cb(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_set_default_language_changed_cb(stt, default_language_changed_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+/* Unset */
+void
+unset_default_language_changed_cb(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_unset_default_language_changed_cb(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Recognition result 
+<p>To get the STT recognition result, set the recognition result callback.</p>
+<p>Within the callback, use the <span style="font-family: Courier New,Courier,monospace;">stt_foreach_detailed_result()</span> function to trigger a result time callback that retrieves the time stamp of the current recognition result.</p>
+<pre class="prettyprint">
+/* Result time callback */
+bool
+result_time_cb(stt_h stt, int index, stt_result_time_event_e event, const char* text,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;long start_time, long end_time, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Your code */
+}
+
+/* Recognition result callback */
+void
+recognition_result_cb(stt_h stt, stt_result_event_e event, const char** data,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int data_count, const char* msg, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* If you want to get time info of result */
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_foreach_detailed_result(stt, result_time_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Your code */
+}
+
+/* Set */
+void
+set_recognition_result_cb(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_set_recognition_result_cb(stt, recognition_result_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+/* Unset */
+void
+unset_recognition_result_cb(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_unset_recognition_result_cb(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Error
+<p>When an error occurs, the STT library sends an error message using a callback:</p>
+<pre class="prettyprint">
+/* Callback */
+void
+error_cb(stt_h stt, stt_error_e reason, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Your code */
+}
+
+/* Set */
+void
+set_error_cb(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_set_error_cb(stt, error_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+/* Unset */
+void
+unset_error_cb(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_unset_error_cb(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre></li>
+</ul></li></ol> 
+
+<h2 id="get" name="get">Getting Information</h2>
+
+<p>To obtain the current STT state, the list of supported languages, and the current language:</p>
+<ul>
+<li>Get the current state using the <span style="font-family: Courier New,Courier,monospace;">stt_get_state()</span> function.
+<p>The STT state is changed by various STT functions, and it is applied as a precondition for each function.</p>
+<pre class="prettyprint">
+void
+get_state(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;stt_state_e current_state;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_get_state(stt, &amp;current_state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Obtain a list of languages supported by the STT using the <span style="font-family: Courier New,Courier,monospace;">stt_foreach_supported_languages()</span> function. 
+<p>The foreach function triggers a separate callback for each supported language. As long as the callback returns <span style="font-family: Courier New,Courier,monospace;">true</span>, the foreach function continues to loop over the supported languages.</p>
+<pre class="prettyprint">
+bool
+supported_language_cb(stt_h stt, const char* language, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;return true; /* To continue to get the next supported language */
+
+&nbsp;&nbsp;&nbsp;&nbsp;return false; /* To stop the loop */
+}
+
+void
+get_supported_language(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_foreach_supported_languages(stt, supported_language_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Get the default language using the <span style="font-family: Courier New,Courier,monospace;">stt_get_default_language()</span> function. 
+<p>The STT recognition process works for this default language, if you do not set the language as a parameter of the <span style="font-family: Courier New,Courier,monospace;">stt_start()</span> function.</p>
+<pre class="prettyprint">
+void
+get_default_language(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;char* default_lang = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_get_default_language(stt, &amp;default_lang);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+<p>You can get a notification about the default language changes by setting a default language changed callback.</p>
+</li>
+
+<li>Obtain a list of engines supported by the STT using the <span style="font-family: Courier New,Courier,monospace;">stt_foreach_supported_engines()</span> function.
+<p>The foreach function triggers a separate callback for each supported engine. As long as the callback returns <span style="font-family: Courier New,Courier,monospace;">true</span>, the foreach function continues to loop over the supported engines.</p>
+<pre class="prettyprint">
+bool
+supported_engine_cb(stt_h stt, const char* engine_id, const char* engine_name,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;return true; /* To continue to get the next supported engine */
+
+&nbsp;&nbsp;&nbsp;&nbsp;return false; /* To stop the loop */
+}
+
+void
+get_supported_engine(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_foreach_supported_engines(stt, supported_engine_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Get or set the current engine for the STT recognition using the <span style="font-family: Courier New,Courier,monospace;">stt_set_engine()</span> and <span style="font-family: Courier New,Courier,monospace;">stt_get_engine()</span> functions.
+<p>The supported language, silence detection, and supported recognition types depend on the STT engine.</p>
+<pre class="prettyprint">
+/* Get the engine */
+void
+get_current_engine(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;char* current_engine_id = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_get_engine(stt, &amp;current_engine_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+/* Set the engine */
+void
+set_current_engine(stt_h stt, const char* engine_id)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_set_engine(stt, engine_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Check whether a recognition type defined in the <span style="font-family: Courier New,Courier,monospace;">&lt;stt.h&gt;</span> header file is supported by the current engine.
+<p>The normal recognition type, <span style="font-family: Courier New,Courier,monospace;">STT_RECOGNITION_TYPE_FREE</span>, means that the whole recognition result is sent at the end of the recognition process. The <span style="font-family: Courier New,Courier,monospace;">STT_RECOGNITION_TYPE_FREE_PARTIAL</span> recognition type is used to get a partial recognition result.</p>
+<pre class="prettyprint">
+void
+check_supported_recognition_type(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;bool support;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_is_recognition_type_supported(stt,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;STT_RECOGNITION_TYPE_FREE_PARTIAL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;support);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+</ul>
+
+<h2 id="prepare" name="prepare">Connecting and Disconnecting the STT</h2>
+
+<p>To operate the STT:</p>
+		<ol>
+<li><p>After you create the STT handle, connect the background STT daemon with the <span style="font-family: Courier New,Courier,monospace;">stt_prepare()</span> function.</p>
+<p>The function is asynchronous and the STT state changes to <span style="font-family: Courier New,Courier,monospace;">STT_STATE_READY</span>.</p>
+
+<pre class="prettyprint">
+void
+prepare_for_stt(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_prepare(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+
+		<table class="note"> 
+			   <tbody> 
+				<tr> 
+				 <th class="note">Note</th> 
+				</tr> 
+				<tr> 
+				 <td class="note">If you get the error callback after calling the <span style="font-family: Courier New,Courier,monospace;">stt_prepare()</span> function, STT is not available.</td> 
+				</tr> 
+			   </tbody> 
+			  </table> 
+</li>
+<li>
+<p>When the connection is no longer needed, use the <span style="font-family: Courier New,Courier,monospace;">stt_unprepare()</span> function to disconnect the STT, and change the state to <span style="font-family: Courier New,Courier,monospace;">STT_STATE_CREATED</span>:</p>
+
+<pre class="prettyprint">
+void
+unprepared_for_stt(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_unprepare(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+</ol>
+
+<h2 id="option" name="option">Setting Options and Controlling Recording</h2>
+
+<p>To set the STT options and control recording:</p>
+<ul>
+<li>Set the silence detection.
+<p>After the STT starts recognizing sound, some STT engines can detect silence when the sound input from the user ends. If the silence detection is enabled, the STT library stops recognition automatically and sends the result. Otherwise, you can manually stop the recognition process using the <span style="font-family: Courier New,Courier,monospace;">stt_stop()</span> function.</p>
+<p>If you set the silence detection as automatic, STT works according to the global STT setting. This option must be set in the <span style="font-family: Courier New,Courier,monospace;">STT_STATE_READY</span> state.</p>
+<pre class="prettyprint">
+void
+set_silence_detection(stt_h stt, stt_option_silence_detection_e type)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;/* Default type is STT_OPTION_SILENCE_DETECTION_AUTO */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_set_silence_detection(stt, type);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Set or unset the start sound.
+<p>To play a sound before the STT recognition starts, call the <span style="font-family: Courier New,Courier,monospace;">stt_set_start_sound()</span> function in the <span style="font-family: Courier New,Courier,monospace;">STT_STATE_READY</span> state.</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">The sound file path must be a full path. Only WAV format sound files are supported.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+
+<pre class="prettyprint">
+void
+set_start_sound(stt_h stt, const char* filename)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_set_start_sound(stt, filename);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+void
+unset_start_sound(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_unset_start_sound(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Set or unset the stop sound.
+<p>To play a sound when the STT recognition stops, use the <span style="font-family: Courier New,Courier,monospace;">stt_set_stop_sound()</span> function in the <span style="font-family: Courier New,Courier,monospace;">STT_STATE_READY</span> state:</p>
+
+	  <table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">The sound file path must be a full path. Only WAV format sound files are supported.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+	  
+<pre class="prettyprint">
+void
+set_stop_sound(stt_h stt, const char* filename)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_set_stop_sound(stt, filename);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+void
+unset_stop_sound(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_unset_stop_sound(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li>Start, stop, and cancel the recognition:
+	<ul>
+		<li><p>To start recording, use the <span style="font-family: Courier New,Courier,monospace;">stt_start()</span> function.</p>
+		<p>The connected STT daemon starts recording, and the state is changed to <span style="font-family: Courier New,Courier,monospace;">STT_STATE_RECORDING</span>.</p>
+		<table class="note"> 
+	   <tbody> 
+		<tr> 
+		 <th class="note">Note</th> 
+		</tr> 
+		<tr> 
+		 <td class="note">If the <span style="font-family: Courier New,Courier,monospace;">stt_start()</span> function fails, check the error code and take appropriate action.</td> 
+		</tr> 
+	   </tbody> 
+	  </table> 
+	  <p>The language and recognition type must be supported by the current STT engine. If you set <span style="font-family: Courier New,Courier,monospace;">NULL</span> as the language parameter, the STT default language is used based on the <span style="font-family: Courier New,Courier,monospace;">stt_get_default_language()</span> function.</p>
+
+<pre class="prettyprint">
+void
+start(stt_h stt, const char* language, const char* type)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_start(stt, language, type); /* Default language is NULL */
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+
+<li><p>While the STT recording is in process, you can retrieve the current recording volume using the <span style="font-family: Courier New,Courier,monospace;">stt_get_recording_volume()</span> function.</p>
+<p>The volume value is retrieved periodically with the short-term recorded sound data as dB (decibels). The STT volume normally has a negative value, and 0 is the maximum value.</p>
+<pre class="prettyprint">
+void
+get_volume(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;float current_volume;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_get_recording_volume(stt, &amp;current_volume);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+<li>
+<p>To stop the recording and get the recognition result, use the <span style="font-family: Courier New,Courier,monospace;">stt_stop()</span> function.</p>
+<p>The recording stops and the state is changed to <span style="font-family: Courier New,Courier,monospace;">STT_STATE_PROCESSING</span>. When the recognition result has been processed, the result is sent in the recognition result callback and the state is changed back to <span style="font-family: Courier New,Courier,monospace;">STT_STATE_READY</span>.</p>
+<pre class="prettyprint">
+void
+stop(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_stop(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (STT_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+<li>
+<p>To cancel the recording without getting the result, use the <span style="font-family: Courier New,Courier,monospace;">stt_cancel()</span> function.</p>
+<p>The state changes to <span style="font-family: Courier New,Courier,monospace;">STT_STATE_READY</span>.</p>
+<pre class="prettyprint">
+void
+cancel(stt_h stt)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = stt_cancel(stt);
+&nbsp;&nbsp;&nbsp;&nbsp;if (VC_STATIC_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+</ul>
+</li>
+</ul>
+    
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

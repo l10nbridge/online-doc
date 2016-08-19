@@ -1,0 +1,306 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+    <title>FIDO Universal Authentication Framework</title>
+</head>
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 3.0 and Higher for Mobile</li>
+			<li>Tizen Platform 3.0 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#fido_uaf_components">FIDO UAF Components</a></li>
+			<li><a href="#find_auth">Finding the FIDO Authenticator</a></li>
+			<li><a href="#check_uaf_msg_supported">Checking the UAF Message Support</a></li>
+			<li><a href="#protocol_conversation">Managing the Protocol Conversation</a></li>
+			<li><a href="#set_server_result">Setting the Server Result</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+		<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__FIDO__MODULE.html">FIDO Client API for Mobile Native</a></li>
+		<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__FIDO__MODULE.html">FIDO Client API for Wearable Native</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+    
+<h1>FIDO Universal Authentication Framework</h1> 
+
+  <p>The FIDO (Fast IDentity Online) Alliance is a organization formed to address the lack of interoperability among strong authentication devices as well as the problems users face with creating and remembering multiple usernames and passwords.</p>
+  
+  <p>FIDO covers both password-less authentications, such as fingerprint, iris, and voice, and multi-factor authentication, such as OTP and USB dongle. Tizen currently does not support multi-factor authentication.</p>
+  <p>FIDO Alliance provides certification for FIDO-compliant products through FIDO Ready&trade;.</p>
+
+<h2 id="fido_uaf_components" name="fido_uaf_components">FIDO UAF Components</h2>
+  <p>UAF (Universal Authentication Framework) authenticators can be connected to a user device using various physical interfaces, such as SPI, USB, and Bluetooth. The UAF Authenticator-Specific Module (ASM) is a software interface on top of UAF authenticators, which gives a standardized way for the FIDO UAF clients to <a href="#find_auth">detect and access the functionality of UAF authenticators</a>, and hides the internal communication complexity from the clients.</p>
+  <p>The ASM is a platform-specific software component offering an API to FIDO UAF clients, enabling them to discover and communicate with one or more available authenticators. A single ASM can report on behalf of multiple authenticators.</p>
+  <p>The FIDO UAF protocol and its various operations are described in the <a href="https://fidoalliance.org/specs/fido-uaf-v1.0-ps-20141208/fido-uaf-protocol-v1.0-ps-20141208.html" target="_blank">FIDO UAF Protocol Specification</a>. The following figure shows a simplified architecture diagram of the interactions and actors.</p>
+	<p class="figure">Figure: UAF high level architecture</p>
+  <p style="text-align: center;"> <img alt="UAF High Level Architecture" src="../../images/fido_uaf_high_level_architecture.png" /></p>
+
+<p>The FIDO UAF consists of the following basic components:</p>
+<ul>
+  <li><p><strong>FIDO UAF client</strong></p>
+  <p>The FIDO UAF client implements the client side of the FIDO UAF protocols, and is responsible for interacting with specific FIDO UAF authenticators using the FIDO UAF authenticator abstraction layer through the FIDO UAF Authenticator API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__FIDO__AUTHENTICATOR__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__FIDO__AUTHENTICATOR__MODULE.html">wearable</a> applications). Before you use the authenticators, <a href="#check_uaf_msg_supported">check whether the device can process the UAF protocol messages</a>.</p>
+	</li>
+  <li><p><strong>FIDO UAF server</strong></p>
+  <p>The FIDO UAF server implements the server side of the FIDO UAF protocols and is responsible for:</p>
+
+    <ul><li><p>Interacting with the relying party Web server to <a href="#set_server_result">communicate FIDO UAF protocol messages to a FIDO UAF client</a> using a device user agent.</p></li>
+    <li><p>Validating FIDO UAF authenticator attestations against the configured authenticator metadata to ensure only trusted authenticators are registered for use.</p></li>
+    <li><p>Managing the association of registered FIDO UAF authenticators to user accounts at the relying party.</p></li>
+    <li><p>Evaluating user authentication and transaction confirmation responses to determine their validity.</p></li></ul>
+	</li>
+  <li><p><strong>FIDO UAF protocols </strong></p>
+  <p>The FIDO UAF protocols carry FIDO UAF messages between user devices and relying parties. <a href="#protocol_conversation">Use the protocol messages to register, authenticate, and deregister the authentication</a>:</p>
+  <ul><li>Authenticator registration: <p>The FIDO UAF registration protocol enables relying parties to discover the FIDO UAF authenticators available on a user&#39;s system or device. Discovery conveys the FIDO UAF authenticator attributes to the relying party, thus enabling policy decisions and enforcement to take place.</p>
+  <p class="figure">Figure: FIDO UAF registration</p>
+  <p style="text-align: center;"> <img alt="Components" src="../../images/fido_reg_flow.png" /></p>
+	</li>
+  <li>User authentication: <p>Authentication is typically based on cryptographic challenge-response authentication protocols and facilitates the user choice regarding which FIDO UAF authenticators are employed in an authentication event.</p>
+  <p class="figure">Figure: FIDO UAF authentication</p>
+  <p style="text-align: center;"> <img alt="Components" src="../../images/fido_auth_flow.png" /></p>
+	</li>
+  <li>Authenticator deregistration: <p>Deregistration is typically required when the user account is removed at the relying party. The relying party can trigger the deregistration by requesting the authenticator to delete the UAF credential associated with the user account.</p>
+  
+  <p class="figure">Figure: FIDO UAF deregistration</p>
+  <p style="text-align: center;"> <img alt="Components" src="../../images/fido_dereg_flow.png" /></p>
+  </li>
+  </ul>
+	</li>
+  <li><p><strong>FIDO UAF authenticator abstraction layer</strong></p>
+  <p>The FIDO UAF authenticator abstraction layer provides a uniform API to FIDO clients enabling the use of authenticator-based cryptographic services for FIDO-supported operations. It provides a uniform lower-layer &quot;authenticator plugin&quot; API facilitating the deployment of multi-vendor FIDO UAF authenticators and their requisite drivers.</p>
+	</li>
+  <li><p><strong>FIDO UAF authenticator</strong></p>
+  <p>The FIDO UAF authenticator is a secure entity, connected to or housed within the FIDO user devices, that can create key material associated with a relying party. The key can then be used to participate in FIDO UAF strong authentication protocols.</p>
+</li>
+  <li><p><strong>FIDO UAF authenticator metadata validation</strong></p>
+  <p>In the FIDO UAF context, attestation is how authenticators make claims to a relying party during registration that the keys they generate, and certain measurements they report, originate from genuine devices with certified characteristics. An attestation signature, carried in a FIDO UAF registration protocol message, is validated by the FIDO UAF server.</p>
+</li></ul>
+  
+<h2>Warm-up</h2>
+
+<p>Become familiar with the FIDO Client API basics by learning about:</p>
+<ul>
+		
+		<li><a href="#find_auth">Finding the FIDO Authenticator</a>
+		<p>Find the authenticators supported by the device.</p></li>
+
+		<li><a href="#check_uaf_msg_supported">Checking the UAF Message Support</a>
+		<p>Check whether the given UAF protocol message can be processed by the device.</p></li>
+
+		<li><a href="#protocol_conversation">Managing the Protocol Conversation</a>
+		<p>Manage the core UAF protocol that consists of conceptual conversations between the FIDO UAF client and the FIDO server (registration, authentication, and deregistration).</p></li>
+
+		<li><a href="#set_server_result">Setting the Server Result</a>
+		<p>Set the server result and indicate the status code resulting from a FIDO UAF message delivered to the remote server.</p></li>
+</ul>
+
+
+<h2 id="find_auth" name="find_auth">Finding the FIDO Authenticator</h2>
+
+<p>To obtain the list of all available authenticators, use the <span style="font-family: Courier New,Courier,monospace">fido_foreach_authenticator()</span> function:</p>
+<pre class="prettyprint">
+void
+start_discover(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_foreach_authenticator(auth_list_cb, data);
+}
+
+static void
+auth_list_cb(const fido_authenticator_h auth, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;__print_authinfo(auth, ad);
+}
+
+static void
+__print_authinfo(fido_authenticator_h auth, appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *title = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;fido_authenticator_get_title(auth, &amp;title);
+
+&nbsp;&nbsp;&nbsp;&nbsp;char *aaid = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;fido_authenticator_get_aaid(auth, &amp;aaid);
+}
+</pre>
+
+ <h2 id="check_uaf_msg_supported" name="check_uaf_msg_supported">Checking the UAF Message Support</h2>
+
+<p>To check whether the given UAF protocol message can be processed by the device, use the <span style="font-family: Courier New,Courier,monospace">fido_uaf_is_supported()</span> function:</p>
+
+<pre class="prettyprint">
+void
+start_check_policy(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;bool is_supported = false;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_is_supported(json_reg, &amp;is_supported);
+
+&nbsp;&nbsp;&nbsp;&nbsp;char str[2048] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;str[0] = &#39;\0&#39;;
+
+&nbsp;&nbsp;&nbsp;&nbsp;strcpy(str, &quot;CHECK POLICY RESPONSE | &quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;if (is_supported == true)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(str, &quot;TRUE&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sprintf(str, &quot;FALSE&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;create_popup(str, (appdata_s *)user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;free(error_string);
+}
+</pre>
+
+<h2 id="protocol_conversation" name="protocol_conversation">Managing the Protocol Conversation</h2>
+
+<p>The core UAF protocol consists of conceptual conversations between the FIDO UAF client and the FIDO server.</p>
+
+<p>To manage the conversations:</p>
+
+<ol>
+<li>Register an authenticator.
+<p>UAF allows the relying party to register a FIDO authenticator with the user account at the relying party. The relying party can specify a policy for supporting various FIDO authenticator types. A FIDO UAF client only registers existing authenticators in accordance with that policy.</p>
+
+<pre class="prettyprint">
+void
+start_registration(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_get_response_message(json_reg, NULL, _process_cb, data);
+}
+
+static void
+_process_cb(fido_error_e tizen_error_code, const char *uaf_response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char str[2048] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;if (tizen_error_code == 0 &amp;&amp; uaf_response != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const int max_popup_str_len = strlen(uaf_response) + 500;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;char *popup_str = calloc(1, max_popup_str_len);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(popup_str, max_popup_str_len - 1, &quot;UAF Response =%s&quot;, uaf_response);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;create_popup(popup_str, (appdata_s *)user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(popup_str);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>Authenticate a user.
+<p>UAF allows the relying party to prompt the end user to authenticate using a previously registered FIDO authenticator. This authentication can be invoked any time, at the relying party&#39;s discretion.</p>
+
+<pre class="prettyprint">
+void
+start_auth(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_get_response_message(json_auth, NULL, _process_cb, data);
+}
+</pre>
+</li>
+<li>Deregister an authentication key.
+<p>The relying party can trigger the deletion of the account-related authentication key material.</p>
+
+<pre class="prettyprint">
+void
+start_de_registration(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_get_response_message(json_dereg, NULL, _process_dereg_cb, data);
+}
+
+static void
+_process_dereg_cb(int tizen_error_code, char *uaf_response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *error_string = get_error_code(tizen_error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;create_popup(error_string, (appdata_s *)user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;free(error_string);
+}
+</pre>
+</li>
+</ol>
+
+<h2 id="set_server_result" name="set_server_result">Setting the Server Result</h2>
+
+<p>The server result is used to indicate the status code resulting from a FIDO UAF message delivered to the remote server.</p>
+
+<p>To set the server result:</p>
+
+<ul><li>Set the server result with success:
+
+
+<pre class="prettyprint">
+void
+start_notify_pos(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (json_reg != NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_get_response_message(json_reg, NULL, _process_cb_for_notify_pos, data);
+}
+
+static void
+_process_cb_for_notify_pos(fido_error_e tizen_error_code, const char *uaf_response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_set_server_result(FIDO_SERVER_STATUS_CODE_OK, uaf_response);
+
+&nbsp;&nbsp;&nbsp;&nbsp;char *error_string = get_error_code(tizen_error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;create_popup(error_string, (appdata_s *)user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;free(error_string);
+}
+</pre>
+</li>
+<li>Set the server result with failure:
+
+<pre class="prettyprint">
+void
+start_notify_neg(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_get_response_message(json_reg, NULL, _process_cb_for_notify_neg, data);
+}
+
+static void
+_process_cb_for_notify_neg(fido_error_e tizen_error_code, const char *uaf_response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret = fido_uaf_set_server_result(0, uaf_response);
+
+&nbsp;&nbsp;&nbsp;&nbsp;char *error_string = get_error_code(tizen_error_code);
+&nbsp;&nbsp;&nbsp;&nbsp;create_popup(error_string, (appdata_s *)user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;free(error_string);
+}
+</pre>
+</li>
+</ul>
+  
+  <script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

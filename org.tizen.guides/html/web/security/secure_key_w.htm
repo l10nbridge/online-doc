@@ -1,0 +1,243 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Secure Key Management</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile Web" src="../../images/mobile_s_w.png"/> <img alt="Wearable Web" src="../../images/wearable_s_w.png"/> <img alt="TV Web" src="../../images/tv_s_w.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 3.0.0 and Higher for Mobile</li>
+			<li>Tizen Platform 3.0.0 and Higher for Wearable</li>
+			<li>Tizen Platform 3.0 and Higher for TV</li>
+		</ul>
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#save">Saving Data</a></li>
+            <li><a href="#get">Getting Data</a></li>			
+            <li><a href="#remove">Removing Data</a></li>
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/keymanager.html">Key Manager API for Mobile Web</a></li>
+            <li><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/keymanager.html">Key Manager API for Wearable Web</a></li>
+			<li><a href="../../../../org.tizen.web.apireference/html/device_api/tv/tizen/keymanager.html">Key Manager API for TV Web</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Secure Key Management</h1>
+  
+<p>The key manager provides functions to securely store keys, certificates, and sensitive data related to users and their password-protected applications. Additionally, it provides secure cryptographic operations for non-exportable keys without revealing the key values to clients.</p>
+
+<p>The Key Manager API is mandatory for both Tizen mobile and wearable profiles, which means that it is supported in all mobile and wearable devices. All mandatory APIs are supported on the Tizen Emulators.</p>
+
+<p> A key manager stores keys, certificates, and sensitive user data in a central secure repository. The central secure repository is protected by a password.</p>
+
+<p>The main features of the Key Manager API include:</p>
+
+<ul>
+<li>Data store policy
+<p>A client can specify simple access rules when storing data in the key manager:</p>
+<ul>
+<li>Extractable or non-extractable
+    <ul>
+    <li>Only for data tagged as extractable, the key manager returns the raw value of the data.</li>
+    <li>If data is tagged as non-extractable, the key manager does not return its raw value. In that case, the key manager provides secure cryptographic operations for non-exportable keys without revealing the key values to the clients.</li></ul></li>
+<li>Per key password
+    <ul>
+    <li>All data in the key manager is protected by a user password.</li>
+    <li>A client can encrypt its data using their own password additionally.</li>
+    <li>If a client provides a password when storing data, the data is encrypted with the password. This password must be provided when getting the data from the key manager.</li></ul></li>
+    </ul>
+</li>
+<li>User login
+
+<p>The user login control is implemented as follows:</p>
+
+<ul>
+<li>A user&#39;s database file is encrypted by the user&#39;s DKEK (domain key encryption key). The user DKEK is randomly generated and stored encrypted with a user password when a user logs in for the first time.</li>
+<li>When a user logs in, the key manager decrypts the user DKEK with a user password. During the login session, any client can access the data which is protected by a user password. When a user logs out, the key manager removes the user DKEK from the memory.</li>
+<li>When a user logs in, logs out, or changes their password, the key manager must be notified. Only privileged applications, such as LockScreen or Setting, can notify the key manager.</li>
+<li>When a user changes their password, the key manager re-encrypts the user DKEK with the new password.</li>
+</ul>
+</li>
+
+<li>Data access control
+
+<p>By default, only the data owner can access the data. If the owner grants access to other applications, those applications can read or delete the data from the key manager database.</p>
+<p>When an application is deleted, the data and access control information granted by the application are also removed.</p>
+</li>
+</ul>
+
+   <p class="figure">Figure: Key manager process</p> 
+   <p align="center"><img alt="Key manager process" src="../../images/key_manager.png" /></p>   
+
+<p>The key manager provides secure repository APIs. All applications can use the secure repository APIs to:</p>
+    <ul>
+        <li><a href="#save">Save</a>, <a href="#get">get</a>, or <a href="#remove">remove</a> data</li>
+    </ul>
+
+<h2>Warm-up</h2>
+	<p>Become familiar with the Key Manager API basics by learning about:</p>
+<ul>
+		<li><a href="#save">Saving Data</a>
+		<p>Store data in a secure repository.</p></li>
+
+		<li><a href="#get">Getting Data</a>
+		<p>Retrieve data from a secure repository.</p></li>
+
+		<li><a href="#remove">Removing Data</a>
+		<p>Remove data from a secure repository.</p></li>
+</ul>
+
+<h2 id="save">Saving Data</h2>
+
+<p>To save data in a repository:</p>
+
+<ol> 
+<li><p>Save the data using the <span style="font-family: Courier New,Courier,monospace">saveData()</span> method:</p>
+
+<pre class="prettyprint">
+var data_name = &quot;data1&quot;, raw_data = &quot;my data&quot;;
+
+tizen.keymanager.saveData(data_name, raw_data, null, onSave);
+</pre></li>
+
+<li>
+<p>To set a permission for an application to remove the data, use the <span style="font-family: Courier New,Courier,monospace">setPermission()</span> method in the data saving callback.</p>
+<p>In this example, the permission is granted for an application with the 9PdoiICQ4c ID:</p>
+<pre class="prettyprint">
+function onPermissionSet() 
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Successfully set permission&quot;);
+}
+
+function onSave() 
+{
+&nbsp;&nbsp;&nbsp;/* Dictionary does not require a package ID because an */
+&nbsp;&nbsp;&nbsp;/* application can only set permission for data which it saved */
+&nbsp;&nbsp;&nbsp;tizen.keymanager.setPermission({&quot;name&quot;: data_name}, &quot;9PdoiICQ4c&quot;, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;READ_REMOVE&quot;, onPermissionSet);
+}
+</pre>
+</li>
+</ol>
+
+
+<h2 id="get">Getting Data</h2>
+
+<p>To retrieve data from a repository:</p>
+
+<ul>
+<li><p>Retrieve data which your application has added:</p>
+<pre class="prettyprint">
+var data_name = &quot;data1&quot;, raw_data = &quot;my data&quot;;
+
+function onSave() 
+{
+&nbsp;&nbsp;&nbsp;/* Dictionary does not require a package ID because the */
+&nbsp;&nbsp;&nbsp;/* application calling getData() saved &quot;data1&quot; */
+&nbsp;&nbsp;&nbsp;var app_data = tizen.keymanager.getData({&quot;name&quot;: data_name});
+&nbsp;&nbsp;&nbsp;console.log(&quot;App data: &quot; + app_data + &quot; was retrieved&quot;);
+}
+
+tizen.keymanager.saveData(data_name, raw_data, null, onSave);
+</pre>
+</li>
+
+<li><p>Retrieve data which another application has saved, and granted permission for you to access.</p>
+<p>The following example assumes that the application that created <span style="font-family: Courier New,Courier,monospace">aliases[0]</span> also gave your application permission to read it:</p>
+
+<pre class="prettyprint">
+var aliases = tizen.keymanager.getDataAliasList();
+
+if (aliases.length != 0) 
+{
+&nbsp;&nbsp;&nbsp;/* Assuming that the application calling getData() */
+&nbsp;&nbsp;&nbsp;/* has permission to read aliases[0] */
+&nbsp;&nbsp;&nbsp;var app_data = tizen.keymanager.getData(aliases[0]);
+&nbsp;&nbsp;&nbsp;console.log(&quot;App data: &quot; + app_data + &quot; was retrieved&quot;);
+}
+</pre>
+</li>
+</ul>
+
+<h2 id="remove">Removing Data</h2>
+
+<p>To remove data from a repository:</p>
+
+<ol>
+<li><p>Remove data which your application has added:</p>
+
+<pre class="prettyprint">
+var data_name = &quot;data1&quot;, raw_data = &quot;my data&quot;;
+
+function onSave() 
+{
+&nbsp;&nbsp;&nbsp;/* Do something */
+
+&nbsp;&nbsp;&nbsp;/* Dictionary does not require a package ID because the */
+&nbsp;&nbsp;&nbsp;/* application calling removeData() saved &quot;data1&quot; */
+&nbsp;&nbsp;&nbsp;tizen.keymanager.removeData({&quot;name&quot;: data_name});
+}
+
+tizen.keymanager.saveData(data_name, raw_data, null, onSave);
+</pre>
+</li>
+ 
+<li><p>Remove data which another application has saved, and granted permission for you to remove.</p>
+<p>The following example assumes that the application that created <span style="font-family: Courier New,Courier,monospace">aliases[0]</span> also gave your application permission to remove it:</p>
+  
+<pre class="prettyprint">
+var aliases = tizen.keymanager.getDataAliasList();
+
+if (aliases.length != 0) 
+{
+&nbsp;&nbsp;&nbsp;/* Assuming that the application calling removeData() */
+&nbsp;&nbsp;&nbsp;/* has permission to remove aliases[0] */
+&nbsp;&nbsp;&nbsp;var app_data = tizen.keymanager.removeData(aliases[0]);
+}
+</pre>
+</li>
+</ol>
+	
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

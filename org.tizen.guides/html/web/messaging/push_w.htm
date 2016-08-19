@@ -1,0 +1,413 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Push Notification</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile Web" src="../../images/mobile_s_w_optional.png"/> <img alt="Wearable Web" src="../../images/wearable_s_w_optional.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#security">Security</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#Registering">Registering to the Push Service</a></li>
+			<li><a href="#Receiving">Receiving Push Notifications</a></li>
+			<li><a href="#UnreadNotifications">Retrieving Missed Push Messages</a></li>
+			<li><a href="#GetPushMessage">Retrieving Messages When Launched by the Push Service</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/push.html">Push API for Mobile Web</a></li>
+			<li><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/push.html">Push API for Wearable Web</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Push Notification</h1>
+ 
+  <p>Tizen enables you to receive notifications from a push server. The push service is a client daemon that maintains a permanent connection between the device and the push server. Push enables you to push events from an application server to your application on a Tizen device. Connection with the push server is used to deliver push notifications to the application, and process the registration and deregistration requests.</p>
+
+ <p>This feature is supported in mobile and wearable applications only.</p>
+
+  <p>Push notification helps your application server send data to the application on devices over network even if the application is not running. Push service can reduce battery consumption and data transfer.</p>
+
+  <p>When a push message arrives when the application is running, it is automatically delivered to the application. If not, the push service makes a sound or vibrates, and adds a ticker or a badge notification to notify the user. By touching the notification, the user can check the message. The application server can send a message with a <span style="font-family: Courier New,Courier,monospace">LAUNCH</span> option. In this case, the push service forcibly launches the application and hands over the message to the application.</p>
+
+  <p>To use the push messaging service, the application needs the permission to access the Tizen push server. Request the permission from the Tizen push service team by <a href="mailto:push.tizen@samsung.com">email</a>, including the <a href="#permission">necessary information</a>. When the team approves the request, you receive a push app ID corresponding to your package ID.</p>
+  
+ <p>Before you start, remember to <a href="#prerequisites">prepare your application to use the push functionality</a>.</p>
+
+<h2 id="features">Features</h2>
+
+  <p>The main features of the Push API include:</p>
+  <ul>
+   <li><a href="#Registering">Registering to the push service</a>
+   <p>You can register or deregister the application for the push service. If the registration process is successful, it returns the registration identifier through the <span style="font-family: Courier New,Courier,monospace">PushRegisterSuccessCallback</span> listener (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/push.html#PushRegisterSuccessCallback">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/push.html#PushRegisterSuccessCallback">wearable</a> applications). The application server needs the registration ID to send notifications to the application installed on a specific device.</p></li>
+   <li><a href="#Receiving">Receiving push notifications</a>
+   <p>You can connect to the push service and start receiving push notifications with the <span style="font-family: Courier New,Courier,monospace">connectService()</span> method. You must pass the <span style="font-family: Courier New,Courier,monospace">PushNotificationCallback</span> listener (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/push.html#PushNotificationCallback">mobile</a> and  <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/push.html#PushNotificationCallback">wearable</a> applications) as a parameter in the method to receive push notifications.</p> </li>
+   <li><a href="#UnreadNotifications">Retrieving missed push messages</a>
+   <p>While the application is not running, messages cannot be delivered. You can retrieve such missed push messages later on.</p></li>
+   <li><a href="#GetPushMessage">Getting push messages when the application is launched by the push service</a>
+   <p>The application can be launched by the push service. In that case, you can get the last message delivered from the push service.</p></li>
+   <li>Sending push notifications
+  <p>The push service implements the RESTful open API for sending a push message. For more information on sending push notifications, see <a href="../../native/messaging/push_server_n.htm">Push Server</a>.</p>
+   </li>
+  </ul>
+
+<h2 id="architecture">Architecture</h2>
+
+<p>The architecture of the Tizen Push service is described in detail in the <a href="../../native/messaging/push_n.htm#service">mobile native Push guide</a>.</p>
+
+<p class="figure">Figure: Service architecture</p>
+<p align="center"><img alt="Service architecture" src="../../images/push_overview.png"/></p>
+  
+  
+  <p>To receive push notifications for your application:</p>
+  <ol>
+   <li>Request permission to access the Tizen Push servers for using the push service API.</li>
+   <li>Wait for a confirmation email for the request.</li>
+   <li>Register the installed application on the device.</li>
+   <li>Connect to the push service for receiving push notifications.</li>
+   <li>Receive notifications from the push service.</li>
+  </ol>
+
+<h2 id="security">Security</h2>
+  <p>Remember about security issues when sending notifications with sensitive information. For a list of strongly recommended rules, see <a href="../../native/messaging/push_n.htm#security">Managing Security</a>.</p>
+
+<h2>Warm-up</h2>
+      <p>Become familiar with the Push API basics by learning about:</p>
+      <ul>
+	   <li><a href="#prerequisites">Prerequisites</a> <p>Prepare your application to use the push functionality.</p></li>
+       <li><a href="#Registering">Registering to the Push Service</a> <p>Register to the push service and get the registration identifier.</p> </li>
+       <li><a href="#Receiving">Receiving Push Notifications</a> <p>Connect to the push service and start receiving push notifications.</p></li>
+      <li><a href="#UnreadNotifications">Retrieving Missed Push Messages</a> <p>Retrieve push messages that have been missed because the messages cannot be delivered while the application is not running.</p></li>
+      <li><a href="#GetPushMessage">Retrieving Messages When Launched by the Push Service</a> <p>When the application is launched by the push service, retrieve the last message delivered from the push service.</p></li>	   
+      </ul>
+	  
+	  <h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the push functionality:</p>
+<ol>
+    <li>
+        <p>To use the Push API (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/push.html">mobile</a> and <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/push.html">wearable</a> applications), the application has to request permission by adding the following privilege to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;tizen:privilege name=&quot;http://tizen.org/privilege/push&quot;/&gt;
+</pre>
+    </li>
+<li>Make sure the following requirements are fulfilled:
+<ul>
+    <li>Proxy and ports
+      <p>To connect to the Tizen push server and receive notifications from it, the target device must be able to contact any IP address with the port 5223. If you are in an enterprise network, ensure that the proxy setting in your local network allows outgoing traffic destined for this port number.</p>
+    </li>
+
+    <li id="permission">Permission to Tizen push servers
+    <p>To use the push messaging service, the application needs the permission to access the Tizen push server. Request the permission from the Tizen push service team by <a href="mailto:push.tizen@samsung.com">email</a>, including the following information. When the team approves the request, you receive a push app ID corresponding to your package ID.</p>
+    <p>By sending the application, you agree to the <a href="https://www.tizen.org/about/terms-service" target="_blank">Terms of Service</a> and <a href="https://www.tizen.org/about/privacy-policy" target="_blank">Privacy Policy</a>.</p>
+
+    <table id="request_form">
+<caption>Table: Request form details</caption>
+    <tbody>
+        <tr>
+         <th colspan="2">Developer information</th>
+        </tr>
+         <tr>
+         <td>Email address</td>
+         <td>Your email address to receive the approval response.</td>
+        </tr>
+         <tr>
+         <td>Last name</td>
+         <td>Your last name.</td>
+        </tr>
+         <tr>
+         <td>First name</td>
+         <td>Your first name.</td>
+        </tr>
+         <tr>
+         <td>Country</td>
+         <td>Your country of residence.</td>
+        </tr>
+        <tr>
+         <th colspan="2">Application information</th>
+        </tr>
+         <tr>
+         <td>Package ID</td>
+         <td>The ID of the application package that uses the push messaging service. The package ID can be obtained from the application manifest file in the Tizen SDK.</td>
+        </tr>
+         <tr>
+         <td>Application name</td>
+         <td>Name of the application that uses the push service.</td>
+        </tr>
+        <tr>
+         <td>Application type</td>
+         <td>Native application or Web application.</td>
+        </tr>
+         <tr>
+         <td>Testing purpose</td>
+         <td> Yes or no. If you request the service for testing purposes only, the duration of the push service is limited to 3 weeks.</td>
+        </tr>
+         <tr>
+         <td> Purpose of the push notification usage</td>
+         <td> Description of how you plan to use the push service, including the situations in which you want to use it.</td>
+        </tr>
+         <tr>
+         <td> Application launch date</td>
+         <td> Application launch date in the YYYY/MM/DD format. For example: 2014/08/01.</td>
+        </tr>
+         <tr>
+         <td>Service area/country</td>
+         <td>Service area, such as Asia, Africa, America, Europe, or the country where the application is used.</td>
+        </tr>
+         <tr>
+         <td>Daily push requests</td>
+         <td>Estimated number of daily notifications.</td>
+        </tr>
+         <tr>
+         <td> Transactions per second</td>
+         <td> Estimated peak number of transactions per second (the recommendation is below 100).</td>
+        </tr>
+    </tbody>
+    </table>
+    </li></ul>
+	</li>
+
+</ol>
+	  
+  <h2 id="Registering" name="Registering">Registering to the Push Service</h2>
+  
+  <p>To receive push notifications, you must learn how to register your application to the push service:</p> 
+  <ol> 
+   <li><p>Define event handlers for the registration results:</p>
+<pre class="prettyprint">
+/* Define the error callback */
+function errorCallback(response)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;The following error occurred: &quot; +  response.name);
+}
+
+/* Define the registration success callback */
+function registerSuccessCallback(id)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Registration succeeded with id: &quot; + id);
+}
+</pre>
+    </li>
+    <li><p>Register the application for the service with the <span style="font-family: Courier New,Courier,monospace">register()</span> method. This operation only needs to be done once.</p>
+    <pre class="prettyprint">
+/* Request application registration */
+tizen.push.register(registerSuccessCallback, errorCallback);
+</pre>
+<p>If the registration is successful, the <span style="font-family: Courier New,Courier,monospace;">registerSuccessCallback()</span> is called, and the registration ID is passed as a parameter.</p></li>
+ </ol>
+
+ <p>Any time after a successful registration, you can get the registration ID using the <span style="font-family: Courier New,Courier,monospace;">getRegistrationId()</span> method:</p>
+  <pre class="prettyprint">
+var registrationId = tizen.push.getRegistrationId();
+if (registrationId != null)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;The registration id: &quot; + registrationId);
+}
+</pre>
+  
+  <h2 id="Receiving" name="Receiving">Receiving Push Notifications</h2>
+
+<p>When a notification arrives at the device, its delivery mechanism depends on whether the application is running:</p>
+
+<ul>
+    <li>When the application is running
+    <p>When a notification arrives to the application while it is running (precisely, the application is connected to the service), the push notification callback is called. In this callback, you can read and process the received notification as described in this use case.</p></li>
+
+    <li>When the application is not running
+    <p>If the notification arrives when the application is not running, there are 3 ways to handle the notification:</p>
+    <ul>
+        <li>Forcibly launch the application and deliver the notification to it.
+        <p>This happens when the action is set to <span style="font-family: Courier New,Courier,monospace">LAUNCH</span> in the message field when sending the notification from the application server. When the notification action arrives at the device, the push service forcibly launches the application and delivers the notification as a bundle.</p>
+        <p>For more information, see the <a href="#GetPushMessage">Retrieving Messages When Launched by the Push Service</a> use case.</p></li>
+        <li>Store the notification at the push service database and request it later when the application is launched.
+        <p>This happens when the action is set to <span style="font-family: Courier New,Courier,monospace">ALERT</span> or <span style="font-family: Courier New,Courier,monospace">SILENT</span> in the message field when sending the notification from the application server. When such a notification arrives at the device, the push service keeps the notification in the database and waits for the request from the application.</p>
+		<p>For more information, see the <a href="#UnreadNotifications">Retrieving Missed Push Messages</a> use case.</p>
+        <p>The difference between the <span style="font-family: Courier New,Courier,monospace">ALERT</span> and <span style="font-family: Courier New,Courier,monospace">SILENT</span> actions is that the former shows an alert message in the quick panel and changes the badge count, while the latter does not. If the user clicks the alert message in the quick panel, the push service forcibly launches the application and delivers the notification.</p></li>
+        <li>Discard the notification.
+        <p>This happens when the action is set to <span style="font-family: Courier New,Courier,monospace">DISCARD</span> in the message field when sending the notification from the application server. When such a notification arrives at the device, the push service discards the notification unless the application is running.</p></li>
+    </ul>
+    </li>
+</ul>
+  
+ <p>To take advantage of the push technology, you must learn how to connect to the push service and receive push notifications:</p>
+  <ol> 
+   <li><p>Define the event handlers for the push connection. The push notifications are delivered in the success event handler.</p>
+<pre class="prettyprint">
+function errorCallback(response)
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;The following error occurred: &#39; +  response.name);
+}
+
+function notificationCallback(message)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;New push message : &quot; + message.alertMessage + &quot;, date : &quot; + message.date + &quot;, data : &quot; + message.appData);
+}
+</pre>
+      <p>The following table lists the fields available in the notification callback.</p>
+        <table>
+        <caption>Table: Push message key-value pairs</caption>
+        <tbody>
+        <tr>
+         <th>Key</th>
+         <th>Value</th>
+         <th>Description</th>
+        </tr>
+        <tr>
+         <td><span style="font-family: Courier New,Courier,monospace;">appData</span></td>
+         <td>String, less than 1 KB</td>
+         <td>Message payload. 
+		 <p>The applications can use this field to carry their own data.</p></td>
+        </tr>
+        <tr>
+         <td><span style="font-family: Courier New,Courier,monospace;">alertMessage</span></td>
+         <td>String, up to 127 bytes</td>
+         <td>Alert message shown to the user in the quick panel.
+		 <p>The <span style="font-family: Courier New,Courier,monospace;">alertMessage</span> field takes effect only when the application is not running (more precisely, when the application is not connected to the push service). If a notification arrives at the device where the application is running, the push service delivers the notification directly to the application. It does not show the alert message in the quick panel or increase the badge count.</p></td>
+        </tr>
+        <tr>
+         <td><span style="font-family: Courier New,Courier,monospace;">message</span></td>
+         <td>String</td>
+         <td>Full push notification message. 
+		 <p>For example: <span style="font-family: Courier New,Courier,monospace;">&quot;badgeOption=INCREASE&amp;badgeNumber=1&amp;action=ALERT&amp;alertMessage=Hi&quot;</span></p></td>
+        </tr>
+        <tr>
+         <td><span style="font-family: Courier New,Courier,monospace;">date</span></td>
+         <td>Date</td>
+         <td>Date and time when a push notification message was received.</td>
+        </tr>
+        <tr>
+         <td><span style="font-family: Courier New,Courier,monospace;">sender</span></td>
+         <td>String</td>
+         <td>Name of the notification sender.</td>
+        </tr>
+        <tr>
+         <td><span style="font-family: Courier New,Courier,monospace;">sessionInfo</span></td>
+         <td>String</td>
+         <td>Session information of the notification.</td>
+        </tr>
+        <tr>
+         <td><span style="font-family: Courier New,Courier,monospace;">requestId</span></td>
+         <td>String</td>
+         <td>Request ID assigned by the sender.</td>
+        </tr>
+        <tr>
+         <td><span style="font-family: Courier New,Courier,monospace;">type</span></td>
+         <td>Number</td>
+         <td>Type value assigned by the sender.</td>
+        </tr>
+        </tbody>
+        </table>
+
+    </li>
+    <li>
+      <p>Request the push service connection with the <span style="font-family: Courier New,Courier,monospace">connectService()</span> method:</p>
+<pre class="prettyprint">
+tizen.push.connectService(notificationCallback, errorCallback);
+</pre>
+      <p>If the connection is established, you start receiving push notifications.</p>
+    </li>
+  </ol>
+
+  <p>To stop listening for new push messages, call the <span style="font-family: Courier New,Courier,monospace">disconnectService()</span> method:</p>
+  <pre class="prettyprint">
+tizen.push.disconnectService();
+</pre>
+
+<p>To learn how send a simple push notification to the device, see <a href="../../native/messaging/push_n.htm#send">Sending Push Notifications</a>. For advanced features in sending notifications, see the <a href="../../native/messaging/push_server_n.htm">Push Server</a> guide for server developers.</p>
+
+<h2 id="UnreadNotifications">Retrieving Missed Push Messages</h2>
+<p>While the application is not running, messages cannot be delivered. To retrieve such missed push messages:</p>
+<ol>
+    <li>Call the <span style="font-family: Courier New,Courier,monospace">connectService()</span> method to connect to the Tizen push server and receive push notifications, before calling the <span style="font-family: Courier New,Courier,monospace">getUnreadNotifications()</span> method.
+<pre class="prettyprint">
+/* Method to be called when the notification message arrives */
+function notificationCallback(message)
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;New push message: &quot; + message.alertMessage + &quot;, date: &quot; + message.date + &quot;, data: &quot; + message.appData);
+}
+
+tizen.push.connectService(notificationCallback);
+</pre>	
+	</li>
+    <li>Receive the unread messages:
+    <pre class="prettyprint">
+tizen.push.getUnreadNotifications();
+</pre>
+<p>The notification callback passed to the <span style="font-family: Courier New,Courier,monospace">connectService()</span> method is called for every unread message.</p>
+    </li>
+</ol>
+
+<h2 id="GetPushMessage">Retrieving Messages When Launched by the Push Service</h2>
+<p>If the application is launched by the push service, use the <span style="font-family: Courier New,Courier,monospace">getPushMessage()</span> method to return the last undelivered push message. If none exists, it returns <span style="font-family: Courier New,Courier,monospace">NULL</span>.</p>
+
+<p>To retrieve the last message:</p>
+
+<ol>
+    <li>Retrieve the message:
+<pre class="prettyprint">
+var message = tizen.push.getPushMessage();
+</pre></li>
+    <li>Read the message content:
+<pre class="prettyprint">
+if (message)
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;notification received on &#39; + message.date + &#39; from: &#39; + message.sender);
+&nbsp;&nbsp;&nbsp;console.log(&#39;Details:&#39;);
+&nbsp;&nbsp;&nbsp;console.log(&#39; - data: &#39; + message.appData);
+&nbsp;&nbsp;&nbsp;console.log(&#39; - alert message: &#39; + message.alertMessage);
+&nbsp;&nbsp;&nbsp;console.log(&#39; - message: &#39; + message.message);
+&nbsp;&nbsp;&nbsp;console.log(&#39; - session: &#39; + message.sessionInfo);
+&nbsp;&nbsp;&nbsp;console.log(&#39; - request ID: &#39; + message.requestId);
+&nbsp;&nbsp;&nbsp;console.log(&#39; - type: &#39; + message.type);
+}
+</pre></li>
+</ol>    
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

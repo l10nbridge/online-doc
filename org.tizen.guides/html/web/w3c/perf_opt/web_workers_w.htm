@@ -20,14 +20,20 @@
 	</div>
 	
 	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
 		<p class="toc-title">Content</p>
 		<ul class="toc">
 			<li><a href="#js_performance">JavaScript Performance</a></li>
 			<li><a href="#multi">Multi-threading</a></li>
-		</ul>	
+			<li><a href="#Creating_Web_Worker">Creating a Web Worker and Handling Errors</a></li>
+			<li><a href="#Sending_Messages">Sending Messages Between Web Workers</a></li>
+		</ul>
 		<p class="toc-title">Related Info</p>
 		<ul class="toc">
-			<li><a href="../../../../../org.tizen.tutorials/html/web/w3c/perf_opt/web_workers_tutorial_w.htm">Web Workers Tutorial</a></li>
 			<li><a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#web_workers">Web Workers API for Mobile Web</a></li>
 			<li><a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#web_workers">Web Workers API for Wearable Web</a></li>
 			</ul>
@@ -38,17 +44,20 @@
   <h1>Web Workers</h1> 
 
 <p>Web workers run JavaScript in an independent thread instead of the main UI thread, improving the <a href="#js_performance">JavaScript performance</a> without affecting the UI.</p>
+
+ <p>This feature is supported in mobile and wearable applications only.</p>
+
 <p>Web workers are not DOM-dependent. They handle pure data, which makes them especially suitable for JavaScript code that takes a long time to execute.</p>
 
 
 <p>The main features of the Web Workers API include:</p>
 <ul>
-<li><a href="../../../../../org.tizen.tutorials/html/web/w3c/perf_opt/web_workers_tutorial_w.htm#Creating_Web_Worker">Creating workers</a>
+<li><a href="#Creating_Web_Worker">Creating workers</a>
 <p>
 The worker creates a new thread, and only runs when it is executed. It does not communicate with the UI thread or other same-level workers, and therefore, you cannot assign a work priority order. However, you can create subworkers using the <span style="font-family: Courier New,Courier,monospace">importScripts()</span> method to divide tasks.</p>
 </li>
 
-<li><a href="../../../../../org.tizen.tutorials/html/web/w3c/perf_opt/web_workers_tutorial_w.htm#Sending_Messages">Messaging between workers</a>
+<li><a href="#Sending_Messages">Messaging between workers</a>
 <p>A subworker can communicate with the host worker using the <span style="font-family: Courier New,Courier,monospace">postMessage()</span> method of the HTML5 Web Messaging API (in <a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#messaging">mobile</a> or <a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#messaging">wearable</a> applications). This process is normally used to give work orders to workers or subworkers, or deliver an operation result.</p>
 <p>
 If a worker triggers a message event, the <span style="font-family: Courier New,Courier,monospace">onmessage()</span> event handler can be used to check the sent message.</p>
@@ -76,8 +85,8 @@ If a worker triggers a message event, the <span style="font-family: Courier New,
 <p>Improving performance through effective JavaScript code consists of the following:</p>
 <ul>
 	<li><a href="js_performance_improvement_w.htm">JavaScript performance improvement</a></li>
-<li><a href="jquery_performance_improvement_w.htm">jQuery performance improvement</a></li>
 	<li><a href="minify_js_css_w.htm">JavaScript and CSS minification</a></li>
+	<li><a href="jquery_performance_improvement_w.htm">jQuery performance improvement</a></li>
 </ul>
 <h2 id="multi" name="multi">Multi-threading</h2>
 <p>Generally, Web applications are built and run using a single UI thread. Since only 1 task can be handled at a time, the Web application may not respond due to the execution time of a script block, resulting in lower application performance. To solve these performance-related issues, multi-thread <a href="http://www.w3.org/TR/2012/CR-workers-20120501/" target="_blank">Web workers</a> can be used to provide distributed processing in applications. Use Web workers in applications that require complex calculations or parallel processing for better application performance.</p> 
@@ -323,6 +332,162 @@ function colorFilter(binaryData, pixels)
     </tr> 
    </tbody> 
   </table> 
+
+<h2>Warm-up</h2>
+  <p>Become familiar with the Web Workers API basics by learning about:</p>
+  <ul>
+   <li><a href="#Creating_Web_Worker">Creating a Web Worker and Handling Errors</a>
+   <p>Create and execute a Web worker and a subworker, and handle worker-related errors.</p></li>
+   <li><a href="#Sending_Messages">Sending Messages Between Web Workers</a>
+   <p>Send messages between host workers and subworkers.</p></li>
+  </ul>
+
+<h2 id="Creating_Web_Worker" name="Creating_Web_Worker">Creating a Web Worker and Handling Errors</h2>
+				
+			<p>Learning how to create Web workers is a useful resource management skill:</p>
+	<ol>
+		<li>To create and execute a Web worker:
+		<ol type="a">
+			<li><p>Create JavaScript code for a simple Boolean operation:</p>
+			<pre class="prettyprint">
+var n = 1;
+index: while (true) 
+{
+&nbsp;&nbsp;&nbsp;n += 1;
+&nbsp;&nbsp;&nbsp;for (var i = 2; i &lt;= Math.sqrt(n); i += 1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (n % i == 0) continue index;
+&nbsp;&nbsp;&nbsp;postMessage(n);
+}</pre>
+			<p>This JavaScript operation delivers the calculated value of the <span style="font-family: Courier New,Courier,monospace">Math.sqrt(n)</span> method to the <span style="font-family: Courier New,Courier,monospace">postMessage()</span> method. It cannot be used for continuous posting of the Boolean operation.</p>
+			</li>
+			<li>
+			<p>Create a Web worker to be activated in the background. The JavaScript URL defining the worker needs to be delivered when creating the worker object:</p>
+			<pre class="prettyprint lang-html">
+&lt;button type=&quot;button&quot; onclick=&quot;workerStart()&quot;&gt;Start&lt;/button&gt;
+&lt;button type=&quot;button&quot; onclick=&quot;worker.terminate()&quot;&gt;Stop&lt;/button&gt;
+&lt;output&gt;&lt;/output&gt;
+</pre><pre class="prettyprint lang-js">
+&lt;script&gt;
+&nbsp;&nbsp;&nbsp;var worker = new Worker(&quot;worker3.js&quot;);
+
+&nbsp;&nbsp;&nbsp;function workerStart() 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;worker.onmessage = function(e) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;document.querySelector(&quot;output&quot;).textContent = e.data;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};
+&nbsp;&nbsp;&nbsp;}
+&lt;/script&gt;</pre>
+			<p>When the <strong>Start</strong> button is clicked, message data is received from the worker and displayed in the <span style="font-family: Courier New,Courier,monospace">&lt;output&gt;</span> element. When the <strong>Stop</strong> button is clicked, the worker is terminated.</p>
+			<p>Simple operations can be sufficiently handled with a single worker, however, in order to execute a more complex operations, more workers are needed.</p>
+			</li>
+		</ol>
+		</li>
+		<li>To create a subworker, use the <span style="font-family: Courier New,Courier,monospace">importScripts()</span> method:
+		<pre class="prettyprint">
+importScripts(&#39;worker1.js&#39;);
+importScripts(&#39;worker1.js&#39;, &#39;worker2.js&#39;);</pre>
+		<p>The subworker creates its own independent thread, and is activated in it, so it has the same restrictions as a host worker. This means that communication between subworkers is impossible, but a host worker can communicate with subworkers within the same object.</p>
+		</li>
+		<li>To handle errors:
+			<ul>
+				<li><p>If an error occurs when the worker is being executed, the <span style="font-family: Courier New,Courier,monospace">onerror()</span> event is triggered. It takes <span style="font-family: Courier New,Courier,monospace">filename</span>, <span style="font-family: Courier New,Courier,monospace">lineno</span>, and <span style="font-family: Courier New,Courier,monospace">message</span> attributes, and displays an error message:</p>
+				<pre class="prettyprint">
+worker.onerror = function(e) 
+{
+&nbsp;&nbsp;&nbsp;document.querySelectorAll(&quot;output&quot;)[1].textContent = [&#39;filename: &#39;, e.filename, &#39; lineno: &#39;, e.lineno, &#39; error: &#39;, e.message].join(&#39; &#39;);
+};</pre>
+				</li>
+				<li><p>The <span style="font-family: Courier New,Courier,monospace">addEventListener</span> can be used instead of the <span style="font-family: Courier New,Courier,monospace">onerror</span> event to detect errors and display an error message:</p>
+				<pre class="prettyprint">
+function errorMessage(e) 
+{
+&nbsp;&nbsp;&nbsp;document.querySelectorAll(&quot;output&quot;)[1].textContent = [&#39;filename: &#39;, e.filename, &#39; lineno: &#39;, e.lineno, &#39; error: &#39;, e.message].join(&#39; &#39;);
+}
+
+worker.addEventListener(&#39;error&#39;, errorMessage, false);</pre></li>
+			</ul>
+		</li>
+	</ol>  
+		
+				<h2 id="Sending_Messages" name="Sending_Messages">Sending Messages Between Web Workers</h2>
+				
+			<p>Learning how to send messages between Web workers is a useful resource management skill:</p>
+
+	<ol>
+	<li>Send a message in one of the following ways:
+		<ul>
+			<li>
+			<p>Use the <span style="font-family: Courier New,Courier,monospace">postMessage()</span> method to send a &quot;Hello&quot; message to a Web worker:</p>
+<pre class="prettyprint">var worker = new Worker(&#39;worker1.js&#39;);
+worker.postMessage(&quot;Hello&quot;);
+</pre>
+			</li>
+			<li>
+			<p>Use the JSON format to send the message:</p>
+<pre class="prettyprint">
+var worker = new Worker(&#39;worker2.js&#39;);
+worker.postMessage(
+{
+&nbsp;&nbsp;&nbsp;a: &quot;Hello&quot;, b: &quot;Tizen&quot;
+});
+</pre>
+			</li>
+		</ul></li>
+	<li><p>Receive a message in one of the following ways:</p>
+		<ul>
+			<li><p>Use the <span style="font-family: Courier New,Courier,monospace">onMessage</span> event handler to respond to receiving a message:</p>
+<pre class="prettyprint">worker.onmessage = function(e) 
+{
+&nbsp;&nbsp;&nbsp;alert(e.data);
+};</pre>
+			</li>
+			<li><p>Use the <span style="font-family: Courier New,Courier,monospace">addEventListener()</span> method to listen to the event of receiving a message:</p>
+<pre class="prettyprint">
+worker.addEventListener(&quot;message&quot;, function(e) 
+{
+&nbsp;&nbsp;&nbsp;alert(e.data);
+}, false);</pre>
+			</li>
+		</ul>
+	</li>
+	<li><p>Use the workers to execute threads:</p>
+		<ul>
+			<li><p>Use <span style="font-family: Courier New,Courier,monospace">worker1.js</span>:</p>
+<pre class="prettyprint">self.onmessage = function(e)
+{
+&nbsp;&nbsp;&nbsp;self.postMessage(&quot;You say: &quot; + e.data);
+};</pre>
+			</li>
+			<li><p>Use <span style="font-family: Courier New,Courier,monospace">worker2.js</span>:</p>
+<pre class="prettyprint">
+self.onmessage = function(e)
+{
+&nbsp;&nbsp;&nbsp;var b = e.data.b;
+&nbsp;&nbsp;&nbsp;if (b === &quot;Tizen&quot;) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.postMessage(e.data.b + &quot; say: &quot; + e.data.a);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.postMessage(&quot;You say: &quot; + e.data.a);
+&nbsp;&nbsp;&nbsp;}
+};</pre>
+			</li>
+			
+		</ul>
+<p>The <span style="font-family: Courier New,Courier,monospace">postMessage()</span> method can also execute the worker and respond to a message simultaneously.</p>		
+	</li>
+	</ol>
+
+<h3>Source Code</h3>
+ <p>For the complete source code related to this use case, see the following files:</p>
+ <ul>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/performance_and_optimization/web_workers" target="_blank">web_worker_1.html</a></li>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/performance_and_optimization/web_workers" target="_blank">web_worker_2.html</a></li>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/performance_and_optimization/web_workers" target="_blank">worker_1.js</a></li>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/performance_and_optimization/web_workers" target="_blank">worker_2.js</a></li>
+ </ul>
 
 <script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../../scripts/showhide.js"></script>

@@ -20,9 +20,17 @@
     </div>
 
     <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#Triggering">Triggering Server Push Requests</a></li>
+			<li><a href="#Receiving">Receiving Server Push Data</a></li>
+		</ul>
         <p class="toc-title">Related Info</p>
         <ul class="toc">
-            <li><a href="../../../../../org.tizen.tutorials/html/web/w3c/communication/server_sent_tutorial_w.htm">Server-Sent Events Tutorial</a></li>
 			<li><a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#serversent">Server-Sent Events API for Mobile Web</a></li>
             </ul>
     </div></div>
@@ -31,22 +39,129 @@
 <div id="container"><div id="contents"><div class="content">
 <h1>Server-Sent Events</h1>
  
-  <p>This feature is supported in mobile applications only.</p> 
- 
 <p>Server-Sent Events feature is used to realize server push in a Web environment. The server push feature has evolved over time from a hidden IFrame through Ajax polling and Comet to the current implementation of server-sent events.</p>
+
+<p>This feature is supported in mobile applications only.</p> 
+
 <p>The Server-Sent Events API defines a simple data structure and interface, and a communication mechanism to realize the server push. In addition, it can handle the received data in the general DOM event format. However, the API repeatedly requests the data from the client to the server, so it is not a complete server push.</p>
 <p>The repeat period of the server request is determined by the <span style="font-family: Courier New,Courier,monospace">retry</span> value of the <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#event-stream-interpretation" target="_blank">event stream data format</a>. If the value is not defined, the repeat period is the default value of the browser.</p>
 
 <p>The main features of the Server-Sent Events API include:</p>
 <ul>
 <li>Creating an <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#the-eventsource-interface" target="_blank">EventSource</a> instance
-<p>The <span style="font-family: Courier New,Courier,monospace">EventSource</span> interface is the core object of server-sent event implementation. <a href="../../../../../org.tizen.tutorials/html/web/w3c/communication/server_sent_tutorial_w.htm#Triggering">Creating a new EventSource instance</a> triggers repeated server request automatically, and allows you to use the receiving data event. When creating the <span style="font-family: Courier New,Courier,monospace">EventSource</span> instance, you must use the URL of the server page sending the event stream as a parameter.</p></li>
+<p>The <span style="font-family: Courier New,Courier,monospace">EventSource</span> interface is the core object of server-sent event implementation. <a href="#Triggering">Creating a new EventSource instance</a> triggers repeated server request automatically, and allows you to use the receiving data event. When creating the <span style="font-family: Courier New,Courier,monospace">EventSource</span> instance, you must use the URL of the server page sending the event stream as a parameter.</p></li>
 <li>Receiving server push data
-<p>After triggering the server requests, you can <a href="../../../../../org.tizen.tutorials/html/web/w3c/communication/server_sent_tutorial_w.htm#Receiving">receive push data from the server</a> by implementing the <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#handler-eventsource-onmessage" target="_blank">message</a> event.</p>
+<p>After triggering the server requests, you can <a href="#Receiving">receive push data from the server</a> by implementing the <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#handler-eventsource-onmessage" target="_blank">message</a> event.</p>
 <p>The received event stream data is parsed as a <a href="http://www.w3.org/TR/2012/CR-webmessaging-20120501/#event-definitions" target="_blank">MessageEvent</a> object, to make the target data easily accessible. </p>
 
 </li>
 </ul>
+
+<h2>Warm-up</h2>
+        <p>Become familiar with the Server-Sent Events API basics by learning about:</p>
+        <ul>
+            <li><a href="#Triggering">Triggering Server Push Requests</a><p>Create an <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#the-eventsource-interface" target="_blank">EventSource</a> interface instance.</p></li>
+            <li><a href="#Receiving">Receiving Server Push Data</a><p>Define the data server and the push data receiving event.</p></li>
+        </ul>
+
+
+  <h2 id="Triggering" name="Triggering">Triggering Server Push Requests</h2>
+  
+<p>To take advantage of the server push feature, you must learn to connect to the server to request push data:</p>
+<ol>
+<li>Create an <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#the-eventsource-interface" target="_blank">EventSource</a> interface instance:
+<pre class="prettyprint lang-js">
+&lt;script&gt;
+&nbsp;&nbsp;&nbsp;var serverPage = &quot;http://165.213.198.151:8080/server_sent_events_server.php&quot;;
+&nbsp;&nbsp;&nbsp;var eventSource = new EventSource(serverPage);   
+</pre>
+<table class="note"> 
+     <tbody> 
+      <tr> 
+       <th class="note">Note</th> 
+      </tr> 
+      <tr> 
+       <td class="note">For the server push to work, the <span style="font-family: Courier New,Courier,monospace">serverPage</span> parameter must contain the actual push server URL.</td> 
+      </tr> 
+     </tbody>
+</table>
+</li>
+<li>Implement the event handler for the <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#handler-eventsource-onopen" target="_blank">open</a> event:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;var log = document.getElementById(&quot;log&quot;)
+
+&nbsp;&nbsp;&nbsp;/* open event */
+&nbsp;&nbsp;&nbsp;eventSource.onopen = function(e)
+&nbsp;&nbsp;&nbsp;{    	        
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.innerHTML+= &quot;&lt;p&gt;open: &quot; + new Date() + &quot;&lt;/p&gt;&quot;;
+&nbsp;&nbsp;&nbsp;}; 
+&lt;/script&gt;
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">open</span> event is triggered repeatedly based on the <span style="font-family: Courier New,Courier,monospace">retry</span> value of the <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#event-stream-interpretation" target="_blank">event stream data format</a>, to request push messages from the server.</p>
+</li>
+</ol>
+<p>In the following figure, the <span style="font-family: Courier New,Courier,monospace">open</span> event is fired every 2 seconds.</p>
+<p class="figure">Figure: Push request event</p> 
+<p align="center"><img alt="Push request event" src="../../../images/server-sent_request.png" /></p> 
+
+ <h3>Source Code</h3>
+ <p>For the complete source code related to this use case, see the following files:</p>
+ <ul>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/communication/server_sent_events" target="_blank">server_sent_events_client1.html</a></li>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/communication/server_sent_events" target="_blank">server_sent_events_server.php</a></li>
+ </ul>
+ 
+  <h2 id="Receiving" name="Receiving">Receiving Server Push Data</h2>
+  
+<p>To take advantage of the server push feature, you must learn to handle the push data events:</p> 
+<ol>
+<li><p>Define the data server that the client connects to, according to the <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#event-stream-interpretation" target="_blank">event stream interpretation rules</a>.</p>
+<p>Set the <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#text-event-stream" target="_blank">MIME type</a> to <span style="font-family: Courier New,Courier,monospace">text/event-stream</span> so that the event stream can be sent, and set the header not to be cached.</p>
+<pre class="prettyprint">
+&lt;?php
+&nbsp;&nbsp;&nbsp;header(&#39;Content-Type: text/event-stream&#39;);
+&nbsp;&nbsp;&nbsp;header(&#39;Cache-Control: no-cache&#39;);
+
+&nbsp;&nbsp;&nbsp;echo &quot;retry: 2000\n\n&quot;; /* Reconnection interval */
+&nbsp;&nbsp;&nbsp;echo &quot;data: push time =&gt; &quot;. date(&#39;r&#39;) . &quot;\n\n&quot;;
+    
+&nbsp;&nbsp;&nbsp;flush();
+?&gt;
+</pre>
+</li>
+<li>
+<p>Create an <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#the-eventsource-interface" target="_blank">EventSource</a> interface instance and implement the event handler for the <a href="http://www.w3.org/TR/2011/WD-eventsource-20111020/#handler-eventsource-onmessage" target="_blank">message</a> event:</p>
+<pre class="prettyprint">
+&lt;script&gt;
+&nbsp;&nbsp;&nbsp;var serverPage = &quot;http://localhost/server_sent_events_server.php&quot;;
+&nbsp;&nbsp;&nbsp;var eventSource = new EventSource(serverPage);
+&nbsp;&nbsp;&nbsp;var log = document.getElementById(&quot;log&quot;);
+    
+&nbsp;&nbsp;&nbsp;/* open event */
+&nbsp;&nbsp;&nbsp;eventSource.onopen = function(e)
+&nbsp;&nbsp;&nbsp;{    	        
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.innerHTML+= &quot;&lt;p&gt;-----------------------&lt;/p&gt;&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.innerHTML+= &quot;&lt;p&gt;open: &quot; + new Date() + &quot;&lt;/p&gt;&quot;;
+&nbsp;&nbsp;&nbsp;};
+
+&nbsp;&nbsp;&nbsp;/* message event */
+&nbsp;&nbsp;&nbsp;eventSource.onmessage = function(e)
+&nbsp;&nbsp;&nbsp;{        
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;log.innerHTML+= &quot;&lt;p&gt;[push data]: &lt;br/&gt;&quot; + e.data + &quot;&lt;/p&gt;&quot;;
+&nbsp;&nbsp;&nbsp;};
+&lt;/script&gt; 
+</pre>
+</li>
+</ol>
+<p>In the following figure, the <span style="font-family: Courier New,Courier,monospace">open</span> event is fired every 2 seconds and the <span style="font-family: Courier New,Courier,monospace">message</span> event shows that push data is received.</p>
+<p class="figure">Figure: Push message event</p> 
+<p align="center"><img alt="Push message event" src="../../../images/server-sent_message.png" /></p> 
+ <h3>Source Code</h3>
+ <p>For the complete source code related to this use case, see the following files:</p>
+ <ul>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/communication/server_sent_events" target="_blank">server_sent_events_client2.html</a></li>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/communication/server_sent_events" target="_blank">server_sent_events_server.php</a></li>
+ </ul>
 
 <script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
 <script type="text/javascript" src="../../../scripts/showhide.js"></script>

@@ -1,0 +1,261 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Package Manager</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#retrieve">Retrieving All Package Information</a></li>
+			<li><a href="#info">Retrieving Specific Package Information</a></li>
+			<li><a href="#listen">Monitoring Package Events</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html">Package Manager API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html">Package Manager API for Wearable Native</a></li>
+			</ul>
+	</div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Package Manager</h1>
+
+<p>The package manager is used to retrieve detailed information of the installed packages on the device. This information includes the package name, label, path to the icon image, version, type, and installed storage.</p>
+
+<p>The main features of the Package Manager API include:</p>
+<ul>
+<li>Retrieving individual package information
+<p>To <a href="#info">retrieve package information</a>, get the <span style="font-family: Courier New,Courier,monospace">package_info_h</span> object using the <span style="font-family: Courier New,Courier,monospace">package_info_create()</span> or <span style="font-family: Courier New,Courier,monospace">package_manager_get_package_info()</span> function.</p></li>
+<li>Retrieving information from all installed packages
+<p>Use the <span style="font-family: Courier New,Courier,monospace">package_manager_foreach_package_info()</span> function to <a href="#retrieve">retrieve the package information of all installed packages</a>. As a result, the <span style="font-family: Courier New,Courier,monospace">package_manager_package_info_cb()</span> callback is invoked and you can get package information.</p></li>
+<li>Monitoring changes
+<p>You can <a href="#listen">monitor package events</a>, such as installation, uninstallation, and updates.</p></li>
+</ul>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the package manager functionality</a>.</p>
+
+<h2 id="warmup" name="warmup">Warm-up</h2> 
+  <p>Become familiar with the Package Manager API basics by learning about:</p> 
+  <ul> 
+	<li><a href="#prerequisites">Prerequisites</a>
+	<p>Prepare your application to use the package manager functionality.</p></li>
+   <li><a href="#retrieve">Retrieving All Package Information</a>
+    <p>Get all package information of installed packages.</p></li>
+   <li><a href="#info">Retrieving Specific Package Information</a>
+    <p>Get specific package information of installed packages.</p></li>
+   <li><a href="#listen">Monitoring Package Events</a>
+    <p>Monitor package-related events, such as installations, uninstallation, and updates.</p></li>
+  </ul> 		
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the package manager functionality:</p>
+<ol>
+<li>
+<p>To use the Package Manager API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html">wearable</a> applications), the application has to request permission by adding the following privilege to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/packagemanager.info&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+</li>
+<li><p>To use the functions and data types of the Package Manager API, include the <span style="font-family: Courier New,Courier,monospace">&lt;package_manager.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;package_manager.h&gt;
+</pre></li>
+</ol> 
+  
+<h2 id="retrieve" name="retrieve">Retrieving All Package Information</h2>
+
+<p>To retrieve all package information of installed packages:</p>
+
+<ol>
+<li>Define the <span style="font-family: Courier New,Courier,monospace">package_info_cb()</span> callback function, which is invoked for each retrieved package and used to access the package information:
+
+<pre class="prettyprint">
+void
+package_info_cb(package_info_h package_info, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;&nbsp;char *pkg = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *label = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *icon = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *version = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *type = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_installed_storage_type_e storage;
+&nbsp;&nbsp;&nbsp;&nbsp;bool system;
+&nbsp;&nbsp;&nbsp;&nbsp;bool removable;
+&nbsp;&nbsp;&nbsp;&nbsp;bool preload;
+
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_get_package(package_info, &amp;pkg);
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_get_label(package_info, &amp;label);
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_get_icon(package_info, &amp;icon);
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_get_version(package_info, &amp;version);
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_get_type(package_info, &amp;type);
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_get_installed_storage(package_info, &amp;storage);
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_is_system_package(package_info, &amp;system);
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_is_removable_package(package_info, &amp;removable);
+&nbsp;&nbsp;&nbsp;&nbsp;package_info_is_preload_package(package_info, &amp;preload);
+
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;pkg \t= [%s]\n&quot;, pkg);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;label \t= [%s]\n&quot;, label);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;icon \t= [%s]\n&quot;, icon);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;version \t= [%s]\n&quot;, version);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;type \t= [%s]\n&quot;, type);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;storage \t= [%d]\n&quot;, storage);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;system \t= [%d]\n&quot;, system);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;removable \t= [%d]\n&quot;, removable);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, TAG, &quot;preload \t= [%d]\n&quot;, preload);
+
+&nbsp;&nbsp;&nbsp;&nbsp;free(pkg);
+&nbsp;&nbsp;&nbsp;&nbsp;free(label);
+&nbsp;&nbsp;&nbsp;&nbsp;free(icon);
+&nbsp;&nbsp;&nbsp;&nbsp;free(version);
+&nbsp;&nbsp;&nbsp;&nbsp;free(type);
+}
+</pre></li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">package_manager_foreach_package_info()</span> function to retrieve all package information by invoking a callback for each retrieved package:
+<pre class="prettyprint">
+ret = package_manager_foreach_package_info(package_info_cb, NULL);
+if (ret != PACKAGE_MANAGER_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, TAG, &quot;foreach_package_info error: %d&quot;, ret);
+</pre></li></ol>
+
+ <h2 id="info" name="info">Retrieving Specific Package Information</h2>
+ 
+<p>To get specific package information:</p>
+<ol>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">package_manager_get_package_info()</span> function.
+<p>The function fills the second parameter with the package information handle, which can then be used with the following <span style="font-family: Courier New,Courier,monospace">package_info_get_*()</span> functions to retrieve the specific information:</p>
+<ul><li><span style="font-family: Courier New,Courier,monospace">package_info_get_label()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_get_icon()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_get_version()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_get_type()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_get_installed_storage()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_get_root_path()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_is_system_package()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_is_removable_package()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_is_preload_package()</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">package_info_is_accessible()</span></li>
+</ul>
+
+<pre class="prettyprint">
+char *version = NULL;
+char *label = NULL;
+char *type = NULL;
+package_info_h package_info = NULL;
+package_manager_get_package_info(&quot;PACKAGE-ID&quot;, &amp;package_info);
+
+package_info_get_version(package_info, &amp;version);
+package_info_get_label(package_info, &amp;label);
+package_info_get_type(package_info, &amp;type);
+
+dlog_print(DLOG_INFO, TAG, &quot;label \t= [%s]\n&quot;, label);
+dlog_print(DLOG_INFO, TAG, &quot;icon \t= [%s]\n&quot;, icon);
+dlog_print(DLOG_INFO, TAG, &quot;version \t= [%s]\n&quot;, version);
+
+free(label);
+free(icon);
+free(version);
+
+/* Use package information */
+</pre>
+</li>
+<li>When no longer needed, release the package information handle with the <span style="font-family: Courier New,Courier,monospace">package_info_destroy()</span> function:
+<pre class="prettyprint">
+package_info_destroy(package_info);
+</pre></li>
+</ol>
+
+ <h2 id="listen" name="listen">Monitoring Package Events</h2>
+
+<p>To detect package events, such as installation, uninstallation, and updates:</p>
+<ol>
+<li>
+<p>Create the package manager handle (<span style="font-family: Courier New,Courier,monospace">package_manager_h</span>) using the <span style="font-family: Courier New,Courier,monospace">package_manager_create()</span> function:</p>
+<pre class="prettyprint">
+package_manager_create(package_manager_h *manager);
+</pre>
+</li>
+<li>Set the package event to monitor by calling the <span style="font-family: Courier New,Courier,monospace">package_manager_set_event_status()</span> function.
+<p>The second parameter defines the package status that you want to monitor. The possible values are listed in the <span style="font-family: Courier New,Courier,monospace">package_manager_status_type_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html#ga405444ebd6254b9cfbaedec829558882">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__PACKAGE__MANAGER__MODULE.html#ga405444ebd6254b9cfbaedec829558882">wearable</a> applications).</p>
+<pre class="prettyprint">
+package_manager_set_event_status(manager, PACKAGE_MANAGER_STATUS_TYPE_ALL);
+</pre>
+</li>
+<li>Register a callback function to be invoked when the event (status change) you set above happens, and implement the callback:
+<pre class="prettyprint">
+void
+event_cb(const char *type, const char *package, package_manager_event_type_e event_type,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;package_manager_event_state_e event_state, int progress,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;package_manager_error_e error, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (event_state == PACKAGE_MANAGER_EVENT_STATE_STARTED)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Started&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else if (event_state == PACKAGE_MANAGER_EVENT_STATE_PROCESSING)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Progress: %d&quot;, progress);
+&nbsp;&nbsp;&nbsp;&nbsp;else if (event_state == PACKAGE_MANAGER_EVENT_STATE_COMPLETED)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Completed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed&quot;);
+}
+
+package_manager_set_event_cb(manager, event_cb, NULL);
+</pre>
+</li>
+
+<li>Free the package manager:
+<pre class="prettyprint">
+package_manager_destroy(package_manager_h manager);
+</pre>
+
+</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>	
