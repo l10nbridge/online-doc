@@ -1,0 +1,363 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>HTTP</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 3.0 and Higher for Mobile</li>
+			<li>Tizen Platform 3.0 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#session">Managing Sessions</a></li>
+			<li><a href="#transaction">Managing Transactions</a></li>
+		</ul>  
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__HTTP__MODULE.html">HTTP API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__HTTP__MODULE.html">HTTP API for Wearable Native</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>HTTP</h1>
+
+<p>HTTP (Hypertext Transfer Protocol) is a networking protocol for distributed, collaborative, hypermedia information systems. It allows applications to connect to a Web server to fetch and transmit a Web resource.</p>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the HTTP functionality</a>.</p>
+
+<p>The main features of the HTTP API include:</p>
+
+<ul>
+<li>HTTP session
+<p>A session is a set of one or more transactions. You must <a href="#session">create an HTTP session</a> before you can create transactions. Use the <span style="font-family: Courier New,Courier,monospace">http_session_create()</span> function to create a session handle, and when the session is no longer needed, destroy it with the <span style="font-family: Courier New,Courier,monospace">http_session_destroy()</span> function.</p>
+<p>When creating the session, you can set the session mode:</p>
+<ul>
+<li>The normal mode (<span style="font-family: Courier New,Courier,monospace">HTTP_SESSION_MODE_NORMAL</span>) means that the session has only 1 connection. All transactions in the session share that connection, and the transactions are processed one at a time.</li>
+<li>The pipelining mode (<span style="font-family: Courier New,Courier,monospace">HTTP_SESSION_MODE_PIPELINING</span>) means that multiple transactions can be processed concurrently. This mode can reduce the network latency.</li>
+</ul>
+<p>The application can manage multiple sessions at the same time.</p>
+</li>
+<li>HTTP transaction
+<p>A transaction represents a single operation between a client and a server.</p>
+<p>To <a href="#transaction">request for a resource from a Web server</a>, use the <span style="font-family: Courier New,Courier,monospace">http_session_open_transaction()</span> function to create a transaction handle and open an HTTP transaction from the HTTP session. The function requires the HTTP method defined by the <span style="font-family: Courier New,Courier,monospace">http_method_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__HTTP__MODULE.html#ga43d17339ae0c54fb1b72ec6bb73285ec">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__HTTP__MODULE.html#ga43d17339ae0c54fb1b72ec6bb73285ec">wearable</a> applications) as its first parameter. The main methods are:</p>
+<ul>
+<li>GET: The application can retrieve a resource from a remote Web server.</li>
+<li>POST: The application can send data to a Web server.</li>
+<li>PUT: The application can replace all current representations of the Web server resource with the uploaded content.</li>
+</ul>
+<p>When no longer needed, destroy the transaction with the <span style="font-family: Courier New,Courier,monospace">http_transaction_destroy()</span> function.</p>
+</li>
+<li>HTTP request
+<p>A request is message sent from a client to a server (for example, a request to fetch a resource from the Web server).</p>
+<p>To send a request, set the remote Web server resource path with the <span style="font-family: Courier New,Courier,monospace">http_transaction_request_set_uri()</span> function, and submit the request with the <span style="font-family: Courier New,Courier,monospace">http_transaction_submit()</span> function.</p>
+</li>
+<li>HTTP response
+<p>A response is a message sent from a server to a client.</p>
+</li>
+</ul>
+
+<p>To get the HTTP responses and monitor the state of the transactions, you must register callbacks:</p>
+<ul>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">http_transaction_set_received_header_cb()</span> and <span style="font-family: Courier New,Courier,monospace">http_transaction_set_received_body_cb()</span> functions to register callbacks for fetching the Web server resource header information and the response body.</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">http_transaction_set_uploaded_cb()</span> function to register a callback for the upload status of the remote Web server resource.</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">http_transaction_set_completed_cb()</span> function to register a callback for the completion status of the current transaction.</li>
+<li>Use the <span style="font-family: Courier New,Courier,monospace">http_transaction_set_aborted_cb()</span> function to register a callback for the failure status of the current transaction.</li>
+</ul>
+
+<h2>Warm-up</h2>
+<p>Become familiar with the HTTP API basics by learning about:</p>
+		<ul>
+			<li><a href="#prerequisites">Prerequisites</a>
+		    <p>Prepare your application to use the HTTP functionality.</p></li>
+			<li><a href="#session">Managing Sessions</a>
+			<p>Create a session and set auto redirection for it. When no longer needed, destroy all transactions and the session.</p></li>
+			<li><a href="#transaction">Managing Transactions</a>
+			<p>Create a transaction, configure and submit a request, and handle the response.</p></li>
+		</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+<p>To enable your application to use the HTTP functionality:</p>
+<ol>
+<li>
+<p>To use the functions and data types of the HTTP API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__HTTP__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__HTTP__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;http.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;http.h&gt;
+</pre>
+</li>
+<li>
+<p>Initialize the HTTP functionality using the <span style="font-family: Courier New,Courier,monospace;">http_init()</span> function:</p>
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+
+ret = http_init();
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_init failed: %d&quot;, ret);
+</pre>
+
+<p>When no longer needed, deinitialize the HTTP functionality:</p>
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+
+ret = http_deinit();
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_deinit failed: %d&quot;, ret);
+</pre>
+</li>
+</ol>
+
+ <h2 id="session" name="session">Managing Sessions</h2>
+
+<p>You can have multiple sessions, and each session can create multiple transactions. Each transaction is responsible for a single request to the Web servers.</p>
+ 
+<p>To manage HTTP sessions:</p>
+
+<ol><li>Create an HTTP session handle with the <span style="font-family: Courier New,Courier,monospace">http_session_create()</span> function:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+http_session_h session = NULL;
+
+ret = http_session_create(HTTP_SESSION_MODE_NORMAL, &amp;session);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_session_create failed: %d&quot;, ret);
+</pre>
+</li>
+<li>Set the auto redirection for the session with the <span style="font-family: Courier New,Courier,monospace">http_session_set_auto_redirection()</span> function:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+bool auto_redirect = true;
+
+ret = http_session_set_auto_redirection(session, auto_redirect);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_session_set_auto_redirection failed: %d&quot;, ret);
+</pre>
+</li>
+<li>When no longer needed, destroy all transactions and the session:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+
+ret = http_session_destroy_all_transactions(session);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_session_destroy_all_transactions failed: %d&quot;, ret);
+
+ret = http_session_destroy(&amp;session);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_session_destroy failed: %d&quot;, ret);
+</pre>
+</li>
+</ol>
+
+<h2 id="transaction" name="transaction">Managing Transactions</h2>
+
+<p>To manage HTTP transactions:</p>
+
+<ol>
+<li>Create an HTTP transaction handle with the <span style="font-family: Courier New,Courier,monospace">http_session_open_transaction()</span> function and the session handle:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+
+http_transaction_h transaction = NULL;
+ret = http_session_open_transaction(session, HTTP_METHOD_GET, &amp;transaction);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_session_open_transaction failed: %d&quot;, ret);
+</pre>
+<p>The transaction handle is used to manage the request and response.</p>
+</li>
+<li>Register transaction callbacks to receive the response and monitor the transaction state:
+<pre class="prettyprint">
+/* Callback for receiving the response header */
+void
+header_cb(http_transaction_h transaction, char* header, size_t header_len, void* user_data) {}
+
+http_transaction_set_received_header_cb(transaction, header_cb, NULL);
+
+/* Callback for receiving the response body */
+void
+body_cb(http_transaction_h transaction, char* body, size_t size, size_t nmemb, void* user_data) {}
+
+http_transaction_set_received_body_cb(transaction, body_cb, NULL);
+
+/* Callback for monitoring data uploads */
+void
+uploaded_cb(http_transaction_h transaction, char* body, int recommended_chunk, void* user_data) {}
+
+http_transaction_set_uploaded_cb(transaction, uploaded_cb, NULL);
+
+/* Callback for monitoring transaction completions */
+void
+completed_cb(http_transaction_h transaction, char* body, void* user_data) {}
+
+http_transaction_set_completed_cb(transaction, completed_cb, NULL);
+
+/* Callback for monitoring transaction abortions */
+void
+aborted_cb(http_transaction_h transaction, int reason, void* user_data) {}
+
+http_transaction_set_aborted_cb(transaction, aborted_cb, NULL);
+</pre>
+</li>
+
+<li>Send a request:
+<ol type="a">
+<li>Set the request URI for the transaction:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+char uri[1024] = &quot;www.example.com&quot;;
+
+ret = http_transaction_request_set_uri(transaction, uri);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_request_set_uri failed: %d&quot;, ret);
+</pre>
+</li>
+<li>Set the request method:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+http_method_e method = HTTP_METHOD_GET;
+
+ret = http_transaction_request_set_method(transaction, method);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_request_set_method failed: %d&quot;, ret);
+</pre>
+</li>
+<li>Set the HTTP version of the transaction:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+http_version_e version = HTTP_VERSION_1_1;
+
+ret = http_transaction_request_set_version(transaction, version);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_request_set_version failed: %d&quot;, ret);
+</pre>
+</li>
+<li>Submit the transaction for the defined request URI:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+
+ret = http_transaction_submit(transaction);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_submit failed: %d&quot;, ret);
+</pre>
+</li>
+</ol>
+</li>
+<li>The response arrives in the registered response header and response body callbacks.
+<p>To retrieve response status details:</p>
+<ul>
+<li>Get the status code of the submitted transaction:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+http_status_code_e status_code = -1;
+
+ret = http_transaction_response_get_status_code(transaction, &amp;status_code);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_response_get_status_code failed: %d&quot;, ret);
+</pre>
+</li>
+<li>Get the status version of the submitted transaction:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+http_version_e version = -1;
+
+ret = http_transaction_response_get_version(transaction, &amp;version);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_response_get_version failed: %d&quot;, ret);
+</pre>
+</li>
+</ul>
+</li>
+<li>When no longer needed, destroy the transaction:
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+
+ret = http_transaction_destroy(transaction);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_destroy failed: %d&quot;, ret);
+</pre>
+</li>
+</ol>
+
+<p>The following example shows the code required for a simple HTTP GET, HTTPS GET, or HTTP POST request:</p>
+
+<pre class="prettyprint">
+int ret = HTTP_ERROR_NONE;
+/* Request URI for HTTP GET */
+char uri[1024] = &quot;www.example.com&quot;;
+/*
+   Request URI for HTTPS GET:
+   char uri[1024] = &quot;https://httpbin.org/get&quot;;
+   Request URI and data for HTTP POST:
+   char uri[1024] = &quot;http://posttestserver.com/post.php&quot;;
+   const char* post_msg = &quot;name=tizen&amp;project=http&quot;;
+*/
+
+ret = http_session_create(HTTP_SESSION_MODE_NORMAL, &amp;session);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_session_create failed: %d&quot;, ret);
+
+/* Transaction for HTTP and HTTPS GET */
+ret = http_session_open_transaction(session, HTTP_METHOD_GET, &amp;transaction);
+/*
+   Transaction for HTTP POST:
+   ret = http_session_open_transaction(session, HTTP_METHOD_POST, &amp;transaction);
+*/
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_session_open_transaction failed: %d&quot;, ret);
+
+ret = http_transaction_request_set_uri(transaction, uri);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_request_set_uri failed: %d&quot;, ret);
+
+/*
+   Data management for HTTP POST:
+   http_transaction_set_ready_to_write(transaction, TRUE);
+   http_transaction_request_write_body(transaction, post_msg);
+*/
+
+ret = http_transaction_submit(transaction);
+if (ret != HTTP_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;http_transaction_submit failed: %d&quot;, ret);
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

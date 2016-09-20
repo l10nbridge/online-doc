@@ -1,0 +1,439 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Media Handle Management</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
+            <li><a href="#format">Managing the Media Format Handle</a></li>
+            <li><a href="#packet">Managing the Media Packet Handle</a></li>
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__TOOL__MODULE.html">Media Tool API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__TOOL__MODULE.html">Media Tool API for Wearable Native</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Media Handle Management</h1>
+
+ <p>Media tool enables your application to manage various media handles.</p> 
+  <p>The main features of the Media Tool API include:</p> 
+  <ul> 
+   <li><p>Creating the <span style="font-family: Courier New,Courier,monospace;">media_format_h</span> handle to specify video or audio information.</p>
+   <p>You can <a href="#format">set and get video or audio information</a> using the <span style="font-family: Courier New,Courier,monospace;">media_format_h</span> handle. </p></li>   
+   <li><p>Creating the <span style="font-family: Courier New,Courier,monospace;">media_packet_h</span> handle to include metadata (such as pts, dts, and duration) and allocate a buffer to the heap or TBM surface.</p>
+   <p>You can <a href="#packet">set and get the metadata</a> using the created <span style="font-family: Courier New,Courier,monospace;">media_packet_h</span> handle. Some <span style="font-family: Courier New,Courier,monospace;">media_packet_h</span> metadata are NOT filled after creating the <span style="font-family: Courier New,Courier,monospace;">media_packet_h</span> handle: pts, dts, duration, extradata, codec data, codec data size, and buffer flags.</p>
+   </li>   
+  </ul> 
+  
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the media tool functionality</a>.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">media_format_h</span> handle is created by the caller, who can set and get the video or audio information. The <span style="font-family: Courier New,Courier,monospace;">media_format_h</span> handle creates the <span style="font-family: Courier New,Courier,monospace;">media_packet_h</span> handle and allocates the buffer. The caller can set and get the metadata with the <span style="font-family: Courier New,Courier,monospace;">media_packet_h</span> handle.</p>
+
+<p>The following table describes the reference count design of the <span style="font-family: Courier New,Courier,monospace;">media_format_h</span> handle.</p>
+
+<table border="1"> 
+   <caption>
+     Table: Media format handle reference count design
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th style="text-align:center;margin-left:auto;margin-right:auto;">Function</th> 
+     <th style="text-align:center;margin-left:auto;margin-right:auto;">Reference count number</th> 
+	 <th style="text-align:center;margin-left:auto;margin-right:auto;">Description</th> 
+    </tr> 
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_format_h fmt1, fmt2, tmp;</span><br/>
+<span style="font-family: Courier New,Courier,monospace;">media_packet_h pkt1, pkt2;</span><br/>
+<span style="font-family: Courier New,Courier,monospace;">media_format_create(&amp;fmt1);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 1</td>
+	 <td>Define the <span style="font-family: Courier New,Courier,monospace;">media_format_h</span> and <span style="font-family: Courier New,Courier,monospace;">media_packet_h</span> handles.
+	 <p>Create the <span style="font-family: Courier New,Courier,monospace;">fmt1</span> handle and set the <span style="font-family: Courier New,Courier,monospace;">media_format_video_mime()</span> or <span style="font-family: Courier New,Courier,monospace;">media_format_audio_mime()</span> function.</p></td>
+    </tr>
+<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_packet_create(&amp;pkt1, fmt1);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 2</td>
+	 <td>After the <span style="font-family: Courier New,Courier,monospace;">media_packet_create()</span> function, you must use the <span style="font-family: Courier New,Courier,monospace;">media_format_unref()</span> function, because the <span style="font-family: Courier New,Courier,monospace;">media_packet_create()</span> function increases the <span style="font-family: Courier New,Courier,monospace;">media_format_h</span> reference count.</td>
+    </tr>
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_format_unref(fmt1);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 1</td>
+	 <td>If the <span style="font-family: Courier New,Courier,monospace;">ref_count</span> is 1, the <span style="font-family: Courier New,Courier,monospace;">fmt1</span> is currently owned by the <span style="font-family: Courier New,Courier,monospace;">pkt1</span> only.</td>
+    </tr>
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_packet_copy(pkt1, &amp;pkt2);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 2</td>
+	 <td>Copy the <span style="font-family: Courier New,Courier,monospace;">pkt1</span> metadata to <span style="font-family: Courier New,Courier,monospace;">pkt2</span>, except the allocated buffer and buffer size. <span style="font-family: Courier New,Courier,monospace;">pkt2</span> refers to <span style="font-family: Courier New,Courier,monospace;">fmt1</span>, and <span style="font-family: Courier New,Courier,monospace;">fmt1</span> <span style="font-family: Courier New,Courier,monospace;">ref_count</span> is increased.</td>
+    </tr>
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_packet_get_format(pkt1, &amp;tmp);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 3</td>
+	 <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span> <span style="font-family: Courier New,Courier,monospace;">ref_count</span> is increased by the <span style="font-family: Courier New,Courier,monospace;">media_packet_get_format()</span> function.</td>
+    </tr>
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_format_set_video_mime(tmp, ...);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 3</td>
+	 <td>If you try to modify the <span style="font-family: Courier New,Courier,monospace;">fmt1</span> data (call the <span style="font-family: Courier New,Courier,monospace;">media_format_set_video_mime()</span> function) for <span style="font-family: Courier New,Courier,monospace;">fmt1</span> (=<span style="font-family: Courier New,Courier,monospace;">tmp</span>), the <span style="font-family: Courier New,Courier,monospace;">ref_count</span> is bigger than 1, and <span style="font-family: Courier New,Courier,monospace;">fmt1</span> cannot be modified. 
+	 <p>To modify the <span style="font-family: Courier New,Courier,monospace;">fmt1</span> data, call the <span style="font-family: Courier New,Courier,monospace;">media_format_make_writable()</span> function.</p></td>
+    </tr>
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_format_make_writable(tmp, &amp;fmt2);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 2<br/>
+	 <span style="font-family: Courier New,Courier,monospace;">fmt2</span>: 1</td>
+	 <td>If called, the <span style="font-family: Courier New,Courier,monospace;">tmp</span> (<span style="font-family: Courier New,Courier,monospace;">fmt1</span>) <span style="font-family: Courier New,Courier,monospace;">ref_count</span> is decreased. Creates the <span style="font-family: Courier New,Courier,monospace;">fmt2</span> handle and copies the <span style="font-family: Courier New,Courier,monospace;">fmt1</span> data to <span style="font-family: Courier New,Courier,monospace;">fmt2</span>.</td>
+    </tr>
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_format_set_video_mime(fmt2, ...);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 2<br/>
+	 <span style="font-family: Courier New,Courier,monospace;">fmt2</span>: 1</td>
+	 <td><span style="font-family: Courier New,Courier,monospace;">fmt2</span> <span style="font-family: Courier New,Courier,monospace;">ref_count</span> is 1, which means that you can modify the <span style="font-family: Courier New,Courier,monospace;">fmt2</span> data.</td>
+    </tr>
+
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_packet_set_format(pkt2, fmt2);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 2
+	 <br/>
+	 <span style="font-family: Courier New,Courier,monospace;">fmt2</span>: 2</td>
+	 <td>Set the modified <span style="font-family: Courier New,Courier,monospace;">fmt2</span> to the <span style="font-family: Courier New,Courier,monospace;">pkt2</span> handle. You must call the <span style="font-family: Courier New,Courier,monospace;">media_format_unref(fmt2)</span> function.</td>
+    </tr>
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_format_unref(tmp);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 1
+	 <br/>
+	 <span style="font-family: Courier New,Courier,monospace;">fmt2</span>: 2</td>
+	 <td>You must call this function because of the <span style="font-family: Courier New,Courier,monospace;">media_packet_get_format(pkt1, &amp;tmp)</span> function call.</td>
+    </tr>	
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_format_unref(fmt2);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 1<br/>
+	 <span style="font-family: Courier New,Courier,monospace;">fmt2</span>: 1</td>
+	 <td>You must call this function because of the <span style="font-family: Courier New,Courier,monospace;">media_packet_set_format(pkt2, fmt2)</span> function call.</td>
+    </tr>	
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_packet_destroy(pkt1);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 1 &gt; finalize<br/>
+	 <span style="font-family: Courier New,Courier,monospace;">fmt2</span>: 1</td>
+	 <td>If you destroy the <span style="font-family: Courier New,Courier,monospace;">pkt1</span> handle, the <span style="font-family: Courier New,Courier,monospace;">fmt1</span> <span style="font-family: Courier New,Courier,monospace;">ref_count</span> is decreased. If the <span style="font-family: Courier New,Courier,monospace;">ref_count</span> becomes 0, <span style="font-family: Courier New,Courier,monospace;">fmt1</span> is freed.</td>
+    </tr>	
+	<tr> 
+     <td><span style="font-family: Courier New,Courier,monospace;">media_packet_destroy(pkt2);</span></td> 
+     <td><span style="font-family: Courier New,Courier,monospace;">fmt1</span>: 1  &gt; finalize<br/>
+	 <span style="font-family: Courier New,Courier,monospace;">fmt2</span>: 0 &gt; finalize</td>
+	 <td>If you destroy the <span style="font-family: Courier New,Courier,monospace;">pkt2</span> handle, the <span style="font-family: Courier New,Courier,monospace;">fmt2</span> <span style="font-family: Courier New,Courier,monospace;">ref_count</span> is decreased. If the <span style="font-family: Courier New,Courier,monospace;">ref_count</span> becomes 0, <span style="font-family: Courier New,Courier,monospace;">fmt2</span> is freed.</td>
+    </tr>		
+   </tbody> 
+  </table> 
+  
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Media Tool API basics by learning about:</p>
+
+<ul>
+	<li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the media tool functionality.</p></li>
+    <li><a href="#format">Managing the Media Format Handle</a>
+        <p>Create, set, and get the <span style="font-family: Courier New,Courier,monospace">media_format_h</span> handle.</p></li>
+    <li><a href="#packet">Managing the Media Packet Handle</a>
+        <p>Create, set, and get the <span style="font-family: Courier New,Courier,monospace">media_packet_h</span> handle.</p></li>
+</ul>
+
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the media tool functionality:</p>
+<ul>
+<li>
+<p>To use the media format handle of the Media Tool API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__TOOL__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__TOOL__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;media_format.h&gt;</span> header file in your application:</p>
+
+<pre class="prettyprint">
+#include &lt;media_format.h&gt;
+</pre>
+</li>
+<li>
+<p>To use the media packet handle of the Media Tool API, include the <span style="font-family: Courier New,Courier,monospace">&lt;media_packet.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;media_packet.h&gt;
+</pre>
+</li>
+</ul>
+
+<h2 id="format" name="format">Managing the Media Format Handle</h2>
+
+<p>To manage the media format handle:</p>
+
+<ol>
+<li>
+<p>Define a <span style="font-family: Courier New,Courier,monospace">media_format_h</span> variable for the media format handle, and pass the variable to the <span style="font-family: Courier New,Courier,monospace">media_format_create()</span> function, which returns the handle.</p>
+
+<p>To set the video information when creating the handle:</p>
+
+<pre class="prettyprint">
+media_format_h format;
+if (media_format_create(&amp;format) == MEDIA_FORMAT_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_H264_HP);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 640);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 480);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_max_bps(format, 15000000);
+} else {
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;media_format_create() failed!&quot;);
+}
+</pre>
+
+<p>To set the audio information, replace the <span style="font-family: Courier New,Courier,monospace">media_format_set_video_XXX()</span> functions with the relevant <span style="font-family: Courier New,Courier,monospace">media_format_set_audio_XXX()</span> functions in the above example code.</p>
+
+</li>
+
+<li>
+
+<p>To retrieve the video format information, use the <span style="font-family: Courier New,Courier,monospace">media_format_get_video_info()</span> function:</p>
+
+<pre class="prettyprint">
+media_format_h fmt;
+
+media_format_mimetype_e mime;
+int w;
+int h;
+int avg_bps;
+int max_bps;
+
+if (media_format_get_video_info(fmt, &amp;mimetype, &amp;w, &amp;h, &amp;avg_bps, &amp;max_bps) == MEDIA_PACKET_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;printf(&quot;media_format_get_video_info success! width = %d, height = %d&quot;, w, h);
+else
+&nbsp;&nbsp;&nbsp;&nbsp;print(&quot;media_format_get_video failed...&quot;);
+</pre>
+
+<p>To retrieve the audio format information, use the <span style="font-family: Courier New,Courier,monospace">media_format_get_audio_info()</span> function.</p>
+
+</li>
+
+</ol>
+
+<h2 id="packet" name="packet">Managing the Media Packet Handle</h2>
+
+<p>To manage the media packet handle:</p>
+
+<ol>
+
+<li>
+
+<p>Define a <span style="font-family: Courier New,Courier,monospace">media_packet_h</span> variable for the media packet handle, and pass the variable to the appropriate <span style="font-family: Courier New,Courier,monospace">media_packet_create_XXX()</span> function (as the last parameter) with an existing media format handle (as the first parameter).</p>
+
+<p>After creating the media packet handle, call the <span style="font-family: Courier New,Courier,monospace">media_format_unref()</span> function for the media format handle. Because all functions that create a media packet handle increase the reference count of the media format handle, you must decrease the count.</p>
+
+<p>To reuse the media packet handle even after the <span style="font-family: Courier New,Courier,monospace">media_packet_destroy()</span> function is called, define a callback (the third last parameter of the <span style="font-family: Courier New,Courier,monospace">media_packet_create_XXX()</span> function), which is called when the handle is destroyed. Set the callback to return <span style="font-family: Courier New,Courier,monospace">MEDIA_PACKET_REUSE</span>.</p>
+
+<p>The following example codes show the different ways you create the media packet handle:</p>
+
+<ul>
+
+<li>
+
+<p>To create the handle and allocate a buffer into the heap or TBM surface, use the <span style="font-family: Courier New,Courier,monospace">media_packet_create_alloc()</span> function:</p>
+
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_h fmt;
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_h packet;
+
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_create(&amp;fmt);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_H264_HP);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 640);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 480);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_max_bps(format, 15000000);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* MEDIA_FORMAT_H264_HP data type is MEDIA_FORMAT_ENCODED and the buffer is allocated into the heap */
+&nbsp;&nbsp;&nbsp;&nbsp;/* If the data type is MEDIA_FORMAT_RAW, the buffer is allocated into the TBM surface */
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_create_alloc(fmt, _finalize_callback, fcb_data, &amp;packet);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_unref(fmt);
+
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_destroy(packet);
+}
+
+int
+_finalize_callback(media_packet_h packet, int err, void* userdata)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;return MEDIA_PACKET_REUSE;
+}
+</pre>
+
+</li>
+
+<li>
+
+<p>To create only the handle, use the <span style="font-family: Courier New,Courier,monospace">media_packet_create()</span> function:</p>
+
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_h fmt;
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_h packet;
+
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_create(&amp;fmt);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_H264_HP);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 640);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 480);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_max_bps(format, 15000000);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Only create the handle, do not allocate a buffer */
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_create(fmt, _finalize_callback, fcb_data, &amp;packet);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_unref(fmt);
+}
+
+int
+_finalize_callback(media_packet_h packet, int err, void* userdata)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;return MEDIA_PACKET_FINALIZE;
+}
+</pre>
+
+</li>
+
+<li>
+
+<p>To create the handle and store the TBM surface data, use the <span style="font-family: Courier New,Courier,monospace">media_packet_create_from_tbm_surface()</span> function:</p>
+
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_h fmt;
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_h packet;
+
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_create(&amp;fmt);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_RGBA);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 128);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 128);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 15000000);
+
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_create_from_tbm_surface(fmt, surface, _finalize_callback, fcb_data, &amp;packet);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_unref(fmt);
+}
+
+int
+_finalize_callback(media_packet_h packet, int err, void* userdata)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;return MEDIA_PACKET_FINALIZE;
+}
+</pre>
+
+</li>
+
+<li>
+
+<p>To create the handle with an already allocated external buffer, use the <span style="font-family: Courier New,Courier,monospace">media_packet_create_from_external_memory()</span> function:</p>
+
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_h fmt;
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_h packet;
+
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_create(&amp;fmt);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_mime(format, MEDIA_FORMAT_H264_HP);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_width(format, 640);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_height(format, 480);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 10000000);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_set_video_avg_bps(format, 15000000);
+
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_create_from_external_memory(fmt, mem_ptr, size, _finalize_callback, fcb_data, &amp;packet);
+&nbsp;&nbsp;&nbsp;&nbsp;media_format_unref(fmt);
+}
+
+int
+_finalize_callback(media_packet_h packet, int err, void* userdata)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Do something */
+
+&nbsp;&nbsp;&nbsp;&nbsp;return MEDIA_PACKET_FINALIZE;
+}
+</pre>
+
+</li>
+
+</ul>
+
+</li>
+
+<li>
+
+<p>Set and get the metadata with the media packet handle:</p>
+
+<pre class="prettyprint">
+int ret = MEDIA_PACKET_ERROR_NONE;
+
+/* format1 already exists */
+
+media_packet_create_alloc(format1, NULL, NULL, &amp;packet);
+
+ret = media_packet_set_duration(packet, duration);
+
+/* After media_packet_get_format(), use media_format_unref() */
+media_format_h tmp;
+media_packet_get_format(packet, &amp;tmp);
+media_format_unref(tmp);
+
+/* Set previously created format2 to packet */
+/* After media_packet_set_format(), use media_format_unref() */
+media_packet_set_format(packet, format2);
+
+/*
+   Packet format is format2
+   If format2 ref_count is 1, format2 is free
+   If format2 ref_count is bigger than 1, it is not free
+*/
+media_packet_destroy(packet);
+</pre>
+
+</li>
+
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

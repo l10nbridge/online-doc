@@ -1,0 +1,345 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Image Capturing with the Camera</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#camera_init">Initializing the Camera</a></li>
+			<li><a href="#preview_capture">Previewing and Capturing Images</a></li>
+			<li><a href="#camera_stop">Stopping the Camera</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>		
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/media/media_cover_n.htm">Media and Camera Guides</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__FRAMEWORK.html">Multimedia API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__FRAMEWORK.html">Multimedia API for Wearable Native</a></li>
+        </ul>		
+	</div></div>
+</div>		
+<div id="container"><div id="contents"><div class="content">	
+<h1>Image Capturing with the Camera</h1>
+
+<p>You can capture still images with the device&#39;s internal camera and keep images on your target device using the Camera API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">wearable</a> applications). The main features of the Camera API include:</p>
+<ul>
+<li>Previewing images in real time</li>
+<li>Capturing and saving images</li>
+<li>Controlling the camera settings, such as contrast, exposure, brightness, ISO, flash, white balance, and HDR</li>
+</ul>
+<p>You can take photos using the Camera API through the following steps:</p>
+<ol>
+<li>Initialize the camera.</li>
+<li>Configure the camera.</li>
+<li>Preview and capture images.</li>
+<li>Terminate the camera.</li>
+</ol>
+<p>The following figure illustrates the camera state changes in the normal mode.</p>
+
+<p class="figure">Figure: Camera state changes</p>
+<p align="center"><img src="../../images/camera_state_changes_n.png" alt="Camera state changes" /></p>
+
+<h2 id="camera_init">Initializing the Camera</h2>
+
+<p>To initialize the camera, create a handle for the camera, configure the camera settings, and register callback functions for the events of preview and auto-focus:</p>
+
+<ol>
+<li>
+<p>To use the functions and data types of the Camera API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html">wearable</a> applications), include the &lt;camera.h&gt; header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;camera.h&gt;
+</pre>
+</li>
+<li>Create the camera handle using the <span style="font-family: Courier New,Courier,monospace;">camera_create()</span> function.
+<p>In the following example, create a <span style="font-family: Courier New,Courier,monospace;">g_camera</span> camera handle, and define a <span style="font-family: Courier New,Courier,monospace;">camdata</span> structure type, to store global data related to the camera handle:</p>
+<pre class="prettyprint">
+struct _camdata {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *rect;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas *evas;
+&nbsp;&nbsp;&nbsp;&nbsp;camera_h g_camera; /* Camera handle */
+};
+typedef struct _camdata camdata;
+
+static camdata cam_data;
+
+int error_code = 0;
+
+/* Create the camera handle */
+error_code = camera_create(CAMERA_DEVICE_CAMERA0, &amp;cam_data.g_camera);
+if (error_code != CAMERA_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;fail to create camera: error code = %d&quot;, error_code);
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">CAMERA_DEVICE_CAMERA0</span> parameter means that the currently activated device camera is 0, which is the primary camera. You can select between the primary (0) and the secondary (1) camera, which are defined in the <span style="font-family: Courier New,Courier,monospace;">camera_device_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html#gab030be4ec6b05144c3f2a732541e4104">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html#gab030be4ec6b05144c3f2a732541e4104">wearable</a> applications). Since devices can have multiple camera sensors with different capabilities, you must create a camera handle with a proper <span style="font-family: Courier New,Courier,monospace;">camera_device_e</span> value, determining which camera sensor is used. Usually, the primary sensor is located on the back side and the secondary sensor is on the front side of the device.</p>
+</li>
+<li>Configure the camera settings.
+<p>Before configuring the camera settings, find out which configurations are supported by the camera. Depending on the camera type, the device can support different orientations, resolutions, or preview and capture formats. You can obtain this information using the relevant functions, such as <span style="font-family: Courier New,Courier,monospace;">camera_foreach_supported_preview_resolution()</span>, <span style="font-family: Courier New,Courier,monospace;">camera_foreach_supported_preview_format()</span>, or other <span style="font-family: Courier New,Courier,monospace;">camera_foreach_supported_XXX()</span> functions. For example, using the <span style="font-family: Courier New,Courier,monospace;">camera_foreach_supported_preview_resolution()</span> function, you can find out which resolutions are supported for the camera preview on a specific device. As usual, the foreach function invokes a callback for each supported resolution and stops when the callback returns <span style="font-family: Courier New,Courier,monospace;">false</span>.</p>
+
+<p>Set the camera configurations (such as image quality, display type, preview resolution, and capture format) by using the relevant functions:</p>
+
+<ul>
+<li>Image quality
+<p>Set the image quality using the <span style="font-family: Courier New,Courier,monospace;">camera_attr_set_image_quality()</span> function. The quality value ranges from 1 (lowest quality) to 100 (highest quality).</p>
+
+<pre class="prettyprint">
+error_code = camera_attr_set_image_quality(cam_data.g_camera, 100);
+</pre>
+</li>
+<li>Display type
+<p>Using the <span style="font-family: Courier New,Courier,monospace;">camera_set_display()</span> function, you can set the display type for showing preview images. The display type is either <span style="font-family: Courier New,Courier,monospace;">CAMERA_DISPLAY_TYPE_EVAS</span> or <span style="font-family: Courier New,Courier,monospace;">CAMERA_DISPLAY_TYPE_OVERLAY</span>.</p>
+<p>The following example shows how to set the display according to the display_type parameter:</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The camera state must be <span style="font-family: Courier New,Courier,monospace;">CAMERA_STATE_CREATED</span> and the <span style="font-family: Courier New,Courier,monospace;">create_base_gui()</span> function must be called before previewing.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+  
+<pre class="prettyprint">
+int error_code = CAMERA_ERROR_NONE;
+Evas_Object *g_eo = NULL;
+
+static void
+create_base_gui(camdata *cam_data, camera_display_type_e display_type)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Window */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_config_accel_preference_set(&quot;opengl&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;/* PACKAGE contains the package name character info */
+&nbsp;&nbsp;&nbsp;&nbsp;cam_data-&gt;win = elm_win_add(NULL, PACKAGE, ELM_WIN_BASIC);
+
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(cam_data-&gt;win, 240, 320);
+
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(cam_data-&gt;win, 0, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_autodel_set(cam_data-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;cam_data-&gt;evas = evas_object_evas_get(cam_data-&gt;win);
+
+&nbsp;&nbsp;&nbsp;&nbsp;switch (display_type) {
+&nbsp;&nbsp;&nbsp;&nbsp;case CAMERA_DISPLAY_TYPE_EVAS:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Set the Evas image object for drawing */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_eo = evas_object_image_add(cam_data-&gt;evas);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_size_set(g_eo, 240, 320);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_image_fill_set(g_eo, 0, 0, 240, 320);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(g_eo, 240, 320);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(g_eo);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(cam_data.win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case CAMERA_DISPLAY_TYPE_OVERLAY:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cam_data-&gt;rect = evas_object_rectangle_add(cam_data-&gt;evas);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(cam_data-&gt;rect, 240, 320);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(cam_data-&gt;rect, 0, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(cam_data-&gt;rect, 0, 0, 0, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_render_op_set(cam_data-&gt;rect, EVAS_RENDER_COPY);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(cam_data-&gt;rect, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Show the window after the base GUI is set up */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(cam_data-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case default:
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+error_code = camera_set_display(cam_data.g_camera, CAMERA_DISPLAY_TYPE_OVERLAY, GET_DISPLAY(cam_data.win));
+if (error_code != CAMERA_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, &quot;camera_set_display failed [0x%x]&quot;, ret);
+&nbsp;&nbsp;&nbsp;&nbsp;camera_destroy(cam_data.g_camera);
+&nbsp;&nbsp;&nbsp;&nbsp;cam_data.g_camera = 0;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+</li>
+<li>Preview resolution
+<p>Set the preview resolution by calling the <span style="font-family: Courier New,Courier,monospace;">camera_set_preview_resolution()</span> function before previewing.</p>
+<p>The following example code sets the camera preview resolution to the first found supported resolution, which is returned from the <span style="font-family: Courier New,Courier,monospace;">camera_foreach_supported_preview_resolution()</span> function:</p>
+
+<pre class="prettyprint">
+int resolution[2];
+
+static bool
+_preview_resolution_cb(int width, int height, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int *resolution = (int*)user_data;
+&nbsp;&nbsp;&nbsp;&nbsp;resolution[0] = width;
+&nbsp;&nbsp;&nbsp;&nbsp;resolution[1] = height;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return false;
+}
+
+/* Find a resolution that is supported by the device */
+error_code = camera_foreach_supported_preview_resolution(cam_data.g_camera, _preview_resolution_cb, resolution);
+
+/* Set the supported resolution for camera preview */
+error_code = camera_set_preview_resolution(cam_data.g_camera, resolution[0], resolution[1]);
+</pre>
+</li>
+<li>Capture format
+<p>Using the <span style="font-family: Courier New,Courier,monospace;">camera_set_capture_format()</span> function, set the capture format. The available formats are defined in the <span style="font-family: Courier New,Courier,monospace;">camera_pixel_format_e</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html#ga18b291f5f688ef92692b0cc273fd6ece">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CAMERA__MODULE.html#ga18b291f5f688ef92692b0cc273fd6ece">wearable</a> applications), such as <span style="font-family: Courier New,Courier,monospace;">NV12</span>, <span style="font-family: Courier New,Courier,monospace;">NV16</span>, and <span style="font-family: Courier New,Courier,monospace;">JPEG</span>.</p>
+<pre class="prettyprint">
+error_code = camera_set_capture_format(cam_data.g_camera, CAMERA_PIXEL_FORMAT_JPEG);
+</pre>
+</li></ul>
+</li>
+<li>Register callback functions.
+<p>To retrieve notifications, you must register appropriate callback functions for handling newly previewed frames and auto-focus state changes:</p>
+<ul>
+<li>Camera preview
+<p>To receive notifications about newly previewed frames, register a callback function using the <span style="font-family: Courier New,Courier,monospace;">camera_set_preview_cb()</span> function. The callback is invoked once per frame during a preview.</p>
+<p>The following example implements the <span style="font-family: Courier New,Courier,monospace;">_camera_preview_cb()</span> callback, which starts auto-focusing using the <span style="font-family: Courier New,Courier,monospace;">camera_start_focusing()</span> function:</p>
+
+<pre class="prettyprint">
+error_code = camera_set_preview_cb(cam_data.g_camera, _camera_preview_cb, NULL);
+
+static void
+_camera_preview_cb(camera_preview_data_s *frame, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code = 0;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (g_enable_focus == true) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error_code = camera_start_focusing(cam_data.g_camera, true);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (error_code == CAMERA_ERROR_NOT_SUPPORTED)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error_code = camera_start_focusing(cam_data.g_camera, false);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_enable_focus = false;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+<p>The second parameter of the <span style="font-family: Courier New,Courier,monospace;">camera_start_focusing()</span> function is a Boolean flag defining whether the camera must continuously maintain focus. The <span style="font-family: Courier New,Courier,monospace;">g_enable_focus</span> flag is set to <span style="font-family: Courier New,Courier,monospace;">true</span> at the application startup. For the first frame of the preview, the camera starts auto-focusing. Subsequent calls to the callback do not provoke any action, which prevents the auto-focusing process from starting after the first previewed frame.</p>
+</li>
+<li>Auto-focus state change
+<p>Before auto-focusing starts, the auto-focus state is <span style="font-family: Courier New,Courier,monospace;">CAMERA_FOCUS_STATE_RELEASED</span>. After the <span style="font-family: Courier New,Courier,monospace;">camera_start_focusing()</span> function is called, the camera starts auto-focusing and the state changes to <span style="font-family: Courier New,Courier,monospace;">CAMERA_FOCUS_STATE_ONGOING</span>. If the auto-focusing finishes successfully, the state changes to <span style="font-family: Courier New,Courier,monospace;">CAMERA_FOCUS_STATE_FOCUSED</span>. If the auto-focusing fails, the state changes to <span style="font-family: Courier New,Courier,monospace;">CAMERA_FOCUS_STATE_FAILED</span>.</p>
+<p>To receive notifications about auto-focusing state changes, register a callback using the <span style="font-family: Courier New,Courier,monospace;">camera_set_focus_changed_cb()</span> function. The callback is invoked every time the auto-focus state changes.</p>
+<p>The following example implements the <span style="font-family: Courier New,Courier,monospace;">_camera_focus_cb()</span> callback, which starts capturing focused frames using the <span style="font-family: Courier New,Courier,monospace;">camera_start_capture()</span> function:</p>
+
+<pre class="prettyprint">
+static void
+_camera_focus_cb(camera_focus_state_e state, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (state == CAMERA_FOCUS_STATE_FOCUSED &amp;&amp; g_enable_shot == true) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/*  Start capturing */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;error_code = camera_start_capture(cam_data.g_camera, _camera_capturing_cb, _camera_completed_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;g_enable_shot = false;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li></ul>
+</li>
+</ol>
+
+<h2 id="preview_capture">Previewing and Capturing Images</h2>
+			
+<p>After initializing the camera, you can start the preview, auto-focus, and capturing processes to take a photo. The camera preview starts with the <span style="font-family: Courier New,Courier,monospace;">camera_start_preview()</span> function call, and it draws frames on the screen and allows you to capture frames as still images:</p>
+<pre class="prettyprint">
+error_code = camera_start_preview(cam_data.g_camera);
+</pre>
+
+<p>After starting the camera preview, the image capturing flows as follows:</p>
+<ol>
+<li>To handle the camera preview, the application calls the camera preview callback, which calls the <span style="font-family: Courier New,Courier,monospace;">camera_start_focusing()</span> function starting the auto-focusing process.</li>
+<li>To handle the auto-focusing process, the application calls the camera auto-focus callback, which calls the <span style="font-family: Courier New,Courier,monospace;">camera_start_capture()</span> function starting the capturing process.</li>
+<li>To handle the capturing process, the application calls the camera capturing callback, which is invoked once for each captured frame.</li>
+</ol>
+<p>The following example code implements the <span style="font-family: Courier New,Courier,monospace;">_camera_capturing_cb()</span> callback, which saves the captured frame as a JPEG image, whose format is set by the <span style="font-family: Courier New,Courier,monospace;">camera_set_capture_format()</span> function:</p>
+
+<pre class="prettyprint">
+static void
+_camera_capturing_cb(camera_image_data_s* image, camera_image_data_s* postview, camera_image_data_s* thumbnail, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Writing image to file&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;FILE *file = fopen(g_fname, &quot;w+&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (image-&gt;data != NULL)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fwrite(image-&gt;data, 1, image-&gt;size, file);
+
+&nbsp;&nbsp;&nbsp;&nbsp;fclose(file);
+}
+</pre>
+
+<p>You can get a notification when the image has been captured. After the <span style="font-family: Courier New,Courier,monospace;">camera_capturing_cb()</span> function completes, the callback function, <span style="font-family: Courier New,Courier,monospace;">camera_capture_completed_cb()</span>, is invoked. It is used for notification and for restarting the camera preview.</p>
+<p>The following example code implements the <span style="font-family: Courier New,Courier,monospace;">_camera_completed_cb()</span> callback, which waits 0.025 seconds before restarting the camera preview with auto-focusing. By waiting 0.025 seconds, the callback keeps the captured image on the screen for 0.025 seconds.</p>
+
+<pre class="prettyprint">
+static void
+_camera_completed_cb(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code = 0;
+
+&nbsp;&nbsp;&nbsp;&nbsp;usleep(25000);  /* Display the captured image for 0.025 seconds */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Restart the camera preview */
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = camera_start_preview(cam_data.g_camera);
+
+&nbsp;&nbsp;&nbsp;&nbsp;g_enable_focus = true;
+}
+</pre>
+
+<h2 id="camera_stop">Stopping the Camera</h2>
+
+<p>After you have finished working with the camera, you need to stop the camera and clean up the application environment:</p>
+
+<ol>
+<li>If auto-focus is switched on, switch it off using the <span style="font-family: Courier New,Courier,monospace;">camera_cancel_focusing()</span> function.</li>
+<li>Stop the camera preview using the <span style="font-family: Courier New,Courier,monospace;">camera_stop_preview()</span> function.</li>
+<li>Unregister the camera preview and auto-focus callback functions using the <span style="font-family: Courier New,Courier,monospace;">camera_unset_preview_cb()</span> and <span style="font-family: Courier New,Courier,monospace;">camera_unset_focus_changed_cb()</span> functions.</li>
+<li>Destroy the camera handle and release all the allocated resources using the <span style="font-family: Courier New,Courier,monospace;">camera_destroy()</span> function.</li>
+</ol>
+
+<pre class="prettyprint">
+error_code = camera_stop_preview(cam_data.g_camera); 
+error_code = camera_destroy(cam_data.g_camera);
+
+if (error_code != CAMERA_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;fail to destroy camera: error code = %d&quot;, error_code);
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

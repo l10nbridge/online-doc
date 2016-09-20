@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Proximity Sensor Usage</title>
+</head>
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#support">Determining Whether the Sensor Is Supported</a></li>
+			<li><a href="#event">Requesting Sensor Events</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>		
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/location_sensors/device_sensors_n.htm">Device Sensors Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">Sensor API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">Sensor API for Wearable Native</a></li>
+        </ul>		
+	</div></div>
+</div>		
+<div id="container"><div id="contents"><div class="content">
+
+<h1>Proximity Sensor Usage</h1>
+<p>The proximity sensor can measure the distance of an object from the front of the device. Some sensors only report the maximum measurement (far) or 0 (near), and they are called wake-up sensors. Before attempting to measure the distance values, you need to know whether the device supports the proximity sensor.</p>
+
+<h2 id="support">Determining Whether the Sensor Is Supported</h2>
+<p>To determine whether the proximity sensor is supported on the device:</p>
+
+<ol> 
+   <li>Create a new project in the IDE with the <strong>Basic UI</strong> template, and specify the project name as <strong>SensorProximity</strong>.
+<p>For more information on how to create a project, see Creating a Project (in <a href="../mobile/first_app_mn.htm#create">mobile</a> and <a href="../wearable/first_app_wn.htm#create">wearable</a> applications).</p></li> 
+   <li>In the new project, open the <span style="font-family: Courier New,Courier,monospace">sensorproximity.c</span> source file in the <span style="font-family: Courier New,Courier,monospace">src</span> folder and add the required library header file and variables:
+   <ul>
+   <li>The <span style="font-family: Courier New,Courier,monospace">sensor.h</span> file is a header file for various sensor libraries.</li>
+<li>The purpose of the application is to display whether the proximity sensor is supported, and the current distance value. As a result, a variable is defined for both of these values.</li>
+   </ul>
+
+<pre class="prettyprint">
+#include &quot;sensorproximity.h&quot;
+#include &lt;sensor.h&gt;
+
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *conform;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label0; /* Whether the proximity sensor is supported */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label1; /* Distance value */
+};
+typedef struct appdata appdata_s;
+</pre>
+	</li>
+	<li>Create 2 new functions on top of the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function:
+	<ul>
+	<li>The <span style="font-family: Courier New,Courier,monospace">show_is_supported()</span> function identifies whether the proximity sensor is supported, and displays the result in the first label component.
+	<p>The <span style="font-family: Courier New,Courier,monospace">sensor_is_supported()</span> function requests the support information. Passing <span style="font-family: Courier New,Courier,monospace">SENSOR_PROXIMITY</span> as the first parameter makes the second parameter return the proximity support information.</p></li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">my_box_pack()</span> function adds a UI component to a box container.</li>
+	</ul>
+	
+<pre class="prettyprint">
+static void
+show_is_supported(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[PATH_MAX];
+&nbsp;&nbsp;&nbsp;&nbsp;bool is_supported = false;
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_is_supported(SENSOR_PROXIMITY, &amp;is_supported);
+&nbsp;&nbsp;&nbsp;&nbsp;sprintf(buf, &quot;Proximity Sensor is %s&quot;, is_supported ? &quot;support&quot; : &quot;not support&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label0, buf);
+}
+
+static void
+my_box_pack(Evas_Object *box, Evas_Object *child,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double h_weight, double v_weight, double h_align, double v_align)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Tell the child packed into the box to be able to expand */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(child, h_weight, v_weight);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Fill the expanded area (above) as opposed to centering in it */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(child, h_align, v_align);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the child as the box content and show it */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(child);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_content_set(box, child);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Put the child into the box */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, child);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show the box */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(box);
+}
+</pre>
+	</li>
+	
+	<li>To create the box, add the 2 labels to the box, and call the <span style="font-family: Courier New,Courier,monospace">show_is_supported()</span> function to determine the sensor support, you must modify the source code at the bottom of the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function as follows:
+	
+<pre class="prettyprint">
+/* Conformant */
+/*
+   Create and initialize elm_conformant
+   elm_conformant is mandatory for the base GUI to have a proper size
+   when the indicator or virtual keypad is visible
+*/
+ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+elm_win_indicator_mode_set(ad-&gt;win, ELM_WIN_INDICATOR_SHOW);
+elm_win_indicator_opacity_set(ad-&gt;win, ELM_WIN_INDICATOR_OPAQUE);
+evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+evas_object_show(ad-&gt;conform);
+
+/* Box can contain other elements in a vertical line (by default) */
+Evas_Object *box = elm_box_add(ad-&gt;win);
+evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+evas_object_size_hint_align_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+elm_object_content_set(ad-&gt;conform, box);
+evas_object_show(box);
+
+/* First label (for the sensor support) */
+ad-&gt;label0 = elm_label_add(ad-&gt;conform);
+elm_object_text_set(ad-&gt;label0, &quot;Msg -&quot;);
+my_box_pack(box, ad-&gt;label0, 1.0, 0.0, -1.0, -1.0);
+
+/* Second label (for the current distance value) */
+ad-&gt;label1 = elm_label_add(ad-&gt;conform);
+elm_object_text_set(ad-&gt;label1, &quot;Value -&quot;);
+my_box_pack(box, ad-&gt;label1, 1.0, 1.0, -1.0, -1.0);
+
+/* Show the window after the base GUI is set up */
+evas_object_show(ad-&gt;win);
+
+/* Check the sensor support */
+show_is_supported(ad);
+</pre>
+	</li>
+	
+	<li>Build (in <a href="../mobile/first_app_mn.htm#build">mobile</a> and <a href="../wearable/first_app_wn.htm#build">wearable</a> applications) and run (in <a href="../mobile/first_app_mn.htm#run">mobile</a> and <a href="../wearable/first_app_wn.htm#run">wearable</a> applications) the application. If the proximity sensor is supported, the <strong>Proximity Sensor is support</strong> message is shown on the device screen.
+<p>All smartphones do not support this sensor. In that case, test the application on the emulator.</p>
+
+<p align="center"><img alt="Proximity Sensor is supported" src="../../images/sensor_proximity_supported.png" /></p>
+	</li>
+</ol>
+
+<h2 id="event">Requesting Sensor Events</h2>
+<p>To implement a feature that requests the corresponding event as the proximity sensor detects an object, and displays the distance value on the screen:</p>
+
+<ol>
+   <li>Add a structure for the sensor and a global variable to the top of the <span style="font-family: Courier New,Courier,monospace">sensorproximity.c</span> source file:
+   <ul>
+   <li>The <span style="font-family: Courier New,Courier,monospace">sensorinfo_s</span> structure includes a sensor handle and an event listener variable.</li>
+<li>The <span style="font-family: Courier New,Courier,monospace">sensor_info</span> is a global variable of the <span style="font-family: Courier New,Courier,monospace">sensorinfo_s</span> structure.</li>
+</ul>
+	
+<pre class="prettyprint">
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *conform;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label0;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label1;
+};
+typedef struct appdata appdata_s;
+
+struct _sensor_info {
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_h sensor; /* Sensor handle */
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_listener_h sensor_listener; /* Sensor listener */
+};
+typedef struct _sensor_info sensorinfo_s;
+
+static sensorinfo_s sensor_info;
+</pre>
+
+	</li>
+
+	<li>To request sensor events, you need a sensor handle and an event listener, and must start the listener. Create 2 new functions above the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function:
+	<ul>
+	<li>The <span style="font-family: Courier New,Courier,monospace">_new_sensor_value()</span> function is an event callback for the proximity sensor, and it outputs a new sensor value to the screen.
+<p>The sensor data is passed to the second parameter. The distance data is saved in <span style="font-family: Courier New,Courier,monospace">values[0]</span>.</p></li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">start_proximity_sensor()</span> function starts the proximity sensor and specifies the event callback function:
+	<ul>
+	<li>The <span style="font-family: Courier New,Courier,monospace">sensor_get_default_sensor()</span> function gets a specific sensor handle. Passing <span style="font-family: Courier New,Courier,monospace">SENSOR_PROXIMITY</span> to the first parameter returns an proximity sensor handle to the second parameter.</li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">sensor_create_listener()</span> function creates an event listener. Passing a sensor handle to the first parameter returns a listener object to the second parameter.</li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">sensor_listener_set_event_cb()</span> function specifies a callback function to the listener. The parameters follow this order: event listener, interval (in milliseconds), callback function name, and user data.</li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">sensor_listener_start()</span> function starts the listener.</li>
+	</ul>
+	</li>
+	</ul>
+	
+<pre class="prettyprint">
+static void
+_new_sensor_value(sensor_h sensor, sensor_event_s *sensor_data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (sensor_data-&gt;value_count &lt; 1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[PATH_MAX];
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s*)user_data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;sprintf(buf, &quot;Distance: %0.1f&quot;, sensor_data-&gt;values[0]);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label1, buf);
+}
+
+static void
+start_proximity_sensor(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_error_e err = SENSOR_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_get_default_sensor(SENSOR_PROXIMITY, &amp;sensor_info.sensor);
+&nbsp;&nbsp;&nbsp;&nbsp;err = sensor_create_listener(sensor_info.sensor, &amp;sensor_info.sensor_listener);
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_listener_set_event_cb(sensor_info.sensor_listener, 100, _new_sensor_value, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_listener_start(sensor_info.sensor_listener);
+}
+</pre>
+	</li>
+	
+	<li>To operate the event listener automatically when the application starts running, invoke the above <span style="font-family: Courier New,Courier,monospace">start_proximity_sensor()</span> function at the end of the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function:
+	
+<pre class="prettyprint">
+/* Show the window after the base GUI is set up */
+evas_object_show(ad-&gt;win);
+
+show_is_supported(ad);
+start_proximity_sensor(ad);
+</pre>
+	</li>
+
+	<li>Run the application again. To test it on your smartphone, simply bring the device close to your face.
+<p>To test on the emulator, use the <a href="../../../../org.tizen.devtools/html/common_tools/emulator.htm#ecp">control panel</a>:</p>
+<ol type="a">
+<li>Right-click the emulator and select <strong>Control Panel</strong>.</li>
+	
+	<li>In the control panel tree list on the left, select <strong>Event Injector &gt; Proximity</strong>.</li>
+
+	<li>Click <strong>ON</strong> on the right side of the screen in the control panel to display 0.0 in the second label component on the application screen. If you click <strong>OFF</strong>, the 5.0 value is displayed in the label component.
+<p align="center"><img alt="Proximity sensor emulator control panel" src="../../images/sensor_proximity_emulator.png" /></p>
+	</li>
+</ol>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

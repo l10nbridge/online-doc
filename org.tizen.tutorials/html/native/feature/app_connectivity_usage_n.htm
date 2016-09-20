@@ -1,0 +1,470 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Network Usage</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#privilege">Required Privileges and Features</a></li>
+			<li><a href="#type">Monitoring Connection Type Changes</a></li>
+			<li><a href="#mobile_change">Monitoring Mobile (Cellular) Network Service Changes</a></li>			
+			<li><a href="#info">Getting Connection Information</a></li>
+			<li><a href="#statistics">Collecting Connection Statistics</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/connectivity/connectivity_cover_n.htm">Connectivity and Wireless Guides</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__FRAMEWORK.html">Network API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__FRAMEWORK.html">Network API for Wearable Native</a></li>
+        </ul>
+	</div></div>
+</div>		
+<div id="container"><div id="contents"><div class="content">	
+<h1>Network Usage</h1>
+
+<p>The following sections describe how to create applications that have cost-efficient control over their usage of network resources. If your application performs a lot of network operations, you must provide user settings that allow the user to control your application&#39;s data behavior, such as how often the application syncs data, whether to perform uploads or downloads only when Wi-Fi is switched on, and whether to use data while roaming. With these controls available to them, users are much less likely to disable your application&#39;s access to background data when they approach their limits, because they can instead precisely control how much data your application uses.</p>
+
+<h2 id="privilege">Required Privileges and Features</h2>
+
+<p>Applications that access network information and statistics must declare the required privileges in the <span style="font-family: Courier New,Courier,monospace">tizen-manifest.xml</span> file. For more information on the Tizen privileges, see <a href="../details/sec_privileges_n.htm">Security and API Privileges</a>.</p>
+
+<p>To perform the network operations, the application manifest must include the following privileges:</p>
+
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/network.get&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+
+<p>To perform the network operations, the device must support the following <a href="../details/app_filtering_n.htm">features</a>:</p>
+<ul>
+<li>To use Wi-Fi:
+	<ul>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.wifi</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.wifi.direct</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.wifi.direct.display</span></li>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.wifi.direct.service_discovery</span></li>
+	</ul>
+</li>
+<li>To use the mobile network:
+	<ul>
+	<li><span style="font-family: Courier New,Courier,monospace">http://tizen.org/feature/network.telephony</span></li>
+	</ul>
+</li>
+</ul>
+
+<h2 id="type">Monitoring Connection Type Changes</h2>
+
+<p>When the network connection is changed, the application must receive a notification. For instance, if the Wi-FI network is changed to a visited mobile network (roaming), the user can pay for the mobile data without user recognition.</p>
+
+<p>The Connection API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">wearable</a> applications) provides a function that provides a notification about the connection status. The application can download or upload files only when Wi-Fi is connected by checking the network type in the triggered callback.</p>
+
+<p>The Connection API supports the following network types:</p>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_DISCONNECTED</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_WIFI</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_CELLULAR</span> (indicates the mobile network)</li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_ETHERNET</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_BT</span></li>
+</ul>
+
+<p>The following example demonstrates how to monitor network connection changes:</p>
+
+<pre class="prettyprint">
+#include &lt;net_connection.h&gt;
+
+static void
+connection_changed_cb(connection_type_e type, void* user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Type changed callback, connection type: %d&quot;, type);
+}
+
+int
+get_network_connection()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error_code;
+&nbsp;&nbsp;&nbsp;&nbsp;static connection_h connection;
+&nbsp;&nbsp;&nbsp;&nbsp;void *user_data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = connection_create(&amp;connection);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = connection_set_type_changed_cb(connection, connection_changed_cb, user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;error_code = connection_destroy(connection);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error_code != CONNECTION_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+
+<h2 id="mobile_change">Monitoring Mobile (Cellular) Network Service Changes</h2>
+
+<p>Sometimes, the application must check the state of the mobile network service to make the user experience better by protecting against running tasks in the background when the device is, for example, roaming. Downloading or uploading content without user awareness in that situation can incur charges, and result in unreasonable use of the mobile network resources. The application must use the data transport network efficiently, providing a better user experience for the mobile data network.</p>
+
+<h3>Getting the State of Mobile Network Service</h3>
+
+<p>The Telephony Information API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION.html">wearable</a> applications) is composed of Call (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__CALL.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__CALL.html">wearable</a> applications), SIM (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__SIM.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__SIM.html">wearable</a> applications), Network (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html">wearable</a> applications), and Modem (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__MODEM.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__MODEM.html">wearable</a> applications) APIs for the mobile network service.</p>
+
+<p>The Telephony Network API provides the detailed mobile network information: LAC, Cell ID, RSSI, roaming state, MCC, MNC, network provider name, PS type, and network type. The <span style="font-family: Courier New,Courier,monospace">telephony_network_get_service_state()</span> function gets the current network state of the telephony service. It returns one of the <span style="font-family: Courier New,Courier,monospace">telephony_network_service_state_e</span> enumerator values (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html#gae9f3b6e54a1086b8734f4acc71fd001b">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION__NETWORK.html#gae9f3b6e54a1086b8734f4acc71fd001b">wearable</a> applications).</p>
+
+<p>The following table indicates the <span style="font-family: Courier New,Courier,monospace">telephony_network_service_state_e</span> enumeration that has the mobile network service state.</p>
+
+<table>
+<caption>Table: Mobile network service states</caption>
+<tbody>
+<tr>
+ <th>Enumeration</th>
+ <th>Description</th>
+</tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE</span></td>
+ <td>In service</td>
+ </tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NETWORK_SERVICE_STATE_OUT_OF_SERVICE</span></td>
+ <td>Out of service</td>
+ </tr>
+  <tr>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NETWORK_SERVICE_STATE_EMERGENCY_ONLY</span></td>
+ <td>Only emergency call is allowed</td>
+ </tr>
+ </tbody></table>
+
+<p>The following example demonstrates how to get the mobile network service state:</p>
+
+<pre class="prettyprint">
+/* Convert network telephony_network_service_state_e to string */
+char*
+_telephony_network_state_to_string(telephony_network_service_state_e network_state)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;switch (network_state) {
+&nbsp;&nbsp;&nbsp;&nbsp;case TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return &quot;TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;case TELEPHONY_NETWORK_SERVICE_STATE_OUT_OF_SERVICE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return &quot;TELEPHONY_NETWORK_SERVICE_STATE_OUT_OF_SERVICE&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;case TELEPHONY_NETWORK_SERVICE_STATE_EMERGENCY_ONLY:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return &quot;TELEPHONY_NETWORK_SERVICE_STATE_EMERGENCY_ONLY&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return &quot;Unknown&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+void
+get_telephony_information(appdata_s *ad, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create a telephony handle */
+&nbsp;&nbsp;&nbsp;&nbsp;telephony_handle_list_s handle_list;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = telephony_init(&amp;handle_list); /* In case of a single SIM, you get only one handle */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Print */
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; app_data-&gt;handle_list.count; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, &quot;TEST&quot;, &quot;telephony handle[%p] for subscription[%d]&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;app_data-&gt;handle_list.handle[i], i);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the network service state */
+&nbsp;&nbsp;&nbsp;&nbsp;telephony_network_service_state_e network_service_state;
+&nbsp;&nbsp;&nbsp;&nbsp;char *state = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = <span class="highlight">telephony_network_get_service_state(handle_list.handle[0], &amp;network_service_state);</span>
+&nbsp;&nbsp;&nbsp;&nbsp;state = _telephony_network_state_to_string(network_service_state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != TELEPHONY_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[telephony_network_get_service_state] failed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Network Service State [%s]&quot;, state);
+}
+
+static void
+app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release and free the created telephony handle */
+&nbsp;&nbsp;&nbsp;&nbsp;telephony_deinit(&amp;handle_list);
+}
+
+/* Auto-generated functions (from the Tizen IDE) are not included */
+
+int
+main(int argc, char* argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;AppData app_data;  /* Store telephony handle here */
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_lifecycle_callback_s event_callback;
+&nbsp;&nbsp;&nbsp;&nbsp;app_event_handler_h handlers[5] = {NULL,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.create = service_app_create;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.terminate = service_app_terminate;
+&nbsp;&nbsp;&nbsp;&nbsp;event_callback.app_control = service_app_control;
+
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_BATTERY], APP_EVENT_LOW_BATTERY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_low_battery, &amp;app_data);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LOW_MEMORY], APP_EVENT_LOW_MEMORY,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_low_memory, &amp;app_data);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_LANGUAGE_CHANGED], APP_EVENT_LANGUAGE_CHANGED,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_lang_changed, &amp;app_data);
+&nbsp;&nbsp;&nbsp;&nbsp;service_app_add_event_handler(&amp;handlers[APP_EVENT_REGION_FORMAT_CHANGED], APP_EVENT_REGION_FORMAT_CHANGED,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;service_app_region_changed, &amp;app_data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set AppData as a user_data */
+&nbsp;&nbsp;&nbsp;&nbsp;return service_app_main(argc, argv, &amp;event_callback, &amp;app_data);
+}
+</pre>
+
+<h3>Monitoring Mobile Network Changes</h3>
+
+<p>Another way to get the mobile network state and protect the user against unreasonable use of the mobile network resources is to register a notification callback.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span> function allows the application to listen for the changes in the mobile network state, and also provides mobile network information by specifying the notification ID when the mobile network state changes.</p>
+
+<p>The following table indicates the available notification IDs.</p>
+
+<table>
+<caption>Table: Notification IDs</caption>
+<tbody>
+<tr>
+ <th>Changed state</th>
+ <th>Notification ID</th>
+</tr>
+ <tr>
+ <td>Network service state</td>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_SERVICE_STATE</span></td>
+ </tr>
+ <tr>
+ <td>Cell ID</td>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_CELLID</span></td>
+ </tr>
+  <tr>
+ <td>Roaming status</td>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_ROAMING_STATUS</span></td>
+ </tr>
+  <tr>
+ <td>Signal strength</td>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_SIGNALSTRENGTH_LEVEL</span></td>
+ </tr>
+  <tr>
+ <td>Network name</td>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_NETWORK_NAME</span></td>
+ </tr>
+  <tr>
+ <td>Packet-switched type</td>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_PS_TYPE</span></td>
+ </tr>
+  <tr>
+ <td>Default data subscription</td>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_DEFAULT_DATA_SUBSCRIPTION</span></td>
+ </tr>
+  <tr>
+ <td>Default subscription</td>
+ <td><span style="font-family: Courier New,Courier,monospace">TELEPHONY_NOTI_NETWORK_DEFAULT_SUBSCRIPTION</span></td>
+ </tr> 
+ </tbody></table>
+	
+<p>The <span style="font-family: Courier New,Courier,monospace">telephony_noti_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__TELEPHONY__INFORMATION.html#ga3f9d407deee8c7c7f1f7ed946bc60b4d">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__TELEPHONY__INFORMATION.html#ga3f9d407deee8c7c7f1f7ed946bc60b4d">wearable</a> applications) defines the available notification IDs. The callback function registered by the <span style="font-family: Courier New,Courier,monospace">telephony_set_noti_cb()</span> function (<span style="font-family: Courier New,Courier,monospace">network_service_state_noti_cb()</span> in the following example) delivers change notifications for a network asynchronously.</p>
+ 
+<p>The following example demonstrates how to register a notification for the mobile network state change:</p>
+
+<pre class="prettyprint">
+/* Convert network telephony_network_service_state_e to string */
+char*
+_telephony_network_state_to_string(telephony_network_service_state_e network_state)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;switch (network_state) {
+&nbsp;&nbsp;&nbsp;&nbsp;case TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return &quot;TELEPHONY_NETWORK_SERVICE_STATE_IN_SERVICE&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;case TELEPHONY_NETWORK_SERVICE_STATE_OUT_OF_SERVICE:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return &quot;TELEPHONY_NETWORK_SERVICE_STATE_OUT_OF_SERVICE&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;case TELEPHONY_NETWORK_SERVICE_STATE_EMERGENCY_ONLY:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return &quot;TELEPHONY_NETWORK_SERVICE_STATE_EMERGENCY_ONLY&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return &quot;Unknown&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+/* This function is triggered, if the mobile network status is changed */
+void
+network_service_state_noti_cb(telephony_h handle, telephony_noti_e noti_id, void *data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;telephony_network_service_state_e network_state = *(int *)data;
+&nbsp;&nbsp;&nbsp;&nbsp;char *network_state_string = _telephony_network_state_to_string(network_state);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Network service state: [%s]&quot;, network_state_string);
+}
+
+void
+monitor_telephony_information(appdata_s *ad, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/*  Create a telephony handle */
+&nbsp;&nbsp;&nbsp;&nbsp;telephony_handle_list_s handle_list;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = telephony_init(&amp;handle_list); /* In case of a single SIM, you get only one handle */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Register the network_service_state_noti_cb() callback function
+&nbsp;&nbsp;&nbsp;&nbsp;   to be notified if the Network Service state is changed
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;ret = telephony_set_noti_cb(handle_list.handle[0], <span class="highlight">TELEPHONY_NOTI_NETWORK_SERVICE_STATE</span>, network_service_state_noti_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != TELEPHONY_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;[telephony_set_noti_cb] failed&quot;);
+}
+
+static void
+app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release and free the created telephony handle */
+&nbsp;&nbsp;&nbsp;&nbsp;telephony_deinit(&amp;handle_list);
+}
+</pre>
+
+<h2 id="info">Getting Connection Information</h2>
+
+<p>The connection state can be changed depending on various mobile environments, such as the settings of the mobile phone or the signal strength received by the mobile phone from the cellular network or Wi-Fi AP (access point). The Connection API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MODULE.html">wearable</a> applications) provides a function that gets the current state of the mobile network service and Wi-Fi network.</p>
+
+<h3>Getting the Mobile (Cellular) Network Connection State</h3>
+
+<p>The application can use the <span style="font-family: Courier New,Courier,monospace">connection_get_cellular_state()</span> function to get the mobile connection state.</p>
+
+<p>The network connection can be in one of the following states:</p>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_CELLULAR_STATE_FLIGHT_MODE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_CELLULAR_STATE_ROAMING_OFF</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_CELLULAR_STATE_CALL_ONLY_AVAILABLE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_CELLULAR_STATE_AVAILABLE</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_CELLULAR_STATE_CONNECTED</span></li>
+</ul>
+
+<p>The following example demonstrates how to get the mobile network state:</p>
+
+<pre class="prettyprint">
+connection_cellular_state_e cellular_state;
+connection_get_cellular_state(connection, &amp;cellular_state);
+switch (cellular_state) {
+case CONNECTION_CELLULAR_STATE_OUT_OF_SERVICE:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Out of service&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_FLIGHT_MODE:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Flight mode&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_ROAMING_OFF:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Roaming is switched off&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_CALL_ONLY_AVAILABLE:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Call only&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_AVAILABLE:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Available&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_CELLULAR_STATE_CONNECTED:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Connected&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+default:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+}
+</pre>
+
+<h3>Getting Wi-Fi Connection State</h3>
+
+<p>The application can use the <span style="font-family: Courier New,Courier,monospace">connection_get_wifi_state()</span> function to get the Wi-Fi connection state.</p>
+
+<p>The Wi-Fi connection can be in one of the following states:</p>
+
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_WIFI_STATE_DEACTIVATED</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_WIFI_STATE_DISCONNECTED</span></li>
+<li><span style="font-family: Courier New,Courier,monospace">CONNECTION_WIFI_STATE_CONNECTED</span></li>
+</ul>
+
+<p>The following example demonstrates how to get the Wi-Fi network state:</p>
+
+<pre class="prettyprint">
+connection_wifi_state_e wifi_state;
+connection_get_wifi_state(connection, &amp;wifi_state);
+switch (wifi_state) {
+case CONNECTION_WIFI_STATE_DEACTIVATED:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Deactivated state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_WIFI_STATE_DISCONNECTED:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Disconnected state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+case CONNECTION_WIFI_STATE_CONNECTED:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Connected state&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+default:
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;error&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;break;
+}
+</pre>
+
+<h2 id="statistics">Collecting Connection Statistics</h2>
+
+<p>The Connection Statistics API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__STATISTICS__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__STATISTICS__MODULE.html">wearable</a> applications) provides functions for getting statistical information, such as the amount of sent or received data. The API also provides functions for getting the cumulative size of packets sent or received since the last reset based on the operation mode, such as packet switching (PS).</p>
+
+<p>Connection statistics include the amount of total sent and received data and the last sent and received data. The parameters of the <span style="font-family: Courier New,Courier,monospace">connection_get_statistics()</span> function determine which connection type and which statistics are gathered:</p>
+
+<ul>
+<li>The <span style="font-family: Courier New,Courier,monospace">connection_type_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#ga85c33901b8ac24f2e5f66440ec4519ee">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__MANAGER__MODULE.html#ga85c33901b8ac24f2e5f66440ec4519ee">wearable</a> applications) defines the connection types: <span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_WIFI</span> is Wi-Fi and <span style="font-family: Courier New,Courier,monospace">CONNECTION_TYPE_CELLULAR</span> is the mobile network. Only Wi-Fi and mobile network connections are supported in the statistics.</li>
+<li>The <span style="font-family: Courier New,Courier,monospace">connection_statistics_type_e</span> enumerator (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__NETWORK__CONNECTION__STATISTICS__MODULE.html#ga24b29d70490e8cd9ee34f45615ea1c63">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__NETWORK__CONNECTION__STATISTICS__MODULE.html#ga24b29d70490e8cd9ee34f45615ea1c63">wearable</a> applications) defines the statistics type.</li>
+</ul>
+
+<p>The following example demonstrates how to get received data and sent data for mobile connections:</p>
+
+<pre class="prettyprint">
+long long total_received_size;
+
+/* Gets statistics of total received data through the mobile network connection */
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_TOTAL_RECEIVED_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;total_received_size);
+
+long long total_sent_size;
+
+/* Gets statistics of total sent data through the mobile network connection */
+error_code = connection_get_statistics(connection, CONNECTION_TYPE_CELLULAR,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CONNECTION_STATISTICS_TYPE_TOTAL_SENT_DATA,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;total_sent_size);
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

@@ -1,0 +1,833 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Media Conversions</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#codecs">Media Codecs</a></li>
+			<li><a href="#video">Video Transcoding</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#prepare">Preparing Media Codecs</a></li>
+            <li><a href="#packet">Filling the Media Packet with Data</a></li>
+            <li><a href="#management">Running the Media Codec</a></li>
+            <li><a href="#prepare">Preparing the Video Utilities</a></li>
+            <li><a href="#manage">Managing Transcoding</a></li>
+            <li><a href="#set">Setting Parameters</a></li>
+            <li><a href="#get">Monitoring the Transcoding Progress</a></li>
+        </ul>		
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">Media Codec API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VIDEO__UTIL__MODULE.html">Video Util API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">Media Codec API for Wearable Native</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Media Conversions</h1>
+
+<p>You can perform various media conversions through codecs. You can encode and decode video and audio data, and, in mobile applications, you can also use video transcoding features, such as multi-format codec and output format.</p>
+
+<h2 id="codecs">Media Codecs</h2>
+
+<p>Media codec provides interfaces for encoding and decoding audio and video data.</p> 
+
+<p>To use codecs:</p> 
+  
+<ol><li><p><a href="#prepare">Create a handle for the codec instance</a> with the <span style="font-family: Courier New,Courier,monospace;">mediacodec_create()</span> function. After a successful handle creation, your system can use the codec. </p></li>
+
+<li><p>Set the codec configuration with the <span style="font-family: Courier New,Courier,monospace;">mediacodec_set_codec()</span>, and <span style="font-family: Courier New,Courier,monospace;">mediacodec_set_vdec_info()</span> or <span style="font-family: Courier New,Courier,monospace;">mediacodec_set_venc_info()</span> functions. </p>
+<p>You can also prepare for the available ready state with the <span style="font-family: Courier New,Courier,monospace;">mediacodec_prepare()</span> function.</p></li>
+
+<li><p>Decode and encode with the <span style="font-family: Courier New,Courier,monospace;">mediacodec_process_input()</span> and <span style="font-family: Courier New,Courier,monospace;">mediacodec_get_output()</span> functions.</p></li></ol>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the media codec functionality</a>.</p>
+
+<p>A single <span style="font-family: Courier New,Courier,monospace;">MediaCodec</span> instance handles 1 specific type of data (such as aac audio or H.264 video), and can encode or decode. The codec operates on &quot;raw&quot; data, so strip off any file headers (such as ID3 tags).</p>
+
+  
+  <p>The following figures illustrate the general media state changes.</p> 
+  <p class="figure">Figure: Media state changes</p> 
+  <p align="center"><img src="../../images/codec_state.png" alt="Media state changes" /></p> 
+
+<p>After you have initialized the codecs, you can:</p>
+
+<ol><li><a href="#packet">Fill the media packet with data</a>.</li>
+<li><a href="#management">Run the media codec</a>.</li></ol>
+
+<h2 id="video">Video Transcoding</h2>
+
+<p>Tizen offers the following video transcoding features:</p>
+
+ <ul><li>Make container and codec type changes
+<p>Content compatibility is supported between same devices.</p></li>
+<li>Make scale and frame rate changes
+<p>Since video file size and format changes are possible, there is attachment flexibility for email, MMS, and SMS messaging. You can also extract a thumbnail from certain video chapters, and chapter previews are available.</p></li>
+<li>Trim
+<p>A trim chapter is available in the video editor.</p></li></ul> 
+
+<p>This feature is supported in mobile applications only.</p>
+
+<p>With the Video Util API you can:</p>
+<ul><li><a href="#prepare">Set up the video utilities</a></li>
+<li><a href="#manage">Manage and monitor</a> the transcoding process</li>
+<li><a href="#set">Set parameters</a> for the video utilities</li>
+<li><a href="#get">Retrieve information</a> about the transcoding process</li></ul>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the video utilities</a>.</p>
+
+<p>The following figure shows the result of the video file size change (due to scaling and container and codec format change).</p>
+
+ <p class="figure">Figure: Transcoder</p> 
+ <p align="center"><img src="../../images/transcoder.png" alt="Transcoder" /></p>
+
+ 
+ <p>The following table lists the supported audio and video codecs (decoder).</p>
+ 
+ <table border="1">
+  <caption>Table: Decoders</caption>
+  <tbody>
+    <tr>
+      <th style="text-align:center;margin-left:auto;margin-right:auto;">Audio codec</th>
+	  <th style="text-align:center;margin-left:auto;margin-right:auto;">Video codec</th>
+    </tr>
+	<tr>
+	  <td>AAC LC</td>
+	  <td>MPEG-1</td>
+    </tr>
+    <tr>
+      <td>AAC+</td>
+	  <td>MPEG-4 part 2</td>
+    </tr>
+	<tr>
+      <td>Enhanced AAC+</td>
+	  <td>H.263</td>
+    </tr>
+	<tr>
+      <td>MP3</td>
+	  <td>H.264</td>
+	</tr>
+	<tr>
+      <td>WMA7 / 8</td>
+	  <td>VC-1 (WMV9)</td>
+    </tr>
+	<tr>
+      <td>WAV</td>
+	  <td>On2 VP3</td>
+    </tr>
+	<tr>
+      <td>Vorbis</td>
+	  <td>Theora</td>
+    </tr>
+	<tr>
+      <td>AMR-NB</td>
+	  <td> </td>
+    </tr>
+	<tr>
+      <td>AMR-WB</td>
+	  <td> </td> 
+    </tr>
+  </tbody>
+</table>
+
+ <p>The following table lists the supported audio and video codecs (encoder).</p>
+
+ <table border="1">
+  <caption>Table: Encoders</caption>
+  <tbody>
+    <tr>
+      <th style="text-align:center;margin-left:auto;margin-right:auto;">Audio codec</th>
+	  <th style="text-align:center;margin-left:auto;margin-right:auto;">Video codec</th>
+     </tr>
+	<tr>	
+	  <td>AAC LC</td>
+      <td>MPEG-1</td>
+    </tr>
+    <tr>
+      <td>Vorbis</td>
+	  <td>MPEG-4 part 2</td>
+    </tr>
+	<tr>
+      <td>AMR-NB</td>
+	  <td>H.263</td>
+	</tr>
+	<tr>
+	  <td> </td>
+	  <td>H.264</td>
+	</tr>
+	<tr>
+	  <td> </td>
+      <td>VC-1 (WMV9)</td>
+    </tr>
+	<tr>
+	  <td> </td>
+      <td>On2 VP3</td>
+    </tr>
+	<tr>
+	  <td> </td>
+      <td>Theora</td>
+	</tr>
+  </tbody>
+</table>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Media Codec and Video Util API basics by learning about:</p>
+
+<ul>
+	<li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the media conversion functionalities.</p></li>
+	<li><a href="#prepare">Preparing Media Codecs</a>
+	<p>Initialize and configure the media codecs for use.</p></li>
+    <li><a href="#packet">Filling the Media Packet with Data</a>
+        <p>Fill the <span style="font-family: Courier New,Courier,monospace">media_packet</span> with data.</p></li>
+    <li><a href="#management">Running the Media Codec</a>
+        <p>Run the media codec in a loop.</p></li>
+    <li><p><a href="#prepare">Preparing the Video Utilities</a></p>
+        <p>Initialize the video utilities for use.</p></li>
+    <li><p><a href="#manage">Managing Transcoding</a></p>
+        <p>Manage and monitor the transcoding process.</p></li>
+</ul>
+
+<h2>Follow-up</h2>
+
+<p>Once we have learned the basics of the Video Util API, we can now move on to more advanced tasks, including:</p>
+
+<ul>
+    <li><p><a href="#set">Setting Parameters</a></p>
+        <p>Set parameters for the video utilities.</p></li>
+    <li><p><a href="#get">Monitoring the Transcoding Progress</a></p>
+        <p>Retrieve progress information about the transcoding process.</p></li>
+</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the media conversion functionalities:</p>
+<ol>
+<li>
+<p>To use the functions and data types of the Media Codec API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace">&lt;media_codec.h&gt;</span> header file in your application:</p>
+
+<pre class="prettyprint">
+#include &lt;media_codec.h&gt;
+</pre>
+</li>
+<li>
+<p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VIDEO__UTIL__MODULE.html">Video Util</a> API, include the <span style="font-family: Courier New,Courier,monospace">&lt;video_util.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;video_util.h&gt;
+</pre>
+</li>
+</ol>
+
+<h2 id="prepare">Preparing Media Codecs</h2>
+
+<p>To prepare the media codecs:</p>
+<ol>
+<li>
+
+<p>Create a handle for the media codec using the <span style="font-family: Courier New,Courier,monospace">mediacodec_create()</span> function:</p>
+
+<pre class="prettyprint">
+mediacodec_h *mediacodec;
+ret = mediacodec_create(&amp;mediacodec);
+</pre>
+
+<p>The handle must be passed to all other Media Codec APIs.</p>
+
+</li>
+
+<li>
+
+<p>Set the codec using the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_codec()</span> function:</p>
+
+<pre class="prettyprint">
+ret = mediacodec_set_codec(mediacodec, (mediacodec_codec_type_e)codecid, flag);
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">mediacodec_codec_type_e</span> (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#ga2e7775fb3609e4349c742b1d9eb5febc">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#ga2e7775fb3609e4349c742b1d9eb5febc">wearable</a> applications) and <span style="font-family: Courier New,Courier,monospace">mediacodec_support_type_e</span> (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#gab01ad3dbb4989537108a5c9f2062447a">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MEDIA__CODEC__MODULE.html#gab01ad3dbb4989537108a5c9f2062447a">wearable</a> applications) enumerations define the media codec type and support type (second and third parameters).</p>
+
+</li>
+
+<li>
+
+<p>To configure the video and audio encoder and decoder:</p>
+
+<pre class="prettyprint">
+/* Video encoder */
+ret = mediacodec_set_venc_info(mediacodec, width, height, fps, target_bits);
+/* Video decoder */
+ret = mediacodec_set_vdec_info(mediacodec, width, height);
+/* Audio encoder */
+ret = mediacodec_set_aenc_info(mediacodec, samplerate, channel, bit, bitrate);
+/* Audio decoder */
+ret = mediacodec_set_adec_info(mediacodec, samplerate, channel, bit);
+</pre>
+
+</li>
+
+<li>
+
+<p>To set callbacks for the input and output buffers:</p>
+
+<ol type="a">
+
+<li>
+
+<p>To receive notifications when the input buffers are used, register a callback using the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_input_buffer_used_cb()</span> function. The callback is invoked when the input buffers are queued to the codec.</p>
+
+<pre class="prettyprint">
+ret = mediacodec_set_input_buffer_used_cb(mediacodec, _input_buffer_used_cb, NULL);
+</pre>
+
+<p>If a <span style="font-family: Courier New,Courier,monospace">media_packet</span> is used, it must be destroyed when the callback is invoked:</p>
+
+<pre class="prettyprint">
+static void
+_input_buffer_used_cb(media_packet_h pkt, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_destroy(pkt);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+</li>
+
+<li>
+
+<p>To receive notifications when the output buffers are dequeued, register a callback using the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_output_buffer_available_cb()</span> function. The callback is invoked when the output buffers are dequeued.</p>
+
+<pre class="prettyprint">
+ret = mediacodec_set_output_buffer_available_cb(mediacodec, _output_buffer_available_cb, mediacodec);
+</pre>
+
+<p>If the <span style="font-family: Courier New,Courier,monospace">media_packet</span> is dequeued from the codec, this callback is invoked.</p>
+
+<p>Retrieve the output packet using the <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> function inside the callback:</p>
+
+<pre class="prettyprint">
+static void
+_output_buffer_available_cb(media_packet_h pkt, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_h out_pkt;
+&nbsp;&nbsp;&nbsp;&nbsp;mediacodec_h mediacodec = (mediacodec_h)user_data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (pkt != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;mediacodec_get_output(mediacodec, &amp;out_pkt, 0);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;media_packet_destroy(out_pkt);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+</li>
+
+</ol>
+
+</li>
+
+</ol>
+
+<h2 name="packet" id="packet">Filling the Media Packet with Data</h2>
+
+<p>After the <span style="font-family: Courier New,Courier,monospace">media_packet</span> is allocated with corresponding codec MIME types, fill it with data:</p>
+
+<ol>
+
+<li>
+
+<p>Retrieve the data pointer from the <span style="font-family: Courier New,Courier,monospace">media_packet</span>, and set the buffer size on the preallocated packet:</p>
+
+<pre class="prettyprint">
+unsigned char nal[48] = {0x00, 0x00, 0x00, 0x01, 0x67, 0x4D, 0x40, 0x33,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0x9A, 0x73, 0x80, 0xA0, 0x08, 0xB4, 0x20, 0x00,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0x32, 0xE9, 0xE0, 0x09, 0x89, 0x68, 0x11, 0xE3,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0x06, 0x23, 0xC0, 0x00, 0x00, 0x00, 0x01, 0x68,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0xEE, 0x3C, 0x80, 0x00, 0x00, 0x00, 0x01, 0x65,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0x88, 0x80, 0x01, 0x48, 0x00, 0x06, 0x57, 0xFD};
+
+media_format_h fmt;
+media_packet_h pkt;
+void *data;
+
+ret = media_format_set_video_mime(fmt, MEDIA_FORMAT_H264_SP);
+ret = media_format_set_video_width(fmt, 1280);
+ret = media_format_set_video_height(fmt, 544);
+ret = media_packet_create_alloc(fmt, NULL, NULL, &amp;pkt);
+
+ret = media_packet_get_buffer_data_ptr(pkt, &amp;data);
+memcpy(data, nal, 48);
+ret = media_packet_set_buffer_size(pkt, 48);
+</pre>
+
+</li>
+
+<li>
+
+<p>If the memory buffer contains extra padding bytes after each pixel row, check whether the stride in the uncompressed video frame is the same as the video width. If it is not, make a strided copy:</p>
+
+<pre class="prettyprint">
+void
+_fill_buffer(media_packet_h pkt, unsigned char *yuv, int width, int height)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Y plane */
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_get_video_stride_width(pkt, 0, &amp;stride);
+&nbsp;&nbsp;&nbsp;&nbsp;media_packet_get_video_plane_data_ptr(pkt, 0, &amp;data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; height; i++) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;memcpy(data, yuv, width);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data += stride;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+</li>
+
+</ol>
+
+<h2 name="management" id="management">Running the Media Codec</h2>
+
+<p>After <a href="#prepare">preparing the medic codec</a> and <a href="#packet">filling the <span style="font-family: Courier New,Courier,monospace">media_packet</span> with data</a>, run the media codec in the following loop:</p>
+
+<ol>
+
+<li><p>When an input buffer is ready, read a chunk of input and copy it into the buffer to be encoded or decoded.</p></li>
+
+<li><p>When an output buffer is ready, copy the encoded or decoded output from the buffer.</p></li>
+
+</ol>
+
+<p>To run the media codec loop:</p>
+
+<ol>
+
+<li>
+
+<p>Prepare the media codec using the <span style="font-family: Courier New,Courier,monospace">mediacodec_prepare()</span> function:</p>
+
+<pre class="prettyprint">
+ret = mediacodec_prepare(mediacodec);
+</pre>
+
+</li>
+
+<li>
+
+<p>Set the <span style="font-family: Courier New,Courier,monospace">media_packet</span> flags using the <span style="font-family: Courier New,Courier,monospace">media_packet_set_flags()</span> function:</p>
+
+<ul>
+
+<li>
+
+<p>If the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains codec data, such as SPS or PPS in case of H.264, set the codec config flag:</p>
+
+<pre class="prettyprint">
+ret = media_packet_set_flags(pkt, MEDIA_PACKET_CODEC_CONFIG);
+</pre>
+
+</li>
+
+<li>
+
+<p>If the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains the end of the stream, set the end-of-stream (eos) flag:</p>
+
+<pre class="prettyprint">
+ret = media_packet_set_flags(pkt, MEDIA_PACKET_END_OF_STREAM);
+</pre>
+
+<p>The eos callback is invoked if the eos packet is decoded or encoded and the eos callback is registered with the <span style="font-family: Courier New,Courier,monospace">mediacodec_set_eos_cb()</span> function.</p>
+
+</li>
+
+</ul>
+
+<table class="note">
+ <tbody>
+  <tr>
+  <th class="note">Note</th>
+  </tr>
+  <tr>
+   <td class="note">You must set the flags before calling the <span style="font-family: Courier New,Courier,monospace">mediacodec_process_input()</span> function.</td>
+  </tr>
+ </tbody>
+</table>
+
+</li>
+
+<li>
+
+<p>Start the media codec loop using the <span style="font-family: Courier New,Courier,monospace">mediacodec_process_input()</span> and <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> functions:</p>
+
+<pre class="prettyprint">
+media_packet_h in_buf = NULL;
+ret = mediacodec_process_input(mediacodec, in_buf, 0);
+
+media_packet_h output_buf = NULL;
+ret = mediacodec_get_output(mediacodec, &amp;output_buf, 0);
+</pre>
+
+</li>
+
+<li>
+
+<p>After calling the <span style="font-family: Courier New,Courier,monospace">mediacodec_get_output()</span> function, check the frame using the <span style="font-family: Courier New,Courier,monospace">media_packet</span>.</p>
+
+<p>To check whether the <span style="font-family: Courier New,Courier,monospace">media_packet</span> contains key frame or codec data:</p>
+
+<pre class="prettyprint">
+bool keyframe;
+bool codec_config;
+
+ret = media_packet_is_sync_frame(pkt, &amp;keyframe);
+ret = media_packet_is_codec_config(pkt, &amp;codec_config);
+</pre>
+
+</li>
+
+<li>
+
+<p>After the loop is over and you have finished working with the media codec, reset the codec and destroy the codec handle using the <span style="font-family: Courier New,Courier,monospace">mediacodec_unprepare()</span> and <span style="font-family: Courier New,Courier,monospace">mediacodec_destroy()</span> functions:</p>
+
+<pre class="prettyprint">
+ret = mediacodec_unprepare(mediacodec);
+
+ret = mediacodec_destroy(mediacodec);
+</pre>
+
+<p>The media codec state changes to <span style="font-family: Courier New,Courier,monospace">MEDIACODEC_STATE_NONE</span>.</p>
+
+</li>
+
+</ol>
+
+<h2 id="prepare" name="prepare">Preparing the Video Utilities in Mobile Applications</h2>
+
+<p>To initialize the video utilities for use:</p>
+
+<ol>
+<li>
+<p>Create a video util handle for managing the transcoding:</p>
+<pre class="prettyprint">
+video_util_h video_h = NULL;
+ret = video_util_create(&amp;video_h);
+</pre>
+</li>
+
+<li>
+<p>If the video util handle is successfully created, set the input file path using the <span style="font-family: Courier New,Courier,monospace">video_util_set_file_path()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_set_file_path(video_h, *path);
+</pre>
+</li>
+
+<li>
+<p>Set the file format using the <span style="font-family: Courier New,Courier,monospace">video_util_set_file_format()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_set_file_format(video_h, VIDEO_UTIL_FILE_FORMAT_3GP);
+</pre>
+<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VIDEO__UTIL__MODULE.html#gad9c070cbb59f3107cefd280ec06e2966">video_util_file_format_e</a> enumeration defines the available file formats.</p>
+</li>
+
+<li>
+<p>Set the audio codec using the <span style="font-family: Courier New,Courier,monospace">video_util_set_audio_codec()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_set_audio_codec(video_h, VIDEO_UTIL_AUDIO_CODEC_AAC);
+</pre>
+<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VIDEO__UTIL__MODULE.html#ga48da7f77144a99f5733a90d62805c435">video_util_audio_codec_e</a> enumeration defines the available audio codecs.</p>
+</li>
+
+<li>
+<p>Set the video codec using the <span style="font-family: Courier New,Courier,monospace">video_util_set_video_codec()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_set_video_codec(video_h, VIDEO_UTIL_VIDEO_CODEC_MPEG4);
+</pre>
+<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VIDEO__UTIL__MODULE.html#gabadbb5a64155f42fe180bedac40f289e">video_util_video_codec_e</a> enumeration defines the available video codecs.</p>
+</li>
+
+<li>
+<p>Enable or disable the accurate seek mode using the <span style="font-family: Courier New,Courier,monospace">video_util_set_accurate_mode()</span> function.</p>
+<p>If you enable this mode, you can get an accurate frame for a given duration in the <span style="font-family: Courier New,Courier,monospace">video_util_start_transcoding()</span> function.</p>
+<pre class="prettyprint">
+ret = video_util_set_accurate_mode(video_h, 0);
+</pre>
+</li>
+
+<li>
+<p>Set the video resolution using the <span style="font-family: Courier New,Courier,monospace">video_util_set_resolution()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_set_resolution(video_h, 176, 144);
+</pre>
+<p>If the transcoding is performed with the original input (&quot;trim&quot;), both the width and height are 0.</p>
+</li>
+
+<li>
+<p>Set the video frame rate using the <span style="font-family: Courier New,Courier,monospace">video_util_set_fps()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_set_fps(video_h, 10);
+</pre>
+</li>
+
+<li>
+<p>When no longer needed, destroy the video util handle using the <span style="font-family: Courier New,Courier,monospace">video_util_destroy()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_destroy(video_h);
+</pre>
+</li>
+
+</ol>
+
+<h2 id="manage" name="manage">Managing Transcoding in Mobile Applications</h2>
+
+<p>To manage and monitor the transcoding process:</p>
+
+<ol>
+
+<li>
+<p>Start the transcoding using the <span style="font-family: Courier New,Courier,monospace">video_util_start_transcoding()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_start_transcoding(video_h);
+</pre>
+</li>
+
+<li>
+<p>Monitor and manage the transcoding:</p>
+<ul>
+<li>
+<p>To retrieve the current transcoding progress, use the <span style="font-family: Courier New,Courier,monospace">video_util_get_progress_transcoding()</span> function. The function returns the current transcoding position (second parameter) and the duration of the transcoding (third parameter).</p>
+<pre class="prettyprint">
+unsigned long current_position;
+unsigned long duration;
+ret = video_util_get_progress_transcoding(video_h, *current_position, *duration);
+</pre>
+</li>
+<li>
+<p>To cancel the transcoding process, use the <span style="font-family: Courier New,Courier,monospace">video_util_cancel_transcoding()</span> function. You must call this function before the transcoding complete callback is invoked.</p>
+<pre class="prettyprint">
+ret = video_util_cancel_transcoding(video_h);
+</pre>
+</li>
+</ul>
+</li>
+
+<li>
+<p>After the transcoding complete callback is invoked, destroy the video util handle using the <span style="font-family: Courier New,Courier,monospace">video_util_destroy()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_destroy(video_h);
+</pre>
+<p>The function destroys the handle of a completed transcoding. If the function is called during the transcoding process, the function also cancels the transcoding.</p>
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">If you do not call the destroy function after the transcoding is complete, you cannot start a new transcoding process, and a memory crash can occur.</td>
+        </tr>
+    </tbody>
+</table>
+</li>
+
+</ol>
+
+<h2 id="set" name="set">Setting Parameters in Mobile Applications</h2>
+
+<p>To set parameters for the video utilities (for other parameters, see <a href="#prepare">Preparing the Video Utilities</a>):</p>
+
+<ol>
+<li>Set the file format:
+<ol type="a">
+<li>
+<p>Check the supported file formats:</p>
+<ol type="a">
+<li>
+<p>Check the supported file formats using the <span style="font-family: Courier New,Courier,monospace">video_util_foreach_supported_file_format()</span> function:</p>
+<pre class="prettyprint">
+error_code = video_util_foreach_supported_file_format(handle, video_util_file_supported, NULL);
+</pre>
+<p>The second parameter specifies the callback that is invoked separately for each supported file format.</p>
+</li>
+<li>
+<p>Define the callback:</p>
+<pre class="prettyprint">
+static bool
+video_util_file_supported(video_util_file_format_e format, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;format %s\n&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;format == VIDEO_UTIL_FILE_FORMAT_3GP? &quot;VIDEO_UTIL_FILE_FORMAT_3GP&quot;:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;format == VIDEO_UTIL_FILE_FORMAT_MP4? &quot;VIDEO_UTIL_FILE_FORMAT_MP4&quot;:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;VIDEO_UTIL_FILE_FORMAT_MAX&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+}
+</pre>
+<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VIDEO__UTIL__MODULE.html#gad9c070cbb59f3107cefd280ec06e2966">video_util_file_format_e</a> enumeration defines the available file formats.</p>
+</li>
+</ol>
+</li>
+<li>
+<p>Set the file format using the <span style="font-family: Courier New,Courier,monospace">video_util_set_file_format()</span> function:</p>
+<pre class="prettyprint">
+ret = video_util_set_file_format(video_h, VIDEO_UTIL_FILE_FORMAT_3GP);
+</pre>
+</li></ol></li>
+
+<li>Set the audio and video codec:
+<ol type="a">
+<li>
+<p>Check the supported audio and video codecs:</p>
+<ol type="a">
+<li>
+<p>Check the supported audio and video codecs using the <span style="font-family: Courier New,Courier,monospace">video_util_foreach_supported_audio_codec()</span> and <span style="font-family: Courier New,Courier,monospace">video_util_foreach_supported_video_codec()</span> functions:</p>
+<pre class="prettyprint">
+video_util_foreach_supported_audio_codec(handle, video_util_audio_supported, NULL);
+
+video_util_foreach_supported_video_codec(handle, video_util_video_supported, NULL);
+</pre>
+<p>The second parameter of both functions specifies the callback that is invoked separately for each supported codec.</p>
+</li>
+<li>
+<p>Define the callbacks:</p>
+<pre class="prettyprint">
+static bool
+video_util_audio_supported(video_util_audio_codec_e codec, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;audio codec %s\n&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codec==VIDEO_UTIL_AUDIO_CODEC_AAC? &quot;VIDEO_UTIL_AUDIO_CODEC_AAC&quot;:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codec==VIDEO_UTIL_AUDIO_CODEC_AMRNB? &quot;VIDEO_UTIL_AUDIO_CODEC_AMRNB&quot;:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;VIDEO_UTIL_AUDIO_CODEC_NONE&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+}
+
+static bool
+video_util_video_supported(video_util_video_codec_e codec, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;video codec %s\n&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codec == VIDEO_UTIL_VIDEO_CODEC_MPEG4? &quot;VIDEO_UTIL_VIDEO_CODEC_MPEG4&quot;:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codec == VIDEO_UTIL_VIDEO_CODEC_H263? &quot;VIDEO_UTIL_VIDEO_CODEC_H263&quot;:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;codec == VIDEO_UTIL_VIDEO_CODEC_H264? &quot;VIDEO_UTIL_VIDEO_CODEC_H264":
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;VIDEO_UTIL_VIDEO_CODEC_NONE&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+}
+</pre>
+<p>The <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VIDEO__UTIL__MODULE.html#ga48da7f77144a99f5733a90d62805c435">video_util_audio_codec_e</a> and <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__VIDEO__UTIL__MODULE.html#gabadbb5a64155f42fe180bedac40f289e">video_util_video_codec_e</a> enumerations define the available audio and video codecs.</p>
+</li>
+</ol>
+<p>To check the support for a specified codec, such as <span style="font-family: Courier New,Courier,monospace;">VIDEO_UTIL_VIDEO_CODEC_MPEG4</span>:</p>
+<pre class="prettyprint">
+static bool
+video_util_video_supported(video_util_video_codec_e codec, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (codec == VIDEO_UTIL_VIDEO_CODEC_MPEG4)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;user_data = true;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+}
+
+bool supported = false;
+video_util_foreach_supported_video_codec(handle, video_util_video_supported, &amp;supported);
+dlog_print(DLOG_INFO, LOG_TAG, &quot;MPEG4 codec %s&quot;, supported?&quot;supported&quot;:&quot;not supported&quot;);
+</pre>
+</li>
+
+<li>
+<p>Set the audio and video codecs using the <span style="font-family: Courier New,Courier,monospace">video_util_set_audio_codec()</span> and <span style="font-family: Courier New,Courier,monospace">video_util_set_video_codec()</span> functions:</p>
+<pre class="prettyprint">
+error_code = video_util_set_audio_codec(handle, VIDEO_UTIL_AUDIO_CODEC_AAC);
+
+error_code = video_util_set_video_codec(handle, VIDEO_UTIL_VIDEO_CODEC_MPEG4);
+</pre>
+</li></ol></li>
+
+<li>
+<p>Set the video resolution using the <span style="font-family: Courier New,Courier,monospace">video_util_set_resolution()</span> function:</p>
+<pre class="prettyprint">
+int error_code = video_util_set_resolution(handle, 640, 480);
+</pre>
+</li>
+
+<li>
+<p>Set the video frame rate using the <span style="font-family: Courier New,Courier,monospace">video_util_set_fps()</span> function:</p>
+<pre class="prettyprint">
+int error_code = video_util_set_fps(handle, 25);
+</pre>
+</li>
+
+</ol>
+
+<h2 id="get" name="get">Monitoring the Transcoding Progress in Mobile Applications</h2>
+
+<p>To retrieve progress information about the transcoding process:</p>
+
+<ol>
+
+<li><p><a href="#prepare">Prepare the video utilities.</a></p></li>
+
+<li>
+<p>Start the transcoding using the <span style="font-family: Courier New,Courier,monospace;">video_util_start_transcoding()</span> function:</p>
+<pre class="prettyprint">
+error_code = video_util_start_transcoding(handle, start, duration, *out_path, progress_cb, completed_cb, *user_data);
+</pre>
+<p>The fifth parameter specifies the transcoding progress callback, which is invoked periodically during the transcoding process. The sixth parameter specifies the transcoding complete callback, which is invoked after the transcoding process is complete.</p>
+</li>
+
+<li>
+<p>Retrieve the current transcoding progress using the <span style="font-family: Courier New,Courier,monospace;">video_util_get_progress_transcoding()</span> function within the transcoding progress callback:</p>
+<pre class="prettyprint">
+error_code = video_util_get_progress_transcoding(handle, *current_position, *duration);
+</pre>
+</li>
+
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,720 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>IoTivity</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+	<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 3.0 and Higher for Mobile</li>
+			<li>Tizen Platform 3.0 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#prerequisites">Prerequisites</a></li>
+            <li><a href="#register">Registering Resources</a></li>
+            <li><a href="#find">Finding Resources</a></li>
+            <li><a href="#send_get">Sending GET Requests</a></li>
+            <li><a href="#send_put">Sending PUT Requests</a></li>
+            <li><a href="#observe">Observing Resources</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__MODULE.html">Iotcon API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__MODULE.html">Iotcon API for Wearable Native</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>IoTivity</h1>
+
+<p><a href="https://www.iotivity.org/" target="_blank">IoTivity</a> offers seamless device-to-device connectivity to address the emerging needs of the Internet of Things (IoT) through the open source reference implementation of the OIC (Open Interconnect Consortium) standard specifications. IoT connectivity (Iotcon) provides the means of using IoTivity in Tizen.</p>
+
+<p class="figure">Figure: IoTivity in Tizen</p> 
+<p align="center"><img alt="IoTivity in Tizen" src="../../images/iotivity.png" /></p> 
+
+<p>IoT connectivity is usually handled with a server and client. The server is responsible for creating and providing resources, and the client can access those resources through requests.</p>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the IoT functionality</a>.</p>
+
+<p>The main features of the Iotcon API include:</p>
+<ul>
+<li>Resource management
+<p>Entities in the physical world, such as a light, a fan, or modules of a home appliance, are represented as resources with the following properties:</p>
+<ul>
+<li>Resource URI path: Value that corresponds to a resource</li>
+<li>Resource types: Values for identifying a resource</li>
+<li>Resource interfaces: List of the interfaces supported by the resource</li>
+<li>Resource properties: Whether the resource is observable and discoverable</li>
+</ul>
+
+<p>You can manage the IoT resources with the server, which can <a href="#register">create resources</a> and later destroy them using the  <span style="font-family: Courier New,Courier,monospace">iotcon_resource_create()</span> and  <span style="font-family: Courier New,Courier,monospace">iotcon_resource_destroy()</span> functions of the Resource API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__SERVER__RESOURCE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__SERVER__RESOURCE__MODULE.html">wearable</a> applications). After creating a resource, the server can bind the resource types and resource interfaces using the <span style="font-family: Courier New,Courier,monospace">iotcon_resource_bind_type()</span> and  <span style="font-family: Courier New,Courier,monospace">iotcon_resource_bind_interface()</span> functions. After a resource is destroyed, the client cannot access the resource anymore.</p>
+
+<p>If the resource is discoverable, the client can find the resource. Otherwise, only the clients that already know the resource information can access it. If the resource is observable, the client can observe it.</p>
+</li>
+
+<li>Remote resource management
+<p>If the resource created by the server is discoverable, the client that knows the resource type can <a href="#find">find the resource</a> using the <span style="font-family: Courier New,Courier,monospace">iotcon_find_resource()</span> function of the Client API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__CLIENT__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__CLIENT__MODULE.html">wearable</a> applications). If the  <span style="font-family: Courier New,Courier,monospace">host_address</span> (the first parameter) is <span style="font-family: Courier New,Courier,monospace">NULL</span>, the find request is sent as multicast. If the <span style="font-family: Courier New,Courier,monospace">resource_type</span> (the third parameter) is <span style="font-family: Courier New,Courier,monospace">NULL</span>, the request finds every resource type. If the client does not know the server host address or the resource type of the resource, it cannot find the resource. </p>
+
+<p>If the client wants to access a resource whose information it already knows, it can make a proxy using the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_create()</span> function of the Remote Resource API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__CLIENT__REMOTE__RESOURCE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__CLIENT__REMOTE__RESOURCE__MODULE.html">wearable</a> applications) and access the resource through that proxy.</p>
+
+<p>You can use the client to get various information about the resource through the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_h</span> handle and the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_get_XXX()</span> functions. You can retrieve, for example, the resource URI path, host address, type, and interfaces. You can also retrieve the device ID, which defines the device to which the resource belongs. Different resources in the same device have the same device ID.</p>
+</li>
+
+<li>CRUDN request and response 
+<p>The client can send various requests to the server resources using the Remote Resource API:</p>
+<ul>
+<li>GET request: Use the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_get()</span> function to read the resource information and <a href="#send_get">get a representation of the resource</a> from the server.</li>
+<li>PUT request: Use the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_put()</span> function to ask the server to <a href="#send_put">update the resource representation</a>.</li>
+<li>POST request: Use the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_post()</span> function to ask the server to create a new resource.</li>
+<li>DELETE request: Use the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_delete()</span> function to ask the server to delete a resource.</li>
+</ul>
+
+<p>The server receives the request, processes it using the <span style="font-family: Courier New,Courier,monospace">iotcon_request_handler_cb()</span> callback, and sends a response to the client using the <span style="font-family: Courier New,Courier,monospace">iotcon_response_send()</span> function of the Response API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__RESPONSE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__RESPONSE__MODULE.html">wearable</a> applications).</p>
+<p>The client can check the result and the response in the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_response_cb()</span> callback. If the result of the request differs from <span style="font-family: Courier New,Courier,monospace">IOTCON_ERROR_NONE</span>, the response information is not reliable.</p>
+ 
+<p class="figure">Figure: Requests and responses</p> 
+<p align="center"><img alt="Requests and responses" src="../../images/iotivity_request.png" /></p>   
+
+<p>If the server resource is observable, the client can register a callback with the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_observe_register()</span> function of the Remote Resource API to <a href="#observe">observe the resource</a>. When the resource state changes, the server notifies the client through the registered callback. Note that, depending on the network environment, the order in which the notifications are sent can be mixed. If the <span style="font-family: Courier New,Courier,monospace">observe_policy</span> (the second parameter of the registration function) is <span style="font-family: Courier New,Courier,monospace">IOTCON_OBSERVE_IGNORE_OUT_OF_ORDER</span>, the client only receives up-to-date notifications. Otherwise, it receives all notifications, including stale notifications.</p>
+<p>If the resource is not observable, the client cannot receive any notifications.</p>
+
+<p class="figure">Figure: Observe and notify</p> 
+<p align="center"><img alt="Observe and notify" src="../../images/iotivity_observe.png" /></p> 
+</li>
+
+<li>Resource representation
+<p>Resource representation is a snapshot of a resource at a particular time, representing the resource information exchanged in the request and response interactions between the server and client. The resource representation contains resource properties and the state of the resource.</p> 
+ 
+<p class="figure">Figure: Resource representation</p> 
+<p align="center"><img alt="Resource representation" src="../../images/iotivity_resource.png" /></p>  
+
+<p>To manage the representation, use the Representation (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__REPRESENTATION__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__REPRESENTATION__MODULE.html">wearable</a> applications) and State (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__REPRESENTATION__ATTRIBUTES__MODULE.html">mobile</a> applications) APIs:</p>
+<ul>
+<li>Create a resource representation with the <span style="font-family: Courier New,Courier,monospace">iotcon_representation_create()</span> function.</li>
+<li>Set the properties on the created representation with the <span style="font-family: Courier New,Courier,monospace">iotcon_representation_set_XXX()</span> functions.</li>
+<li>Create a resource state with the <span style="font-family: Courier New,Courier,monospace">iotcon_state_create()</span> function.</li>
+<li>Use the created state to set resource attributes by adding key-value pairs with the <span style="font-family: Courier New,Courier,monospace">iotcon_state_add_XXX()</span> functions.</li>
+</ul>
+</li>
+</ul>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Iotcon API basics by learning about:</p>
+
+<ul>
+	<li><a href="#prerequisites">Prerequisites</a>
+	<p>Prepare your application to use the IoT functionality.</p></li>
+	<li><a href="#register">Registering Resources</a>
+	<p>Create and register resources.</p></li>
+	<li><a href="#find">Finding Resources</a>
+	<p>Find and connect to the resources.</p></li>
+	<li><a href="#send_get">Sending GET Requests</a>
+	<p>Get information from the resources.</p></li>
+	<li><a href="#send_put">Sending PUT Requests</a>
+	<p>Update the resource information.</p></li>
+	<li><a href="#observe">Observing Resources</a>
+	<p>Monitor observable resources for changes.</p></li>
+</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the IoT functionality:</p>
+<ol>
+<li>
+<p>To use the Iotcon API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__MODULE.html">wearable</a> applications), the application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/network.get&lt;/privilege&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/d2d.datasharing&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+</li>
+<li>To use the functions and data types of the Iotcon API, include the <span style="font-family: Courier New,Courier,monospace">&lt;iotcon.h&gt;</span> header file in your application:
+<pre class="prettyprint">
+#include &lt;iotcon.h&gt;
+</pre>
+<p>To ensure that an Iotcon function has been executed properly, make sure that the return is equal to <span style="font-family: Courier New,Courier,monospace">IOTCON_ERROR_NONE</span>.</p>
+</li>
+<li>To connect the application with the IoT, use the <span style="font-family: Courier New,Courier,monospace">iotcon_connect()</span> function:
+<pre class="prettyprint">
+int ret;
+ret = iotcon_connect();
+</pre>
+</li>
+<li>When the resources are no longer needed, close the connection using the <span style="font-family: Courier New,Courier,monospace">iotcon_disconnect()</span> function:
+<pre class="prettyprint">
+iotcon_disconnect();
+</pre>
+</li>
+</ol>
+
+<h2 id="register" name="register">Registering Resources</h2> 
+
+<p>To create and register resources:</p>
+
+<ol>
+<li>Create the resource types using the <span style="font-family: Courier New,Courier,monospace">iotcon_resource_types_create()</span> function. The resource type string can be added using the <span style="font-family: Courier New,Courier,monospace">iotcon_resource_types_add()</span> function.
+<pre class="prettyprint">
+int ret;
+const char *res_type = &quot;org.tizen.light&quot;;
+iotcon_resource_types_h res_types = NULL;
+
+ret = iotcon_resource_types_create(&amp;res_types);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+ret = iotcon_resource_types_add(res_types, res_type);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre>
+</li>
+<li>Register the resource by calling the <span style="font-family: Courier New,Courier,monospace">iotcon_resource_create()</span> function.
+<p>In the function, set the URI path, resource types, interfaces (<span style="font-family: Courier New,Courier,monospace">iotcon_resource_interfaces_h</span> resource interface handle in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__MODULE.html#ga10fbc5191f6d83eaedbcbdeb3e1211a8">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__MODULE.html#ga10fbc5191f6d83eaedbcbdeb3e1211a8">wearable</a> applications), policies (one or more <span style="font-family: Courier New,Courier,monospace">iotcon_resource_policy_e</span> enumeration values in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__MODULE.html#ga66063156ce698fa862cb9704be86494f">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__MODULE.html#ga66063156ce698fa862cb9704be86494f">wearable</a> applications), and the request handler callback function called when a request arrives from a client.</p>
+<p>The URI path must be unique. The <span style="font-family: Courier New,Courier,monospace">iotcon_resource_create()</span> function fails, if you use an existing URI to register another resource.</p>
+
+<pre class="prettyprint">
+int res_interfaces = IOTCON_INTERFACE_DEFAULT;
+int res_properties = IOTCON_RESOURCE_DISCOVERABLE | IOTCON_RESOURCE_OBSERVABLE;
+const char *res_uri = &quot;/light/1&quot;;
+iotcon_resource_h resource = NULL;
+
+ret = iotcon_resource_create(res_uri, res_types, res_interfaces, res_properties,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_request_handler, NULL, &amp;resource);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre>
+</li>
+<li>When no longer needed, destroy the resource types handle using the <span style="font-family: Courier New,Courier,monospace">iotcon_resource_types_destroy()</span> function:
+<pre class="prettyprint">
+iotcon_resource_types_destroy(resource_types);
+</pre>
+</li>
+</ol>
+
+<h2 id="find" name="find">Finding Resources</h2> 
+
+<p>To find resources:</p>
+<ol>
+<li>To find a resource, call the <span style="font-family: Courier New,Courier,monospace">iotcon_find_resource()</span> function. 
+<p>In the function, set the host address, connectivity type (an <span style="font-family: Courier New,Courier,monospace">iotcon_connectivity_type_e</span> enumeration value in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__MODULE.html#gad35385ec940df271d516337a17185453">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__COMMON__MODULE.html#gad35385ec940df271d516337a17185453">wearable</a> applications), resource type, secure flag, and the found callback function called when the resource is found during the timeout.</p>
+<p>The host address can be an IP address or Bluetooth MAC address. The host address can also be <span style="font-family: Courier New,Courier,monospace">IOTCON_MULTICAST_ADDRESS</span> for multicast.</p>
+<pre class="prettyprint">
+int ret;
+const char *res_type = &quot;org.tizen.light&quot;;
+ret = iotcon_find_resource(IOTCON_MULTICAST_ADDRESS, IOTCON_CONNECTIVITY_ALL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;res_type, false, _found_cb, NULL);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre>
+</li>
+<li>To get the remote resource handle information, use the found callback registered in the <span style="font-family: Courier New,Courier,monospace">iotcon_find_resource()</span> function:
+<pre class="prettyprint">
+static void
+_found_cb(iotcon_remote_resource_h resource, iotcon_error_e err, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;char *address;
+&nbsp;&nbsp;&nbsp;&nbsp;char *uri_path;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != err)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_remote_resource_get_host_address(resource, &amp;address);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;host_address: %s&quot;, address);
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_remote_resource_get_uri_path(resource, &amp;uri_path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;uri_path: %s&quot;, uri_path);
+}
+</pre>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">The callback parameters are valid only within the callback function. Use the clone handle, if you want to use a parameter after the callback function.</td>
+		</tr>
+	</tbody>
+</table>
+</li>
+<li>To set the timeout interval (in seconds) for the asynchronous functions of the Client (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__CLIENT__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__CLIENT__MODULE.html">wearable</a> applications) and Remote Resource (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__IOT__CONNECTIVITY__CLIENT__REMOTE__RESOURCE__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__IOT__CONNECTIVITY__CLIENT__REMOTE__RESOURCE__MODULE.html">wearable</a> applications) APIs, use the <span style="font-family: Courier New,Courier,monospace">iotcon_set_timeout()</span> function:  
+<pre class="prettyprint">
+int ret;
+ret = iotcon_set_timeout(10);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre>
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">
+			The <span style="font-family: Courier New,Courier,monospace">iotcon_set_timeout()</span> function has an effect on the following asynchronous functions:
+				<ul>
+				<li><span style="font-family: Courier New,Courier,monospace">iotcon_get_device_info()</span></li>
+				<li><span style="font-family: Courier New,Courier,monospace">iotcon_get_platform_info()</span></li>
+				<li><span style="font-family: Courier New,Courier,monospace">iotcon_find_resource()</span></li>
+				<li><span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_get()</span></li>
+				<li><span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_put()</span></li>
+				<li><span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_post()</span></li>
+				<li><span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_delete()</span></li>
+				</ul>
+			</td>
+		</tr>
+	</tbody>
+</table>
+</li>
+</ol>
+
+<h2 id="send_get" name="send_get">Sending GET Requests</h2> 
+
+<p>To send GET requests to a server:</p>
+
+<ol>
+<li>On the client side, clone the remote resource handle using the found callback registered in the <span style="font-family: Courier New,Courier,monospace">iotcon_find_resource()</span> function:
+<pre class="prettyprint">
+static iotcon_remote_resource_h _light_resource = NULL;
+
+static void
+_found_cb(iotcon_remote_resource_h resource, iotcon_error_e err, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != err)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_remote_resource_clone(resource, &amp;_light_resource);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+<li>Send the GET request to the server using the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_get()</span> function.
+<p>In the function, set the remote resource, query, and the response callback function called when receiving a response from the resource.</p>
+<pre class="prettyprint">
+int ret;
+ret = iotcon_remote_resource_get(_light_resource, NULL, _on_get, NULL);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre>
+</li>
+<li>On the server side, the <span style="font-family: Courier New,Courier,monospace">_request_handler()</span> callback function is called when a request arrives from the client. The resource and request handles are passed to the callback.
+<p>Use the callback to get the request information from the request handle, create a representation handle (with the <span style="font-family: Courier New,Courier,monospace">_get_repr()</span> function), and sent a response back to the client (with the <span style="font-family: Courier New,Courier,monospace">_send_response()</span> function):</p>
+<pre class="prettyprint">
+static void
+_request_handler(iotcon_resource_h resource, iotcon_request_h request, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_request_type_e req_type;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_response_result_e result = IOTCON_RESPONSE_ERROR;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_h repr = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_request_get_type(request, &amp;req_type);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;switch (req_type) {
+&nbsp;&nbsp;&nbsp;&nbsp;case IOTCON_REQUEST_GET:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = _get_repr(resource, &amp;repr);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 == ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = IOTCON_RESPONSE_OK;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;type: %d&quot;, req_type);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;_send_response(request, result, repr);
+&nbsp;&nbsp;&nbsp;&nbsp;if (repr)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_destroy(repr);
+}
+</pre>
+</li>
+<li>To process the GET request, the server must create the representation handle, which can include resource properties, such as the URI path, types, interfaces, and the state handle. Create the handle with the <span style="font-family: Courier New,Courier,monospace">iotcon_representation_create()</span> function: 
+<pre class="prettyprint">
+static int _light_brightness;
+
+int
+_get_repr(iotcon_resource_h resource, iotcon_representation_h *representation)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;char *uri_path;
+&nbsp;&nbsp;&nbsp;&nbsp;int interfaces;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_resource_types_h res_types;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_h repr;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_state_h state;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_representation_create(&amp;repr);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_resource_get_types(resource, &amp;res_types);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_representation_set_resource_types(repr, res_types);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_resource_get_uri_path(resource, &amp;uri_path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_representation_set_uri_path(repr, uri_path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_resource_get_interfaces(resource, &amp;interfaces);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_representation_set_resource_interfaces(repr, interfaces);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_state_create(&amp;state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_state_add_int(state, &quot;brightness&quot;, _light_brightness);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_representation_set_state(repr, state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_state_destroy(state);
+
+&nbsp;&nbsp;&nbsp;&nbsp;*representation = repr;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return 0;
+}
+</pre>
+</li>
+<li>To send a response to the client, use the <span style="font-family: Courier New,Courier,monospace">iotcon_response_send()</span> function.
+<p>In the function, set the response handle that can include the mandatory response result and optional representation.</p> 
+<pre class="prettyprint">
+void
+_send_response(iotcon_request_h request, iotcon_response_result_e result, iotcon_representation_h repr)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_response_h resp;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_create(request, &amp;resp);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_set_result(resp, result);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (repr) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_set_representation(resp, IOTCON_INTERFACE_DEFAULT, repr);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_send(resp);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_response_destroy(resp);
+}
+</pre>
+</li>
+<li>On the client side, the response callback is called when the response arrives from the server. Handle the response appropriately. If the response is a success, the resource information can be included in it.
+<pre class="prettyprint">
+static void
+_parse_representation(iotcon_representation_h repr)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;int brightness;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_state_h state;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_representation_get_state(repr, &amp;state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_state_get_int(state, &quot;brightness&quot;, &amp;brightness);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;Brightness: %d&quot;, brightness);
+}
+
+static void
+_on_get(iotcon_remote_resource_h resource, iotcon_error_e err,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iotcon_request_type_e request_type, iotcon_response_h response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_h repr;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_response_result_e result;
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != err)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_get_result(response, &amp;result);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_RESPONSE_OK != result)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_get_representation(response, &amp;repr);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;_parse_representation(repr);
+}
+</pre>
+</li>
+</ol>
+
+<h2 id="send_put" name="send_put">Sending PUT Requests</h2>
+
+<p>To send PUT requests to a server:</p>
+<ol>
+<li>To send a PUT request to the server, use the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_put()</span> function.
+<p>In the function, set the remote resource, representation, query, and the response callback function called when a response arrives from the resource.</p>
+<pre class="prettyprint">
+int ret;
+iotcon_representation_h repr;
+iotcon_state_h state;
+ret = iotcon_representation_create(&amp;repr);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+ret = iotcon_state_create(&amp;state);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+ret = iotcon_state_add_int(state, &quot;brightness&quot;, 20);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+ret = iotcon_representation_set_state(repr, state);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+iotcon_state_destroy(state);
+
+ret = iotcon_remote_resource_put(_light_resource, repr, NULL, _on_put, NULL);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+iotcon_representation_destroy(repr);
+</pre>
+</li>
+<li>On the server side, the request handler function is called when a request arrives from the client. The resource and request handles are passed to the handler callback.
+<p>You can get the request information from the request handle.</p>
+<pre class="prettyprint">
+static void
+_handle_put(iotcon_request_h request)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_h repr;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_state_h state;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_request_get_representation(request, &amp;repr);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_representation_get_state(repr, &amp;state);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_state_get_int(state, &quot;brightness&quot;, &amp;_light_brightness);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+
+static void
+_request_handler(iotcon_resource_h resource, iotcon_request_h request, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_request_type_e req_type;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_response_result_e result = IOTCON_RESPONSE_ERROR;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_h repr = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_request_get_request_type(request, &amp;req_type);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;switch (req_type) {
+&nbsp;&nbsp;&nbsp;&nbsp;case IOTCON_REQUEST_PUT:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_handle_put(request);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = _get_repr(resource, &amp;repr);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (0 == ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result = IOTCON_RESPONSE_OK;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;type: %d&quot;, req_type);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;_send_response(request, result, repr);
+&nbsp;&nbsp;&nbsp;&nbsp;if (repr)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_destroy(repr);
+}
+</pre>
+</li>
+<li>On the client side, the response callback is called when the response arrives from the server. If the response is a success, the resource information can be included in it.
+<pre class="prettyprint">
+static void
+_on_put(iotcon_remote_resource_h resource, iotcon_error_e err,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iotcon_request_type_e request_type, iotcon_response_h response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_h repr;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_response_result_e result;
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != err)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_get_result(response, &amp;result);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_RESPONSE_OK != result)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_get_representation(response, &amp;repr);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;_parse_representation(repr);
+}
+</pre>
+</li>
+</ol>
+
+<h2 id="observe" name="observe">Observing Resources</h2> 
+
+<p>To monitor the changes in a resource:</p>
+<ol>
+<li>If the resource is observable, the client can register a callback to observe the resource using the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_observe_register()</span> function:
+<pre class="prettyprint">
+int ret;
+int properties;
+ret = iotcon_remote_resource_get_properties(_light_resource, &amp;properties);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+if (IOTCON_RESOURCE_OBSERVABLE &amp; properties) {
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_remote_resource_observe_register(_light_resource, IOTCON_OBSERVE_IGNORE_OUT_OF_ORDER,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NULL, _observe_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+}
+</pre>
+</li>
+<li>On the server side, the request handler callback is called when the observe request arrives from the client. To manage the observers, use the <span style="font-family: Courier New,Courier,monospace">iotcon_observers_h</span> handle. 
+<pre class="prettyprint">
+static iotcon_observers_h _observers;
+
+static void
+_handle_observe(iotcon_request_h request, bool is_register)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;int observe_id;
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_request_get_observe_id(request, &amp;observe_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;if (is_register) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (NULL == _observers) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_observers_create(&amp;_observers);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_observers_add(_observers, observe_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_observers_remove(_observers, observe_id);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+static void
+_request_handler(iotcon_resource_h resource, iotcon_request_h request, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_observe_type_e observe_type;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_request_get_observe_type(request, &amp;observe_type);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;switch (observe_type) {
+&nbsp;&nbsp;&nbsp;&nbsp;case IOTCON_OBSERVE_REGISTER:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_handle_observe(request, true);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case IOTCON_OBSERVE_DEREGISTER:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_handle_observe(request, false);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case IOTCON_OBSERVE_NO_TYPE:
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;type: %d&quot;, observe_type);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>When a resource changes, notify the observing client using the <span style="font-family: Courier New,Courier,monospace">iotcon_resource_notify()</span> function. The second parameter can be <span style="font-family: Courier New,Courier,monospace">NULL</span> to notify all observers.
+<pre class="prettyprint">
+int ret;
+iotcon_representation_h repr = NULL;
+ret = _get_repr(resource, &amp;repr);
+if (0 != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+ret = iotcon_resource_notify(resource, _observers, repr, IOTCON_QOS_HIGH);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+if (repr)
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_destroy(repr);
+</pre>
+</li>
+<li>On the client side, the <span style="font-family: Courier New,Courier,monospace">_observe_cb()</span> callback is called when the notify function is called from the server side. The remote resource handle, sequence number, and response handle are passed to the callback.
+<pre class="prettyprint">
+static void
+_observe_cb(iotcon_remote_resource_h resource, iotcon_error_e err,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int sequence_number, iotcon_response_h response, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;iotcon_representation_h repr;
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != err)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;sequence: %d&quot;, sequence_number);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = iotcon_response_get_representation(response, &amp;repr);
+&nbsp;&nbsp;&nbsp;&nbsp;if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;_parse_representation(repr);
+}
+</pre>
+</li>
+<li>When the client no longer needs to monitor the resource, deregister the observation callback with the <span style="font-family: Courier New,Courier,monospace">iotcon_remote_resource_observe_deregister()</span> function:
+<pre class="prettyprint">
+int ret;
+ret = iotcon_remote_resource_observe_deregister(_light_resource);
+if (IOTCON_ERROR_NONE != ret)
+&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+</pre>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

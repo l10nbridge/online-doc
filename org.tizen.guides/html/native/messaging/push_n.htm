@@ -1,0 +1,735 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Push</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n_optional.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#service">Service Architecture</a></li>
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li>Push service
+				<ul class="toc">
+					<li><a href="#connect">Connecting to the Push Service</a></li>
+					<li><a href="#registration">Registering with the Push Server</a></li>
+					<li><a href="#security">Managing Security</a></li>
+				</ul>
+			</li>
+			<li>Notification management
+				<ul class="toc">
+					<li><a href="#send">Sending Push Notifications</a></li>	
+					<li><a href="#receive_push">Receiving Push Notifications</a></li>		
+				</ul> 
+			</li>
+		</ul>		
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MESSAGING__PUSH__PUBLIC__MODULE.html">Push API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MESSAGING__PUSH__PUBLIC__MODULE.html">Push API for Wearable Native</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Push</h1>
+
+<p>Push enables you to push events from an application server to your application on a Tizen device.</p> 
+
+  <p>Once your application is successfully registered in the push server through the push service (daemon) on the device, your application server can send push messages to the application in that particular device.</p> 
+  <p>When a push message arrives when the application is running, it is automatically delivered to the application. If not, the push service makes a sound or vibrates and adds a ticker or a badge notification to notify the user. By touching this notification, the user can check the message. The application server may send a message with a <span style="font-family: Courier New,Courier,monospace">LAUNCH</span> option. In this case, the push service forcibly launches the application and hands over the message to the application as an <a href="../app_management/app_controls_n.htm">application control</a>.</p>
+
+<p>To use the push messaging service, the application needs the permission to access the Tizen push server. Request the permission from the Tizen push service team by <a href="mailto:push.tizen@samsung.com">email</a>, including the <a href="#request_form">necessary information</a>. When the team approves the request, you receive a push app ID corresponding to your package ID.</p>
+
+<p>Remember to <a href="#security">take care of security issues</a> when sending notifications with sensitive information.</p>
+
+  <p class="figure">Figure: Push messaging service</p>
+  <p align="center"><img alt="Push messaging service" src="../../images/ui_push_message.png" /></p>
+
+  <h2 id="service" name="service">Service Architecture</h2> 
+  <p>The following figure illustrates the service architecture of the Tizen push messaging service.</p> 
+  <p class="figure">Figure: Service architecture</p> 
+  <p align="center"><img alt="Service architecture" src="../../images/push_overview.png" /></p> 
+  <p>The following steps illustrate a typical scenario for using the push messaging service on a Tizen device:</p> 
+  <ol> 
+   <li>The application on the device registers for the push messaging service. Before you start, remember to <a href="#prerequisites">prepare your application to use the push functionality</a>.</li> 
+   <li>When an application is installed and launched, the device <a href="#connect">establishes a push session with the Tizen Server</a> by sending a registration request to the Tizen push server through the push service. 
+   <p>The push session is managed by the Tizen server and device platform, so there is no need to create any code to manage it within the application.</p></li> 
+   <li>If the registration request is approved, the application <a href="#registration">receives through the push service a registration ID</a>. The registration ID is a unique key used to identify the application installed in that particular device and route the push message. 
+   <p>The application delivers the registration ID to the application server. This registration ID is used to identify the application installed in that particular device.</p></li> 
+   <li>When the application server needs to <a href="#send">send a push message</a> to the application in the particular device, it calls the Tizen server&#39;s open API to send the message together with the registration ID. (For more information for server developers about sending push messages, see <a href="push_server_n.htm#send_server">Sending Push Notifications</a>.)
+   <p>A text message of up to 1024 bytes can be sent in a push message. If the application needs to download a large amount of data, the application server sends a link to the data in the push message.</p>
+   </li> 
+   <li>When the Tizen push server receives the message and the registration ID, it checks which device has the application with the particular registration ID and then routes the message to that device.</li>    
+   <li>When the push service receives the message and the registration ID, it sends the message to the destination application, which <a href="#receive_push">receives the push message</a>.</li>   
+  </ol> 	
+
+<h2>Warm-up</h2>
+<p>Become familiar with the Push API basics by learning about:</p>
+	<ul>
+		<li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the push and push server functionality.</p></li>
+		<li>Push service
+		<ul>
+			<li><a href="#connect">Connecting to the Push Service</a>
+			<p>Establish a socket connection to the push service.</p></li>
+			<li><a href="#registration">Registering with the Push Server</a>
+			<p>Obtain a registration ID to receive push notifications.</p></li>
+			<li><a href="#security">Managing Security</a>
+			<p>Ensure the security of notifications containing sensitive information.</p></li>
+		</ul>
+		</li>
+		<li>Notification management
+			<ul>
+			<li><a href="#send">Sending Push Notifications</a>
+			<p>Send push notifications from the application server to an application.</p></li>	
+			<li><a href="#receive_push">Receiving Push Notifications</a>
+			<p>Receive notifications at different states.</p></li>
+		</ul>
+		</li>
+	</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the push functionality:</p>
+<ol>
+<li>
+<p>To use the Push API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MESSAGING__PUSH__PUBLIC__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__MESSAGING__PUSH__PUBLIC__MODULE.html">wearable</a> applications), the application has to request permission by adding the following privilege to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/push&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+</li>
+<li>
+<p>Make sure the following requirements are fulfilled:</p>
+<ol>
+<li>Internet access 
+<p>To connect to the Tizen push server and receive notifications from it, the target device or emulator must be able to contact any IP address with the port 5223. If you are in an enterprise network, ensure that the proxy setting in your local network allows outgoing traffic destined for this port number.</p></li>
+<li>Package ID
+<p>When you create a project in the Tizen SDK, you are given the package ID (randomly generated by the SDK or entered by yourself). The Tizen push server identifies your applications using the package ID.</p></li>
+<li id="permission" name="permission">Permission to Tizen push servers
+<p>To use the push messaging service, the application needs the permission to access the Tizen push server. Request the permission from the Tizen push service team by <a href="mailto:push.tizen@samsung.com">email</a>, including the following information. When the team approves the request, you receive a push app ID corresponding to your package ID.</p>
+<p>By sending the application, you agree to the <a href="https://www.tizen.org/about/terms-service" target="_blank">Terms of Service</a> and <a href="https://www.tizen.org/about/privacy-policy" target="_blank">Privacy Policy</a>.</p>
+</li>
+</ol>
+
+<table id="request_form">
+<caption>Table: Request form details</caption>
+<tbody>
+    <tr> 
+     <th colspan="2">Developer information</th> 
+    </tr> 
+	 <tr> 
+     <td>Email address</td> 
+     <td>Your email address to receive the approval response.</td> 
+	</tr>
+	 <tr> 
+     <td>Last name</td> 
+     <td>Your last name.</td> 
+	</tr>
+	 <tr> 
+     <td>First name</td> 
+     <td>Your first name.</td> 
+	</tr>
+	 <tr> 
+     <td>Country</td> 
+     <td>Your country of residence.</td> 
+	</tr>
+    <tr> 
+     <th colspan="2">Application information</th> 
+    </tr> 
+	 <tr> 
+     <td>Package ID</td> 
+     <td>The ID of the application package that uses the push messaging service. The package ID can be obtained from the application manifest file in the Tizen SDK.</td> 
+	</tr>
+	 <tr> 
+     <td>Application name</td> 
+     <td>Name of the application that uses the push service.</td> 
+	</tr>
+	<tr> 
+     <td>Application type</td> 
+     <td>Native application or Web application.</td> 
+	</tr>
+	 <tr> 
+     <td>Testing purpose</td> 
+     <td> Yes or no. If you request the service for testing purposes only, the duration of the push service is limited to 3 weeks.</td> 
+	</tr>
+	 <tr> 
+     <td> Purpose of the push notification usage</td> 
+     <td> Description of how you plan to use the push service, including the situations in which you want to use it.</td> 
+	</tr>
+	 <tr> 
+     <td> Application launch date</td> 
+     <td> Application launch date in the YYYY/MM/DD format. For example: 2014/08/01.</td> 
+	</tr>
+	 <tr> 
+     <td>Service area/country</td> 
+     <td>Service area, such as Asia, Africa, America, Europe, or the country where the application is used.</td> 
+	</tr>
+	 <tr> 
+     <td>Daily push requests</td> 
+     <td>Estimated number of daily notifications.</td> 
+	</tr>
+	 <tr> 
+     <td> Transactions per second</td> 
+     <td> Estimated peak number of transactions per second (the recommendation is below 100).</td> 
+	</tr>
+</tbody>
+</table>
+</li>
+
+<li><p>To use the functions and data types of the Push API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;push-service.h&gt;</span> header file to your application:</p>
+
+<pre class="prettyprint">
+#include &lt;push-service.h&gt;
+</pre>
+</li>
+
+<li><p>To ensure that push notifications are handled fluently, make both a service and UI application. The service application receives push notifications in the background, while the UI application shows the notifications or events triggered by notifications to the users. An example implementation is available in the push sample package in the Tizen SDK.</p>
+</li>
+</ol>
+
+ <h2 id="connect" name="connect">Connecting to the Push Service</h2>
+
+<p>To request or receive push notifications, establish a socket connection to the push service. All the information regarding this connection must be controlled by a connection handle which can be defined as a global variable:</p>
+
+<pre class="prettyprint">
+push_service_connection_h push_conn;
+</pre>
+
+<p>To manage push service connections:</p>
+<ol>
+<li>Connect to the push service.
+<p>Once the connection handle is defined, use the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function to connect to the push service:</p>
+
+<pre class="prettyprint">
+#define PUSH_APP_ID &quot;YOUR_PUSH_ID_HERE&quot;
+
+static bool
+app_create(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Connect to the push service when the application is launched */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_connect(PUSH_APP_ID, _state_cb, _noti_cb, NULL, &amp;push_conn);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != PUSH_SERVICE_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Implementation here */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;push_service_connect() Failed&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+</pre>
+
+<p>In the above example, the application establishes a socket connection to the push service:</p>
+<ul>
+<li>The <span style="font-family: Courier New,Courier,monospace;">YOUR_PUSH_ID_HERE</span> parameter is the push app ID received from the Tizen push server team when the access to the server was requested. Keep this push app ID confidential, otherwise your push notifications can be hijacked by malicious applications.</li>
+<li>The <span style="font-family: Courier New,Courier,monospace;">_state_cb()</span> and <span style="font-family: Courier New,Courier,monospace;">_noti_cb()</span> parameters are callback functions called when the <a href="#state">state changes</a> or <a href="#receive_push">a notification arrives from the server</a> through the push service.</li>
+<li>The <span style="font-family: Courier New,Courier,monospace;">push_conn</span> parameter is the output of the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function. If the connection between the application and the service is successful, the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function returns <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_ERROR_NONE</span> and the <span style="font-family: Courier New,Courier,monospace;">push_conn</span> connection handle is returned through the last parameter. If the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function returns other values, the connection to the service failed. This happens most likely when the <a href="#prerequisites">push privilege</a> is not added in the SDK.</li>
+</ul>
+
+<p>This sample application establishes a connection to the service when it is launched and disconnects from the service when it terminates. Due to this, the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function is located in the <span style="font-family: Courier New,Courier,monospace;">app_create()</span> function, which is called when the application is launched.
+</p>
+</li>
+
+<li>Disconnect from the push service.
+<p>When the application terminates or no longer uses the push service, close the connection using the <span style="font-family: Courier New,Courier,monospace;">push_service_disconnect()</span> function.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">push_service_disconnect()</span> function closes the existing connection associated with the <span style="font-family: Courier New,Courier,monospace;">push_conn</span> handle and returns all the resources allocated for the connection.</p>
+
+<pre class="prettyprint">
+push_service_disconnect(push_conn);
+push_conn = NULL;
+</pre>
+
+<p>The connection is automatically closed when the application terminates. Hence, if the application uses the push service while being launched, it does not need this function.</p>
+
+<p>The application can also disconnect the service in the middle of the application operation. If you add a toggle switch to the application for switching the push service on and off, call this function when the service is switched off. Do not call this function inside any push callback functions, however, since it can cause the application to crash.</p>
+</li>
+
+<li id="state" name="state">Handle state transitions.
+<p>After the connection to the service is made, the application is notified whenever the connection state changes. This notification is conducted through the <span style="font-family: Courier New,Courier,monospace;">_state_cb()</span> callback, which is defined in the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function. The following figure illustrates the possible states.</p>
+
+<p align="center"><img alt="State transitions" src="../../images/push_state_transitions.png" /></p>
+
+<p>Once launched, the application is in the <span style="font-family: Courier New,Courier,monospace;">INITIAL</span> state. When the application establishes a connection to the service using the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function, the state becomes either <span style="font-family: Courier New,Courier,monospace;">UNREGISTERED</span> or <span style="font-family: Courier New,Courier,monospace;">REGISTERED</span>:</p>
+<ul><li>If the application is currently registered to the push server, the service forces it to transit from the <span style="font-family: Courier New,Courier,monospace;">INITIAL</span> state to the <span style="font-family: Courier New,Courier,monospace;">REGISTERED</span> state. In this case, the application can request deregistration from the push server using the <span style="font-family: Courier New,Courier,monospace;">push_service_deregister()</span> function. If this request is approved by the push server, the state transits to <span style="font-family: Courier New,Courier,monospace;">UNREGISTERED</span>.</li>
+<li>If the application is not currently registered to the push server, the state transits from the <span style="font-family: Courier New,Courier,monospace;">INITIAL</span> state to the <span style="font-family: Courier New,Courier,monospace;">UNREGISTERED</span> state. In this case, the application can request registration to the push server using the <span style="font-family: Courier New,Courier,monospace;">push_service_register()</span> function. If this request is approved by the push server, the state transits to <span style="font-family: Courier New,Courier,monospace;">REGISTERED</span>.</li>
+<li>When an error occurs, the state transits to <span style="font-family: Courier New,Courier,monospace;">ERROR</span>.</li></ul>
+
+<p>When the current state transits, the <span style="font-family: Courier New,Courier,monospace;">_state_cb()</span> function is called and the new state is obtained from the first parameter. Determine the application actions based on the new state:</p>
+
+<pre class="prettyprint">
+static void
+_state_cb(push_service_state_e state, const char *err, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;switch (state) {
+&nbsp;&nbsp;&nbsp;&nbsp;case PUSH_SERVICE_STATE_UNREGISTERED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Arrived at STATE_UNREGISTERED&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_on_state_unregistered(user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case PUSH_SERVICE_STATE_REGISTERED:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Arrived at STATE_REGISTERED&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_on_state_registered(user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;case PUSH_SERVICE_STATE_ERROR:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Arrived at STATE_ERROR&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;_on_state_error(err, user_data);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;default:
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Unknown State&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>In the above example, the <span style="font-family: Courier New,Courier,monospace;">_on_state_registered()</span>, <span style="font-family: Courier New,Courier,monospace;">_on_state_unregistered()</span>, and <span style="font-family: Courier New,Courier,monospace;">_on_state_error()</span> functions contain the actions for the <span style="font-family: Courier New,Courier,monospace;">REGISTERED</span>, <span style="font-family: Courier New,Courier,monospace;">UNREGISTERED</span>, and <span style="font-family: Courier New,Courier,monospace;">ERROR</span> states, respectively. The application does not need to handle the <span style="font-family: Courier New,Courier,monospace;">INITIAL</span> state, because it is maintained internally, and this callback function is never invoked in that state. The second parameter, <span style="font-family: Courier New,Courier,monospace;">err</span>, is the error message from the push service when the state becomes <span style="font-family: Courier New,Courier,monospace;">ERROR</span>. Consequently, only the <span style="font-family: Courier New,Courier,monospace;">_on_state_error()</span> function takes this parameter.</p>
+<p>The registration state is subject to change. Consequently, make sure that the application connects to the push service whenever it is launched.</p>
+</li>
+</ol>
+
+ <h2 id="registration" name="registration">Registering with the Push Server</h2>
+
+<p>To receive push notifications, the application must send a registration request to the Tizen push server. When the server receives this request, it assigns a registration ID that is unique to the application on the particular device. When sending a notification from your application server, this registration ID is used as a destination address of the application. If the application no longer needs to receive push notifications, it needs to send a deregistration request to the server.</p>
+<p>To register with the push server:</p>
+<ol>
+<li>Request registration.
+<p>After connecting to the push service, request registration using the <span style="font-family: Courier New,Courier,monospace;">push_service_register()</span> function.</p>
+<p>The first parameter is the connection handle that was returned from the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function, and the second parameter is the callback function that returns the result of the registration request.</p>
+
+<pre class="prettyprint">
+#define PUSH_HASH_KEY &quot;existing_push_reg_id&quot;
+
+static void
+_on_state_unregistered(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Reset the previously-stored registration ID */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = preference_set_string(PUSH_HASH_KEY, &quot;&quot;);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Send a registration request to the push service */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_register(push_conn, _result_cb, NULL);
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">_on_state_unregistered()</span> function containing the <span style="font-family: Courier New,Courier,monospace;">push_service_register()</span> function is called when the state transits to <span style="font-family: Courier New,Courier,monospace;">UNREGISTERED</span>. This sample application is designed to send the registration request as soon as it is connected to the push service. If the application requires users to login to the service, this registration request must be sent after the login process is complete.</p>
+
+<p>The registration request is non-blocking. If the <span style="font-family: Courier New,Courier,monospace;">push_service_register()</span> function returns <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_ERROR_NONE</span>, the request is successfully delivered to the push service. However, it does not necessarily mean that the request is approved by the server. If the push service successfully sends the request to the server and receives an approval, the <span style="font-family: Courier New,Courier,monospace;">_result_cb()</span> callback is called with <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_RESULT_SUCCESS</span> as the first parameter:</p>
+
+<pre class="prettyprint">
+static void
+_result_cb(push_service_result_e result, const char *msg, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (result == PUSH_SERVICE_RESULT_SUCCESS)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Registration request is approved.&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;Registration ERROR [%s]&quot;, msg);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+
+<p>When an error occurs in the middle of the registration process, the reason is returned in the first parameter of the callback. For example, if the push server is not responding, the <span style="font-family: Courier New,Courier,monospace;">push_service_register()</span> function returns <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_ERROR_NONE</span> (because delivery to the service is successful), but the <span style="font-family: Courier New,Courier,monospace;">_result_cb()</span> function is called later with <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_RESULT_TIMEOUT</span>. In this case, the application does not need to request registration again because the push service keeps the previous request and sends it when the network becomes online. The <span style="font-family: Courier New,Courier,monospace;">msg</span> parameter is the error message from the push service if the request fails.</p>
+</li>
+
+<li id="upon" name="upon">Handle the transit to the <span style="font-family: Courier New,Courier,monospace;">REGISTERED</span> state.
+<p>The application transits to the <span style="font-family: Courier New,Courier,monospace;">REGISTERED</span> state in one of the following cases:</p>
+<ul>
+<li>The registration request sent at the <span style="font-family: Courier New,Courier,monospace;">UNREGISTERED</span> state is approved.</li>
+<li>The already-registered application at the <span style="font-family: Courier New,Courier,monospace;">INITIAL</span> state is successfully connected to the push service.</li>
+</ul>
+
+<p>In both cases, the <span style="font-family: Courier New,Courier,monospace;">_state_cb()</span> callback function is called with the <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_STATE_REGISTERED</span> state. The application calls the <span style="font-family: Courier New,Courier,monospace;">_on_state_registered()</span> function immediately, <a href="#state">as shown in the state transitions</a>. When defining the actions inside the function, keep the following points in mind:</p>
+<ul>
+<li>If the application has already been registered, request the push service for any unread notifications that have arrived before the application is launched.
+<p>Request the unread notifications asynchronously. If there is such a notification, it can be received through the <span style="font-family: Courier New,Courier,monospace;">_noti_cb()</span> function after the <span style="font-family: Courier New,Courier,monospace;">_on_state_registered()</span> function returns. Once the request for unread notifications is successfully delivered, <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_ERROR_NONE</span> is returned.</p></li>
+<li>If the application is newly registered, send the registration ID issued by the push server to your application server.
+<p>Retrieve the registration ID from the <span style="font-family: Courier New,Courier,monospace;">push_conn</span> connection handle. If the ID is new or updated, you need to send it to your application server. This ID is used as a destination address to the application in a particular device. If the application has already sent the ID, you can skip this step. This logic is implemented in the <span style="font-family: Courier New,Courier,monospace;">_send_reg_id_if_necessary()</span> function.</p></li>
+</ul>
+
+<pre class="prettyprint">
+static void
+_on_state_registered(void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;char *reg_id = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;char *app_id = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Request unread notifications to the push service */
+&nbsp;&nbsp;&nbsp;&nbsp;/* _noti_cb() is called if there are unread notifications */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_request_unread_notification(push_conn);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the registration ID */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_registration_id(push_conn, &amp;reg_id);
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != PUSH_SERVICE_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;ERROR [%d]: push_service_get_registration_id()&quot;, ret);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Send reg_id to your application server if necessary */
+&nbsp;&nbsp;&nbsp;&nbsp;_send_reg_id_if_necessary(reg_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (reg_id)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(reg_id);
+}
+</pre>
+
+<p>Compute the hash value of the ID and compare it with the existing hash value in the <span style="font-family: Courier New,Courier,monospace;">_send_reg_id_if_necessary()</span> function:</p>
+<ul><li>If they are different, send the current registration ID to your application server and store the new hash value. For security, it is not safe to keep the ID as a string because it can be easily exposed.</li>
+<li>If they are the same, the application server already has this registration ID. In this case, the application exits this function.</li></ul>
+
+<pre class="prettyprint">
+#include &lt;openssl/sha.h&gt;
+#define PUSH_HASH_KEY &quot;existing_push_reg_id&quot;
+
+static void
+_send_reg_id_if_necessary(const char *reg_id)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;unsigned char md[SHA_DIGEST_LENGTH];
+&nbsp;&nbsp;&nbsp;&nbsp;char hash_string[2*SHA_DIGEST_LENGTH+1];
+&nbsp;&nbsp;&nbsp;&nbsp;char *buf_ptr = hash_string;
+&nbsp;&nbsp;&nbsp;&nbsp;char *stored_hash_value = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+&nbsp;&nbsp;&nbsp;&nbsp;int i;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Generate a hash string from reg_id */
+&nbsp;&nbsp;&nbsp;&nbsp;SHA1((unsigned char *)reg_id, sizeof(reg_id), md);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Convert byte array to hex string */
+&nbsp;&nbsp;&nbsp;&nbsp;for (i = 0; i &lt; SHA_DIGEST_LENGTH; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;buf_ptr += sprintf(buf_ptr, &quot;%02X&quot;, md[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;hash_string[2*SHA_DIGEST_LENGTH] = &#39;\0&#39;;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the saved hash string */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = preference_get_string(PUSH_HASH_KEY, &amp;stored_hash_value);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   If there is no hash string stored before or
+&nbsp;&nbsp;&nbsp;&nbsp;   if the stored hash string is different from the new one,
+&nbsp;&nbsp;&nbsp;&nbsp;   send reg_id to the server
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;if (ret != PREFERENCE_ERROR_NONE || strncmp(stored_hash_value, hash_string, 2*SHA_DIGEST_LENGTH) !=0) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Send the reg_id to your application server */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = _send_reg_id(reg_id);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* If reg_id is successfully sent, store the new hash value */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (!ret)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ret = preference_set_string(PUSH_HASH_KEY, hash_string);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (stored_hash_value)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(stored_hash_value);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+</li>
+
+<li>Request deregistration.
+<p>When the application no longer wants to receive push notifications, use the following function to request deregistration.</p>
+
+<pre class="prettyprint">
+push_service_deregister(push_conn, _dereg_result_cb, NULL);
+</pre>
+
+<p>This function is non-blocking. If it returns <span style="font-family: Courier New,Courier,monospace;">PUSH_SERVICE_ERROR_NONE</span>, the request is successfully received by the push service. The result of this request is returned in the <span style="font-family: Courier New,Courier,monospace;">_dereg_result_cb()</span> callback function.</p>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">The <span style="font-family: Courier New,Courier,monospace;">push_service_deregister()</span> function is not used, if the application is intended to receive push notifications continuously while it is installed on the device. When the application is uninstalled, the push service detects the event and deregisters the application automatically. <p>On the other hand, if the application wants to receive push notifications only when a user logs in, the <span style="font-family: Courier New,Courier,monospace;">push_service_deregister()</span> function must be called whenever a user logs out.</p></td>
+        </tr>
+    </tbody>
+</table>
+
+</li>
+</ol>
+
+
+ <h2 id="security" name="security">Managing Security</h2>
+
+<p>When you send a notification with sensitive information, be aware of the chance that the notification gets hijacked by someone else. It is your responsibility to keep such sensitive information safe from malicious access. The following rules are strongly recommended:</p>
+
+<ul>
+<li>Keep the push application ID confidential. 
+<p>If it is exposed, hackers can try to hijack notifications using a fake application with the exposed ID.</p></li>
+<li>Do not store the registration ID on the device. 
+<p>The registration ID can be seen as a destination address of the notifications. Without the ID, hackers cannot send fake notifications to your application.</p></li>
+<li>Encrypt sensitive information. 
+<p>When you send sensitive information, such as personal information and financial transactions, encrypt it and load it to the notification as a payload. Do not load the information to the message field of the notification. When the notification arrives at the device, the application decrypts the payload and retrieves the sensitive information.</p></li>
+<li>Do not hardcode the AppSecret in the source code. 
+<p>The AppSecret is a key to accessing the push server for sending notifications. If notifications are sent from your application server, the application does not need to know the AppSecret at all. Keep the AppSecret in the server and do not load any related information in the application. If you want device-to-device notification delivery without your application server, the application needs the AppSecret to send a notification from a device. In this case, it is your responsibility to keep the AppSecret safe.</p></li>
+</ul>
+
+
+<h2 id="send" name="send">Sending Push Notifications</h2>
+
+<p>Once the application successfully sends its registration ID to the application server, you are ready to send push notifications from the application server to the application on that particular device. This use case describes how to send a simple push notification to the device. For advanced features, see the <a href="push_server_n.htm">Push Server</a> guide for server developers.</p>
+
+<p>The following example shows a sample push notification:</p>
+<ul>
+<li>URI: See the <a href="push_server_n.htm#send_server">Push server URL table</a>.</li>
+<li>Method: HTTP POST</li>
+<li>Header:
+<pre class="prettyprint">
+appID: 1234567890987654
+appSecret: dYo/o/m11gmWmjs7+5f+2zLNVOc=
+</pre>
+</li>
+<li>Body:
+<pre class="prettyprint">
+{
+&nbsp;&nbsp;&nbsp;&nbsp;&quot;regID&quot;: &quot;0501a53f4affdcbb98197f188345ff30c04b&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&quot;requestID&quot;: &quot;01231-22EAX-223442&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&quot;message&quot;: &quot;badgeOption=INCREASE&amp;badgeNumber=1&amp;action=ALERT&amp;alertMessage=Hi&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&quot;appData&quot;: &quot;{id:asdf&amp;passwd:1234}&quot;, /* Optional, if the message field is not empty */
+}
+</pre></li>
+</ul>
+
+<p>To send a notification:</p>
+
+<ol>
+<li>Prepare the appID, appSecret, regID, and requestID:
+<ul>
+<li>The appID and appSecret values are from the email that you received when requesting <a href="#permission">permission to Tizen push servers</a>.</li> 
+<li>The regID value is the one that the application server received from your application installed in a Tizen device. Depending on the regID value, the URI of the server to which your application server sends the notification varies.</li>
+<li>The requestID value is used to identify the notification in the push server. When your application server sends notifications using the same requestID value, the last notification overwrites all the previous notifications that are not delivered yet.</li>
+</ul>
+</li>
+
+<li>Use the message field to describe how to process the notification.
+<p>The message field contains not only the message to show in the quick panel on the device, but also the behaviors that the device must take when receiving the notification. The message field is a string that consists of key-value pairs. The available pair options are given in the following table.</p>
+
+<table>
+<caption>Table: Message field key-value pairs</caption>
+<tbody>
+<tr>
+ <th>Key</th>
+ <th>Value</th>
+ <th>Description</th>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">action</span></td>
+ <td><span style="font-family: Courier New,Courier,monospace;">ALERT</span>: Store the message and alert the user.
+	<p><span style="font-family: Courier New,Courier,monospace;">SILENT</span>: Store the message without alerting the user.</p>
+	<p><span style="font-family: Courier New,Courier,monospace;">DISCARD</span>: Discard the message.</p>
+	<p><span style="font-family: Courier New,Courier,monospace;">LAUNCH</span>: Forcibly launch the application and deliver the notification.</p></td>
+ <td>Action to be performed if the application is not running. If no action is defined, the default behavior is <span style="font-family: Courier New,Courier,monospace;">SILENT</span>.</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">alertMessage</span></td>
+ <td>Up to 127 bytes</td>
+ <td>Alert message shown to the user in the quick panel. If the action is not set as <span style="font-family: Courier New,Courier,monospace;">ALERT</span>, this value is meaningless.</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">badgeOption</span></td>
+ <td><span style="font-family: Courier New,Courier,monospace;">INCREASE</span>: Increase the badge number by the given value.
+	<p><span style="font-family: Courier New,Courier,monospace;">DECREASE</span>: Decrease the badge number by the given value.</p>
+	<p><span style="font-family: Courier New,Courier,monospace;">SET</span>: Set badge number to the given value.</p></td>
+ <td>Option for updating the icon badge number. If the action is set as <span style="font-family: Courier New,Courier,monospace;">DISCARD</span>, the <span style="font-family: Courier New,Courier,monospace;">badgeOption</span> is ignored. If the badge option is not included, the icon badge number remains unchanged.</td>
+</tr>
+<tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">badgeNumber</span></td>
+ <td>0-999</td>
+  <td>-</td>
+</tr>
+</tbody>
+</table>
+
+<p>For example, to show a &quot;Hi&quot; message in the quick panel and increase the badge count by 1 when the notification arrives at the device, the message field of the notification must be the following:</p>
+
+<pre class="prettyprint">
+&quot;badgeOption=INCREASE&amp;badgeNumber=1&amp;action=ALERT&amp;alertMessage=Hi&quot;
+</pre>
+
+<p>If you want to deliver the notification directly to your application, the message field must be the following:</p>
+<pre class="prettyprint">
+&quot;action=LAUNCH&quot;
+</pre>
+<p>When the push service in the target device receives a notification with this message, it launches your application and delivers the notification through an <a href="../../../../org.tizen.guides/html/native/app_management/app_controls_n.htm">Application Controls</a>. Your application can get the notification using the <span style="font-family: Courier New,Courier,monospace;">push_service_app_control_to_notification()</span> function. For more information, see how to <a href="#recv_noti_app_not_run">receive notifications when the application is not running</a>.</p>
+
+<p>The message field takes effect only when the application is not running (more precisely, when the application is not connected to the push service). If a notification with the above message field arrives at the device where the application is running, the push service delivers the notification directly to the application. It does not show the &quot;Hi&quot; message in the quick panel or increase the badge count.</p>
+</li>
+<li>Load your own data to the appData field as a string.
+<p>This use case focuses on how an application developer can construct a notification. For advanced features, see the <a href="push_server_n.htm">Push Server</a> guide for server developers.</p>
+</li>
+</ol>
+
+ <h2 id="receive_push" name="receive_push">Receiving Push Notifications</h2>
+
+<p>When a notification arrives at the device, its delivery mechanism depends on whether the application is running.</p>
+
+<p>To handle incoming push notifications:</p>
+
+<ul>
+<li id="receive" name="receive">Receive notifications when the application is running.
+<p>When a notification arrives to the application while it is running (precisely, the application is connected to the service), the <span style="font-family: Courier New,Courier,monospace;">_noti_cb()</span> function is called as defined in the <span style="font-family: Courier New,Courier,monospace;">push_service_connect()</span> function. In this callback, you can handle the received notification.</p>
+<p>The following example shows how the application can retrieve the app data (payload), message, and timestamp from the received notification. When the <span style="font-family: Courier New,Courier,monospace;">_noti_cb()</span> callback is called, obtain the notification through the first parameter. You can retrieve the app data, message, and time stamp from the handle using the <span style="font-family: Courier New,Courier,monospace;">push_service_get_notification_data()</span>, <span style="font-family: Courier New,Courier,monospace;">push_service_get_notification_message()</span>, and <span style="font-family: Courier New,Courier,monospace;">push_service_get_notification_time()</span> functions respectively. Before exiting the function, free the data, except for the notification itself. The notification is freed automatically right after the callback.</p>
+
+<pre class="prettyprint">
+static void
+_noti_cb(push_service_notification_h noti, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;&nbsp;char *data=NULL; /* App data loaded on the notification */
+&nbsp;&nbsp;&nbsp;&nbsp;char *msg=NULL; /* Noti message */
+&nbsp;&nbsp;&nbsp;&nbsp;long long int time_stamp; /* Time when the noti is generated */
+&nbsp;&nbsp;&nbsp;&nbsp;char *sender=NULL; /* Optional sender information */
+&nbsp;&nbsp;&nbsp;&nbsp;char *session_info=NULL; /* Optional session information */
+&nbsp;&nbsp;&nbsp;&nbsp;char *request_id=NULL; /* Optional request ID */
+&nbsp;&nbsp;&nbsp;&nbsp;int type=0; /* Optional type information */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve app data from noti */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_notification_data(noti, &amp;data);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Decrypt app data here if it is encrypted */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve notification message from noti */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_notification_message(noti, &amp;msg);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve the time when notification is created from noti */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_notification_time(noti, &amp;time_stamp);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve the optional information */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_notification_sender(noti, &amp;sender);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_notification_session_info(noti, &amp;session_info);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_notification_request_id(noti, &amp;request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_notification_type(noti, &amp;type);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   Use data, msg, time_stamp, sender,
+&nbsp;&nbsp;&nbsp;&nbsp;   session_info, request_id, and type as needed
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Free all resources */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Do not free noti in the callback function */
+&nbsp;&nbsp;&nbsp;&nbsp;if (data)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(data);
+&nbsp;&nbsp;&nbsp;&nbsp;if (msg)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(msg);
+&nbsp;&nbsp;&nbsp;&nbsp;if (sender)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(sender);
+&nbsp;&nbsp;&nbsp;&nbsp;if (session_info)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(session_info);
+&nbsp;&nbsp;&nbsp;&nbsp;if (request_id)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(request_id);
+}
+</pre>
+</li>
+
+<li id="recv_noti_app_not_run">Receive notifications when the application is not running.
+<p>If the notification arrives when the application is not running, there are 3 ways to handle the notification:</p>
+<ul>
+<li id="force_launch">Forcibly launch the application and deliver the notification to it.
+<p>You need to set the action to <span style="font-family: Courier New,Courier,monospace;">LAUNCH</span> in the message field when sending the notification from the application server. When the notification action arrives at the device, the push service forcibly launches the application and delivers the notification as a bundle.</p>
+<p>When you create a project in the SDK, the <span style="font-family: Courier New,Courier,monospace;">app_control()</span> function is created automatically. When the application is launched by another application or process (in this case, by the push service), all related information regarding this launch request is delivered through the <span style="font-family: Courier New,Courier,monospace;">app_control</span> parameter. From this handle, retrieve the <span style="font-family: Courier New,Courier,monospace;">op</span> operation using the <span style="font-family: Courier New,Courier,monospace;">app_control_get_operation()</span> function. With <span style="font-family: Courier New,Courier,monospace;">app_control</span> and <span style="font-family: Courier New,Courier,monospace;">op</span>, retrieve the notification data using the <span style="font-family: Courier New,Courier,monospace;">push_service_app_control_to_noti_data()</span> function. </p>
+<p>If the application is not launched by the push service, this function returns as <span style="font-family: Courier New,Courier,monospace;">NULL</span>.</p>
+
+<pre class="prettyprint">
+static void
+app_control(app_control_h app_control, void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *op = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;push_service_notification_h noti = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;int ret;
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (app_control_get_operation(app_control, &amp;op) &lt; 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve the noti from the bundle */
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_app_control_to_notification(app_control, op, &amp;noti);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (noti) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Handle the noti */
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Free the noti */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;push_service_free_notification(noti);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Case when the application is not launched by the push service */
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;if (op)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(op);
+}
+</pre></li>
+<li>Store the notification at the push service database and request it later when the application is launched.
+<p>You need to set the action to <span style="font-family: Courier New,Courier,monospace;">ALERT</span> or <span style="font-family: Courier New,Courier,monospace;">SILENT</span> in the message field when sending the notification from the application server. When such a notification arrives at the device, the push service keeps the notification in the database and waits for the request from the application.</p>
+<p>The difference between the <span style="font-family: Courier New,Courier,monospace;">ALERT</span> and <span style="font-family: Courier New,Courier,monospace;">SILENT</span> actions is that the former shows an alert message in the quick panel and changes the badge count, while the latter does not. If the user clicks the alert message in the quick panel, the push service <a href="#force_launch">forcibly launches the application</a> and delivers the notification through the app control callback function.</p></li>
+<li>Discard it.
+<p>You need to set the action to <span style="font-family: Courier New,Courier,monospace;">DISCARD</span> in the message field when sending the notification from the application server. When such a notification arrives at the device, the push service discards the notification unless the application is running.</p></li>
+</ul>
+</li>
+
+<li>Request unread notifications.
+
+<p>If the user does not launch the application from the quick panel, the application requests the unread notifications after start-up using the <a href="#upon">asynchronous <span style="font-family: Courier New,Courier,monospace;">push_service_request_unread_notification()</span> function</a>.</p>
+<p>The following example shows a synchronous request using the <span style="font-family: Courier New,Courier,monospace;">push_service_get_unread_notification()</span> function:</p>
+
+<pre class="prettyprint">
+push_service_notification_h noti;
+int ret;
+do {
+&nbsp;&nbsp;&nbsp;&nbsp;ret = push_service_get_unread_notification(push_conn, &amp;noti);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Process the unread message noti */
+
+&nbsp;&nbsp;&nbsp;&nbsp;push_server_free_notification(&amp;noti);
+} while (1);
+</pre>
+
+<p>Call this function repeatedly until no notification is returned. If there are multiple unread notifications, the notifications are retrieved in their arrival order.</p>
+<p>The <span style="font-family: Courier New,Courier,monospace;">push_service_get_unread_notification()</span> function blocks the code while it receives a notification from the service. Unless you need this kind of synchronous behavior, use the asynchronous function.</p>
+
+
+</li>
+</ul>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

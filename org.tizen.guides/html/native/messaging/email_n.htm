@@ -1,0 +1,207 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Email</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
+			<li><a href="#creatingmail">Creating and Sending Email Messages</a></li>
+		</ul>		
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MESSAGING__EMAIL__MODULE.html">Email API for Mobile Native</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+	
+	<h1>Email</h1>
+<p>Email is a method of exchanging digital messages. Email systems are based on a store-and-forward model, in which email server computer systems accept, forward, deliver, and store messages on behalf of users, who only need to connect to the email infrastructure, typically an email server, with a network-enabled device for the duration of a message submission or retrieval.</p>
+
+<p>This feature is supported in mobile applications only.</p>
+
+ <p>Before you start, remember to <a href="#prerequisites">prepare your application to use the email functionality</a>.</p>
+
+<p>The main features of the Email API include:</p>
+
+<ul><li>Preparing email messages
+<p>Set the subject, body, and recipients of the message, and the file path for any attachments.</p></li>
+<li>Sending email messages
+<p>Once the <span style="font-family: Courier New,Courier,monospace">email_send_message()</span> function is called, the message content is out of the application&#39;s control. Even if the message appears not to have finished sending, it can no longer be modified.</p></li>
+<li>Registering a callback to be notified of the message status
+<p>Email sending is asynchronous and the application must not wait for the result. The process can be slow (connections must be established), and even if the mail server is not available, message sending is not a failure if a spooling mechanism exists. To receive a notification when the message has been successfully sent, register a callback function.</p></li></ul>
+  
+<p>You can <a href="#creatingmail">compose, save, and send email messages</a> using SMTP (SMTP used for sending emails through the Internet is described in the RFC5321/5322 standards). The Email API provides services to applications that want to connect to an email server and manage messages.</p>
+
+<p>The Email API can be utilized by any component in the application layer which helps the end user to manage email messaging. For example, the Email functions can be invoked by a multimedia module when the user wants to send a media file through email, or by an email application when the user tries to send an email message.</p>
+  
+  <p class="figure">Figure: Email service architecture</p> 
+  <p align="center"><img alt="Email service architecture" src="../../images/email_architecture.png" /></p>   
+ 
+<h2>Warm-up</h2>
+        <p>Become familiar with the Email API basics by learning about:</p>
+        <ul>
+            <li><a href="#prerequisites">Prerequisites</a>
+			<p>Prepare your application to use the email functionality.</p></li>
+			<li><a href="#creatingmail">Creating and Sending Email Messages</a>
+			<p>Create and send a message after adding attachments and recipients.</p></li>
+        </ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the email functionality:</p>
+<ol>
+<li>
+<p>To use the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MESSAGING__EMAIL__MODULE.html">Email</a> API, the application has to request permission by adding the following privilege to the <span style="font-family: Courier New,Courier,monospace;">tizen-manifest.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;privileges&gt;
+&nbsp;&nbsp;&nbsp;&lt;privilege&gt;http://tizen.org/privilege/email&lt;/privilege&gt;
+&lt;/privileges&gt;
+</pre>
+</li>
+<li>			
+<p>Set up at least 1 email account on your device before sending an email.</p></li>
+<li><p>To use the functions and data types of the Email API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;email.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;email.h&gt;
+</pre>
+<p>To ensure that an Email function has been executed properly, make sure that the return value is equal to <span style="font-family: Courier New,Courier,monospace;">EMAILS_ERROR_NONE</span>.</p></li>
+</ol>
+
+<p>The email service does not need any initialization or connection opening before the API usage.</p>
+
+ <h2 id="creatingmail" name="creatingmail">Creating and Sending Email Messages</h2>
+
+<p>To create and send email messages:</p>
+
+<ol><li>Create an email message.
+<p>To create an email message and receive its handle, use the <span style="font-family: Courier New,Courier,monospace;">email_create_message()</span> function.</p>
+<pre class="prettyprint">
+email_h msg;
+int error_code = EMAILS_ERROR_NONE;
+error_code = email_create_message(&amp;msg);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to create email message\n&quot;);
+</pre>
+<p>The function return code defines whether the message creation succeeded. The <span style="font-family: Courier New,Courier,monospace;">EMAIL_ERROR_ACCOUNT_NOT_FOUND</span> error is not related to the email service as such; it occurs if no email account has been configured on the device.</p></li>
+
+<li>Manage recipients and attachments:
+<ol>
+<li>
+<p>Add recipients to the email message one by one. You cannot add lists of recipients in one function call. Each address must be given as a character string with the address type (TO, CC, BCC) declared.</p>
+<pre class="prettyprint">
+error_code = email_add_recipient(msg, EMAIL_RECIPIENT_TYPE_TO, &quot;example@mail.com&quot;);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to add recipient\n&quot;);
+</pre></li>
+<li><p>Add an attachment to the email message with a full path to the attachment file. Currently, files with size up to 10 MB are supported.</p>
+<pre class="prettyprint">
+error_code = email_add_attach(msg, &quot;/full/path/to/attachment&quot;);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to add attachment\n&quot;);
+</pre></li>
+
+<li>Remove recipients or attachments.
+<p>In both cases, all recipients or attachments are removed at once. It is not possible to remove one selected item.</p>
+<pre class="prettyprint">
+error_code = email_remove_all_recipients(msg);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to add remove recipients\n&quot;);
+error_code = email_remove_all_attachments(msg);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to remove attachments\n&quot;);
+</pre></li>
+</ol>
+</li>
+<li>Save the email before sending it:
+<pre class="prettyprint">
+error_code = email_save_message(msg);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to save email\n&quot;);
+</pre></li>
+
+<li>Define and register the email sending status callback.
+<p>Email sending is an asynchronous operation, and thus the sending status cannot be checked directly in the return code from the <span style="font-family: Courier New,Courier,monospace;">email_send_message()</span> function. To receive notifications about sending success or failure, use a callback function.</p>
+<pre class="prettyprint">
+static void
+email_send_status(email_h email, email_sending_e result, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (result == EMAIL_SENDING_FAILED) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Error handling */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to send email\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else if (result == EMAIL_SENDING_SUCCEEDED) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Sending was successful */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Email sending finished with success\n&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+error_code = email_set_message_sent_cb(msg, email_send_status, NULL);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to set sending status callback\n&quot;);
+</pre></li>
+
+<li>Send the email:
+<pre class="prettyprint">
+error_code = email_send_message(msg, false);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;&quot;);
+</pre>
+</li>
+<li>
+<p>When the message is sent or if sending is canceled and the message no longer needed, delete it using the <span style="font-family: Courier New,Courier,monospace;">email_destroy_message()</span> function. The registered email sending status callback must also be unset using the <span style="font-family: Courier New,Courier,monospace;">email_unset_message_sent_cb()</span> function.</p>
+<pre class="prettyprint">
+error_code = email_unset_message_sent_cb(msg);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to unset status callback\n&quot;);
+
+error_code = email_destroy_message(msg);
+if (error_code != EMAILS_ERROR_NONE)
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_INFO, LOG_TAG, &quot;Failed to delete email message\n&quot;);
+</pre></li></ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

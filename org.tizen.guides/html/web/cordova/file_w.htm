@@ -1,0 +1,648 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>File Management</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile Web" src="../../images/mobile_s_w.png"/> <img alt="Wearable Web" src="../../images/wearable_s_w.png"/> <img alt="TV Web" src="../../images/tv_s_w.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+	<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 3.0 and Higher for Mobile</li>
+			<li>Tizen Platform 3.0 and Higher for Wearable</li>
+			<li>Tizen Platform 3.0 and Higher for TV</li>
+		</ul>
+	 <p class="toc-title">Content</p>
+        <ul class="toc">
+			<li><a href="#prerequisites">Prerequisites</a></li>
+            <li><a href="#filesystemresolve">Resolving Filesystem Entries</a></li>
+            <li><a href="#directories">Operating on Directories</a></li>
+			<li><a href="#entries">Operating on Entries</a></li>
+            <li><a href="#files">Operating on Files</a></li>
+            <li><a href="#readwrite">Reading and Writing File Content</a></li>  
+		</ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html">File API for Mobile Web</a></li>
+            <li><a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/cordova/file.html">File API for Wearable Web</a></li>
+            <li><a href="../../../../org.tizen.web.apireference/html/device_api/tv/tizen/cordova/file.html">File API for TV Web</a></li>		
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+  <h1>File Management</h1>
+
+<p>You can perform operations on files and directories stored in the device filesystem.</p>
+
+<p>The File API is mandatory for both Tizen mobile and wearable profiles, which means that it is supported in all mobile and wearable devices. All mandatory APIs are supported on the Tizen Emulators.</p>
+
+ <p>Before you start, remember to <a href="#prerequisites">prepare your application to use the file functionality</a>.</p>
+
+  <p>The main features of the File API include:</p>
+
+<ul>
+<li>Resolving the filesystem
+<p>A basic step necessary to perform other file actions is to <a href="#filesystemresolve">resolve a filesystem</a>, which results in a <span style="font-family: Courier New,Courier,monospace">FileSystem</span> object (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#FileSystem">mobile</a>, <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/cordova/file.html#FileSystem">wearable</a>, and <a href="../../../../org.tizen.web.apireference/html/device_api/tv/tizen/cordova/file.html#FileSystem">TV</a> applications) being retrieved. You can use the <span style="font-family: Courier New,Courier,monospace">root</span> member to perform other actions on this filesystem.</p>
+</li>
+<li>Operating on directories
+<p>You can <a href="#directories">create or remove a directory or file, or read all entries from a specific directory</a>.</p>
+</li>
+<li>Operating on entries
+<p>You can <a href="#entries">get metadata, and move, copy, and remove entries</a>. You can also look up the parent directory of the entry or return the entry URL.</p>
+</li>
+<li>Operating on files
+<p>You can <a href="#files">access file details</a>.</p>
+</li>
+<li>Reading and writing file content
+<p>You can <a href="#readwrite">read file content, and create and write data to a file</a>. Using the file readers and writers, you can read Blob objects in a specific format (data URL, test, binary string, and array buffer).</p>
+</li>
+</ul>
+ 
+  <h2 id="warm_up" name="warm_up">Warm-up</h2>
+  <p>Become familiar with the File API basics by learning about:</p>
+  <ul>
+	<li><a href="#prerequisites">Prerequisites</a> <p>Prepare your application to use the file functionality.</p></li>
+	<li><a href="#filesystemresolve">Resolving Filesystem Entries</a> <p>Resolve the initial root for other filesystem operations.</p></li>
+	<li><a href="#directories">Operating on Directories</a> <p>Create directories and files, delete directories, and read entries within directories.</p></li>
+	<li><a href="#entries">Operating on Entries</a> <p>Move, copy, and delete entries, or access entry metadata, parent information, and URL.</p></li>
+	<li><a href="#files">Operating on Files</a> <p>Create a writer for a file and access file details.</p></li>
+	<li><a href="#readwrite">Reading and Writing File Content</a> <p>Read and write file content.</p></li>   
+  </ul>
+  
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the file functionality:</p>
+<ol>
+<li>
+<p>To perform any Cordova-related operations, you must wait until Cordova is fully set up (the <span style="font-family: Courier New,Courier,monospace">deviceready</span> event occurs):</p>
+	 <pre class="prettyprint">
+document.addEventListener(&quot;deviceready&quot;, onDeviceReady, false);
+
+function onDeviceReady()
+{
+&nbsp;&nbsp;&nbsp;console.log(&quot;Cordova features now available&quot;);
+}
+</pre>
+</li>
+<li>
+<p>To use the File API (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html">mobile</a>, <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/cordova/file.html">wearable</a>, and <a href="../../../../org.tizen.web.apireference/html/device_api/tv/tizen/cordova/file.html">TV</a> applications), the application has to request permission by adding the following privileges to the <span style="font-family: Courier New,Courier,monospace">config.xml</span> file:</p>
+<pre class="prettyprint">
+&lt;!--To read from files--&gt;
+&lt;tizen:privilege name=&quot;http://tizen.org/privilege/filesystem.read&quot;/&gt;
+&lt;!--To write to files--&gt;
+&lt;tizen:privilege name=&quot;http://tizen.org/privilege/filesystem.write&quot;/&gt;
+</pre>
+</li>
+</ol> 
+ 
+<h2 id="filesystemresolve">Resolving Filesystem Entries</h2>
+
+<p>To resolve the initial root for other filesystem operations can be performed in 2 ways:</p>
+  <ul>
+    <li><p>By using the <span style="font-family: Courier New,Courier,monospace">requestFileSystem()</span> global async method:</p>
+	<ol><li>Define a callback for handling the success and failure of the operation:
+<pre class="prettyprint">
+successCallback = function(fs)
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;File system name &#39; + fs.name);
+};
+
+errorCallback = function(err)
+{
+&nbsp;&nbsp;&nbsp;console.log(err.code);
+};
+</pre></li>
+<li>Call the method with the created callbacks. The filesystem request can use a temporary or persistent filesystem with a defined size.
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 1024*1024, successCallback, errorCallback);
+</pre>
+</li></ol>
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+File system name temporary
+</pre>
+    </li>
+    <li><p>By using the <span style="font-family: Courier New,Courier,monospace">resolveLocalFileSystemURL()</span> global async method.</p>
+	<p>This method is used to retrieve a <span style="font-family: Courier New,Courier,monospace">DirectoryEntry</span> objects (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#DirectoryEntry">mobile</a>, <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/cordova/file.html#DirectoryEntry">wearable</a>, or <a href="../../../../org.tizen.web.apireference/html/device_api/tv/tizen/cordova/file.html#DirectoryEntry">TV</a> applications) or <span style="font-family: Courier New,Courier,monospace">FileEntry</span> objects (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#FileEntry">mobile</a>, <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/cordova/file.html#FileEntry">wearable</a>, or <a href="../../../../org.tizen.web.apireference/html/device_api/tv/tizen/cordova/file.html#FileEntry">TV</a> applications) using a local URI.</p>
+<ol><li>Define the callbacks:
+<pre class="prettyprint">
+successCallback = function(entry)
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;Entry name &#39; + entry.name);
+};
+
+errorCallback = function(err)
+{
+&nbsp;&nbsp;&nbsp;console.log(err.code);
+};
+</pre></li>
+<li>Call the method with the provided valid URI for an existing file or directory:
+<pre class="prettyprint">
+var uri = &#39;file:///home/owner/content/Documents/example.txt&#39;;
+resolveLocalFileSystemURL(uri, successCallback, errorCallback);
+</pre>
+</li></ol>
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Entry name example.txt
+</pre>
+    </li>
+  </ul>
+
+<h2 id="directories">Operating on Directories</h2>
+
+<p>To create directories and files, delete directories, and read entries within directories:</p>
+
+<ul>
+<li>To create a directory, you can use the <span style="font-family: Courier New,Courier,monospace">getDirectory()</span> method:
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getDirectory(&quot;ert&quot;, {create:true}, function(dir)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;Created dir: &#39; + dir.name);
+&nbsp;&nbsp;&nbsp;})
+});
+</pre>
+<p>If the third parameter is <span style="font-family: Courier New,Courier,monospace">{create:false}</span> or <span style="font-family: Courier New,Courier,monospace">NULL</span>, the entry of the existing directory is returned in the success callback.</p>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Created dir: ert
+</pre>
+
+</li>
+
+<li>To create a file, use the <span style="font-family: Courier New,Courier,monospace">getFile()</span> method:
+
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getFile(&quot;qa.txt&quot;, {create:true}, function(file)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;Created file: &#39; + file.name);
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+<p>Similarly as when creating a directory, if the third parameter is <span style="font-family: Courier New,Courier,monospace">{create:false}</span> or <span style="font-family: Courier New,Courier,monospace">NULL</span>, the entry of the existing file is returned in the success callback.</p>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Created file: qa.txt
+</pre>
+</li>
+
+<li>To delete a directory and all of its content, you can use the <span style="font-family: Courier New,Courier,monospace">removeRecursively()</span> method:
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getDirectory(&quot;testDirectory&quot;, {create:true}, function(directoryEntry)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;directoryEntry.removeRecursively(function()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+success
+</pre>
+</li>
+
+<li>To read entries, first create a reader with the <span style="font-family: Courier New,Courier,monospace">createReader()</span> method:
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(entry)
+{
+&nbsp;&nbsp;&nbsp;entry.root.getDirectory(&quot;MyDocument&quot;, {create:true}, function(dirEntry)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var directoryReader = dirEntry.createReader();
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+
+<p>With the reader, you can read the next block of entries from the current directory with the <span style="font-family: Courier New,Courier,monospace">readEntries()</span> method:</p>
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;var a = fs.root.createReader();
+&nbsp;&nbsp;&nbsp;a.readEntries(function successCallback(entries)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;success&quot;);
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+success
+</pre>
+</li>
+</ul>
+
+<h2 id="entries">Operating on Entries</h2>
+
+<p>To move, copy, and delete entries, or access entry metadata, parent information, and URL:</p>
+
+<ul>
+<li>To look up metadata about an entry, you can use the <span style="font-family: Courier New,Courier,monospace">getMetadata()</span> method:
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getMetadata(function(metadata) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;Last modification time: &quot; + metadata.modificationTime); /* Get metadata successfully */
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Last modification time: Fri Jan 02 2015 03:58:08 GMT+0900 (KST)
+</pre>
+</li>
+
+<li>To move an entry to a different location in the file system, you can use the <span style="font-family: Courier New,Courier,monospace">moveTo()</span> method:
+<pre class="prettyprint">
+successCallback = function(entry) {console.log(&#39;Full path to the moved file: &#39; + entry.fullPath)};
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getDirectory(&#39;testDirectory&#39;, {create:true}, function(direntry)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fs.root.getFile(&quot;aa.txt&quot;, {create:true}, function(fileentry)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;Full path before move: &#39; + fileentry.fullPath);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fileentry.moveTo(direntry, &#39;newname.txt&#39;, successCallback);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Full path before move: /aa.txt
+Full path to the moved file: /testDirectory/newname.txt
+</pre>
+</li>
+
+<li>To copy an entry to a different location on the file system, you can use the <span style="font-family: Courier New,Courier,monospace">copyTo()</span> method:
+<pre class="prettyprint">
+successCallback = function(entry) {console.log(&#39;Full path to the copied file: &#39; + entry.fullPath);};
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getDirectory(&#39;testDirectory&#39;, {create:true}, function(direntry)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fs.root.getFile(&quot;test.txt&quot;, {create:true}, function(fileentry)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fileentry.copyTo(direntry, &#39;newname.txt&#39;, successCallback);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Full path to the copied file: /testDirectory/newname.txt
+</pre>
+</li>
+
+<li>To look up the parent directory entry containing the current entry, you can use the <span style="font-family: Courier New,Courier,monospace">getParent()</span> method: 
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getParent(function(entry)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;success&quot;);
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+<p>If the entry is the root of its filesystem, its parent is itself.</p>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+success
+</pre>
+</li>
+
+<li>To delete a file or directory, you can use the <span style="font-family: Courier New,Courier,monospace">remove()</span> method:
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getFile(&#39;test.txt&#39;, {create: true}, function(fileEntry)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fileEntry.remove(function()
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&quot;success&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">It is an error to attempt to delete a non-empty directory, or the root directory of a filesystem.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+success
+</pre>
+</li>
+
+<li>To return a URL that can be used to identify the entry, you can use the <span style="font-family: Courier New,Courier,monospace">toURL()</span> method:
+<pre class="prettyprint">
+requestFileSystem(TEMPORARY, 100, function(fs)
+{
+&nbsp;&nbsp;&nbsp;fs.root.getDirectory(&#39;testDirectory&#39;, {create:true}, function(entry)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var url = entry.toURL();
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;URL: &#39; + url);
+&nbsp;&nbsp;&nbsp;});
+});
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+URL: file:///home/owner/apps_rw/WfigBlWDyf/tmp/testDirectory/
+</pre>
+</li>
+</ul>
+
+<h2 id="files">Operating on Files</h2>
+<p>To create files, see <a href="#filesystemresolve">Resolving Filesystem Entries</a>. To create a writer for a file and access file details:
+</p>
+  <ul>
+    <li>To create a <span style="font-family: Courier New,Courier,monospace">FileWriter</span> object (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#FileWriter">mobile</a>, <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/cordova/file.html#FileWriter">wearable</a>, and <a href="../../../../org.tizen.web.apireference/html/device_api/tv/tizen/cordova/file.html#FileWriter">TV</a> applications), use the <span style="font-family: Courier New,Courier,monospace">createWriter()</span> method:
+<pre class="prettyprint">
+var f; /* Must be a FileEntry object resolved using the methods presented before */
+f.createWriter(function(fileWriter)
+{
+&nbsp;&nbsp;&nbsp;console.log (&#39;created fileWriter object for &#39; + fileWriter.fileName);
+});
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+created fileWriter object for testFile.txt
+</pre>
+    </li>
+    <li>To access a <span style="font-family: Courier New,Courier,monospace">File</span> object (in <a href="../../../../org.tizen.web.apireference/html/device_api/mobile/tizen/cordova/file.html#File">mobile</a>, <a href="../../../../org.tizen.web.apireference/html/device_api/wearable/tizen/cordova/file.html#File">wearable</a>, and <a href="../../../../org.tizen.web.apireference/html/device_api/tv/tizen/cordova/file.html#File">TV</a> applications), use the <span style="font-family: Courier New,Courier,monospace">file()</span> method. The object represents the current state of the file.
+
+<pre class="prettyprint">
+var f; /* Must be a FileEntry object resolved using methods presented before */
+f.file(function(file)
+{
+&nbsp;&nbsp;&nbsp;console.log (&#39;created file object for &#39; + file.name);
+});
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+created file object for example.txt
+</pre>
+    </li>
+  </ul>
+
+<h2 id="readwrite">Reading and Writing File Content</h2>
+
+<p>To read and write file content:</p>
+
+<ul>
+<li>To read a file and return the data as a base64-encoded data URL, you can use the <span style="font-family: Courier New,Courier,monospace">readAsDataURL()</span> method:
+<pre class="prettyprint">
+var blob = new Blob([&#39;abc&#39;]);
+var fileReader = new FileReader();
+fileReader.onload = function()
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;Loaded, result = &#39; + fileReader.result);
+};
+fileReader.readAsDataURL(blob);
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Loaded, result = data:;base64,YWJj
+</pre>
+</li>
+
+<li>To read a file and return the data as a text, you can use the <span style="font-family: Courier New,Courier,monospace">readAsText()</span> method:
+<pre class="prettyprint">
+var blob = new Blob([&#39;abc&#39;]);
+var fileReader = new FileReader();
+fileReader.onload = function()
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;Loaded, result = &#39; + fileReader.result);
+};
+fileReader.readAsText(blob);
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Loaded, result = abc
+</pre>
+</li>
+
+<li>To read a file and return the data as a binary string, you can use the <span style="font-family: Courier New,Courier,monospace">readAsBinaryString()</span> method:
+<pre class="prettyprint">
+var blob = new Blob([&#39;abc&#39;]);
+var fileReader = new FileReader();
+fileReader.onload = function()
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;Loaded, result = &#39; + fileReader.result);
+};
+fileReader.readAsBinaryString(blob);
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Loaded, result = abc
+</pre>
+</li>
+
+<li>To read a file and return the data as an array buffer (<span style="font-family: Courier New,Courier,monospace">byte[]</span>), you can use the <span style="font-family: Courier New,Courier,monospace">readAsArrayBuffer()</span> method:
+<pre class="prettyprint">
+var blob = new Blob([&#39;abc&#39;]);
+var fileReader = new FileReader();
+fileReader.onload = function()
+{
+&nbsp;&nbsp;&nbsp;resultValue = fileReader.result;
+&nbsp;&nbsp;&nbsp;console.log(&quot;Result: &quot; + resultValue.toString() + &#39; &#39; + &#39;ByteLength: &#39; + resultValue.byteLength);
+};
+fileReader.readAsArrayBuffer(blob);
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+Result: [object ArrayBuffer]
+ByteLength: 3
+</pre>
+</li>
+
+<li>To abort the current operation of reading a file, you can use the <span style="font-family: Courier New,Courier,monospace">abort()</span> method:
+<pre class="prettyprint">
+var blob = new Blob([&#39;abc&#39;]);
+var fileReader = new FileReader();
+fileReader.onload = function()
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;Loaded&#39;);
+};
+fileReader.onabort = function()
+{
+&nbsp;&nbsp;&nbsp;console.log(&#39;aborted&#39;);
+};
+fileReader.readAsDataURL(blob);
+fileReader.abort();
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+aborted
+</pre>
+</li>
+
+<li>To write data to a file, you can use the <span style="font-family: Courier New,Courier,monospace">write()</span> method:
+<pre class="prettyprint">
+successCallback = function(writer)
+{
+&nbsp;&nbsp;&nbsp;writer.onwrite = function(evt)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;write success&#39;);
+&nbsp;&nbsp;&nbsp;};
+&nbsp;&nbsp;&nbsp;writer.write(&#39;some sample text&#39;);
+};
+errorCallback = function(err) 
+{
+&nbsp;&nbsp;&nbsp;console.log(err.code);
+};
+/* Entry is a FileEntry object retrieved by getFile() of the DirectoryEntry interface */
+entry.createWriter(successCallback, errorCallback);
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+write success
+</pre>
+</li>
+
+<li>To move the file pointer to a specified byte, you can use the <span style="font-family: Courier New,Courier,monospace">seek()</span> method:
+<pre class="prettyprint">
+successCallback = function(writer)
+{
+&nbsp;&nbsp;&nbsp;/* Fast forwards the file pointer to the end of file */
+&nbsp;&nbsp;&nbsp;writer.seek(writer.length);
+};
+
+errorCallback = function(err)
+{
+&nbsp;&nbsp;&nbsp;console.log(err.code);
+};
+
+/* Entry is a FileEntry object retrieved by getFile() of the DirectoryEntry interface */
+entry.createWriter(successCallback, errorCallback);
+</pre>
+</li>
+
+<li>To shorten the file to the specified length, you can use the <span style="font-family: Courier New,Courier,monospace">truncate()</span> method:
+<pre class="prettyprint">
+successCallback = function(writer)
+{
+&nbsp;&nbsp;&nbsp;writer.onwrite = function(evt)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;truncate success&#39;);
+&nbsp;&nbsp;&nbsp;};
+&nbsp;&nbsp;&nbsp;writer.truncate(10);
+};
+
+errorCallback = function(err)
+{
+&nbsp;&nbsp;&nbsp;console.log(err.code);
+};
+
+/* Entry is a FileEntry object retrieved by getFile() of the DirectoryEntry interface */
+entry.createWriter(successCallback, errorCallback);
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+truncate success
+</pre>
+</li>
+
+<li>To abort writing a file, you can use the <span style="font-family: Courier New,Courier,monospace">abort()</span> method:
+<pre class="prettyprint">
+successCallback = function(writer)
+{
+&nbsp;&nbsp;&nbsp;writer.onwrite = function(evt)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;write success&#39;);
+&nbsp;&nbsp;&nbsp;};
+&nbsp;&nbsp;&nbsp;writer.onabort = function(e)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log(&#39;abort&#39;);
+&nbsp;&nbsp;&nbsp;};
+&nbsp;&nbsp;&nbsp;writer.write(&#39;some sample text&#39;);
+&nbsp;&nbsp;&nbsp;writer.abort();
+};
+
+errorCallback = function(err)
+{
+&nbsp;&nbsp;&nbsp;console.log(err.code);
+};
+
+/* Entry is a FileEntry object retrieved by getFile() of the DirectoryEntry interface */
+entry.createWriter(successCallback, errorCallback);
+</pre>
+
+<p>The following output is shown in the system log:</p>
+<pre class="prettyprint">
+abort
+</pre>
+</li>
+</ul>
+ 
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
