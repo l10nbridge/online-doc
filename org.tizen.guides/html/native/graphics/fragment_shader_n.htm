@@ -1,0 +1,171 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Fragment Shader</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#phong">Phong Lighting Model</a></li>
+			<li><a href="#shader">Fragment Shader for Lighting and Texturing</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+
+<h1>Fragment Shader</h1>
+
+<p>The fragment shader has 2 important tasks: <strong>texturing</strong> and <strong>lighting</strong>. The texturing basics are covered in <a href="texturing_n.htm">Texturing</a>, and the lighting is handled here.</p>
+<p>The inputs to the fragment shader consist of:</p> 
+
+<ul>
+<li>Varyings: Per-fragment variables, which are determined by interpolating the per-vertex output variables produced by the vertex shader</li>
+<li>Uniforms</li>
+<li>Samplers: Textures</li> 
+</ul>
+<p>The output of the fragment shader is the fragment color that is passed to the output merger.</p> 
+
+<p class="figure" id="output">Figure: Vertex and fragment shader outputs</p> 
+<p align="center"><img alt="Vertex and fragment shader outputs" src="../../images/fragment_output.png" /></p>  
+
+
+<p>The following example is a simplest fragment shader, which performs just texturing. Given an <span style="font-family: Courier New,Courier,monospace">s_tex0</span> 2D image texture and the <span style="font-family: Courier New,Courier,monospace">v_texCoord</span> interpolated texture coordinates, the shader invokes the built-in <span style="font-family: Courier New,Courier,monospace">texture2D()</span> function to determine the color to be output to the built-in <span style="font-family: Courier New,Courier,monospace">gl_FragColor</span> variable:</p>
+
+<pre class="prettyprint">
+uniform sampler2D s_tex0;
+varying vec2 v_texCoord;
+
+void
+main()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;gl_FragColor = texture2D(s_tex0, v_texCoord);
+}
+</pre>
+
+<h2 id="phong" name="phong">Phong Lighting Model</h2> 
+<p>Obviously, texturing alone is never enough to make an object look realistic. You need lighting or illumination, which refers to the technique handling the interaction between light sources and objects. The most popular real-time lighting technique is based on the <strong>Phong lighting model</strong>. It is composed of diffuse, specular, ambient, and emissive terms. For the sake of simplicity, this topic presents only the diffuse term. (For more information, see <a href="https://en.wikipedia.org/wiki/Phong_reflection_model" target="_blank">Phong reflection model</a> in Wikipedia.)</p>
+<p>The diffuse term is for the reflections from ideally diffuse surfaces, which are scattered with equal intensity in all directions (see the left image in the following figure). The amount of reflection perceived by the eye is proportional to the amount of incoming light. Consider a normalized <strong>light vector</strong> (denoted by <span style="font-family: Courier New,Courier,monospace">l</span>) connecting the surface point and the light source. The amount of incoming light is inversely proportional to the angle between <span style="font-family: Courier New,Courier,monospace">l</span> and the surface normal <span style="font-family: Courier New,Courier,monospace">n</span> (as shown in the middle image), and is described as <span style="font-family: Courier New,Courier,monospace">n&#8901;l</span>. In order to avoid negative reflection, it is modified into <span style="font-family: Courier New,Courier,monospace">max(n&#8901;l, 0)</span>.</p>
+
+<p class="figure" id="diffuse">Figure: Diffuse reflection</p> 
+<p align="center"><img alt="Diffuse reflection" src="../../images/fragment_diffuse.png" /></p>  
+
+
+<p>The reflected color of an object is determined by component-wise multiplication, as shown in the following figure. Suppose a white light source, (1,1,1). If an object lit by the light appears yellow, it means that the object reflects R and G and absorbs B. This kind of filtering can be implemented through the material parameter. For example, if it is (1,1,0), the reflected color is (1,1,1) &#8855; (1,1,0) = (1,1,0) where &#8855; is a component-wise multiplication.</p> 
+
+<p class="figure">Figure: Component-wise multiplication for diffuse color</p> 
+<p align="center"><img alt="Component-wise multiplication for diffuse color" src="../../images/fragment_diffuse_color.png" /></p> 
+ 
+
+
+<p>The diffuse term combines the intensity and color: <span style="font-family: Courier New,Courier,monospace">max(n&#8901;l, 0) s<sub>d</sub> &#8855; m<sub>d</sub></span> where <span style="font-family: Courier New,Courier,monospace">s<sub>d</sub></span> is the light source color and <span style="font-family: Courier New,Courier,monospace">m<sub>d</sub></span> is the object material color. The right side of the <a href="#diffuse">Diffuse reflection</a> figure shows an object lit with the diffuse term only.</p>
+
+<h2 id="shader" name="shader">Fragment Shader for Lighting and Texturing</h2>
+
+<p>The following example shows how to implement Phong lighting (with the diffuse term only) and texturing.</p> 
+<p>The vertex shader in the example computes the clip space vertex position and bypasses the texture coordinates, as usual. In addition, it outputs the &#39;world space&#39; vertex position and normal of each vertex. The <span style="font-family: Courier New,Courier,monospace">v_position</span>, <span style="font-family: Courier New,Courier,monospace">v_normal</span>, and <span style="font-family: Courier New,Courier,monospace">v_texCoord</span> output variables are interpolated for fragments and the per-fragment attributes are provided for the fragment shader.</p>
+
+<pre class="prettyprint">
+uniform mat4 viewProjMat;
+uniform mat4 worldMat;
+
+attribute vec3 position;
+attribute vec3 normal;
+attribute vec2 texCoord;
+
+varying vec3 v_position;
+varying vec3 v_normal;
+varying vec2 v_texCoord;
+
+void
+main()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;gl_Position = viewProjMat * worldMat * vec4(position, 1.0);
+&nbsp;&nbsp;&nbsp;&nbsp;v_position = (worldMat * vec4(position, 1.0)).xyz;
+&nbsp;&nbsp;&nbsp;&nbsp;v_normal = mat3(worldMat) * normal;
+&nbsp;&nbsp;&nbsp;&nbsp;v_texCoord = texCoord;
+}
+</pre>
+
+<p>The following fragment shader obtains the object material color (<span style="font-family: Courier New,Courier,monospace">m<sub>d</sub></span>) by filtering the texture and then asks the user-defined <span style="font-family: Courier New,Courier,monospace">phongDiffuse()</span> function to compute the diffuse term. It uses the <span style="font-family: Courier New,Courier,monospace">uniform vec3 lightPos</span> for calculating the light vector <span style="font-family: Courier New,Courier,monospace">l</span> (<span style="font-family: Courier New,Courier,monospace">lightDirection</span>) and simply implements <span style="font-family: Courier New,Courier,monospace">max(n&#8901;l, 0) s<sub>d</sub> &#8855; m<sub>d</sub></span> presented in <a href="#phong">Phong Lighting Model</a>.</p> 
+
+<pre class="prettyprint">
+uniform sampler2D s_tex0;
+uniform vec3 lightPos;
+uniform vec3 Sd;
+
+varying vec3 v_position;
+varying vec3 v_normal;
+varying vec2 v_texCoord;
+
+vec3 phongDiffuse(vec3 Md); /* Forward declaration */
+
+void
+main()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;vec3 Md = texture2D(s_tex0, v_texCoord).xyz;
+&nbsp;&nbsp;&nbsp;&nbsp;vec3 phongColor = phongDiffuse(Md);
+
+&nbsp;&nbsp;&nbsp;&nbsp;gl_FragColor = vec4(phongColor, 1.0);
+}
+
+vec3
+phongDiffuse(vec3 Md)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Diffuse term of Phong model per fragment */
+&nbsp;&nbsp;&nbsp;&nbsp;vec3 lightDirection = normalize(lightPos - v_position);
+&nbsp;&nbsp;&nbsp;&nbsp;vec3 nor = normalize(v_normal);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Diffuse term */
+&nbsp;&nbsp;&nbsp;&nbsp;float Diffuse = max(dot(nor, lightDirection), 0.0);
+&nbsp;&nbsp;&nbsp;&nbsp;vec3 PhongDiffuse = Diffuse * Sd * Md;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return PhongDiffuse;
+}
+</pre>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

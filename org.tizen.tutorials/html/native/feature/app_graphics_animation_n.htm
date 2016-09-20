@@ -1,0 +1,224 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Animations</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+        <p class="toc-title">Related Info</p>		
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/ui/efl/graphical_objects_n.htm">Graphical Objects</a></li>
+			<li><a href="../../../../org.tizen.guides/html/native/ui/efl/ecore_animation_n.htm">Ecore Animations</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__EFL.html">EFL API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__EFL__Group.html">EFL API for Wearable Native</a></li>
+        </ul>		
+	</div></div>
+</div>		
+<div id="container"><div id="contents"><div class="content">	
+<h1>Animations</h1>
+	
+<p>You can change an object on the screen at certain intervals using an animation. To create an animation, you must first determine the duration of the animation, and then define a callback function that performs the actual animation with that duration.</p>
+
+<p>In the following example, 2 square rectangles are animated. One of them simply moves on the screen, while the other also changes its color and size while moving.</p>
+
+<p>The following example uses the same <strong>Basic UI</strong> template as the square drawing example. For more information on how to create the project with the template, see <a href="app_graphics_square_n.htm">Squares on the Canvas</a>.</p>
+
+<p>To implement animations in an application:</p>
+<ol>
+<li>Create a new project and specify the project name as <strong>AnimatorEx</strong>.</li>
+<li>After the project is created, open the <span style="font-family: Courier New,Courier,monospace;">.c</span> source file in the <span style="font-family: Courier New,Courier,monospace;">src</span> folder and add the new code to the <span style="font-family: Courier New,Courier,monospace;">create_base_gui()</span> function to create 2 rectangles and 2 animations.
+
+<p>The following functions are used to create the animations:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">ecore_animator_frametime_set()</span> specifies a frame time interval for an animation. For example, if you specify the interval as 1/50, 50 frame events occur in 1 second. The unit is seconds.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">ecore_animator_timeline_add()</span> creates an <span style="font-family: Courier New,Courier,monospace;">Animator</span> object with a limited time specified in seconds by the first parameter. Once the runtime  of the animator has elapsed, it is deleted automatically.
+<p>The second parameter indicates the frame event callback function that actually defines the animation details, and the third parameter indicates the user data, which generally passes an object or application data to which you apply the animation.</p>
+<p>The callback function can return <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span> to keep the animator running or <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span> to stop it and automatically delete it at any time.</p></li>
+<li><span style="font-family: Courier New,Courier,monospace;">ecore_animator_add()</span> creates an <span style="font-family: Courier New,Courier,monospace;">Animator</span> object. The first parameter indicates the frame event callback function that actually defines the animation details, and the second parameter indicates the user data.
+<p>The <span style="font-family: Courier New,Courier,monospace;">ecore_animator_timeline_add()</span> function is just like the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_add()</span> function, except that the animator only runs for a limited time.</p></li>
+<li><span style="font-family: Courier New,Courier,monospace;">ecore_timer_add()</span> creates a timer to call the given function in the given period of time. The first parameter is the interval in seconds, and the second parameter is the given function. 
+<p>If this function returns <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_RENEW</span>, the timer is rescheduled for the next interval given in the first parameter. If it returns <span style="font-family: Courier New,Courier,monospace;">ECORE_CALLBACK_CANCEL</span>, the timer is deleted automatically. The third parameter indicates the user data to pass to the function when it is called.</p></li>
+</ul>
+
+<p>The label is not used in this example, so annotate it.</p>
+
+<pre class="prettyprint">
+/* 
+   Conformant
+   Create and initialize elm_conformant
+   elm_conformant is mandatory for the base GUI to have a proper size
+   when the indicator or virtual keypad is visible
+*/
+ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+elm_win_indicator_mode_set(ad-&gt;win, ELM_WIN_INDICATOR_SHOW);
+elm_win_indicator_opacity_set(ad-&gt;win, ELM_WIN_INDICATOR_OPAQUE);
+evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+evas_object_show(ad-&gt;conform);
+<span class="highlight">/*
+   Label
+   Create an actual view of the base GUI
+   Modify this part to change the view
+*/
+#if 0 /* _NOT_USED */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;label = elm_label_add(ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label, &quot;&lt;align=center&gt;Hello Tizen&lt;/align&gt;&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;label, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_content_set(ad-&gt;conform, ad-&gt;label);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;label);
+#endif
+
+/* Evas */
+Evas *evas = evas_object_evas_get(ad-&gt;conform);
+
+/* Rect */
+Evas_Object * rect = evas_object_rectangle_add(evas);
+
+evas_object_color_set(rect, 0, 0, 255, 255);
+evas_object_resize(rect, 50, 50);
+evas_object_show(rect);
+
+Evas_Object *rect2 = evas_object_rectangle_add(evas);
+evas_object_color_set(rect2, 0, 55, 0, 255);
+evas_object_resize(rect2, 50, 50);
+evas_object_show(rect2);
+
+/* Animation */
+ecore_animator_frametime_set(1. / 50);
+Ecore_Animator *anim = ecore_animator_timeline_add(5,_advance_frame, rect);
+Ecore_Animator *anim2 = ecore_animator_add(_advance_frame3, rect2);
+Ecore_Timer *timer1 = ecore_timer_add(10, _start_second_anim, rect);
+Ecore_Timer *timer2 = ecore_timer_add(5, _freeze_third_anim, rect2);
+Ecore_Timer *timer3 = ecore_timer_add(10, _thaw_third_anim, rect2);</span>
+
+/* Show the window after the base GUI is set up */
+evas_object_show(ad-&gt;win);
+</pre>
+</li>
+<li>Create the frame event callback functions by adding them to the top of the <span style="font-family: Courier New,Courier,monospace;">create_base_gui()</span> function:
+
+<ul>
+<li>The code of the <span style="font-family: Courier New,Courier,monospace;">_advance_frame()</span> timeline animation frame event callback function specifies the new size, position, and color of the square. It changes the blue square to red and grows it larger as it moves to the bottom right. The style applied to the animation is <span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_LINEAR</span>, which keeps the animation moving at a certain speed.</li>
+
+<li>The code of the <span style="font-family: Courier New,Courier,monospace;">_advance_frame2()</span> timeline animation frame event callback function also specifies the size, position, and color of a square. The style applied to the animation is <span style="font-family: Courier New,Courier,monospace;">ECORE_POS_MAP_BOUNCE</span>, which creates a vibration like a bouncing ball. It slows to a stop after bouncing off the ending point.</li>
+
+<li>The code of the <span style="font-family: Courier New,Courier,monospace;">_advance_frame3()</span> timeline animation frame event callback function increases the X coordinate of an object by 2 at every frame. The static variable <span style="font-family: Courier New,Courier,monospace;">x</span> is used in order to increase the X coordinate whenever this function is called. When the X coordinate becomes greater than 250, it starts back from 0. The <span style="font-family: Courier New,Courier,monospace;">evas_object_move()</span> function changes the position of an object.</li>
+</ul>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">ecore_animator_pos_map()</span> function returns the resulting value that is mapped onto the position of the current animation. The returned values range between 0 and 1. The resulting value when the animation starts is 0, and it gradually increases and eventually reaches 1 when the animation stops.</p>
+<p>The second parameter of the timeline animation event function must be passed to the first parameter of the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_pos_map()</span> function. For the second parameter, enter the style of the animation. The style types are described in the <span style="font-family: Courier New,Courier,monospace;">_Ecore_Pos_Map</span> enumeration (in <a href="../../../../org.tizen.native.mobile.apireference/group__Ecore__Animator__Group.html#ga2db0d0f0f3973829c7f700e5af3e041c">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__Ecore__Animator__Group.html#ga2db0d0f0f3973829c7f700e5af3e041c">wearable</a> applications) that defines the position mappings for the animation. For the third and fourth parameter, enter the intensity and tempo of the speed change.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">_advance_frame()</span> function is only valid for 5 seconds, since its runtime (specified by the first parameter of the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_timeline_add()</span> function) is 5 seconds. Therefore, the <span style="font-family: Courier New,Courier,monospace;">_advance_frame()</span> function is automatically deleted after 5 seconds. The <span style="font-family: Courier New,Courier,monospace;">freeze_third_anim()</span> function is called 5 seconds after the application starts, and the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_freeze()</span> function pauses the animation. The <span style="font-family: Courier New,Courier,monospace;">thaw_third_anim()</span> and <span style="font-family: Courier New,Courier,monospace;">_start_second_anim()</span> functions are called 10 seconds after the application starts, and the <span style="font-family: Courier New,Courier,monospace;">ecore_animator_thaw()</span> function restarts the animation.</p>
+
+<pre class="prettyprint">
+static Eina_Bool
+_advance_frame(void *data, double pos)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;double frame = ecore_animator_pos_map(pos, ECORE_POS_MAP_LINEAR, 12, 15);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(data, 50 * (1 + frame), 50 * (1 + frame));
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(data, 100 * frame, 100 * frame);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(data, 255 * frame, 0, 255 * (1 - frame), 255);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+
+static Eina_Bool
+_advance_frame2(void *data, double pos)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;double frame = ecore_animator_pos_map(pos, ECORE_POS_MAP_BOUNCE, 1.2, 50);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_resize(data, 100 - (50 * frame), 100 - (50 * frame));
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(data, 100 * (1 - frame), 100 * (1 - frame));
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_color_set(data, 255 * (1 - frame), 0, 255 * frame, 255);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+
+static Eina_Bool
+_advance_frame3(void * data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;static int x = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;if (x &gt;= 250)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;x = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_move(data, x += 2, 350);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_RENEW;
+}
+
+static Eina_Bool
+_start_second_anim(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;ecore_animator_frametime_set(1./10);
+&nbsp;&nbsp;&nbsp;&nbsp;ecore_animator_timeline_add(20, _advance_frame2, data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_CANCEL;
+}
+
+static Eina_Bool
+_freeze_third_anim(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_ERROR, LOG_TAG, &quot;ANIMATOR = %p&quot;, data);
+&nbsp;&nbsp;&nbsp;&nbsp;ecore_animator_freeze(data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_CANCEL;
+}
+
+static Eina_Bool
+_thaw_third_anim(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;ecore_animator_thaw(data);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return ECORE_CALLBACK_CANCEL;
+}
+</pre>
+</li>
+<li>Build and run the application.
+<p>2 squares are shown on the screen:</p>
+<ul>
+<li>The green square moves from left to right. When the green square has moved a certain distance, it restarts its movement from the left end of the screen.</li>
+<li>The blue square turns red and becomes larger as it moves to the bottom right for 5 seconds. From 5 to 10 seconds, 2 squares are paused. After 10 seconds, they are resumed, and the red square turns blue and becomes smaller as it moves to the top left for 20 seconds.
+<p align="center"><img alt="Create the project" src="../../images/graphics_animation.png" /></p>
+</li>
+</ul>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
+

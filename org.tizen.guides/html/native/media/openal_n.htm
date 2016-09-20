@@ -1,0 +1,403 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>OpenAL</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#prerequisites">Prerequisites</a></li>
+            <li><a href="#request">Requesting a Source and Audio Buffer</a></li>
+            <li><a href="#play">Controlling Audio Stream Playback</a></li>
+            <li><a href="#buffer">Using Buffer Queuing for Stream Playback</a></li>
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+		<li><a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__OPENAL__FRAMEWORK.html">OpenAL API for Mobile Native</a></li>
+		<li><a href="../../../../org.tizen.native.wearable.apireference/group__OPENSRC__OPENAL__FRAMEWORK.html">OpenAL API for Wearable Native</a></li>
+            </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>OpenAL</h1>
+
+<p>OpenAL is a software interface to audio hardware, which allows you to specify the objects and operations in producing high-quality audio output. Tizen offers OpenAL as a native API, since OpenAL can be used for a variety of audio playback tasks (such as sound effects in games), and it has an excellent performance for real-time rendering. For more information, see <a href="http://www.openal.org/documentation/openal-1.1-specification.pdf" target="_blank">OpenAL 1.1 specification</a>.</p>
+
+<p>OpenAL has 3 fundamental objects:</p>
+
+<ul><li>Sources
+<p>Sources store various attributes, such as velocity, position, direction, and intensity of the sound, that are used for rendering and have an associated buffer which contains audio data for playback.</p></li>
+<li>Buffers
+<p>Buffers store compressed or uncompressed audio data in the PCM format, either 8- or 16-bit, and in the mono or stereo format.</p></li>
+<li>Single listener
+<p>Each audio context has only 1 listener. The listener attributes are used to represent where the user is hearing the audio from.</p></li></ul>
+
+<p>Each object can be changed independently; the setting of one object does not affect the setting of others.</p>
+
+<p>The main features of the OpenAL API include:</p>
+
+<ul><li>Creating a context
+<p>You must first open an audio device through which your audio stream flows. After the device is successfully opened, create and activate a context. Once your device is associated with a current context, your commands are applied to that context.</p>
+
+<p>To create a context:</p>
+
+<pre class="prettyprint">
+/* Open default device */
+device = alcOpenDevice(NULL);
+if (device != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create context */
+&nbsp;&nbsp;&nbsp;&nbsp;context=alcCreateContext(device, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;if (context != NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Set active context */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alcMakeContextCurrent(context);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>When your audio stream is no longer needed or inactive for a long time, destroy the context by calling the <span style="font-family: Courier New,Courier,monospace">alcDestroyContext()</span> function.</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The device cannot fall into a sleep state while the context is not destroyed. To avoid unwanted battery consumption, destroy the context punctually.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+</li> 
+
+<li>Requesting a source and buffer
+
+<p>To play a sound, a source object is required. Through the source, you can update the stream attributes, such as the default gain and the position of the sound.</p>
+<p>In addition, you need to <a href="#request">request an audio buffer</a> that contains your audio data.</p>
+</li>
+
+<li>Controlling the audio stream
+<p>When the source and buffer are ready, you can <a href="#play">manage the playback</a> by playing, stopping, rewinding, or pausing your audio stream. All the control commands are operated with the source you have acquired.</p></li>
+</ul>
+
+<p>To use OpenAL, you must create a context and the initial set of buffers, load the buffers with sample data, create sources, attach the buffers to the sources, set the locations and directions for the listener and sources, and set the initial values for the OpenAL state global. You can also <a href="#buffer">queue buffers</a>.</p>
+
+<p>Before you start, remember to <a href="#prerequisites">prepare your application to use the OpenAL functionality</a>.</p>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the OpenAL API basics by learning about:</p>
+
+<ul>
+    <li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the OpenAL functionality.</p></li>
+    <li><a href="#request">Requesting a Source and Audio Buffer</a>
+        <p>Request a source, and request and prepare an audio buffer.</p></li>
+    <li><a href="#play">Controlling Audio Stream Playback</a>
+        <p>Start and stop playback.</p></li>
+    <li><a href="#buffer">Using Buffer Queuing for Stream Playback</a>
+        <p>Queue one or more buffers to be used for a streamed audio source.</p></li>
+</ul>
+
+<p>For additional OpenAL code samples, see <a href="http://kcat.strangesoft.net/openal.html#examples" target="_blank">Example Code</a>.</p>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the OpenAL functionality:</p>
+<ol>
+<li>
+<p>To use the functions and data types of the OpenAL API (in <a href="../../../../org.tizen.native.mobile.apireference/group__OPENSRC__OPENAL__FRAMEWORK.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__OPENSRC__OPENAL__FRAMEWORK.html">wearable</a> applications), include the <span style="font-family: Courier New,Courier,monospace;">&lt;AL/al.h&gt;</span> and <span style="font-family: Courier New,Courier,monospace;">&lt;AL/alc.h&gt;</span> header files in your application:</p>
+
+<pre class="prettyprint">
+#include &lt;AL/al.h&gt;
+#include &lt;AL/alc.h&gt;
+</pre>
+</li>
+
+<li>
+<p>Retrieve the default device name, and open the default device.</p>
+<p>The following example code verifies that a given extension is available, retrieves the names of all available devices and the name of the default device using the <span style="font-family: Courier New,Courier,monospace;">alcGetString()</span> function, and opens the default device using the <span style="font-family: Courier New,Courier,monospace;">alcOpenDevice()</span> function:</p>
+<pre class="prettyprint">
+/* Verify that a given extension is available for the current context */
+enumeration = alcIsExtensionPresent(NULL, &quot;ALC_ENUMERATION_EXT&quot;);
+if (enumeration == AL_FALSE)
+&nbsp;&nbsp;&nbsp;&nbsp;LOGI(&quot;[%s] enumeration extension not available&quot;, __func__);
+
+/*
+   Retrieve a list of available devices
+   Each device name is separated by a single NULL character
+   and the list is terminated with 2 NULL characters
+*/
+deviceNameList = alcGetString(NULL, ALC_DEVICE_SPECIFIER));
+
+/* Retrieve the default device name */
+defaultDeviceName = alcGetString(NULL, ALC_DEFAULT_DEVICE_SPECIFIER);
+
+/* Open the default device */
+device = alcOpenDevice(defaultDeviceName);
+if (!device) {
+&nbsp;&nbsp;&nbsp;&nbsp;LOGI(&quot;[%s] unable to open default device&quot;, __func__);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+
+LOGI(&quot;[%s] Device: %s &quot;, __func__, alcGetString(device, ALC_DEVICE_SPECIFIER));
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace;">alcOpenDevice()</span> function opens the audio device through the pulseaudio layer.</p>
+</li>
+
+<li>
+<p>If the device is opened successfully, create a context for the device using the <span style="font-family: Courier New,Courier,monospace;">alcCreateContext()</span> function, and set the context as active using the <span style="font-family: Courier New,Courier,monospace;">alcMakeContextCurrent()</span> function:</p>
+
+<pre class="prettyprint">
+/* Create context */
+context = alcCreateContext(device, NULL);
+if (context == NULL) {
+&nbsp;&nbsp;&nbsp;&nbsp;alcCloseDevice(device);
+&nbsp;&nbsp;&nbsp;&nbsp;LOGI(&quot;[%s] failed to create context&quot;, __func__);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+
+/* Set active context */
+if (!alcMakeContextCurrent(context)) {
+&nbsp;&nbsp;&nbsp;&nbsp;alcDestroyContext(context);
+&nbsp;&nbsp;&nbsp;&nbsp;alcCloseDevice(device);
+&nbsp;&nbsp;&nbsp;&nbsp;LOGI(&quot;[%s] failed to make default context&quot;, __func__);
+
+&nbsp;&nbsp;&nbsp;&nbsp;return;
+}
+</pre>
+<p>Once the device is associated with an active context, the AL commands are applied to that context.</p>
+</li>
+</ol>
+
+<h2 id="request" name="request">Requesting a Source and Audio Buffer</h2>
+
+<p>Playback requires a source object for controlling the playback, and a buffer object for storing the audio data to be played.</p>
+<p>To request a source and audio buffer:</p>
+
+<ol>
+<li>
+<p>Request the source using the <span style="font-family: Courier New,Courier,monospace;">alSources()</span> function, and update the source attributes, such as the default gain and sound position:</p>
+
+<pre class="prettyprint">
+/* Request a source name */
+alGenSources((ALuint)1, &amp;source);
+
+/* Set the default volume */
+alSourcef(source, AL_GAIN, 1);
+
+/* Set the default position of the sound */
+alSource3f(source, AL_POSITION, 0, 0, 0);
+</pre>
+</li>
+
+<li>
+<p>Request the audio buffer, and specify the allocated PCM buffer and size:</p>
+
+<pre class="prettyprint">
+/* Request a buffer name */
+alGenBuffers(1, &amp;buffer);
+
+ALuint frequency = 22050;
+ALenum format = AL_FORMAT_MONO8;
+
+/* Specify sample data using alBufferData */
+alBufferData(buffer, format, _data_buffer, dataSize, frequency);
+</pre>
+
+<p>In the above example code, the <span style="font-family: Courier New,Courier,monospace;">_data_buffer</span> parameter points to the audio sample data. The memory for the data has been allocated using the <span style="font-family: Courier New,Courier,monospace;">malloc()</span> function. The <span style="font-family: Courier New,Courier,monospace;">dataSize</span> parameter defines the amount of data to be buffered.</p>
+
+<p>The following table lists the supported audio sample formats:</p>
+
+<table>
+<caption>Table: Supported audio sample formats</caption>
+<tbody>
+<tr>
+ <th>Format</th>
+ <th>Description</th>
+</tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">AL_FORMAT_MONO8</span></td>
+ <td>Unsigned 8-bit mono audio sample</td>
+ </tr>
+ <tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">AL_FORMAT_MONO16</span></td>
+ <td>Unsigned 16-bit mono audio sample</td>
+ </tr>
+  <tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">AL_FORMAT_STEREO8</span></td>
+ <td>Unsigned 8-bit stereo audio sample (interleaved)</td>
+ </tr>
+  <tr>
+ <td><span style="font-family: Courier New,Courier,monospace;">AL_FORMAT_STEREO16</span></td>
+ <td>Unsigned 16-bit stereo audio sample (interleaved)</td>
+ </tr>
+ </tbody></table>
+</li>
+</ol>
+
+<h2 id="play" name="play">Controlling Audio Stream Playback</h2>
+
+<p>To control the playback, use the following state transition functions:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">alSourcePlay()</span>: Play, replay, or resume a source.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">alSourceStop()</span>: Stop one or more sources.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">alSourceRewind()</span>: Rewind a source (set the playback position to the beginning).</li>
+<li><span style="font-family: Courier New,Courier,monospace;">alSourcePause()</span>: Pause a source.</li></ul>
+
+<p>To start and stop playback:</p>
+
+<ol>
+<li>
+<p>To play the audio stream, implement the start event of the playback action (for example, a start button click).</p>
+<p>In the following example code, the whole audio buffer is allocated and filled before the playback starts using the <span style="font-family: Courier New,Courier,monospace;">alSourcei()</span> function. The second parameter specifies the source type as static. Start the playback after changing the state to play.</p>
+
+<pre class="prettyprint">
+/* Function: _on_click1() */
+/* Source specifies the current buffer object */
+alSourcei(source, AL_BUFFER, buffer);
+
+/* Change the state to play */
+alSourcePlay(source);
+</pre>
+</li>
+
+<li>
+<p>When a stop event is triggered, change the playback state to stop to end the playback:</p>
+
+<pre class="prettyprint">
+/* Function: _on_click2() */
+/* Change the state to stop */
+alSourceStop(source);
+</pre>
+</li>
+
+<li>
+<p>When the playback is finished, release the resources by cleaning up the source, buffer, context, and device:</p>
+
+<pre class="prettyprint">
+alDeleteSources(1, &amp;source);
+alDeleteBuffers(1, &amp;buffer);
+device = alcGetContextsDevice(context);
+alcMakeContextCurrent(NULL);
+alcDestroyContext(context);
+alcCloseDevice(device);
+</pre>
+</li>
+</ol>
+
+<h2 id="buffer" name="buffer">Using Buffer Queuing for Stream Playback</h2>
+
+<p>OpenAL provides a buffer queuing method for the streamed audio source, in which one or more buffers can be queued and dequeued after consumed.</p>
+
+<p>To queue and play multiple buffers:</p>
+
+<ol>
+<li>
+<p>Submit one or more buffers before starting the playback:</p>
+
+<pre class="prettyprint">
+#define DATA_CHUNK_SIZE (1024)
+
+/* This example uses 4 buffers and 1 source */
+static ALuint buffer[4], source;
+
+alGenSources((ALuint)1, &amp;source);
+alGenBuffers(4, buffer);
+
+/* Fill all the buffers with audio data from the wave file */
+for (iLoop = 0; iLoop &lt; 4; iLoop++) {
+&nbsp;&nbsp;&nbsp;&nbsp;alBufferData(buffer[iLoop], AL_FORMAT_MONO8, pData, DATA_CHUNK_SIZE, 22050);
+&nbsp;&nbsp;&nbsp;&nbsp;alSourceQueueBuffers(source, 1, &amp;buffer[iLoop]);
+}
+</pre>
+</li>
+
+<li>
+<p>Start the playback stream, and push the buffer (for example, 1024 bytes) periodically on click events.</p>
+<p>If a loop detects a consumed buffer (<span style="font-family: Courier New,Courier,monospace;">iBuffersProcessed</span>) by querying <span style="font-family: Courier New,Courier,monospace;">AL_BUFFERS_PROCESSED</span>, dequeue the consumed buffer using the <span style="font-family: Courier New,Courier,monospace;">alSourceUnqueueBuffers()</span> function. To continue the playback, fill and queue the buffer again using the <span style="font-family: Courier New,Courier,monospace;">alSourceQueueBuffers()</span> function. Run the loop in a thread separate from the application main thread.</p>
+
+<pre class="prettyprint">
+/* Start playing the streamed audio */
+alSourcePlay(source);
+LOGI(&quot;[%s] alSourcePlay&quot;, __func__);
+
+/* Buffer queuing loop must operate in a new thread */
+iBuffersProcessed = 0;
+while (!thread_finish) {
+&nbsp;&nbsp;&nbsp;&nbsp;usleep(10 * 1000); /* Sleep 10 msec periodically */
+
+&nbsp;&nbsp;&nbsp;&nbsp;alGetSourcei(source, AL_BUFFERS_PROCESSED, &amp;iBuffersProcessed);
+
+&nbsp;&nbsp;&nbsp;&nbsp;iTotalBuffersProcessed += iBuffersProcessed;
+&nbsp;&nbsp;&nbsp;&nbsp;LOGI(&quot;Buffers Processed %d&quot;, iTotalBuffersProcessed);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/*
+&nbsp;&nbsp;&nbsp;&nbsp;   For each processed buffer, remove it from the source queue, read the next chunk of
+&nbsp;&nbsp;&nbsp;&nbsp;   audio data from the file, fill the buffer with new data, and add it to the source queue
+&nbsp;&nbsp;&nbsp;&nbsp;*/
+&nbsp;&nbsp;&nbsp;&nbsp;while (iBuffersProcessed) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Remove the buffer from the queue (uiBuffer contains the buffer ID for the dequeued buffer) */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;uiBuffer = 0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alSourceUnqueueBuffers(source, 1, &amp;uiBuffer);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Read more pData audio data (if there is any) */
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Copy audio data to buffer */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alBufferData(uiBuffer, AL_FORMAT_MONO8, pData, DATA_CHUNK_SIZE, 22050);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Insert the audio buffer to the source queue */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;alSourceQueueBuffers(source, 1, &amp;uiBuffer);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;iBuffersProcessed--;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

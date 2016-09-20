@@ -1,0 +1,104 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../css/snippet.css" />
+	<script type="text/javascript" src="../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../scripts/search.js" charset="utf-8"></script>
+  <title>Migration Guide from 2.3 to 2.4</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../images/mobile_s_n.png"/> <img alt="Wearable native" src="../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+	<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#bg_app">New Background Application Policy</a></li>
+			<li><a href="#alarm">Changes in the Alarm API for Reducing Power Consumption</a></li>
+			<li><a href="#event">Tizen Application Event System</a></li>
+			<li><a href="#group_launch">Application Group Launching Management</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../org.tizen.native.mobile.apireference/group__CAPI__APPLICATION__FRAMEWORK.html">Application Framework API for Mobile Native</a></li>
+			<li><a href="../../../org.tizen.native.wearable.apireference/group__CAPI__APPLICATION__FRAMEWORK.html">Application Framework API for Wearable Native</a></li>
+			</ul>
+</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+  <h1>Migration Guide from 2.3 to 2.4</h1> 
+  
+<p>Tizen 2.4 introduces new APIs for applications and modifies the behavior of some APIs to improve the quality of the platform. The following sections define the issues you must consider to make your application conform to Tizen 2.4 Application Framework APIs.</p>
+
+<h2 id="bg_app" name="bg_app">New Background Application Policy</h2>
+<p>Since Tizen 2.4, the application on the background goes into a suspended state.</p>
+<p>In the suspended state, the application process is executed with limited CPU resources. In other words, the platform does not allow the running of the background applications, except for some exceptional applications (such as Media and Download) that necessarily work on the background. In this case, the application can designate their background category as an allowed category to avoid going into the suspended state.</p>
+<p>For more information, and a list of background categories that allow the application to run on the background, see <a href="app_management/ui_app_n.htm#allow_bg">Allowing Applications to Run on the Background</a>.</p> 
+			
+<p>You can receive an event when the background application goes to the suspended state. Pass <span style="font-family: Courier New,Courier,monospace;">APP_EVENT_SUSPENDED_STATE_CHANGED</span> as <span style="font-family: Courier New,Courier,monospace;">event_type</span> to the <span style="font-family: Courier New,Courier,monospace;">ui_app_add_event_handler()</span> or <span style="font-family: Courier New,Courier,monospace;">service_app_add_event_handler()</span> function to handle the suspended event. You must release the resources properly when your application goes to the suspended state.</p>
+ 
+ 
+<h2 id="alarm" name="alarm">Changes in the Alarm API for Reducing Power Consumption</h2>
+<p>Since Tizen 2.4, the Alarm API is changed to reduce the power consumption of the device:</p>
+
+<ul>
+<li>Alarm APIs that support exact alarms are changed to be able to launch UI applications only. While launching UI applications when the alarm expires, the framework turns the LCD display on. Because of this you must not use those Alarm APIs for background processing. You can use the <span style="font-family: Courier New,Courier,monospace;">alarm_schedule_after_delay()</span> function that supports an inexact alarm for background processing.</li>
+<li>The <span style="font-family: Courier New,Courier,monospace;">alarm_schedule_after_delay()</span> function is changed to support an inexact alarm. You can pass a period for alarm expiration, but the platform decides when the alarm expires according to the status of the device.
+<p>The <span style="font-family: Courier New,Courier,monospace;">alarm_schedule_after_delay()</span> function can launch service applications when it is expired. However, the target service application must specify a background category to be registered as the target application of the function.</p></li>
+<li>Regarding the <span style="font-family: Courier New,Courier,monospace;">app_control</span> parameter of the Alarm APIs, only explicit launch is allowed. You cannot pass <span style="font-family: Courier New,Courier,monospace;">app_control</span> for an implicit launch because the implicit launch cannot specify the target application when it is registered.</li>
+</ul>
+<p>When you migrate your application from Tizen 2.3 to Tizen 2.4, check the changes and modify your application to conform with the Tizen 2.4 Alarm APIs.</p>
+
+<h2 id="event" name="event">Tizen Application Event System in Mobile Applications</h2>
+<p>Tizen 2.4 introduces new Tizen Application Event APIs for subscribing system events and publishing and subscribing application events to other applications.</p>
+<p>Using the Tizen Application Event APIs, you can register your service application to be launched when a specified event is published. You can specify the event name through the <span style="font-family: Courier New,Courier,monospace;">&lt;app-control&gt;</span> element in the application manifest file. This launch-on-event allows your service application to only run after receiving an event from the platform or other application. Note that UI applications cannot be launched using the launch-on-event mechanism. For more information, see the <a href="../../../org.tizen.native.mobile.apireference/group__CAPI__EVENT__MODULE.html">Event</a> API.</p>
+
+<h2 id="group_launch" name="group_launch">Application Group Launching Management</h2>
+<p>When you launch an application using the <span style="font-family: Courier New,Courier,monospace;">app_control_send_launch_request()</span> function, you can treat the launched application as a sub-view of your application. For example, when your application launches the message composer application to send a message, you can treat the message composer as a member of your application group. Tizen 2.4 introduces the application group feature to supports this requirement.</p>
+<p>The application can specify a launch mode when it launches a new application with the <span style="font-family: Courier New,Courier,monospace;">app_control_set_launch_mode()</span> function. The following modes are available:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;"> APP_CONTROL_LAUNCH_MODE_SINGLE</span>: the launched application is launched in a separate group.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">APP_CONTROL_LAUNCH_MODE_GROUP</span>: the launched application is included in the group of the caller application.</li>
+</ul>
+<p>You can also specify whether your application supports the group mode launching. You can specify the supported launch mode of your application in the application manifest file. The available <span style="font-family: Courier New,Courier,monospace;">launch_mode</span> options are:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">single</span>: the application is always launched in a separate group, even if the caller application requests the <span style="font-family: Courier New,Courier,monospace;">APP_CONTROL_LAUNCH_MODE_GROUP</span> mode.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">caller</span>: the application is launched according to the caller application request.</li>
+<li><span style="font-family: Courier New,Courier,monospace;">group</span>: the application is included in the group of the caller application.</li>
+</ul>
+<p>For more information, see <a href="app_management/app_controls_n.htm#group">Managing Application Groups</a>.</p>
+
+ 
+<script type="text/javascript" src="../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

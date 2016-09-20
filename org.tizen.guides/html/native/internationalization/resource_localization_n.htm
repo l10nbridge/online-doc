@@ -1,0 +1,283 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Resource Localization</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>	
+		<p class="toc-title">Content</p>
+        <ul class="toc">
+			<li><a href="#marking">Marking Text Parts Translatable</a></li>
+			<li><a href="#translating">Translating Texts Directly</a></li>
+			<li><a href="#extracting">Extracting Messages for Translation</a></li>
+			<li><a href="#tips">Resource Localization Tips</a></li>
+        </ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__I18N__MODULE.html">Internationalization API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__I18N__MODULE.html">Internationalization API for Wearable Native</a></li>
+			<li><a href="https://developer.tizen.org/development/sample/native/AppFW/Internationalization" target="_blank">Internationalization Sample Description</a></li> 
+			</ul>
+	</div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Resource Localization</h1> 
+
+<p>Tizen provides localized resources to make your application usable for different countries. The localization is based on the Internationalization API (in <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__I18N__MODULE.html">mobile</a> and <a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__I18N__MODULE.html">wearable</a> applications), which makes strings translatable and places them  in <span style="font-family: Courier New,Courier,monospace">.po</span> (portable object) files.</p> 
+
+<table class="note">
+  <tbody>
+    <tr>
+      <th class="note">Note</th>
+    </tr>
+    <tr>
+      <td class="note">The <span style="font-family: Courier New,Courier,monospace">.po</span> files must be placed in the <span style="font-family: Courier New,Courier,monospace">res/po</span> directory of the application. The files can be edited using the <a href="../../../../org.tizen.devtools/html/native_tools/po_file_editor_n.htm">PO file editor</a> provided by the Tizen SDK.
+<p>The <span style="font-family: Courier New,Courier,monospace">.po</span> file is compiled into a <span style="font-family: Courier New,Courier,monospace">.mo</span> file, and the <span style="font-family: Courier New,Courier,monospace">.mo</span> file name is defined using the project name that you define when you create the project in the IDE. The application ID is made based on the project name, and the framework finds the application <span style="font-family: Courier New,Courier,monospace">.mo</span> file based on the application ID.</p>
+<p>Be careful if you change the application ID in the Tizen manifest editor later on, because the <span style="font-family: Courier New,Courier,monospace">.mo</span> file name is not automatically changed, and problems can occur when getting the string resources.</p>
+</td> 
+    </tr>
+  </tbody>
+</table>
+
+<p>The application must load the proper resource set depending on the current device locale. If no matching resource set is found for the current locale, the default resource set is used.</p>		  
+
+<p>To get the localized value of a string, use the <strong>string KEY</strong> shown in the PO file editor (the <span style="font-family: Courier New,Courier,monospace;">msgid</span> field in the <span style="font-family: Courier New,Courier,monospace;">.po</span> file), with the <span style="font-family: Courier New,Courier,monospace">_()</span> function (for example, <span style="font-family: Courier New,Courier,monospace">_(&lt;msgid&gt;)</span>). The underlying implementation calls the <span style="font-family: Courier New,Courier,monospace">i18n_get_text()</span> function to retrieve the localized value:</p>
+
+<pre class="prettyprint">
+char *hello_text = i18n_get_text(&quot;Hello&quot;);
+</pre>
+<p>The <span style="font-family: Courier New,Courier,monospace">hello_text</span> variable is set to the localized text for the &quot;Hello&quot; string key (<span style="font-family: Courier New,Courier,monospace;">msgid</span>) for the current device locale.</p>
+<p>When the user changes the device language setting, the text in the application changes to the new language.</p>
+
+<h2 id="marking" name="marking">Marking Text Parts Translatable</h2>
+<p>The most common way to use a translation in your application strings involves the <span style="font-family: Courier New,Courier,monospace;">elm_object_translatable_text_set()</span> and <span style="font-family: Courier New,Courier,monospace;">elm_object_item_translatable_text_set()</span> functions. They set the untranslated string for the &quot;default&quot; part of the given <span style="font-family: Courier New,Courier,monospace;">Evas_Object</span> or <span style="font-family: Courier New,Courier,monospace;">Elm_Object_Item</span>, and mark the string as translatable.</p>
+
+<p>To set the text for a &quot;non-default&quot; part as translatable, use the <span style="font-family: Courier New,Courier,monospace;">elm_object_translatable_part_text_set()</span> and <span style="font-family: Courier New,Courier,monospace;">elm_object_item_translatable_part_text_set()</span> functions.</p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Always provide the untranslated string as a parameter to the above functions. The EFL triggers the translation itself and re-translates the string automatically, if the system language changes.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+
+<h2 id="translating" name="translating">Translating Texts Directly</h2>
+
+<p>The process of marking texts as translatable is not applicable in some cases. For example, it does not work if you are populating a genlist, if you need plurals in the translation, or if you want to do something else than put the translation in an elementary UI component.</p>
+
+<p>To retrieve the translation for a given text, use the <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span> function. The function takes as input a string (the <span style="font-family: Courier New,Courier,monospace;">msgid</span> field in the <span style="font-family: Courier New,Courier,monospace;">.po</span> file), and returns the translation (the corresponding <span style="font-family: Courier New,Courier,monospace;">msgstr</span> field in the <span style="font-family: Courier New,Courier,monospace;">.po</span> file).</p>
+
+<pre class="prettyprint">
+char *i18n_get_text(const char *msgid);
+</pre>
+
+<table class="note">
+<tbody>
+<tr>
+<th class="note">Note</th>
+</tr>
+<tr>
+<td class="note">Do not modify or free the return value of the <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span> function. It is statically allocated.</td>
+</tr>
+</tbody>
+</table> 
+
+<p>The following example shows how you can define the text translation for a genlist item, when the &quot;Some Text&quot; string is defined as a <span style="font-family: Courier New,Courier,monospace;">msgid</span> field in the <span style="font-family: Courier New,Courier,monospace;">.po</span> file:</p>
+
+<pre class="prettyprint">
+#include &quot;app_i18n.h&quot;
+static char*
+_genlist_text_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;return strdup(i18n_get_text(&quot;Some Text&quot;));
+}
+</pre>
+
+<h3>Plurals</h3>
+<p>Plurals are handled through the <span style="font-family: Courier New,Courier,monospace;">ngettext()</span> function, with the untranslated text (the <span style="font-family: Courier New,Courier,monospace;">msgid</span> field) as the first parameter, the plural form of the text as the second parameter, and the quantity as the last parameter. (In English, 1 is singular and anything else is plural.)</p>
+
+<p>For example, the <span style="font-family: Courier New,Courier,monospace;">.po</span> file for French can contain the following lines (for one plural form):</p>
+
+<pre class="prettyprint">
+msgid &quot;%d Comment&quot;
+msgid_plural &quot;%d Comments&quot;
+msgstr[0] &quot;%d commentaire&quot;
+msgstr[1] &quot;%d commentaires&quot;
+</pre>
+
+<p>The following example shows a situation where a language has several plural forms. For example, the <span style="font-family: Courier New,Courier,monospace;">.po</span> file for Polish can contain the following lines:</p>
+
+<pre class="prettyprint">
+msgid &quot;%d Comment&quot;
+msgid_plural &quot;%d Comments&quot;
+msgstr[0] &quot;%d Komentarz&quot;
+msgstr[1] &quot;%d Komentarze&quot;
+msgstr[2] &quot;%d Komentarzy&quot;
+</pre>
+
+<p>The index values in the <span style="font-family: Courier New,Courier,monospace;">msgstr</span> field are defined in system-wide settings. The ones for Polish are defined in the following example. They mean that there are 3 forms (including singular). The index is 0 (singular), if the given integer n is 1. If <span style="font-family: Courier New,Courier,monospace;">(n % 10 &gt;= 2 &amp;&amp; n % 10 &lt;= 4 &amp;&amp; (n % 100 &lt; 10 | | n % 100 &gt;= 20)</span>, the index is 1, otherwise it is 2.</p>
+
+<pre class="prettyprint">
+&quot;Plural-Forms: nplurals = 3; plural = n = = 1 ? 0 : n%10&gt; = 2 &amp;&amp; n%10&lt; = 4 &amp;&amp; (n%100&lt;10 | | n%100&gt; = 20) ? 1 : 2;\n&quot;
+</pre>
+
+<h3>Language Changes at Runtime</h3>
+
+<p>The user can change the system language settings at any time. When that is done, the framework notifies the application, which changes the language used in the Elementary. The UI components receive a <span style="font-family: Courier New,Courier,monospace;">language,changed</span> signal (a typical smart event signal), and reset their text.</p>
+
+<p>To handle the framework language change event in the application, add an event handler for it, and use the <span style="font-family: Courier New,Courier,monospace;">elm_language_set()</span> function in the event handler code to trigger the emission of the <span style="font-family: Courier New,Courier,monospace;">language,changed</span> signal:</p>
+
+<pre class="prettyprint">
+static void
+_app_language_changed(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *language;
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve the current system language */
+&nbsp;&nbsp;&nbsp;&nbsp;system_settings_get_value_string(SYSTEM_SETTINGS_KEY_LOCALE_LANGUAGE, &amp;language);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the language in elementary */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_language_set(language);
+&nbsp;&nbsp;&nbsp;&nbsp;free(language);
+}
+int
+main(int argc, char *argv[])
+{
+&nbsp;&nbsp;&nbsp;&nbsp;ui_app_add_event_handler(&amp;handlers[APP_EVENT_LANGUAGE_CHANGED], 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;APP_EVENT_LANGUAGE_CHANGED, _app_language_changed, &amp;ad);
+}
+</pre>
+
+
+<h2 id="extracting" name="extracting">Extracting Messages for Translation</h2>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">xgettext</span> tool extracts strings to translate to a <span style="font-family: Courier New,Courier,monospace;">.pot</span> file (a PO template), while the <span style="font-family: Courier New,Courier,monospace;">msgmerge</span> tool maintains the existing <span style="font-family: Courier New,Courier,monospace;">.po</span> files. The typical workflow is as follows:</p>
+<ul>
+<li>Run the <span style="font-family: Courier New,Courier,monospace;">xgettext</span> tool once to generate a <span style="font-family: Courier New,Courier,monospace;">.pot</span> file.</li>
+<li>When adding a new translation language, copy the <span style="font-family: Courier New,Courier,monospace;">.pot</span> file content to the <span style="font-family: Courier New,Courier,monospace;">&lt;locale&gt;.po</span> file and translate that file.
+<p>New runs of the <span style="font-family: Courier New,Courier,monospace;">xgettext</span> tool update the existing <span style="font-family: Courier New,Courier,monospace;">.pot</span> file and the <span style="font-family: Courier New,Courier,monospace;">msgmerge</span> tools updates the <span style="font-family: Courier New,Courier,monospace;">.po</span> files.</p></li>
+</ul>
+
+<p>The following examples show typical calls to the tools:</p>
+<ul>
+<li><span style="font-family: Courier New,Courier,monospace;">xgettext</span>:
+
+<pre class="prettyprint">
+xgettext --directory = src --output-dir = res/po --keyword = _ --keyword = N_ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--keyword = elm_object_translatable_text_set:2 --keyword = elm_object_item_translatable_text_set:2 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;--add-comments = --from-code = utf-8 --foreign-use
+</pre>
+
+<p>The above call extracts all strings that are used inside the <span style="font-family: Courier New,Courier,monospace;">_()</span> function (optional shorthand for <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span>), uses UTF-8 as the encoding, and adds comments right before the strings to the output files.</p>
+</li>
+<li><span style="font-family: Courier New,Courier,monospace;">msgmerge</span>:
+
+<pre class="prettyprint">
+msgmerge --width=120 --update res/po/fr.po res/po/ref.pot
+</pre>
+</li></ul>
+
+<h2 id="tips" name="tips">Resource Localization Tips</h2>
+
+<p>Take advantage of the following tips to smoothly internationalize your application:</p>
+
+<ul>
+<li id="assumptions">Make no assumptions about languages
+
+<p>Languages vary greatly and even if you know several of them, do not assume there is any common logic to them all. For example, with English typography, no character must appear before colons and semicolons (&#39;:&#39; and &#39;;&#39;). However, with French typography, there must be &quot;espace fine insécable&quot;, that is, a non-breakable space (HTML&#39;s &amp;nbsp;) that is narrower than regular spaces.</p>
+
+<p>To prevent problems with typography, avoid breaking your strings into multiple parts, if possible. The following example results in incorrect punctuation:</p>
+<pre class="prettyprint">
+snprintf(buf, some_size, &quot;%s: %s&quot;, i18n_get_text(error), i18n_get_text(reason));
+</pre>
+<p>Instead, use a single string and let the translators manage the punctuation:</p>
+<pre class="prettyprint">
+snprintf(buf, some_size, i18n_get_text(&quot;%s: %s&quot;), i18n_get_text(error), i18n_get_text(reason));
+</pre>
+</li>
+<li id="length">Remember that translations have different lengths
+<p>Depending on the language, the translation has a different length on the screen. In some cases, a language has a shorter construct than another. In other cases, a language can have a word for a specific concept, while another does not and requires a circumlocution (designating something by using several words).</p>
+</li>
+<li id="source">Do not commit the <span style="font-family: Courier New,Courier,monospace;">.po</span> file, if only line indicators have changed
+
+<p>A translation block can look like this:</p>
+
+<pre class="prettyprint">
+#: some_file.c:43 another_file.c:41
+msgid &quot;Click Here&quot;
+msgstr &quot;Cliquez ici&quot;
+</pre>
+
+<p>In case you insert a new line at the top of the <span style="font-family: Courier New,Courier,monospace;">some_file.c</span> file, the line indicator changes to look like this:</p>
+
+<pre class="prettyprint">
+#: some_file.c:44 another_file.c:41
+</pre>
+
+<p>Obviously, in non-trivial projects, such changes often happen. If you use source control and commit such changes even though no actual translation change has happened, each commit probably contains a change to the <span style="font-family: Courier New,Courier,monospace;">.po</span> files. This hampers the readability of the change history, and in case several people are working in parallel and need to merge their changes, this creates huge merge conflicts each time.</p>
+
+<p>For source control, only commit changes to <span style="font-family: Courier New,Courier,monospace;">.po</span> files when there are actual translation changes, not because line comments have changed.</p>
+</li>
+
+<li id="shorthand">Use <span style="font-family: Courier New,Courier,monospace;">_()</span> as shorthand for <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span>
+
+<p>Since the <span style="font-family: Courier New,Courier,monospace;">i18n_get_text()</span> function calls are very common, the Tizen SDK provides an abbreviation for this function. You can call it simply with <span style="font-family: Courier New,Courier,monospace;">_()</span>.</p>
+</li>
+<li id="sorting">Sort properly with <span style="font-family: Courier New,Courier,monospace;">strcoll()</span>
+<p>The <span style="font-family: Courier New,Courier,monospace;">strcoll()</span> function is a string comparison tailored for sorting data for display. It works the same way as <span style="font-family: Courier New,Courier,monospace;">strcmp()</span>, but sorts the data according to the current locale settings.</p>
+
+<p>Use the <span style="font-family: Courier New,Courier,monospace;">strcoll()</span> function as the comparison function for sorting the data set you are using.</p>
+</li>
+<li id="translators">Help the translators in their work
+<p>The PO file-based translation system is a common one and is likely to be known to translators. To provide the necessary information to help the translators in their work, it can be enough to mention its name (<span style="font-family: Courier New,Courier,monospace;">gettext</span>). For additional information, there is extensive additional documentation as well as questions and answers available on the Internet.</p>
+
+<p>Do not hesitate to put comments in your code above the strings to be translated, since they can be extracted along with the strings and saved in the <span style="font-family: Courier New,Courier,monospace;">.po</span> files for the translator to see them.</p>
+</li></ul>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>	

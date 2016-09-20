@@ -1,0 +1,241 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=9" />
+    <link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+    <link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+    <script type="text/javascript" src="../../scripts/snippet.js"></script>
+    <script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+    <script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+  <title>Thumbnail Images</title>
+ </head>
+ <body onload="prettyPrint()" style="overflow: auto;">
+
+ <div id="toc-navigation">
+    <div id="profile">
+        <p><img alt="Mobile native" src="../../images/mobile_s_n.png"/></p>
+    </div>
+
+    <div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+		</ul>
+        <p class="toc-title">Content</p>
+        <ul class="toc">
+            <li><a href="#prerequisites">Prerequisites</a></li>
+            <li><a href="#get_thumbnail">Extracting a Thumbnail</a></li>
+        </ul>
+        <p class="toc-title">Related Info</p>
+        <ul class="toc">
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__THUMBNAIL__UTIL__MODULE.html">Thumbnail Util API for Mobile Native</a></li>
+			<li><a href="https://developer.tizen.org/development/sample/native/Multimedia/Thumbnail-util" target="_blank">Thumbnail-util Sample Description</a></li>
+        </ul>
+    </div></div>
+</div>
+
+<div id="container"><div id="contents"><div class="content">
+
+<h1>Thumbnail Images</h1>
+<p>Tizen allows you to create a thumbnail from an input media file.</p>
+
+  <p>This feature is supported in mobile applications only.</p>
+
+<p>The main features of the Thumbnail Util API include:</p>
+
+<ul><li>Video and image thumbnails
+<p>You can <a href="#get_thumbnail">create thumbnails</a> with video and image files. Audio files are not supported. Before you start, remember to <a href="#prerequisites">prepare your application to use the thumbnail util functionality</a>.</p></li>
+<li>Custom size
+<p>You can create the thumbnail using any size you like. The Thumbnail Util API outputs the results according to the size you have set. This means that the thumbnail can be generated even if the output size differs from the original aspect ratio.</p></li></ul>
+
+<p>The requested thumbnail is provided as a raw data type with the BGRA colorspace, not a JPG or PNG file. If you want to save the thumbnail to a file, you must encode it.</p>
+
+<h2>Warm-up</h2>
+
+<p>Become familiar with the Thumbnail Util API basics by learning about:</p>
+
+<ul>
+    <li><a href="#prerequisites">Prerequisites</a>
+		<p>Prepare your application to use the thumbnail util functionality.</p></li>
+    <li><p><a href="#get_thumbnail">Extracting a Thumbnail</a></p>
+        <p>Extract a thumbnail from a file.</p></li>
+</ul>
+
+<h2 id="prerequisites">Prerequisites</h2>
+
+<p>To enable your application to use the thumbnail util functionality:</p>
+
+<ol>
+
+<li>
+<p>To use the functions and data types of the <a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__MEDIA__THUMBNAIL__UTIL__MODULE.html">Thumbnail Util</a> API, include the <span style="font-family: Courier New,Courier,monospace;">&lt;thumbnail_util.h&gt;</span> header file in your application:</p>
+<pre class="prettyprint">
+#include &lt;thumbnail_util.h&gt;
+</pre>
+</li>
+
+<li>
+<p>To work with the Thumbnail Util API, define a handle variable for the thumbnail utility:</p>
+<pre class="prettyprint">
+static thumbnail_h g_thumb_h = NULL;
+</pre>
+<p>This guide uses a global variable for the handle.</p>
+</li>
+
+<li>
+<p>Make sure you have access to the file whose thumbnail you want to extract.</p>
+<p>This guide uses a JPEG image file, which is accessed through its file path. The following example code uses internal storage, so you must include the <span style="font-family: Courier New,Courier,monospace;">&lt;storage.h&gt;</span> header file for the code to work.</p>
+<pre class="prettyprint">
+int internal_storage_id;
+char *internal_image_storage_path;
+char *image_file_name = &quot;test_image.jpg&quot;;
+char *image_test_path;
+
+static bool
+storage_cb(int storage_id, storage_type_e type, storage_state_e state,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;const char *path, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (type == STORAGE_TYPE_INTERNAL) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_storage_id = storage_id;
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return false;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return true;
+}
+
+void
+_get_internal_storage_path()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int error;
+&nbsp;&nbsp;&nbsp;&nbsp;char *path = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;error = storage_foreach_device_supported(storage_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;error = storage_get_directory(internal_storage_id, STORAGE_DIRECTORY_IMAGES, &amp;path);
+&nbsp;&nbsp;&nbsp;&nbsp;if (error != STORAGE_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;internal_image_storage_path = strdup(path);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(path);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+
+void
+_make_test_path()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;int path_len = 0;
+
+&nbsp;&nbsp;&nbsp;&nbsp;path_len = strlen(internal_image_storage_path) + strlen(image_file_name) + 1;
+&nbsp;&nbsp;&nbsp;&nbsp;image_test_path = malloc(path_len);
+&nbsp;&nbsp;&nbsp;&nbsp;memset(image_test_path, 0x0, path_len);
+
+&nbsp;&nbsp;&nbsp;&nbsp;strncat(image_test_path, internal_image_storage_path, strlen(internal_image_storage_path));
+&nbsp;&nbsp;&nbsp;&nbsp;strncat(image_test_path, image_file_name, strlen(image_file_name));
+}
+</pre>
+</li>
+
+</ol>
+
+<table class="note">
+    <tbody>
+        <tr>
+            <th class="note">Note</th>
+        </tr>
+        <tr>
+            <td class="note">The Thumbnail Util functions can use both common content in the device storage (internal or external) and private content in your application data.</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2 id="get_thumbnail" name="get_thumbnail">Extracting a Thumbnail</h2>
+
+<p>To extract a thumbnail from the file:</p>
+
+<ol>
+
+<li>
+<p>Create the thumbnail utility handle using the <span style="font-family: Courier New,Courier,monospace;">thumbnail_util_create()</span> function:</p>
+<pre class="prettyprint">
+ret = thumbnail_util_create(&amp;g_thumb_h);
+</pre>
+</li>
+
+<li>
+<p>Set the path to the file using the <span style="font-family: Courier New,Courier,monospace;">thumbnail_util_set_path()</span> function:</p>
+<pre class="prettyprint">
+ret = thumbnail_util_set_path(g_thumb_h, image_test_path);
+</pre>
+<p>The function binds the thumbnail utility handle (first parameter) with the file specified in the path variable (second parameter).</p>
+</li>
+
+<li>
+<p>Set the thumbnail size using the <span style="font-family: Courier New,Courier,monospace;">thumbnail_util_set_size()</span> function:</p>
+<pre class="prettyprint">
+int width = 512;
+int height = 288;
+
+ret = thumbnail_util_set_size(g_thumb_h, width, height);
+</pre>
+<p>If you do not set the size, the Thumbnail Util API use a default size of 320 x 240.</p>
+</li>
+
+<li>
+<p>Extract the thumbnail from the file using the <span style="font-family: Courier New,Courier,monospace;">thumbnail_util_extract()</span> function. As parameters, define the thumbnail utility handle, a callback for checking the extraction result, user data, and a request ID.</p>
+<pre class="prettyprint">
+void
+thumbnail_completed_cb(thumbnail_util_error_e error, const char *request_id,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int raw_width, int raw_height, unsigned char *raw_data,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int raw_size, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;REQUEST ID: %s\n&quot;, request_id);
+&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG, &quot;WIDTH: %d, HEIGHT: %d\n&quot;, raw_width, raw_height);
+}
+
+void
+extract()
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *request_id = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ret = thumbnail_util_extract(g_thumb_h, thumbnail_completed_cb, NULL, &amp;request_id);
+}
+</pre>
+<p>After calling the function, check whether the return value is <span style="font-family: Courier New,Courier,monospace;">THUMBNAIL_UTIL_ERROR_NONE</span>. If it is, the function extracted the thumbnail successfully and stored it in the <span style="font-family: Courier New,Courier,monospace;">raw_data</span> parameter returned by the callback. Otherwise, the function failed because of an error, which you need to handle.</p>
+<p>The request ID is returned in the <span style="font-family: Courier New,Courier,monospace;">request_id</span> parameter of the callback. You can use it to distinguish between different-sized thumbnails extracted from the same file, or to cancel a specific extraction request using the <span style="font-family: Courier New,Courier,monospace;">thumbnail_util_cancel()</span> function.</p>
+<p>The thumbnail is raw data that you can display on the screen directly. You can also encode and save the thumbnail to a file. When no longer needed, release the thumbnail using the <span style="font-family: Courier New,Courier,monospace;">free()</span> function.</p>
+
+</li>
+
+<li>
+<p>When no longer needed, destroy the thumbnail utility handle using the <span style="font-family: Courier New,Courier,monospace;">thumbnail_util_destroy()</span> function:</p>
+<pre class="prettyprint">
+thumbnail_util_destroy(g_thumb_h);
+</pre>
+</li>
+
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

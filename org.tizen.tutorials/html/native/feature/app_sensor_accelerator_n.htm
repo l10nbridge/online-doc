@@ -1,0 +1,371 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../css/snippet.css" />
+	<script type="text/javascript" src="../../scripts/snippet.js"></script>
+	<script type="text/javascript" src="../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Accelerator Sensor Usage</title>
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#support">Determining Whether the Sensor Is Supported</a></li>
+			<li><a href="#event">Requesting Sensor Events</a></li>
+			<li><a href="#maxvalue">Requesting the Maximum Acceleration Value</a></li>
+		</ul>
+        <p class="toc-title">Related Info</p>		
+        <ul class="toc">
+            <li><a href="../../../../org.tizen.guides/html/native/location_sensors/device_sensors_n.htm">Device Sensors Guide</a></li>
+			<li><a href="../../../../org.tizen.native.mobile.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">Sensor API for Mobile Native</a></li>
+			<li><a href="../../../../org.tizen.native.wearable.apireference/group__CAPI__SYSTEM__SENSOR__MODULE.html">Sensor API for Wearable Native</a></li>
+        </ul>		
+	</div></div>
+</div>		
+<div id="container"><div id="contents"><div class="content">	
+
+<h1>Accelerator Sensor Usage</h1>
+<p>The accelerator sensor can measure acceleration in the directions of the X, Y, and Z axes. Before attempting to measure the acceleration values, you need to know whether the device supports the accelerator sensor.</p>
+
+<h2 id="support">Determining Whether the Sensor Is Supported</h2>
+<p>To determine whether the accelerator sensor is supported on the device:</p>
+
+<ol> 
+   <li>Create a new project in the IDE with the <strong>Basic UI</strong> template, and specify the project name as <strong>SensorAccelerator</strong>.
+<p>For more information on how to create a project, see <a href="../mobile/create_project_mn.htm">Creating a Mobile Native Project</a> or <a href="../wearable/create_project_wn.htm">Creating a Wearable Native Project</a>.</p></li> 
+   <li>In the new project, open the <span style="font-family: Courier New,Courier,monospace">sensoraccelerator.c</span> source file in the <span style="font-family: Courier New,Courier,monospace">src</span> folder and add the required library header file and variables:
+   <ul>
+   <li>The <span style="font-family: Courier New,Courier,monospace">sensor.h</span> file is a header file for various sensor libraries.</li>
+<li>The purpose of the application is to display whether the accelerator sensor is supported, the current acceleration value, and the maximum value of acceleration. As a result, a variable is defined for each of these values.</li>
+   </ul>
+   
+<pre class="prettyprint">
+#include &quot;sensoraccelerator.h&quot;
+#include &lt;sensor.h&gt;
+
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *conform;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label0; /* Whether the accelerator sensor is supported */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label1; /* Current acceleration value */
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label2; /* Maximum acceleration value */
+};
+typedef struct appdata appdata_s;
+</pre>
+
+</li>
+	<li>Create 2 new functions on top of the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function:
+	<ul>
+	<li>The <span style="font-family: Courier New,Courier,monospace">show_is_supported()</span> function identifies whether the accelerator sensor is supported, and displays the result in the first label component.
+	<p>The <span style="font-family: Courier New,Courier,monospace">sensor_is_supported()</span> function requests the support information. Passing <span style="font-family: Courier New,Courier,monospace">SENSOR_ACCELEROMETER</span> as the first parameter makes the second parameter return the accelerator support information.</p></li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">my_box_pack()</span> function adds a UI component to a box container.</li>
+	</ul>
+	
+<pre class="prettyprint">
+static void
+show_is_supported(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[PATH_MAX];
+&nbsp;&nbsp;&nbsp;&nbsp;bool is_supported = false;
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_is_supported(SENSOR_ACCELEROMETER, &amp;is_supported);
+&nbsp;&nbsp;&nbsp;&nbsp;sprintf(buf, &quot;Acceleration Sensor is %s&quot;, is_supported ? &quot;support&quot; : &quot;not support&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label0, buf);
+}
+
+static void
+my_box_pack(Evas_Object *box, Evas_Object *child,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;double h_weight, double v_weight, double h_align, double v_align)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Tell the child packed into the box to be able to expand */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(child, h_weight, v_weight);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Fill the expanded area (above) as opposed to centering in it */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(child, h_align, v_align);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the child as the box content and show it */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(child);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_content_set(box, child);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Put the child into the box */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, child);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show the box */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(box);
+}
+</pre>
+</li>
+
+	<li>To create the box, add the first and second label to the box, and call the <span style="font-family: Courier New,Courier,monospace">show_is_supported()</span> function to determine the sensor support, you must modify the source code at the bottom of the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function as follows:
+	
+<pre class="prettyprint">
+/* Conformant */
+/*
+   Create and initialize elm_conformant
+   elm_conformant is mandatory for the base GUI to have a proper size
+   when the indicator or virtual keypad is visible
+*/
+ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+elm_win_indicator_mode_set(ad-&gt;win, ELM_WIN_INDICATOR_SHOW);
+elm_win_indicator_opacity_set(ad-&gt;win, ELM_WIN_INDICATOR_OPAQUE);
+evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+evas_object_show(ad-&gt;conform);
+
+/* Box can contain other elements in a vertical line (by default) */
+Evas_Object *box = elm_box_add(ad-&gt;win);
+evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+evas_object_size_hint_align_set(box, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+elm_object_content_set(ad-&gt;conform, box);
+evas_object_show(box);
+
+/* First label (for the sensor support) */
+ad-&gt;label0 = elm_label_add(ad-&gt;conform);
+elm_object_text_set(ad-&gt;label0, &quot;Msg -&quot;);
+my_box_pack(box, ad-&gt;label0, 1.0, 0.0, -1.0, -1.0);
+
+/* Second label (for the current acceleration value) */
+ad-&gt;label1 = elm_label_add(ad-&gt;conform);
+elm_object_text_set(ad-&gt;label1, &quot;Value -&quot;);
+my_box_pack(box, ad-&gt;label1, 1.0, 1.0, -1.0, -1.0);
+
+/* Show the window after the base GUI is set up */
+evas_object_show(ad-&gt;win);
+
+/* Check the sensor support */
+show_is_supported(ad);
+</pre>
+</li>
+	
+	<li>Build (in <a href="../mobile/build_app_mn.htm">mobile</a> and <a href="../wearable/build_app_wn.htm">wearable</a> applications) and run (in <a href="../mobile/run_app_mn.htm">mobile</a> and <a href="../wearable/run_app_wn.htm">wearable</a> applications) the application. If the accelerator sensor is supported, the <strong>Accelerator Sensor is support</strong> message is shown on the device screen.
+<p>All smartphones do not support this sensor. In that case, test the application on the emulator.</p>
+<p align="center"><img alt="Accelerator Sensor is supported" src="../../images/sensor_accelerator_supported.png" /></p>
+	</li>
+</ol>
+
+<h2 id="event">Requesting Sensor Events</h2>
+<p>To implement a feature that requests the corresponding event as you shake the device, and displays the acceleration value on the screen:</p>
+
+<ol> 
+   <li>Add a structure for the sensor and a global variable to the top of the <span style="font-family: Courier New,Courier,monospace">sensoraccelerator.c</span> source file:
+   <ul>
+   <li>The <span style="font-family: Courier New,Courier,monospace">sensorinfo_s</span> structure includes a sensor handle and an event listener variable.</li>
+<li>The <span style="font-family: Courier New,Courier,monospace">sensor_info</span> is a global variable of the <span style="font-family: Courier New,Courier,monospace">sensorinfo_s</span> structure.</li>
+</ul>
+   
+<pre class="prettyprint">
+struct appdata {
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *conform;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label0;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label1;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *label2;
+};
+typedef struct appdata appdata_s;
+
+struct _sensor_info {
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_h sensor; /* Sensor handle */
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_listener_h sensor_listener; /* Sensor listener */
+};
+typedef struct _sensor_info sensorinfo_s;
+
+static sensorinfo_s sensor_info;
+</pre>
+
+	</li>
+
+	<li>To request sensor events, you need a sensor handle and an event listener, and must start the listener. Create 2 new functions above the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function:
+	<ul>
+	<li>The <span style="font-family: Courier New,Courier,monospace">_new_sensor_value()</span> function is an event callback for the accelerator sensor, and it outputs a new sensor value to the screen.
+<p>The sensor data is passed to the second parameter, and the <span style="font-family: Courier New,Courier,monospace">values[0]</span> field contains the X axis data, <span style="font-family: Courier New,Courier,monospace">values[1]</span> contains the Y axis data, and <span style="font-family: Courier New,Courier,monospace">values[2]</span> contains the Z axis data.</p></li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">start_accelerator_sensor()</span> function starts the accelerator sensor and specifies the event callback function:
+	<ul>
+	<li>The <span style="font-family: Courier New,Courier,monospace">sensor_get_default_sensor()</span> function gets a specific sensor handle. Passing <span style="font-family: Courier New,Courier,monospace">SENSOR_ACCELEROMETER</span> to the first parameter returns an accelerator sensor handle to the second parameter.</li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">sensor_create_listener()</span> function creates an event listener. Passing a sensor handle to the first parameter returns a listener object to the second parameter.</li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">sensor_listener_set_event_cb()</span> function specifies a callback function to the listener. The parameters follow this order: event listener, interval (in milliseconds), callback function name, and user data.</li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">sensor_listener_start()</span> function starts the listener.</li>
+	</ul>
+	</li>
+	</ul>
+	
+<pre class="prettyprint">
+static void
+_new_sensor_value(sensor_h sensor, sensor_event_s *sensor_data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (sensor_data-&gt;value_count &lt; 3)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[PATH_MAX];
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s*)user_data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;sprintf(buf, &quot;Value -X : %0.1f / Y : %0.1f / Z : %0.1f&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sensor_data-&gt;values[0], sensor_data-&gt;values[1], sensor_data-&gt;values[2]);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label1, buf);
+}
+
+static void
+start_accelerator_sensor(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_error_e err = SENSOR_ERROR_NONE;
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_get_default_sensor(SENSOR_ACCELEROMETER, &amp;sensor_info.sensor);
+&nbsp;&nbsp;&nbsp;&nbsp;err = sensor_create_listener(sensor_info.sensor, &amp;sensor_info.sensor_listener);
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_listener_set_event_cb(sensor_info.sensor_listener, 100, _new_sensor_value, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_listener_start(sensor_info.sensor_listener);
+}
+</pre>
+	</li>
+	
+	<li>To operate the event listener automatically when the application starts running, invoke the above <span style="font-family: Courier New,Courier,monospace">start_accelerator_sensor()</span> function at the end of the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function:
+	
+<pre class="prettyprint">
+/* Show the window after the base GUI is set up */
+evas_object_show(ad-&gt;win);
+
+show_is_supported(ad);
+start_accelerator_sensor(ad);
+</pre>
+</li>
+
+	<li>Run the application again. To test it on your smartphone, simply shake the device.
+<p>To test on the emulator, use the <a href="../../../../org.tizen.devtools/html/common_tools/emulator.htm#ecp">control panel</a>:</p>
+<ol type="a">
+<li>Right-click the emulator and select <strong>Control Panel</strong>.
+<p align="center"><img alt="Emulator control panel" src="../../images/sensor_accelerator_emulator.png" /></p>
+	</li>
+	
+	<li>In the control panel tree list on the left, select <strong>Event Injector &gt; 3-Axis Sensors</strong>.</li>
+	<li>Select the <strong>Acceleration</strong> tab.</li>
+	
+	<li>Drag the 3 sliders one at a time. If the X, Y, and Z values change on the application screen, it means you have correctly received the acceleration data in your application.
+<p align="center"><img alt="3-Axis Sensors" src="../../images/sensor_accelerator_axis.png" /></p>
+	</li>
+</ol>
+</li>
+</ol>
+
+<h2 id="maxvalue">Requesting the Maximum Acceleration Value</h2>
+<p>If you try to test the maximum acceleration value with your smartphone, the characters are hardly visible when you are shaking the device. When you stop shaking to see the value, the downward direction is 9.8, and the rest show 0. For that reason, you need a separate feature that saves the maximum value when testing on the device.</p>
+
+<p>To access the maximum acceleration value:</p>
+
+<ol>
+	<li>Declare an array variable in a number format at the top of the <span style="font-family: Courier New,Courier,monospace">sensoraccelerator.c</span> source file and reset it to 0. This variable saves the maximum acceleration value.
+	
+<pre class="prettyprint">
+struct _sensor_info {
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_h sensor;
+&nbsp;&nbsp;&nbsp;&nbsp;sensor_listener_h sensor_listener;
+};
+typedef struct _sensor_info sensorinfo_s;
+
+static sensorinfo_s sensor_info;
+
+static float max_acc_value[3] = {0.f, 0.f, 0.f};
+</pre>
+	</li>
+	
+	<li>To create the third label and a button, add new code to the <span style="font-family: Courier New,Courier,monospace">create_base_gui()</span> function.
+	<p>The button resets the maximum value to 0, when clicked.</p>
+	
+<pre class="prettyprint">
+/* Second label (for the current acceleration value) */
+ad-&gt;label1 = elm_label_add(ad-&gt;conform);
+elm_object_text_set(ad-&gt;label1, &quot;Value -&quot;);
+my_box_pack(box, ad-&gt;label1, 1.0, 1.0, -1.0, -1.0);
+
+/* Button */
+Evas_Object *btn = elm_button_add(ad-&gt;conform);
+elm_object_text_set(btn, &quot;Init Max Value&quot;);
+evas_object_smart_callback_add(btn, &quot;clicked&quot;, btn_clicked_init_max_acc_value, ad);
+my_box_pack(box, btn, 1.0, 0.0, -1.0, -1.0);
+
+/* Third label (for the maximum value) */
+ad-&gt;label2 = elm_label_add(ad-&gt;conform);
+elm_object_text_set(ad-&gt;label2, &quot;Max -&quot;);
+my_box_pack(box, ad-&gt;label2, 1.0, 1.0, 0.5, -1.0);
+</pre>
+	</li>
+	
+	<li>Create 2 new functions and add new code to the <span style="font-family: Courier New,Courier,monospace">_new_sensor_value()</span> function:
+	<ul>	
+	<li>The <span style="font-family: Courier New,Courier,monospace">get_absolute_max()</span> function compares 2 values and returns the higher one by changing 2 real numbers to absolute values.</li>
+	<li>The new code in the <span style="font-family: Courier New,Courier,monospace">_new_sensor_value()</span> function saves the maximum values of the X, Y, and Z axis acceleration in the global variable and outputs them to the third label component.</li>
+	<li>The <span style="font-family: Courier New,Courier,monospace">btn_clicked_init_max_acc_value()</span> function resets the maximum value saved in the global variable to 0 when you click the button.</li>
+	</ul>
+<pre class="prettyprint">
+static float
+get_absolute_max(float value1, float value2)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;float v1 = value1 &gt; 0.f ? value1 : -value1;
+&nbsp;&nbsp;&nbsp;&nbsp;float v2 = value2 &gt; 0.f ? value2 : -value2;
+&nbsp;&nbsp;&nbsp;&nbsp;float result = v1 &gt; v2 ? v1 : v2;
+
+&nbsp;&nbsp;&nbsp;&nbsp;return result;
+}
+
+static void
+_new_sensor_value(sensor_h sensor, sensor_event_s *sensor_data, void *user_data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (sensor_data-&gt;value_count &lt; 3)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;char buf[PATH_MAX];
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = (appdata_s*)user_data;
+
+&nbsp;&nbsp;&nbsp;&nbsp;sprintf(buf, &quot;Value -X : %0.1f / Y : %0.1f / Z : %0.1f&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;sensor_data-&gt;values[0], sensor_data-&gt;values[1], sensor_data-&gt;values[2]);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label1, buf);
+
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; 3; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_acc_value[i] = get_absolute_max(max_acc_value[i], sensor_data-&gt;values[i]);
+
+&nbsp;&nbsp;&nbsp;&nbsp;sprintf(buf, &quot;Max -X: %0.1f / Y: %0.1f / Z: %0.1f&quot;,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_acc_value[0], max_acc_value[1], max_acc_value[2]);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(ad-&gt;label2, buf);
+}
+
+/* Button click event function */
+static void
+btn_clicked_init_max_acc_value(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;for (int i = 0; i &lt; 3; i++)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max_acc_value[i] = 0.f;
+}
+</pre>
+	</li>
+	
+	<li>Run the application again and shake the phone. When you stop shaking, the value in the second label is reset, but the maximum value remains intact in the third label.<p>To measure a new value, click the button and shake again.</p>
+<p align="center"><img alt="Emulator Control Panel" src="../../images/sensor_accelerator_max_value.png" /></p>
+	</li>
+</ol>
+
+<script type="text/javascript" src="../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

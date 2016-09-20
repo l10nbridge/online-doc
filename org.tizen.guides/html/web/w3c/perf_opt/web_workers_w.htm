@@ -1,0 +1,511 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+  <title>Web Workers</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile Web" src="../../../images/mobile_s_w.png"/> <img alt="Wearable Web" src="../../../images/wearable_s_w.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#js_performance">JavaScript Performance</a></li>
+			<li><a href="#multi">Multi-threading</a></li>
+			<li><a href="#Creating_Web_Worker">Creating a Web Worker and Handling Errors</a></li>
+			<li><a href="#Sending_Messages">Sending Messages Between Web Workers</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#web_workers">Web Workers API for Mobile Web</a></li>
+			<li><a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#web_workers">Web Workers API for Wearable Web</a></li>
+			</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+  <h1>Web Workers</h1> 
+
+<p>Web workers run JavaScript in an independent thread instead of the main UI thread, improving the <a href="#js_performance">JavaScript performance</a> without affecting the UI.</p>
+<p>Web workers are not DOM-dependent. They handle pure data, which makes them especially suitable for JavaScript code that takes a long time to execute.</p>
+
+
+<p>The main features of the Web Workers API include:</p>
+<ul>
+<li><a href="#Creating_Web_Worker">Creating workers</a>
+<p>
+The worker creates a new thread, and only runs when it is executed. It does not communicate with the UI thread or other same-level workers, and therefore, you cannot assign a work priority order. However, you can create subworkers using the <span style="font-family: Courier New,Courier,monospace">importScripts()</span> method to divide tasks.</p>
+</li>
+
+<li><a href="#Sending_Messages">Messaging between workers</a>
+<p>A subworker can communicate with the host worker using the <span style="font-family: Courier New,Courier,monospace">postMessage()</span> method of the HTML5 Web Messaging API (in <a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_m.html#messaging">mobile</a> or <a href="../../../../../org.tizen.web.apireference/html/w3c_api/w3c_api_w.html#messaging">wearable</a> applications). This process is normally used to give work orders to workers or subworkers, or deliver an operation result.</p>
+<p>
+If a worker triggers a message event, the <span style="font-family: Courier New,Courier,monospace">onmessage()</span> event handler can be used to check the sent message.</p>
+</li>
+
+<li><a href="#multi">Multi-threading</a>
+<p>Multi-thread web workers provide significant advantages over UI threads with higher response speed and lower memory usage in applications.</p>
+</li>
+</ul>
+
+<table class="note"> 
+     <tbody> 
+      <tr> 
+       <th class="note">Note</th> 
+      </tr> 
+      <tr> 
+       <td class="note">Workers use a same-origin policy and therefore using some of the browser resources, such as <span style="font-family: Courier New,Courier,monospace">DOM</span>, <span style="font-family: Courier New,Courier,monospace">document</span>, <span style="font-family: Courier New,Courier,monospace">window</span>, and <span style="font-family: Courier New,Courier,monospace">parent</span>, is not possible, and they must be activated by creating separate JavaScript files. However, ECMA JavaScript and the methods included in the Web Workers API, such as <span style="font-family: Courier New,Courier,monospace">postMessage()</span>, <span style="font-family: Courier New,Courier,monospace">location</span>, <span style="font-family: Courier New,Courier,monospace">navigator</span>, and <span style="font-family: Courier New,Courier,monospace">importScripts()</span> can be used. The <span style="font-family: Courier New,Courier,monospace">self</span> and <span style="font-family: Courier New,Courier,monospace">location</span> attributes are also supported.</td> 
+      </tr> 
+     </tbody>
+</table>
+
+ <h2 id="js_performance" name="js_performance">JavaScript Performance</h2>
+<p> JavaScript was originally used for simple inspections and request handling. Therefore, the execution time was not an issue. However, with more advanced UI usage, the use of JavaScript code has been increased and become more complicated, significantly influencing the application performance.</p>
+
+<p>Improving performance through effective JavaScript code consists of the following:</p>
+<ul>
+	<li><a href="js_performance_improvement_w.htm">JavaScript performance improvement</a></li>
+	<li><a href="minify_js_css_w.htm">JavaScript and CSS minification</a></li>
+	<li><a href="jquery_performance_improvement_w.htm">jQuery performance improvement</a></li>
+</ul>
+<h2 id="multi" name="multi">Multi-threading</h2>
+<p>Generally, Web applications are built and run using a single UI thread. Since only 1 task can be handled at a time, the Web application may not respond due to the execution time of a script block, resulting in lower application performance. To solve these performance-related issues, multi-thread <a href="http://www.w3.org/TR/2012/CR-workers-20120501/" target="_blank">Web workers</a> can be used to provide distributed processing in applications. Use Web workers in applications that require complex calculations or parallel processing for better application performance.</p> 
+
+<p>Since the task of changing the image color using a canvas involves allocating a color value for each pixel of the image displayed on the screen, the program requires a complicated calculation to execute loops by the number of the pixels. The following examples of applying a color filter effects to an image to change the color show:</p> 
+<ul>
+<li><a href="#uithread">Problems with using UI threads</a></li>
+<li><a href="#multithread">Advantages of using multi-thread Web workers</a> </li></ul>
+
+<h3 id="uithread" name="uithread">Using UI Threads</h3>
+<p>The following example uses a UI thread to apply a color filter effect on an image and to display the time taken to apply the filter. Since all the calculations are performed in a single UI thread using the <span style="font-family: Courier New,Courier,monospace">colorFilter()</span> method, the execution time is high (16218 milliseconds).</p>
+
+<p class="figure">Figure: Color filter application using UI thread (in mobile applications only)</p> 
+<p align="center"><img alt="Color filter application using UI thread (in mobile applications only)" src="../../../images/color_filter_app_ui_thread.png" /></p>
+
+<pre class="prettyprint">function colorFilterStart()
+{
+&nbsp;&nbsp;&nbsp;var picture = document.getElementById(&#39;picture&#39;);
+&nbsp;&nbsp;&nbsp;var canvas = document.querySelector(&#39;canvas&#39;);
+&nbsp;&nbsp;&nbsp;canvas.width = document.width;
+&nbsp;&nbsp;&nbsp;canvas.height = picture.clientHeight;
+&nbsp;&nbsp;&nbsp;var tempContext = canvas.getContext(&quot;2d&quot;);
+&nbsp;&nbsp;&nbsp;tempContext.drawImage(picture, 0, 0, canvas.width, canvas.height);
+&nbsp;&nbsp;&nbsp;var pixels = canvas.width * canvas.height * 4;
+&nbsp;&nbsp;&nbsp;var canvasData = tempContext.getImageData(0, 0, canvas.width, canvas.height);
+&nbsp;&nbsp;&nbsp;var binaryData = canvasData.data;
+&nbsp;&nbsp;&nbsp;var timeStart = new Date();
+
+&nbsp;&nbsp;&nbsp;colorFilter(binaryData, pixels);
+&nbsp;&nbsp;&nbsp;tempContext.putImageData(canvasData, 0, 0);
+&nbsp;&nbsp;&nbsp;var timeDiffer = new Date() - timeStart;
+&nbsp;&nbsp;&nbsp;message.innerHTML = timeDiffer + &quot; ms&quot;;
+};
+
+function colorChange(scale, gab, position)
+{
+&nbsp;&nbsp;&nbsp;return Math.max(Math.min(255, (scale * gab + (1 - scale) * position)), 0);
+};
+
+function colorFilter(binaryData, pixels)
+{
+&nbsp;&nbsp;&nbsp;var data = binaryData;
+&nbsp;&nbsp;&nbsp;var colorValue = parseFloat((Math.random() * 0.9 + 0.1).toFixed(3));
+&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; pixels; i += .5)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binaryData[i] = colorChange(Math.random() * 0.5 + 0.5,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(data[i] * colorValue)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 1] * 0.769)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 2] * 0.189), data[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binaryData[i + 1] = colorChange(Math.random() * 0.5 + 0.5,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(data[i] * 0.349)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 1] * 0.686)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 2] * 0.168), data[i + 1]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binaryData[i + 2] = colorChange(Math.random() * 0.5 + 0.5,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(data[i] * 0.272)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 1] * 0.534)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 2] * 0.131), data[i + 2]);
+&nbsp;&nbsp;&nbsp;}
+};
+</pre>
+
+<p>You can test the application performance using the <a href="../../../../../org.tizen.devtools/html/web_tools/web_inspector_w.htm">Web Inspector</a>. In the <a href="../../../../../org.tizen.devtools/html/web_tools/web_inspector_w.htm#time">Timeline panel</a>, the event of performing all the calculations in a single UI thread creates a delay of 16218 milliseconds.</p>
+
+<p class="figure">Figure: UI thread application event performance</p> 
+<p align="center"><img alt="UI thread application event performance" src="../../../images/uithreadapp_event_inspector.png" /></p>
+
+<p class="figure">Figure: UI thread application memory performance</p> 
+<p align="center"><img alt="UI thread application memory performance" src="../../../images/uithreadapp_memory_inspector.png" /></p>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Since launching the Web Inspector takes up a lot of CPU resources, a lot of additional delays are recorded in the Timeline panel. If the Web Inspector is not used, the delay is approximately 6000 milliseconds.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+<h3 id="multithread" name="multithread">Using Multi-thread Web Workers</h3>
+<p>The following example uses 4 Web workers to apply a color filter effect on an image by dividing the image into 4 horizontal areas and working on each area simultaneously. The time taken by the application to apply the filter is also displayed on the screen. Since all the calculations are performed by 4 Web workers simultaneously, the execution time is significantly lower (2254 milliseconds).</p>
+
+<p class="figure">Figure: Color filter application using multi-thread Web workers (in mobile applications only)</p> 
+<p align="center"><img alt="Color filter application using multi-thread Web workers (in mobile applications only)" src="../../../images/color_filter_app_multi_thread.png" /></p>
+
+<pre class="prettyprint">function colorFilterStart()
+{
+&nbsp;&nbsp;&nbsp;var picture = document.getElementById(&#39;picture&#39;);
+&nbsp;&nbsp;&nbsp;var canvas = document.querySelector(&#39;canvas&#39;);
+&nbsp;&nbsp;&nbsp;canvas.width = document.width;
+&nbsp;&nbsp;&nbsp;canvas.height = picture.clientHeight;
+&nbsp;&nbsp;&nbsp;var tempContext = canvas.getContext(&quot;2d&quot;);
+&nbsp;&nbsp;&nbsp;var pixels = canvas.width * canvas.height * 4;
+&nbsp;&nbsp;&nbsp;tempContext.drawImage(picture, 0, 0, canvas.width, canvas.height);
+&nbsp;&nbsp;&nbsp;var workerNember = 4;
+&nbsp;&nbsp;&nbsp;var count = 0;
+&nbsp;&nbsp;&nbsp;var pixelLength = pixels / workerNember;
+&nbsp;&nbsp;&nbsp;var pixelSize = canvas.height / workerNember;
+&nbsp;&nbsp;&nbsp;var timeStart = new Date();
+
+&nbsp;&nbsp;&nbsp;/* Loop to use multi-thread Web workers */
+&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; workerNember; i++)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var worker = new Worker(&quot;js/worker.js&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var canvasData = tempContext.getImageData(0, pixelSize * i, canvas.width, pixelSize);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Handle data received from the host worker */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;worker.onmessage = function(e)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count++;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tempContext.putImageData(e.data.canvasData, 0, pixelSize * e.data.count);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (count == workerNember)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;var timeDiffer = new Date() - timeStart;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;message.innerHTML = timeDiffer + &quot; ms&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Send data to the host worker */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;worker.postMessage(
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{ 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;data&quot;: canvasData, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;length&quot;: pixelLength, 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;count&quot;: i 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;});
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+
+<p>The <span style="font-family: Courier New,Courier,monospace">worker.js</span> file contains code to perform calculations for all 4 Web workers simultaneously.</p>
+<pre class="prettyprint">onmessage = function(e)
+{
+&nbsp;&nbsp;&nbsp;var canvasData = e.data.data;
+&nbsp;&nbsp;&nbsp;var binaryData = canvasData.data;
+&nbsp;&nbsp;&nbsp;var pixels = e.data.length;
+&nbsp;&nbsp;&nbsp;var count = e.data.count;
+
+&nbsp;&nbsp;&nbsp;colorFilter(binaryData, pixels);
+&nbsp;&nbsp;&nbsp;postMessage(
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;canvasData&quot;: canvasData,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;count&quot;: count
+&nbsp;&nbsp;&nbsp;});
+};
+
+function colorChange(scale, gab, position)
+{
+&nbsp;&nbsp;&nbsp;return Math.max(Math.min(255, (scale * gab + (1 - scale) * position)), 0);
+};
+
+function colorFilter(binaryData, pixels)
+{
+&nbsp;&nbsp;&nbsp;var data = binaryData;
+&nbsp;&nbsp;&nbsp;var colorValue = parseFloat((Math.random() * 0.9 + 0.1).toFixed(3));
+&nbsp;&nbsp;&nbsp;for (var i = 0; i &lt; pixels; i += .5)
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binaryData[i] = colorChange(Math.random() * 0.5 + 0.5,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(data[i] * colorValue)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 1] * 0.769)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 2] * 0.189), data[i]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binaryData[i + 1] = colorChange(Math.random() * 0.5 + 0.5,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(data[i] * 0.349)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 1] * 0.686)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 2] * 0.168), data[i + 1]);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;binaryData[i + 2] = colorChange(Math.random() * 0.5 + 0.5,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(data[i] * 0.272)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 1] * 0.534)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ (data[i + 2] * 0.131), data[i + 2]);
+&nbsp;&nbsp;&nbsp;}
+};
+</pre>
+
+<p>By using 4 Web workers in the application, the application performance improves 7 times compared to using a UI thread in the same application.</p>
+
+<p class="figure">Figure: Multi-thread application event performance</p> 
+<p align="center"><img alt="Multi-thread application event performance" src="../../../images/multithreadapp_event_inspector.png" /></p>
+
+<p class="figure">Figure: Multi-thread application memory performance</p> 
+<p align="center"><img alt="Multi-thread application memory performance" src="../../../images/multithreadapp_memory_inspector.png" /></p>
+
+<p>The following table shows the response speed and memory performance based on the number of Web worker threads used to run the application in a Tizen quad-core processor device.</p>
+  <table> 
+   <caption>
+     Table: Speed and memory performance
+   </caption> 
+   <tbody> 
+    <tr> 
+     <th>Number of threads</th> 
+     <th>Response speed</th> 
+     <th>Memory</th> 
+    </tr> 
+    <tr> 
+     <td>1</td> 
+     <td>6760 milliseconds</td> 
+     <td>24.11 KB</td> 
+    </tr> 
+    <tr> 
+     <td>2</td> 
+     <td>3820 milliseconds</td> 
+     <td>23.73 KB</td> 
+    </tr> 
+    <tr> 
+     <td>3</td> 
+     <td>2730 milliseconds</td> 
+     <td>23.73 KB</td> 
+    </tr> 
+    <tr> 
+     <td>4</td> 
+     <td>2340 milliseconds</td> 
+     <td>23.73 KB</td> 
+    </tr> 
+    <tr> 
+     <td>5</td> 
+     <td>2120 milliseconds</td> 
+     <td>24.72 KB</td> 
+    </tr> 
+    <tr> 
+     <td>6</td> 
+     <td>2820 milliseconds</td> 
+     <td>24.48 KB</td> 
+    </tr> 
+    <tr> 
+     <td>7</td> 
+     <td>2340 milliseconds</td> 
+     <td>23.73 KB</td> 
+    </tr> 
+    <tr> 
+     <td>8</td> 
+     <td>2400 milliseconds</td> 
+     <td>23.73 KB</td> 
+    </tr> 
+	</tbody>
+	</table>
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">The Web worker support depends on the type and version of the operating system. If the system does not support multiple processors, using multiple Web workers does not greatly improve the application performance. However, since Web workers are based on HTML5 Web optimization and can use multiple cores, they provide much better performance in Tizen as in other operating systems.</td> 
+    </tr> 
+   </tbody> 
+  </table> 
+
+<h2>Warm-up</h2>
+  <p>Become familiar with the Web Workers API basics by learning about:</p>
+  <ul>
+   <li><a href="#Creating_Web_Worker">Creating a Web Worker and Handling Errors</a>
+   <p>Create and execute a Web worker and a subworker, and handle worker-related errors.</p></li>
+   <li><a href="#Sending_Messages">Sending Messages Between Web Workers</a>
+   <p>Send messages between host workers and subworkers.</p></li>
+  </ul>
+
+<h2 id="Creating_Web_Worker" name="Creating_Web_Worker">Creating a Web Worker and Handling Errors</h2>
+				
+			<p>Learning how to create Web workers is a useful resource management skill:</p>
+	<ol>
+		<li>To create and execute a Web worker:
+		<ol type="a">
+			<li><p>Create JavaScript code for a simple Boolean operation:</p>
+			<pre class="prettyprint">
+var n = 1;
+index: while (true) 
+{
+&nbsp;&nbsp;&nbsp;n += 1;
+&nbsp;&nbsp;&nbsp;for (var i = 2; i &lt;= Math.sqrt(n); i += 1)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if (n % i == 0) continue index;
+&nbsp;&nbsp;&nbsp;postMessage(n);
+}</pre>
+			<p>This JavaScript operation delivers the calculated value of the <span style="font-family: Courier New,Courier,monospace">Math.sqrt(n)</span> method to the <span style="font-family: Courier New,Courier,monospace">postMessage()</span> method. It cannot be used for continuous posting of the Boolean operation.</p>
+			</li>
+			<li>
+			<p>Create a Web worker to be activated in the background. The JavaScript URL defining the worker needs to be delivered when creating the worker object:</p>
+			<pre class="prettyprint lang-html">
+&lt;button type=&quot;button&quot; onclick=&quot;workerStart()&quot;&gt;Start&lt;/button&gt;
+&lt;button type=&quot;button&quot; onclick=&quot;worker.terminate()&quot;&gt;Stop&lt;/button&gt;
+&lt;output&gt;&lt;/output&gt;
+</pre><pre class="prettyprint lang-js">
+&lt;script&gt;
+&nbsp;&nbsp;&nbsp;var worker = new Worker(&quot;worker3.js&quot;);
+
+&nbsp;&nbsp;&nbsp;function workerStart() 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;worker.onmessage = function(e) 
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;document.querySelector(&quot;output&quot;).textContent = e.data;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;};
+&nbsp;&nbsp;&nbsp;}
+&lt;/script&gt;</pre>
+			<p>When the <strong>Start</strong> button is clicked, message data is received from the worker and displayed in the <span style="font-family: Courier New,Courier,monospace">&lt;output&gt;</span> element. When the <strong>Stop</strong> button is clicked, the worker is terminated.</p>
+			<p>Simple operations can be sufficiently handled with a single worker, however, in order to execute a more complex operations, more workers are needed.</p>
+			</li>
+		</ol>
+		</li>
+		<li>To create a subworker, use the <span style="font-family: Courier New,Courier,monospace">importScripts()</span> method:
+		<pre class="prettyprint">
+importScripts(&#39;worker1.js&#39;);
+importScripts(&#39;worker1.js&#39;, &#39;worker2.js&#39;);</pre>
+		<p>The subworker creates its own independent thread, and is activated in it, so it has the same restrictions as a host worker. This means that communication between subworkers is impossible, but a host worker can communicate with subworkers within the same object.</p>
+		</li>
+		<li>To handle errors:
+			<ul>
+				<li><p>If an error occurs when the worker is being executed, the <span style="font-family: Courier New,Courier,monospace">onerror()</span> event is triggered. It takes <span style="font-family: Courier New,Courier,monospace">filename</span>, <span style="font-family: Courier New,Courier,monospace">lineno</span>, and <span style="font-family: Courier New,Courier,monospace">message</span> attributes, and displays an error message:</p>
+				<pre class="prettyprint">
+worker.onerror = function(e) 
+{
+&nbsp;&nbsp;&nbsp;document.querySelectorAll(&quot;output&quot;)[1].textContent = [&#39;filename: &#39;, e.filename, &#39; lineno: &#39;, e.lineno, &#39; error: &#39;, e.message].join(&#39; &#39;);
+};</pre>
+				</li>
+				<li><p>The <span style="font-family: Courier New,Courier,monospace">addEventListener</span> can be used instead of the <span style="font-family: Courier New,Courier,monospace">onerror</span> event to detect errors and display an error message:</p>
+				<pre class="prettyprint">
+function errorMessage(e) 
+{
+&nbsp;&nbsp;&nbsp;document.querySelectorAll(&quot;output&quot;)[1].textContent = [&#39;filename: &#39;, e.filename, &#39; lineno: &#39;, e.lineno, &#39; error: &#39;, e.message].join(&#39; &#39;);
+}
+
+worker.addEventListener(&#39;error&#39;, errorMessage, false);</pre></li>
+			</ul>
+		</li>
+	</ol>  
+		
+				<h2 id="Sending_Messages" name="Sending_Messages">Sending Messages Between Web Workers</h2>
+				
+			<p>Learning how to send messages between Web workers is a useful resource management skill:</p>
+
+	<ol>
+	<li>Send a message in one of the following ways:
+		<ul>
+			<li>
+			<p>Use the <span style="font-family: Courier New,Courier,monospace">postMessage()</span> method to send a &quot;Hello&quot; message to a Web worker:</p>
+<pre class="prettyprint">var worker = new Worker(&#39;worker1.js&#39;);
+worker.postMessage(&quot;Hello&quot;);
+</pre>
+			</li>
+			<li>
+			<p>Use the JSON format to send the message:</p>
+<pre class="prettyprint">
+var worker = new Worker(&#39;worker2.js&#39;);
+worker.postMessage(
+{
+&nbsp;&nbsp;&nbsp;a: &quot;Hello&quot;, b: &quot;Tizen&quot;
+});
+</pre>
+			</li>
+		</ul></li>
+	<li><p>Receive a message in one of the following ways:</p>
+		<ul>
+			<li><p>Use the <span style="font-family: Courier New,Courier,monospace">onMessage</span> event handler to respond to receiving a message:</p>
+<pre class="prettyprint">worker.onmessage = function(e) 
+{
+&nbsp;&nbsp;&nbsp;alert(e.data);
+};</pre>
+			</li>
+			<li><p>Use the <span style="font-family: Courier New,Courier,monospace">addEventListener()</span> method to listen to the event of receiving a message:</p>
+<pre class="prettyprint">
+worker.addEventListener(&quot;message&quot;, function(e) 
+{
+&nbsp;&nbsp;&nbsp;alert(e.data);
+}, false);</pre>
+			</li>
+		</ul>
+	</li>
+	<li><p>Use the workers to execute threads:</p>
+		<ul>
+			<li><p>Use <span style="font-family: Courier New,Courier,monospace">worker1.js</span>:</p>
+<pre class="prettyprint">self.onmessage = function(e)
+{
+&nbsp;&nbsp;&nbsp;self.postMessage(&quot;You say: &quot; + e.data);
+};</pre>
+			</li>
+			<li><p>Use <span style="font-family: Courier New,Courier,monospace">worker2.js</span>:</p>
+<pre class="prettyprint">
+self.onmessage = function(e)
+{
+&nbsp;&nbsp;&nbsp;var b = e.data.b;
+&nbsp;&nbsp;&nbsp;if (b === &quot;Tizen&quot;) 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.postMessage(e.data.b + &quot; say: &quot; + e.data.a);
+&nbsp;&nbsp;&nbsp;} 
+&nbsp;&nbsp;&nbsp;else 
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;self.postMessage(&quot;You say: &quot; + e.data.a);
+&nbsp;&nbsp;&nbsp;}
+};</pre>
+			</li>
+			
+		</ul>
+<p>The <span style="font-family: Courier New,Courier,monospace">postMessage()</span> method can also execute the worker and respond to a message simultaneously.</p>		
+	</li>
+	</ol>
+
+<h3>Source Code</h3>
+ <p>For the complete source code related to this use case, see the following files:</p>
+ <ul>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/performance_and_optimization/web_workers" target="_blank">web_worker_1.html</a></li>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/performance_and_optimization/web_workers" target="_blank">web_worker_2.html</a></li>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/performance_and_optimization/web_workers" target="_blank">worker_1.js</a></li>
+	<li><a href="http://download.tizen.org/misc/examples/w3c_html5/performance_and_optimization/web_workers" target="_blank">worker_2.js</a></li>
+ </ul>
+
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

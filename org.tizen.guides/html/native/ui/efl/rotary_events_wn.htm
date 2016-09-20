@@ -1,0 +1,292 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8"/>
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+  <title>Managing Rotary Events</title> 
+ </head> 
+ <body onload="prettyPrint()" style="overflow: auto;">
+ 
+ <div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Wearable native" src="../../../images/wearable_s_n.png"/></p>
+	</div>
+	
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#handler">Rotary Event Handler</a></li>
+			<li><a href="#callback">Rotary Object Event Callback</a></li>
+			<li><a href="#rotary">Managing Rotary Events</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../../org.tizen.native.wearable.apireference/group__CAPI__EFL__EXTENSION__MODULE.html">Efl Extension API for Wearable Native</a></li>		
+			</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Managing Rotary Events</h1>
+
+<p>Rotary events are fired from a rotary device and delivered to a suitable target when the device is rotated clockwise or counter-clockwise.</p>
+
+<p>This feature is supported in wearable applications only.</p>
+
+<p>There are 2 ways to receive the rotary events:</p>
+
+<ul>
+<li>Rotary event handler</li>
+<li>Rotary object event callback</li>
+</ul>
+  
+<h2 id="handler">Rotary Event Handler</h2>
+
+<p>Use the rotary event handler when you do not want to take care of an Evas object, or when the application is not implemented using an Evas object.</p>
+<p>The handler is implemented like the <a href="event_types_n.htm#ecore">Ecore event</a> in EFL:</p>
+<ol><li>Register the handler with the <span style="font-family: Courier New,Courier,monospace;">eext_rotary_event_handler_add()</span> function and define the handler function.</li>
+<li>When no longer needed, remove the handler with the <span style="font-family: Courier New,Courier,monospace;">eext_rotary_event_handler_del()</span> function.</li></ol>
+<p>The rotary event handlers are treated &quot;first come first served&quot;. This means that the first registered handler is called first when a rotary event occurs. If that handler returns <span style="font-family: Courier New,Courier,monospace;">EINA_TRUE</span>, the next handler is called. The loop continues until a handler returns <span style="font-family: Courier New,Courier,monospace;">EINA_FALSE</span> or all handlers have been called.</p>
+
+
+
+<h2 id="callback">Rotary Object Event Callback</h2>
+
+<p>Use the rotary object event callback when you want the EFL Extension API to handle the event delivery between objects. This means that EFL Extension manages callback and object lists, and decides which object&#39;s callback must be called when a rotary event occurs.</p> 
+
+<p>The callback is implemented as follows:</p>
+
+<ol><li>Register the callback with the <span style="font-family: Courier New,Courier,monospace;">eext_rotary_object_event_callback_add()</span> function and define the callback.</li>
+<li>When no longer needed, remove the callback with the <span style="font-family: Courier New,Courier,monospace;">eext_rotary_object_event_callback_del()</span> function.</li></ol>
+
+<p>The callbacks are treated based on the callback priority. If you register multiple callbacks for the same object, the callback with the lowest priority number is called first. If that callback returns <span style="font-family: Courier New,Courier,monospace;">EINA_TRUE</span>, the next higher priority number is called. The loop continues until a callback returns <span style="font-family: Courier New,Courier,monospace;">EINA_FALSE</span> or all callbacks have been called.</p>
+
+<p>The <span style="font-family: Courier New,Courier,monospace;">eext_rotary_object_event_callback_add()</span> function registers the rotary event callback with a default priority number (0). To use another priority, define it with the <span style="font-family: Courier New,Courier,monospace;">eext_rotary_object_event_callback_priority_add()</span> function.</p>
+
+<h3>Activated Objects</h3>
+
+<p>The rotary event is delivered to a specific object called <strong>activated object</strong>. If no activated object exists, the event is not delivered anywhere. To set an object as the activated object (and automatically deactivate any previously activated object), use the <span style="font-family: Courier New,Courier,monospace;">eext_rotary_object_event_activated_set()</span> function with the second parameter set to <span style="font-family: Courier New,Courier,monospace;">EINA_TRUE</span>. The <span style="font-family: Courier New,Courier,monospace;">EINA_FALSE</span> parameter value deactivates the object.</p>
+
+<p>If the activated object has registered callbacks that all return <span style="font-family: Courier New,Courier,monospace;">EINA_TRUE</span>, the rotary event is also delivered to the upper parents of the activated object, until a callback returns <span style="font-family: Courier New,Courier,monospace;">EINA_FALSE</span> or the top parent object is reached.</p>
+
+<p>When an object is activated or deactivated, a <span style="font-family: Courier New,Courier,monospace;">rotary,activated</span> or <span style="font-family: Courier New,Courier,monospace;">rotary,deactivated</span> signal is sent. You can <a href="../../../../../org.tizen.native.wearable.apireference/group__Evas__Smart__Object__Group.html">register callbacks for the signals</a> with the <span style="font-family: Courier New,Courier,monospace;">evas_object_smart_callback_add()</span> function.</p>
+
+<h2 id="rotary">Managing Rotary Events</h2>
+
+<p>To receive and manage rotary events:</p>
+<ul>
+<li>Implement a rotary event handler.
+<p>In the following example, a rotary event causes a log entry to be printed based on the rotation direction.</p>
+<ol type="a">
+<li>Create the application window and register a rotary event handler:
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create the window */
+&nbsp;&nbsp;&nbsp;&nbsp;win = elm_win_util_standard_add(NULL, &quot;extension circle sample&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_autodel_set(win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Register the handler */
+&nbsp;&nbsp;&nbsp;&nbsp;eext_rotary_event_handler_add(_rotary_handler_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show the window after the base GUI is set up */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(win);
+}
+</pre>
+</li>
+<li>Define the handler function:
+<pre class="prettyprint">
+Eina_Bool 
+_rotary_handler_cb(void *data, Eext_Rotary_Event_Info *ev)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;if (ev-&gt;direction == EEXT_ROTARY_DIRECTION_CLOCKWISE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Rotary device rotated in clockwise direction&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dlog_print(DLOG_DEBUG, LOG_TAG,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&quot;Rotary device rotated in counter-clockwise direction&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+}
+</pre>
+</li>
+
+<li>When no longer needed, remove the rotary event handler and release all resources:
+<pre class="prettyprint">
+static void
+app_terminate(void *data)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Release all resources */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Remove the handler */
+&nbsp;&nbsp;&nbsp;&nbsp;eext_rotary_event_handler_del(_rotary_handler_cb);
+}
+</pre>
+</li>
+</ol>
+</li>
+<li>Implement a rotary event callback for a normal Evas object. 
+<p>In the following example, a rotary event causes the slider value to be adjusted accordingly.</p>
+<ol type="a">
+<li>Create the application window and add a slider component to the window:
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win = NULL, *slider = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Window */
+&nbsp;&nbsp;&nbsp;&nbsp;win = elm_win_util_standard_add(NULL, &quot;extension sample&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_autodel_set(win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Slider */
+&nbsp;&nbsp;&nbsp;&nbsp;slider = elm_slider_add(win);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(slider, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_slider_min_max_set(slider, 0, 50);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_slider_step_set(slider, 1.0);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(slider);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, slider);
+</pre>
+</li>
+<li>Register a rotary event callback and set the slider as the activated object:
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;/* Register the callback */
+&nbsp;&nbsp;&nbsp;&nbsp;ext_rotary_object_event_callback_add(slider, _rotary_event_cb, NULL);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the slider as activated */
+&nbsp;&nbsp;&nbsp;&nbsp;eext_rotary_object_event_activated_set(slider, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show the window after the base GUI is set up */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(win);
+}
+</pre>
+</li>
+<li>
+<p>Define the callback function:</p>
+<pre class="prettyprint">
+Eina_Bool
+_rotary_event_cb(void *data, Evas_Object *obj, Eext_Rotary_Event_Info *ev)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *slider = obj;
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve the current slider value */
+&nbsp;&nbsp;&nbsp;&nbsp;int val = elm_slider_value_get(slider);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Increase the slider value based on a clockwise rotary event */
+&nbsp;&nbsp;&nbsp;&nbsp;if (ev-&gt;direction == EEXT_ROTARY_DIRECTION_CLOCKWISE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_slider_value_set(slider, val + 1);
+&nbsp;&nbsp;&nbsp;&nbsp;} else {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Decrease the slider value based on a counter-clockwise rotary event */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_slider_value_set(slider, val - 1);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+
+&nbsp;&nbsp;&nbsp;&nbsp;return EINA_FALSE;
+}
+</pre>
+</li>
+</ol>
+</li>
+<li>Implement a rotary event callback for an EFL Extension object. 
+<p>In the following example, a rotary event causes the slider value to be adjusted accordingly.</p>
+<ol type="a">
+<li>Create the application window, add a conformant to the window, and add a circle surface and slider to the conformant:
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *win = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *conform = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;Eext_Circle_Surface *sur = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Window */
+&nbsp;&nbsp;&nbsp;&nbsp;win = elm_win_util_standard_add(NULL, &quot;extension circle sample&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_autodel_set(win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(win, &quot;delete,request&quot;, win_delete_request_cb, NULL);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Conformant */
+&nbsp;&nbsp;&nbsp;&nbsp;conform = elm_conformant_add(win);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(win, ELM_WIN_INDICATOR_SHOW);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_indicator_opacity_set(win, ELM_WIN_INDICATOR_OPAQUE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(win, conform);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(conform);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Surface */
+&nbsp;&nbsp;&nbsp;&nbsp;sur = eext_circle_surface_conformant_add(conform);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Slider */
+&nbsp;&nbsp;&nbsp;&nbsp;slider = eext_circle_object_slider_add(conform, sur);
+&nbsp;&nbsp;&nbsp;&nbsp;eext_circle_object_value_min_max_set(slider, 0.0, 30.0);
+&nbsp;&nbsp;&nbsp;&nbsp;eext_circle_object_value_set(slider, 0.0);
+</pre>
+</li>
+<li>Set the slider as the activated object, and define the slider step.
+<p>The slider step defines how much a rotary event increases or decreases the slider value.</p> 
+
+  <table class="note"> 
+   <tbody> 
+    <tr> 
+     <th class="note">Note</th> 
+    </tr> 
+    <tr> 
+     <td class="note">Since the EFL Extension API is used to create the slider component, the rotary event callbacks are registered internally and automatically change the slider value based on the slider step. To receive a rotary event for an EFL Extension object, you only need to set the object as activated.</td> 
+    </tr> 
+   </tbody> 
+  </table>
+
+<p></p>
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the slider as activated */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Its value increases or decreases based on rotary events */
+&nbsp;&nbsp;&nbsp;&nbsp;eext_rotary_object_event_activated_set(slider, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Each rotary event increases or decreases the slider value by 1 */
+&nbsp;&nbsp;&nbsp;&nbsp;eext_circle_object_slider_step_set(slider, 1.0);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show the window after the base GUI is set up */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(win);
+}
+</pre>
+</li>
+</ol>
+</li>
+</ul>  
+  
+    
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>

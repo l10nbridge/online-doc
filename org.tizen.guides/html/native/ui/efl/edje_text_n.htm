@@ -1,0 +1,698 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=9" />
+	<link rel="stylesheet" type="text/css" href="../../../css/styles.css" />
+	<link rel="stylesheet" type="text/css" href="../../../css/snippet.css" />
+	<script type="text/javascript" src="../../../scripts/snippet.js"></script>	
+	<script type="text/javascript" src="../../../scripts/jquery.util.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/common.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/core.js" charset="utf-8"></script>
+	<script type="text/javascript" src="../../../scripts/search.js" charset="utf-8"></script>
+
+	<title>Using Edje Text Classes</title>  
+</head>
+
+<body onload="prettyPrint()" style="overflow: auto;">
+	
+<div id="toc-navigation">
+	<div id="profile">
+		<p><img alt="Mobile native" src="../../../images/mobile_s_n.png"/> <img alt="Wearable native" src="../../../images/wearable_s_n.png"/></p>
+	</div>
+	<div id="toc_border"><div id="toc">
+		<p class="toc-title">Dependencies</p>
+		<ul class="toc">
+			<li>Tizen Platform 2.4 and Higher for Mobile</li>
+			<li>Tizen Platform 2.3.1 and Higher for Wearable</li>
+		</ul>
+		<p class="toc-title">Content</p>
+		<ul class="toc">
+			<li><a href="#create">Creating the Example Application and Main Screen</a></li>
+			<li><a href="#display">Managing the Text Class List</a></li>
+			<li><a href="#layout">Creating the Object Text Class Screen</a></li>
+			<li><a href="#all">Modifying the Text Class Values</a></li>
+			<li><a href="#get">Getting the Text Class Values</a></li>
+		</ul>
+		<p class="toc-title">Related Info</p>
+		<ul class="toc">
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Edje.html">Edje API for Mobile Native</a></li>
+			<li><a href="../../../../../org.tizen.native.mobile.apireference/group__Elementary.html">Elementary API for Mobile Native</a></li>
+			<li><a href="../../../../../org.tizen.native.wearable.apireference/group__Edje__Group.html">Edje API for Wearable Native</a></li>
+			<li><a href="../../../../../org.tizen.native.wearable.apireference/group__Elementary.html">Elementary API for Wearable Native</a></li>	
+		</ul>
+	</div></div>
+</div>	
+
+<div id="container"><div id="contents"><div class="content">
+<h1>Using Edje Text Classes</h1>
+
+<p>The following example demonstrates how you can change the text font attributes (font family and size) of 2 or more parts using Edje text classes.</p>
+<p>If a text class is assigned to a part, changing the font attributes of the class updates the part with the new font attributes. If you assign the same text class to multiple parts, all those parts are updated when the text class is changed. On a process level (<span style="font-family: Courier New,Courier,monospace">edje_text_class_set()</span>), changing the text class values affects all the parts in that text class; at the object level (<span style="font-family: Courier New,Courier,monospace">edje_object_text_class_set()</span>), the change only affects the parts inside the specified object.</p>
+
+<p>The text classes are illustrated with an example application on 3 screens:</p>
+<ul>
+<li>The main screen contains a genlist with 2 items. 
+<p>You can access the other screens by clicking the items.</p></li>
+<li>The text class list screen contains a genlist of all text classes loaded into the system. 
+<p>If you click an item, the font attribute values of the selected text class are displayed at the top of the screen.</p></li>
+<li>The object text class screen shows 2 parts, which both have the same text class assigned to them.  
+<p>You can change the text class font size with a spinner, and apply it to globally or in a specific part by clicking the applicable button (<strong>Set1</strong>, <strong>Set2</strong>, or <strong>Global</strong>). You can also display the current font size on either part using the <strong>Get1</strong> and <strong>Get2</strong> buttons.</p></li>
+</ul>
+
+<p class="figure">Figure: Text class example screens</p> 
+<p align="center"><img alt="Text class example screens" src="../../../images/text_class_screens.png" /></p>
+
+<h2 id="create" name="create">Creating the Example Application and Main Screen</h2>
+
+<p>The main screen contains a genlist with 2 items set into a naviframe. You can click an item to display the related text class screen, and then press the <strong>Back</strong> key to return to the main screen.</p>
+
+<p>To implement the application:</p>
+<ol>
+
+<li>Create the application window.
+<p>Create the window and register the <span style="font-family: Courier New,Courier,monospace">win_back_cb()</span> callback, which is triggered with the <strong>Back</strong> key press.</p>
+
+<pre class="prettyprint">
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *eoi = NULL;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Window */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;win = elm_win_util_standard_add(PACKAGE, PACKAGE);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_conformant_set(ad-&gt;win, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_autodel_set(ad-&gt;win, EINA_TRUE);
+
+&nbsp;&nbsp;&nbsp;&nbsp;if (elm_win_wm_rotation_supported_get(ad-&gt;win)) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;int rots[4] = {0, 90, 180, 270};
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;elm_win_wm_rotation_available_rotations_set(ad-&gt;win, (const int *)(&amp;rots), 4);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;/* Back key callback */
+&nbsp;&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;win, EEXT_CALLBACK_BACK, win_back_cb, ad);
+}
+</pre>
+</li>
+
+<li>Create the main screen UI elements.
+<p>Add a conformant that contains a naviframe and genlist. Add selection callbacks for the genlist items to show the different screens.</p>
+
+<pre class="prettyprint">
+static char*
+_genlist_item_text_get(void *data, Evas_Object *obj, const char *part)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;Eina_Stringshare *text_class = (Eina_Stringshare *)data;
+&nbsp;&nbsp;&nbsp;&nbsp;if (strcmp(part, &quot;elm.text&quot;) == 0)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return strdup(text_class);
+&nbsp;&nbsp;&nbsp;&nbsp;else
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return NULL;
+}
+
+static void
+create_base_gui(appdata_s *ad)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;/* Conformant */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;conform = elm_conformant_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_indicator_mode_set(ad-&gt;win, ELM_WIN_INDICATOR_SHOW);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_indicator_opacity_set(ad-&gt;win, ELM_WIN_INDICATOR_OPAQUE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;conform, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_win_resize_object_add(ad-&gt;win, ad-&gt;conform);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;conform);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Naviframe */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;navifr = elm_naviframe_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_content_set(ad-&gt;conform, ad-&gt;navifr);
+&nbsp;&nbsp;&nbsp;&nbsp;eext_object_event_callback_add(ad-&gt;navifr, EEXT_CALLBACK_BACK, eext_naviframe_back_cb, ad);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Genlist */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;itc = elm_genlist_item_class_new();
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;itc-&gt;func.text_get =_genlist_item_text_get;
+
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;genlist = elm_genlist_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;genlist, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Genlist items */
+&nbsp;&nbsp;&nbsp;&nbsp;/* _create_class_list_gui is the callback triggered when this item is selected */
+&nbsp;&nbsp;&nbsp;&nbsp;eoi = elm_genlist_item_append(ad-&gt;genlist, ad-&gt;itc, eina_stringshare_add(&quot;Text Class List&quot;), NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, _create_class_list_gui, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* _create_text_class_gui is the callback triggered when this item is selected */
+&nbsp;&nbsp;&nbsp;&nbsp;eoi = elm_genlist_item_append(ad-&gt;genlist, ad-&gt;itc, eina_stringshare_add(&quot;Object Text Class API&quot;), NULL,
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ELM_GENLIST_ITEM_NONE, _create_text_class_gui, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_naviframe_item_simple_push(ad-&gt;navifr, ad-&gt;genlist);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Show the window */
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;win);
+}
+</pre>
+</li>
+
+<li>Define the <strong>Back</strong> key press callback, which returns the application to the previous screen:
+
+<pre class="prettyprint">
+static void
+win_back_cb(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;elm_naviframe_item_pop(ad-&gt;navifr);
+}
+</pre>
+</li>
+
+<li>
+<p>Get the path to the EDC file that contains the main layout and Edje objects to load for the text class screens:</p>
+
+<pre class="prettyprint">
+static void
+app_get_resource(const char *edj_file_in, char *edj_path_out, int edj_path_max)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;char *res_path = app_get_resource_path();
+&nbsp;&nbsp;&nbsp;&nbsp;if (res_path) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;snprintf(edj_path_out, edj_path_max, &quot;%s%s&quot;, res_path, edj_file_in);
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;free(res_path);
+&nbsp;&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+</ol>
+
+<h2 id="display" name="display">Managing the Text Class List</h2>
+
+<p>The text class list screen of the application shows how you can retrieve all text classes loaded into the system, delete individual text classes, and display the font attribute details of the text classes.</p>
+
+<p>To implement the text class list screen UI and functionality:</p>
+
+<ol>
+<li>Implement the UI layout in the EDC file.
+<p>The layout consists of 2 parts: <span style="font-family: Courier New,Courier,monospace">text_view</span> displays the font attributes of the selected text class at the top of the screen, and <span style="font-family: Courier New,Courier,monospace">edje.swallow.list</span> swallows the genlist of available text classes below the <span style="font-family: Courier New,Courier,monospace">text_view</span> part.</p>
+
+<pre class="prettyprint">
+group
+{
+&nbsp;&nbsp;&nbsp;name: &quot;class_list_application&quot;;
+&nbsp;&nbsp;&nbsp;parts
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;text_view&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: TEXT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 0 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text: &quot;text part number 3&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;font: &quot;Sans&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min: 1 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max: 1 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 20;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;edje.swallow.list&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.5 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 0 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;relative: 0.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;to_y: &quot;text_view&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>
+<p>In the C code, implement the <span style="font-family: Courier New,Courier,monospace">_create_class_list_gui()</span> callback (which is called when the user selects the <strong>Text Class List</strong> item on the main screen) to load the layout:</p>
+
+<pre class="prettyprint">
+static void
+_create_class_list_gui(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data; /* Get the application data */
+&nbsp;&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0,}; /* Path to the EDC file */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the EDC file */
+&nbsp;&nbsp;&nbsp;&nbsp;app_get_resource(EDJ_FILE, edj_path, (int)PATH_MAX);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Main layout */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;gui1_layout = elm_layout_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;gui1_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Load the layout (class_list_application group) from the EDC file */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_layout_file_set(ad-&gt;gui1_layout, edj_path, &quot;class_list_application&quot;);
+}
+</pre>
+</li>
+
+<li>Display the available text classes on the screen as a genlist:
+<ol type="a">
+<li>Retrieve a list of all text classes loaded into the system. 
+<p>The list is an <span style="font-family: Courier New,Courier,monospace">Eina_List</span> type defined in the application data (<span style="font-family: Courier New,Courier,monospace">ad</span>).</p></li>
+<li>Create the genlist.</li>
+<li>Go through the text class list and insert each text class as an item to the genlist.</li>
+<li>Set the genlist into the <span style="font-family: Courier New,Courier,monospace">edje.swallow.list</span> swallow part of the screen layout, and show it in the naviframe.</li>
+</ol>
+
+<pre class="prettyprint">
+Eina_List *l; /*  Used to iterate through the text class list */
+const char *str; /* Text class data */
+Elm_Object_Item *eoi = NULL; /* Genlist item */
+
+/* Retrieve a list of text classes */
+ad-&gt;list = edje_text_class_list();
+
+/* Create the genlist */
+ad-&gt;itc_text_classes = elm_genlist_item_class_new();
+ad-&gt;itc_text_classes-&gt;func.text_get =_genlist_item_text_get;
+
+ad-&gt;genlist_text_classes = elm_genlist_add(ad-&gt;win);
+evas_object_size_hint_weight_set(ad-&gt;genlist_text_classes, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+
+/* Iterate through the text class list and create the genlist items */
+EINA_LIST_FOREACH(ad-&gt;list, l, str) {
+&nbsp;&nbsp;&nbsp;&nbsp;/* _genlist_clicked is the callback triggered when this item is selected */
+&nbsp;&nbsp;&nbsp;&nbsp;eoi = elm_genlist_item_append(ad-&gt;genlist_text_classes, ad-&gt;itc_text_classes, str, NULL, ELM_GENLIST_ITEM_NONE, _genlist_clicked, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_item_data_set(eoi, (void *)str);
+}
+
+/* Set the genlist into the swallow part */
+elm_object_part_content_set(ad-&gt;gui1_layout, &quot;edje.swallow.list&quot;, ad-&gt;genlist_text_classes);
+
+/* Show the genlist and the layout in the naviframe */
+evas_object_show(ad-&gt;genlist_text_classes);
+evas_object_show(ad-&gt;gui1_layout);
+elm_naviframe_item_simple_push(ad-&gt;navifr, ad-&gt;gui1_layout);
+</pre>
+</li>
+
+<li>To delete a text class, use the <span style="font-family: Courier New,Courier,monospace">edje_text_class_del()</span> function.
+
+<pre class="prettyprint">
+/* Delete the T094 text class */
+edje_text_class_del(&quot;T094&quot;);
+</pre>
+</li>
+<li>To display the text class information, use the <span style="font-family: Courier New,Courier,monospace">_genlist_clicked()</span> callback, which is triggered when a text class item in the genlist is selected. 
+<p>To show the text class properties in the <span style="font-family: Courier New,Courier,monospace">text_view</span> part on the screen when the text class name is clicked, use the <span style="font-family: Courier New,Courier,monospace">edje_text_class_get()</span> function to retrieve the text class name, font, and size.</p>
+
+<pre class="prettyprint">
+static void
+_genlist_clicked(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;char text_class[PATH_MAX] = {0,};
+&nbsp;&nbsp;&nbsp;&nbsp;Elm_Object_Item *eoi = NULL;
+&nbsp;&nbsp;&nbsp;&nbsp;const char *str;
+&nbsp;&nbsp;&nbsp;&nbsp;char *font;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Font_Size size;
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the selected genlist item */
+&nbsp;&nbsp;&nbsp;&nbsp;eoi = elm_genlist_selected_item_get(obj);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the text class name of the item */
+&nbsp;&nbsp;&nbsp;&nbsp;str = elm_object_item_data_get(eoi);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve the font and size */
+&nbsp;&nbsp;&nbsp;&nbsp;edje_text_class_get(str, &amp;font, &amp;size);
+&nbsp;&nbsp;&nbsp;&nbsp;snprintf(text_class, PATH_MAX, &quot;%s font{%s} size{%d}&quot;, str, font, size);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the name, font, and size to the text_view part to show on the screen */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_text_set(ad-&gt;gui1_layout, &quot;text_view&quot;, text_class);
+}
+</pre>
+<p align="center"><img alt="Displaying text class properties" src="../../../images/text_class_properties.png" /></p>
+</li>
+</ol>
+
+
+<h2 id="layout" name="layout">Creating the Object Text Class Screen</h2>
+
+<p>The object text class screen consists of 2 swallow parts containing a Edje object text part at the top, 1 swallow part containing a spinner in the middle, and 1 swallow part containing a box of buttons at the bottom.</p>
+
+<p>To implement the object text class screen UI:</p>
+<ol>
+<li>Define the parts for the screen layout in the EDC file.
+<p>Define the background, a text for the spinner component, and the swallow parts for the text class, spinner, and button box parts.</p>
+
+<pre class="prettyprint">
+group
+{
+&nbsp;&nbsp;&nbsp;name: &quot;object_text_class_application&quot;;
+&nbsp;&nbsp;&nbsp;parts
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Background */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;bg&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: RECT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Swallow for the first text part */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;edje.swallow.group1&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.02 0.1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.3 0.2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Swallow for the second text part */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;edje.swallow.group2&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.5 0.1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.77 0.2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Swallow for the spinner */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;edje.swallow.spinner&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.2 0.2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.9 0.35;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Swallow for the button box */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;edje.swallow.buttons&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: SWALLOW;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 0.9;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 1.0 1.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/* Text for the spinner name */
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;text_spin&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: TEXT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scale: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 0 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel1.relative: 0.0 0.2;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;rel2.relative: 0.2 0.35;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text: &quot;Font Size&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;font: &quot;Sans&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;align: 0.0 0.5;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 13;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+<li>The text part is defined in a separate group in the EDC file, and used in both <span style="font-family: Courier New,Courier,monospace">edje.swallow.group1</span> and <span style="font-family: Courier New,Courier,monospace">edje.swallow.group2</span> swallow parts. 
+<p>The text part has the <span style="font-family: Courier New,Courier,monospace">custom_text_class</span> text class assigned to it. When the text class is modified, the font attributes of the text parts within the class are changed as well.</p>
+
+<pre class="prettyprint">
+group
+{
+&nbsp;&nbsp;&nbsp;name: &quot;edje_example&quot;;
+&nbsp;&nbsp;&nbsp;parts
+&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;part
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name: &quot;text_example&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type: TEXT;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;description
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;state: &quot;default&quot; 0.0;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visible: 1;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color: 0 0 0 255;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text: &quot;text part number 3&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;font: &quot;Sans&quot;;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;size: 10;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="highlight">text_class: &quot;custom_text_class&quot;;</span>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;}
+}
+</pre>
+</li>
+
+
+<li>In the C code, implement the <span style="font-family: Courier New,Courier,monospace">_create_text_class_gui()</span> callback (which is called when the user selects the <strong>Object Text Class API</strong> item on the main screen) to create the layout and add the required UI components.
+<p>Load the Edje objects used to show how the font size changes, and add a spinner for defining the font size.</p>
+
+<pre class="prettyprint">
+static void
+_create_text_class_gui(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data; /* Get the application data */
+&nbsp;&nbsp;&nbsp;&nbsp;char edj_path[PATH_MAX] = {0,}; /* Path to the EDC file */
+&nbsp;&nbsp;&nbsp;&nbsp;/* Get the EDC file */
+&nbsp;&nbsp;&nbsp;&nbsp;app_get_resource(EDJ_FILE, edj_path, (int)PATH_MAX);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Main Layout */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;gui2_layout = elm_layout_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;gui2_layout, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Load the layout (object_text_class_application group) from the EDC file */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_layout_file_set(ad-&gt;gui2_layout, edj_path, &quot;object_text_class_application&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;gui2_layout);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create the first text part Edje object */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;edje_object_1 = edje_object_add(evas_object_evas_get(ad-&gt;win));
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;edje_object_1, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Load the text part from the EDC file */
+&nbsp;&nbsp;&nbsp;&nbsp;edje_object_file_set(ad-&gt;edje_object_1, edj_path, &quot;edje_example&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Check for the object loading errors */
+&nbsp;&nbsp;&nbsp;&nbsp;if (edje_object_load_error_get(ad-&gt;edje_object_1) != EDJE_LOAD_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(ad-&gt;edje_object_1);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;edje_object_1);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the Edje object into the edje.swallow.group1 swallow part */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad-&gt;gui2_layout, &quot;edje.swallow.group1&quot;, ad-&gt;edje_object_1);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create the second text part Edje object */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;edje_object_2 = edje_object_add(evas_object_evas_get(ad-&gt;win));
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;edje_object_2, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Load the text part from the EDC file */
+&nbsp;&nbsp;&nbsp;&nbsp;edje_object_file_set(ad-&gt;edje_object_2, edj_path, &quot;edje_example&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Check for the object loading errors */
+&nbsp;&nbsp;&nbsp;&nbsp;if (edje_object_load_error_get(ad-&gt;edje_object_2) != EDJE_LOAD_ERROR_NONE) {
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;evas_object_del(ad-&gt;edje_object_2);
+
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return;
+&nbsp;&nbsp;&nbsp;&nbsp;}
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;edje_object_2);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the Edje object into the edje.swallow.group2 swallow part */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad-&gt;gui2_layout, &quot;edje.swallow.group2&quot;, ad-&gt;edje_object_2);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add the spinner */
+&nbsp;&nbsp;&nbsp;&nbsp;ad-&gt;spinner = elm_spinner_add(ad-&gt;win);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(ad-&gt;spinner, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(ad-&gt;spinner, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_spinner_min_max_set(ad-&gt;spinner, 1, 64);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_spinner_step_set(ad-&gt;spinner, 1);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(ad-&gt;spinner);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the original value to 10 */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_spinner_value_set(ad-&gt;spinner, 10);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the spinner into the edje.swallow.spinner swallow part */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad-&gt;gui2_layout, &quot;edje.swallow.spinner&quot;, ad-&gt;spinner);
+</pre>
+</li>
+<li>Create the button box:
+<ul>
+<li>Add 2 buttons for changing the font size of a specific object by modifying the <span style="font-family: Courier New,Courier,monospace">custom_text_class</span> text class. 
+<p>The <strong>Set1</strong> button sets a new size for the text class of the first text part Edje object and the <strong>Set2</strong> button for the second.</p></li>
+<li>Add 2 buttons for displaying the current font size of a specific object.
+<p>The <strong>Get1</strong> and <strong>Get2</strong> buttons get the text class properties and display them on the screen in the applicable text part Edje object.</p></li>
+<li>Add the <strong>Global</strong> button to change the text class globally, causing both Edje object parts to be changed, since they both contain the <span style="font-family: Courier New,Courier,monospace">custom_text_class</span> text class.</li>
+</ul>
+
+<p>Use the <span style="font-family: Courier New,Courier,monospace">evas_object_smart_callback_add()</span> function to register a callback for each button.</p>
+
+<pre class="prettyprint">
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *box;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Object *button;
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add the box */
+&nbsp;&nbsp;&nbsp;&nbsp;box = elm_box_add(ad-&gt;gui2_layout);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(box, EVAS_HINT_EXPAND, 0.0);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(box, EVAS_HINT_FILL, 0.0);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_horizontal_set(box, EINA_TRUE);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(box);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create the Set1 button to modify the font size of the first text part Edje object */
+&nbsp;&nbsp;&nbsp;&nbsp;button = elm_button_add(ad-&gt;gui2_layout);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(button, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(button, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(button, &quot;Set1&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(button);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button, &quot;clicked&quot;, _edje_object_text_class_set_1, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add the button to the box */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, button);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create the Set2, Get1, and Get2 buttons similarly */
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Create the Global button to modify the text class font size globally */
+&nbsp;&nbsp;&nbsp;&nbsp;button = elm_button_add(ad-&gt;gui2_layout);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_align_set(button, EVAS_HINT_FILL, EVAS_HINT_FILL);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_size_hint_weight_set(button, EVAS_HINT_EXPAND, EVAS_HINT_EXPAND);
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_text_set(button, &quot;Global&quot;);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_show(button);
+&nbsp;&nbsp;&nbsp;&nbsp;evas_object_smart_callback_add(button, &quot;clicked&quot;, _edje_text_class_set, ad);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Add the button to the box */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_box_pack_end(box, button);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the box into the edje.swallow.buttons swallow part */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_object_part_content_set(ad-&gt;gui2_layout, &quot;edje.swallow.buttons&quot;, box);
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Push the screen layout to the naviframe to display it */
+&nbsp;&nbsp;&nbsp;&nbsp;elm_naviframe_item_simple_push(ad-&gt;navifr, ad-&gt;gui2_layout);
+}
+</pre>
+
+
+<p align="center"><img alt="Second application screen" src="../../../images/text_screen_2.png" /></p></li>
+</ol>
+
+<h2 id="all" name="all">Modifying the Text Class Values</h2>
+
+<p>The user can modify the text class values using the spinner to set the new font size and clicking the applicable button to apply the change to one or both of the Edje objects.</p>
+
+<p>To modify the text class values:</p>
+
+<ul>
+<li>The text class is changed globally using the <span style="font-family: Courier New,Courier,monospace">edje_text_class_set()</span> function in the <strong>Global</strong> button callback:
+
+<pre class="prettyprint">
+static void
+_edje_text_class_set(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;edje_text_class_set(&quot;custom_text_class&quot;, &quot;Sans&quot;, elm_spinner_value_get(ad-&gt;spinner));
+}
+</pre>
+
+<p>Clicking <strong>Global</strong> recalculates all text parts in every Edje object that contains the <span style="font-family: Courier New,Courier,monospace">custom_text_class</span> text class and changes their size. In this example, it changes the size of both Edje objects at the top of the screen.</p>
+<p align="center"><img alt="Changing the text class globally" src="../../../images/change_text_globally.png" /></p>
+</li>
+<li>The text class is changed at the object level using the <span style="font-family: Courier New,Courier,monospace">edje_object_text_class_set()</span> function in the <strong>Set1</strong> and <strong>Set2</strong> button callbacks:
+
+<pre class="prettyprint">
+/* Set1 callback */
+static void
+_edje_object_text_class_set_1(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;edje_object_text_class_set(ad-&gt;edje_object_1, &quot;custom_text_class&quot;, &quot;Sans&quot;, elm_spinner_value_get(ad-&gt;spinner));
+}
+
+/* Set2 callback */
+static void
+_edje_object_text_class_set_2(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;edje_object_text_class_set(ad-&gt;edje_object_2, &quot;custom_text_class&quot;, &quot;Sans&quot;, elm_spinner_value_get(ad-&gt;spinner));
+}
+</pre>
+
+<p>Clicking <strong>Set1</strong> recalculates all text parts within the <span style="font-family: Courier New,Courier,monospace">edje_object_1</span> that contains the <span style="font-family: Courier New,Courier,monospace">custom_text_class</span> text class and changes their size. In this example, it changes the font size of the left Edje object at the top of the screen. Similarly, clicking <strong>Set2</strong> changes the font size of the right Edje object at the top of the screen.</p>
+<p align="center"><img alt="Font size 16" src="../../../images/object_size_16.png" /> <img alt="Font size 16" src="../../../images/object_size_44.png" /> <img alt="Font size 16" src="../../../images/object_size_22.png" /></p>
+</li>
+</ul>
+
+<h2 id="get" name="get">Getting the Text Class Values</h2>
+
+<p>The user can retrieve the current text class values of a specific Edje object by clicking the applicable button. The current font and size are displayed as text in the Edje object.</p>
+
+<p>To retrieve the text class values, use the <span style="font-family: Courier New,Courier,monospace">edje_object_text_class_get()</span> function in the <strong>Get1</strong> and <strong>Get2</strong> button callbacks:</p>
+
+<pre class="prettyprint">
+/* Get1 callback */
+static void
+_edje_object_text_class_get_1(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;char *font;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Font_Size size;
+&nbsp;&nbsp;&nbsp;&nbsp;char text_class[PATH_MAX] = {0,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve the values */
+&nbsp;&nbsp;&nbsp;&nbsp;edje_object_text_class_get(ad-&gt;edje_object_1, &quot;custom_text_class&quot;, &amp;font, &amp;size);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Define a text string listing the values */
+&nbsp;&nbsp;&nbsp;&nbsp;snprintf(text_class, PATH_MAX, &quot;font{%s} size{%d}&quot;, font, size);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the text to the left Edje object */
+&nbsp;&nbsp;&nbsp;&nbsp;edje_object_part_text_set(ad-&gt;edje_object_1, &quot;text_example&quot;, text_class);
+}
+
+/* Get2 callback */
+static void
+_edje_object_text_class_get_2(void *data, Evas_Object *obj, void *event_info)
+{
+&nbsp;&nbsp;&nbsp;&nbsp;appdata_s *ad = data;
+&nbsp;&nbsp;&nbsp;&nbsp;char *font;
+&nbsp;&nbsp;&nbsp;&nbsp;Evas_Font_Size size;
+&nbsp;&nbsp;&nbsp;&nbsp;char text_class[PATH_MAX] = {0,};
+
+&nbsp;&nbsp;&nbsp;&nbsp;/* Retrieve the values */
+&nbsp;&nbsp;&nbsp;&nbsp;edje_object_text_class_get(ad-&gt;edje_object_2, &quot;custom_text_class&quot;, &amp;font, &amp;size);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Define a text string listing the values */
+&nbsp;&nbsp;&nbsp;&nbsp;snprintf(text_class, PATH_MAX, &quot;font{%s} size{%d}&quot;, font, size);
+&nbsp;&nbsp;&nbsp;&nbsp;/* Set the text to the right Edje object */
+&nbsp;&nbsp;&nbsp;&nbsp;edje_object_part_text_set(ad-&gt;edje_object_2, &quot;text_example&quot;, text_class);
+}
+</pre>
+
+<p>Clicking <strong>Get1</strong> retrieves the current <span style="font-family: Courier New,Courier,monospace">custom_text_class</span> values for the <span style="font-family: Courier New,Courier,monospace">edje_object_1</span> object and displays them in the left Edje object at the top of the screen. Similarly, clicking <strong>Get2</strong> displays the current values for the <span style="font-family: Courier New,Courier,monospace">edje_object_2</span> object in the right Edje object at the top of the screen.</p>
+
+<p>The user has previously set the spinner font size to <strong>16</strong> and clicked <strong>Set1</strong>, and then set the spinner to <strong>22</strong> and clicked <strong>Set2</strong>. The following figure shows the result when the user then clicks <strong>Get1</strong> and <strong>Get2</strong>.</p>
+
+<p align="center"><img alt="Displaying text class values" src="../../../images/display_text_classes.png" /></p>
+
+<script type="text/javascript" src="../../../scripts/jquery.zclip.min.js"></script>
+<script type="text/javascript" src="../../../scripts/showhide.js"></script>
+
+</div></div></div>
+
+<a class="top sms" href="#"><img src="../../../images/btn_top.gif" alt="Go to top" /></a>
+
+<div id="footer">
+<p class="footer">Except as noted, this content - excluding the Code Examples - is licensed under <a href="http://creativecommons.org/licenses/by/3.0/legalcode" target="_blank">Creative Commons Attribution 3.0</a> and all of the Code Examples contained herein are licensed under <a href="https://www.tizen.org/bsd-3-clause-license" target="_blank">BSD-3-Clause</a>.<br/>For details, see the <a href="https://www.tizen.org/content-license" target="_blank">Content License</a>.</p>
+</div>	
+
+<script type="text/javascript">
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-25976949-1']);
+_gaq.push(['_trackPageview']);
+(function() {
+var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+</script>
+
+</body>
+</html>
